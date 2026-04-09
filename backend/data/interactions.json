@@ -1,0 +1,23 @@
+[
+  {
+    "medA_id": "M001",
+    "medB_id": "M002",
+    "severity": "Moderate",
+    "reason": "Both Metformin and Ashwagandha can lower blood sugar levels. Taking them together may increase the risk of hypoglycemia (low blood sugar).",
+    "recommendation": "Monitor blood sugar closely. Adjust dosages under medical supervision."
+  },
+  {
+    "medA_id": "M003",
+    "medB_id": "M004",
+    "severity": "Severe",
+    "reason": "Amlodipine (calcium channel blocker) and Sarpagandha (contains reserpine) both significantly lower blood pressure. Co-administration can cause dangerous severe hypotension.",
+    "recommendation": "Avoid combining these without strict oversight from an integrative physician."
+  },
+  {
+    "medA_id": "M007",
+    "medB_id": "M008",
+    "severity": "Moderate",
+    "reason": "Ibuprofen acts as an NSAID and Ginseng can have mild antiplatelet effects. Using them together might mildly increase bleeding risk.",
+    "recommendation": "Use cautiously if you have bleeding disorders."
+  }
+]

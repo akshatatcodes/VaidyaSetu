@@ -1,0 +1,62 @@
+[
+  {
+    "id": "D001",
+    "name": "Type 2 Diabetes",
+    "generalAdvice": ["Monitor blood sugar daily", "Maintain a low glycemic index diet", "Exercise 30 mins a day"],
+    "ayushAdvice": "Consume Jamun seed powder, Karela juice on empty stomach. Practice Mandukasana."
+  },
+  {
+    "id": "D002",
+    "name": "Hypertension",
+    "generalAdvice": ["Reduce sodium intake", "Regular aerobic exercise", "Stress management via meditation"],
+    "ayushAdvice": "Drink water stored in copper vessels. Consume Ashwagandha and Arjuna bark decoction."
+  },
+  {
+    "id": "D003",
+    "name": "Anemia",
+    "generalAdvice": ["Increase Iron and Vitamin C intake", "Avoid taking iron with dairy or calcium"],
+    "ayushAdvice": "Cook in cast iron skillets. Consume Amla, Punarnava, and jaggery with sesame seeds."
+  },
+  {
+    "id": "D004",
+    "name": "Thyroid Disorders (Hypothyroidism)",
+    "generalAdvice": ["Take medication on an empty stomach", "Monitor TSH levels every 3-6 months"],
+    "ayushAdvice": "Consume Guggul and Kanchanar. Practice Ujjayi Pranayama daily to stimulate thyroid gland."
+  },
+  {
+    "id": "D005",
+    "name": "Asthma",
+    "generalAdvice": ["Identify and avoid triggers", "Keep an emergency inhaler accessible"],
+    "ayushAdvice": "Drink warm water with honey and Pippali. Practice deep breathing (Anulom Vilom)."
+  },
+  {
+    "id": "D006",
+    "name": "PCOS",
+    "generalAdvice": ["Weight management is crucial", "Low-carb, high-protein diet"],
+    "ayushAdvice": "Shatavari and Ashoka herbs help balance hormones. Engage in daily Surya Namaskar."
+  },
+  {
+    "id": "D007",
+    "name": "Osteoarthritis",
+    "generalAdvice": ["Maintain healthy weight to reduce joint stress", "Engage in low-impact exercises like swimming"],
+    "ayushAdvice": "Apply Mahanarayan oil locally. Consume Shallaki and Curcumin (Turmeric) for inflammation."
+  },
+  {
+    "id": "D008",
+    "name": "Insomnia",
+    "generalAdvice": ["Maintain rigid sleep schedule", "Reduce blue light exposure 2 hours before bed"],
+    "ayushAdvice": "Consume warm milk with nutmeg. Take Brahmi and Jatamansi before bed."
+  },
+  {
+    "id": "D009",
+    "name": "Acid Peptic Disease (Acidity)",
+    "generalAdvice": ["Eat smaller, frequent meals", "Avoid spicy, fried foods and caffeine late at night"],
+    "ayushAdvice": "Drink cumin and fennel seed water. Consume Amalaki and Kamadugha Ras."
+  },
+  {
+    "id": "D010",
+    "name": "Depression / Anxiety",
+    "generalAdvice": ["Seek cognitive behavioral therapy", "Regular exercise boosts serotonin"],
+    "ayushAdvice": "Ashwagandha, Brahmi, and Shankhpushpi are excellent nervine tonics. Practice Shirodhara."
+  }
+]
