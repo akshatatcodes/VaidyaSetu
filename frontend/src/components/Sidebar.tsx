@@ -23,7 +23,7 @@ export default async function Sidebar() {
             </div>
           ) : (
              <div className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer text-center">
-              <SignInButton mode="modal" fallbackRedirectUrl="/"><span>Sign In</span></SignInButton>
+              <SignInButton mode="modal" fallbackRedirectUrl="/">Sign In</SignInButton>
             </div>
           )}
         </div>
@@ -69,7 +69,7 @@ export default async function Sidebar() {
             </div>
           ) : (
             <div className="w-full flex items-center justify-center px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors cursor-pointer text-center">
-              <SignInButton mode="modal" fallbackRedirectUrl="/"><span>Sign In</span></SignInButton>
+              <SignInButton mode="modal" fallbackRedirectUrl="/">Sign In</SignInButton>
             </div>
           )}
         </div>

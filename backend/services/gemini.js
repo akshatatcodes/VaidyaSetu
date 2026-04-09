@@ -1,132 +1,109 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { extractFromImageGroq } = require('./groqVision');
 const { extractFromImageLocal } = require('./ocr');
 const { prepareImageForAI } = require('./image');
+const { localFuzzyRefine } = require('./localRefiner');
 
 const isMock = !process.env.GEMINI_API_KEY;
-const ai = isMock ? null : new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = isMock ? null : new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
- * Universal normalization helper to extract a clean string array.
+ * Universal normalization helper
  */
 function normalizeMedicines(data) {
   if (!data) return [];
   if (Array.isArray(data)) {
     return data.map(m => (typeof m === 'string' ? m : (m.name || JSON.stringify(m)))).filter(Boolean);
   }
-  if (typeof data === 'object') {
-    const list = data.medicines || data.list || data.names || Object.values(data).find(Array.isArray);
-    if (list && Array.isArray(list)) {
-      return normalizeMedicines(list);
-    }
-  }
   return [];
 }
 
 /**
- * PROMPT UPGRADE: Medical Deciphering
- * Specifically tuned for Indian Doctor Handwriting and shorthands.
+ * Robust JSON Array Extractor
  */
-const MEDICAL_DECIPHER_PROMPT = `
-System: You are an expert Indian Medical Pharmacist and Handwriting Decipherer.
-Task: Identify all valid medicines from this handwritten prescription.
+function extractJsonArray(text) {
+  try {
+    if (!text) return [];
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    try {
+      const parsed = JSON.parse(cleanText);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === 'object') {
+        const list = parsed.medicines || parsed.list || parsed.names || Object.values(parsed).find(Array.isArray);
+        if (list) return list;
+      }
+    } catch (e) {
+      const match = cleanText.match(/\[.*\]/s);
+      if (match) {
+        try { return JSON.parse(match[0]); } catch { return []; }
+      }
+    }
+    return [];
+  } catch (err) {
+    return [];
+  }
+}
 
-DECODING RULES:
-1. Doctors often use shorthand: "Ts." or "Tabs." means Tablets, "Cap." means Capsules, "Sy." means Syrup.
-2. Use medical logic to decipher sloppy handwriting (e.g., "Amdoc.." is likely Amdocal, "Eltrox.." is Eltroxin).
-3. Ignore unrelated text like clinic names, dates, or blood pressure numbers.
-4. ONLY return a JSON array of clean medicine names. No categories, no dosages.
-
-Example Output: ["Amdocal Plus", "Eltroxin", "Panical"]
-`;
+const DUAL_MODE_PROMPT = `Extract medicine names into a simple JSON array. Output ONLY the array.`;
 
 /**
- * Refinement Bridge - Consolidation with Auto-Fallback
+ * Triple-Fallback Extraction Engine (Highly Resilient)
+ */
+async function extractFromImage(fileBuffer, mimeType) {
+  const base64Image = fileBuffer.toString('base64');
+  const optimizedBase64 = await prepareImageForAI(base64Image);
+
+  // Stage 1: Gemini (Try despite potential quota error)
+  console.log("💎 Stage 1: Checking Gemini (Flash Latest)...");
+  if (genAI) {
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ inlineData: { data: optimizedBase64, mimeType: 'image/jpeg' } }, { text: DUAL_MODE_PROMPT }] }]
+      });
+      const medicines = normalizeMedicines(extractJsonArray(result.response.text()));
+      if (medicines.length > 0) return medicines;
+    } catch (e) {
+      console.warn("Gemini Stage Skipped (Quota Likely).");
+    }
+  }
+
+  // Stage 2: Local Tesseract + AI Refinement (The reliable part)
+  console.log("🛡️ Stage 2: Local Tesseract OCR...");
+  try {
+    const ocrText = await extractFromImageLocal(optimizedBase64, 'image/jpeg');
+    console.log("📄 OCR Text Extracted. Now refining with Llama 70B...");
+    return await refineTextAI(ocrText);
+  } catch (err) {
+    console.error("Local OCR Failed. Using Fuzzy Match.");
+    return localFuzzyRefine("");
+  }
+}
+
+/**
+ * Refinement Bridge - Groq 70B Focus
  */
 async function refineTextAI(rawText) {
   if (!rawText) return [];
-  
-  const prompt = `Refine this messy medical OCR text into a clean JSON array of medicine names.
-  Text: "${rawText}"
-  Return ONLY the array. e.g. ["Med1", "Med2"]`;
 
-  // Attempt 1: Groq (Fast)
+  // Attempt 1: Groq Llama 3.3 70B
+  console.log("🧠 Refinement: Using Llama-3.3-70b-versatile...");
   try {
     const Groq = require('groq-sdk');
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: `You are a medical OCR purifier. Identify all medicine brand or generic names from this messy OCR text and return them ONLY as a JSON array of strings: "${rawText}"` }],
     });
-    let content = completion.choices[0].message.content || "[]";
-    content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-    return normalizeMedicines(JSON.parse(content));
+    const result = extractJsonArray(completion.choices[0].message.content);
+    if (result && result.length > 0) return normalizeMedicines(result);
   } catch (e) {
-    console.warn("Groq refinement failed (Rate limit?). Falling back to Gemini...");
-    
-    // Attempt 2: Gemini Fallback (High capacity)
-    try {
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-      return normalizeMedicines(JSON.parse(text));
-    } catch (geminiError) {
-      console.error("Critical: All refinement failed.");
-      return [];
-    }
+    console.warn("Groq 70B Refinement Failed:", e.message);
   }
+
+  // Attempt 2: Local Smart Matcher (Regex + Database)
+  console.log("🧱 Refinement: Using Local Safety Net (Fuzzy + Patterns)...");
+  return localFuzzyRefine(rawText);
 }
 
-/**
- * Triple-Fallback Extraction Engine
- */
-async function extractFromImage(fileBuffer, mimeType) {
-  if (isMock) throw new Error("GEMINI_API_KEY missing");
-
-  const base64Image = fileBuffer.toString('base64');
-  const optimizedBase64 = await prepareImageForAI(base64Image);
-
-  // Stage 1: Gemini 2.0 Flash (Intuitive Vision)
-  console.log("💎 Attempting Gemini 2.0 Flash (Intuitive Mode)...");
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { inlineData: { data: optimizedBase64, mimeType: 'image/jpeg' } },
-            { text: MEDICAL_DECIPHER_PROMPT }
-          ]
-        }
-      ],
-      config: { 
-        responseMimeType: "application/json",
-        temperature: 0.2 // Slight temperature allows for handwriting "guessing"
-      }
-    });
-
-    const rawResult = JSON.parse(response.text);
-    return normalizeMedicines(rawResult);
-  } catch (e) {
-    console.warn("Gemini Vision failed. Trying Groq...");
-  }
-
-  // Stage 2: Groq Vision (Fallback)
-  try {
-    return await extractFromImageGroq(optimizedBase64, 'image/jpeg');
-  } catch (groqError) {
-    console.warn("Groq Vision failed. Trying Local OCR...");
-  }
-
-  // Stage 3: Local OCR + Resilient Refinement
-  try {
-    const ocrText = await extractFromImageLocal(optimizedBase64, 'image/jpeg');
-    return await refineTextAI(ocrText);
-  } catch (err) {
-    throw new Error("Medicine extraction failed across all engines.");
-  }
-}
-
-module.exports = { extractFromImage, refineTextAI };
+module.exports = { extractFromImage, refineTextAI, extractJsonArray };

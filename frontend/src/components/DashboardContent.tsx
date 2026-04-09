@@ -2,12 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Activity, HeartPulse, AlertTriangle, Pill, X, BrainCircuit, ScanSearch, Loader2 } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import AutocompleteInput from "./AutocompleteInput";
 import OnboardingModal from "./OnboardingModal";
+import MedicalReport from "./MedicalReport";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 export default function DashboardContent() {
-  const { userId, isLoaded } = useAuth();
+  const { user, isLoaded: userLoaded } = useUser();
+  const { userId, isLoaded: authLoaded } = useAuth();
+  const isLoaded = userLoaded && authLoaded;
   const [diseases, setDiseases] = useState<string[]>([]);
   const [medicines, setMedicines] = useState<string[]>([]);
   
@@ -16,9 +21,11 @@ export default function DashboardContent() {
   const [pageLoading, setPageLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [language, setLanguage] = useState("English");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   // Text to Speech Logic Phase 6
   const speakText = (text: string) => {
@@ -52,16 +59,23 @@ export default function DashboardContent() {
         method: "POST",
         body: formData,
       });
-      const json = await res.json();
-      if (json.status === "success" && Array.isArray(json.data)) {
-        const newMeds = json.data.filter((m: string) => !medicines.includes(m));
-        if (newMeds.length > 0) {
-          setMedicines(prev => [...prev, ...newMeds]);
+        const json = await res.json();
+        if (json.status === "success" && Array.isArray(json.data)) {
+          if (json.data.length === 0) {
+            alert("No medicines clearly identified. Please ensure the image is well-lit and the text is readable.");
+          } else {
+            const newMeds = json.data.filter((m: string) => !medicines.includes(m));
+            if (newMeds.length > 0) {
+              setMedicines(prev => [...prev, ...newMeds]);
+            } else {
+              alert("All identified medicines are already in your list.");
+            }
+          }
         }
-      }
-    } catch(e) {
-      console.error("OCR Failed", e);
-    } finally {
+      } catch(e) {
+        console.error("OCR Failed", e);
+        alert("OCR System Error. Falling back to manual entry.");
+      } finally {
       setIsScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -137,6 +151,43 @@ export default function DashboardContent() {
     return () => clearTimeout(timeout);
   }, [diseases, medicines, language]);
 
+  // PDF Generation Logic Phase 6
+  const handleDownloadReport = async () => {
+    if (!reportRef.current) return;
+    setDownloading(true);
+    
+    // Ensure the page is scrolled to top for accurate capture
+    window.scrollTo(0, 0);
+    
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 1.5, // Balanced resolution to avoid memory limits
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff" // Ensure crisp background
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`VaidyaSetu-Report-${language}.pdf`);
+    } catch (err) {
+      console.error("PDF Generation failed:", err);
+      alert("AI PDF Export Failed. Please use the 'Print Report' button for a reliable version.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handlePrintReport = () => {
+    // Brief timeout to ensure any UI states are settled
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
 
   const hasInteractions = report?.interactionWarnings?.length > 0;
   const healthScore = Math.max(0, 100 - (diseases.length * 10) - (report?.interactionWarnings?.length || 0) * 20);
@@ -163,16 +214,40 @@ export default function DashboardContent() {
           <h2 className="text-2xl font-bold text-white mb-1">Health Overview</h2>
           <p className="text-gray-500 text-sm">Real-time analysis in {language}</p>
         </div>
-        <div className="flex items-center bg-gray-900 border border-gray-800 rounded-xl p-1">
-          {["English", "Hindi", "Marathi", "Tamil"].map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setLanguage(lang)}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${language === lang ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-            >
-              {lang}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center bg-gray-900 border border-gray-800 rounded-xl p-1">
+            {["English", "Hindi", "Marathi", "Tamil"].map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setLanguage(lang)}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${language === lang ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
+
+          {report && (
+              <div className="flex gap-4">
+                <button
+                  onClick={handleDownloadReport}
+                  disabled={downloading}
+                  className="flex-1 px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 disabled:opacity-50"
+                >
+                  {downloading ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Saving...</>
+                  ) : (
+                    <>Save as AI PDF</>
+                  )}
+                </button>
+                <button
+                  onClick={handlePrintReport}
+                  className="px-6 py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-2xl font-bold transition-all border border-gray-700 no-print"
+                >
+                  Print Report
+                </button>
+              </div>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
@@ -416,6 +491,18 @@ export default function DashboardContent() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Hidden Report Container for PDF Generation */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        <MedicalReport 
+          ref={reportRef}
+          user={user}
+          diseases={diseases}
+          medicines={medicines}
+          report={report}
+          language={language}
+        />
       </div>
     </>
   );

@@ -1,9 +1,9 @@
 const Groq = require("groq-sdk");
-const { GoogleGenAI } = require("@google/genai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Clients
 let groqClient = null;
-const geminiAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 try {
   if (process.env.GROQ_API_KEY) {
@@ -55,9 +55,9 @@ async function generateAIInsight(staticReport, liveData = [], language = 'Englis
     }
   }
 
-  // Attempt 2: Gemini 1.5 Flash Fallback
+  // Attempt 2: Gemini 2.0 Flash Fallback
   try {
-    const model = geminiAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent(prompt + "\nIMPORTANT: Return ONLY valid JSON.");
     const response = await result.response;
     let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();

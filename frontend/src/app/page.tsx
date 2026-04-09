@@ -23,7 +23,7 @@ export default async function Home() {
           <p className="text-gray-400 mb-8 max-w-md">Track your vitals, manage prescriptions, and receive AI-powered interaction alerts securely.</p>
           <div className="mt-8 rounded-xl overflow-hidden shadow-lg border border-emerald-500/30">
             <div className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors cursor-pointer w-full text-center">
-              <SignInButton mode="modal" fallbackRedirectUrl="/"><span>Get Started</span></SignInButton>
+              <SignInButton mode="modal" fallbackRedirectUrl="/">Get Started</SignInButton>
             </div>
           </div>
         </div>
