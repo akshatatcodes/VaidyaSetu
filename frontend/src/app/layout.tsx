@@ -17,15 +17,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={`${inter.className} bg-gray-950 text-gray-100 flex flex-col md:flex-row min-h-screen`}>
+    <html lang="en">
+      <body className={`${inter.className} bg-gray-950 text-gray-100 flex flex-col md:flex-row min-h-screen`}>
+        <ClerkProvider>
           <Sidebar />
           <main className="flex-1 p-4 sm:p-8 md:p-12 w-full">
             {children}
           </main>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

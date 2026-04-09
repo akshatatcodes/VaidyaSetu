@@ -3,10 +3,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 const { analyzeProfile } = require('./services/ruleEngine');
-const { generateAIInsight } = require('./services/aiExplainer');
+const { generateAIInsight, extractMedicinesFromOCR } = require('./services/aiExplainer');
+const { extractFromImage } = require('./services/gemini');
+const { getDrugDetails } = require('./services/rxnav');
+const { getFDAWarnings } = require('./services/openfda');
 const User = require('./models/User');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 
@@ -29,17 +35,31 @@ app.get('/api/health', (req, res) => {
 // Phase 2: Static Engine Analyzer Route
 app.post('/api/analyze', async (req, res) => {
   try {
-    const { diseases, medicines } = req.body;
+    const { diseases, medicines, language } = req.body;
     const userDiseases = Array.isArray(diseases) ? diseases : [];
     const userMedicines = Array.isArray(medicines) ? medicines : [];
+    const targetLang = language || 'English';
 
+    // 1. Static Rule Engine ( AYUSH / Local Checks )
     const report = await analyzeProfile(userDiseases, userMedicines);
     
-    // Phase 3: Feed static report into Llama 3 for biological explanation
-    const aiInsight = await generateAIInsight(report);
+    // 2. Live Clinical Data Fetch ( RxNav + openFDA )
+    const liveData = [];
+    for (const med of userMedicines) {
+      try {
+        const [rx, fda] = await Promise.all([getDrugDetails(med), getFDAWarnings(med)]);
+        liveData.push({ name: med, composition: rx.composition, warnings: fda.warnings, interactions: fda.interactions });
+      } catch (e) { console.warn(`Live data fail for ${med}`); }
+    }
+
+    // 3. Phase 6: Feed hybrid data into Llama 3 for Multilingual Insight
+    const aiResponse = await generateAIInsight(report, liveData, targetLang);
     
-    // Attach and return hybrid structure
-    report.aiInsight = aiInsight;
+    // Attach and return structure matching Mediscan's enriched output
+    report.aiInsight = aiResponse.explanation;
+    report.alternatives = aiResponse.alternatives;
+    report.liveData = liveData;
+
     res.status(200).json({ status: 'success', data: report });
   } catch (error) {
     console.error('Analyzer Error:', error);
@@ -88,6 +108,23 @@ app.post('/api/user/update', async (req, res) => {
     res.json({ status: 'success', data: user });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+// Phase 5: Smart OCR API Upload
+app.post('/api/ocr', upload.single('prescription'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ status: 'error', message: 'No image provided for OCR.' });
+    }
+
+    // Single call to the Triple-Fallback Engine (Gemini -> Groq -> Local)
+    const medicines = await extractFromImage(req.file.buffer, req.file.mimetype);
+    
+    res.json({ status: 'success', data: medicines });
+  } catch (error) {
+    console.error('OCR Pipeline Critical Error:', error.message);
+    res.status(500).json({ status: 'error', message: 'Medicine extraction system failed.' });
   }
 });
 

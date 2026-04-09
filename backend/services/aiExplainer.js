@@ -1,58 +1,82 @@
 const Groq = require("groq-sdk");
+const { GoogleGenAI } = require("@google/genai");
 
-// Create Groq SDK client using the API Key loaded dynamically via dotenv in server.js
+// Clients
 let groqClient = null;
+const geminiAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 try {
   if (process.env.GROQ_API_KEY) {
     groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  } else {
-    console.warn("GROQ_API_KEY is missing! Using Mock AI fallback.");
   }
 } catch (e) {
   console.error("Groq initialization failed:", e);
 }
 
 /**
- * Pipes the strict static JSON flags into Llama 3 to get a rich, biological explanation.
- * @param {Object} staticReport The generated JSON static report object.
+ * Pipes the static flags + live medical data into Llama 3 for a rich, multilingual analysis.
+ * Fallback to Gemini 1.5 Flash if Groq is rate-limited.
  */
-async function generateAIInsight(staticReport) {
-  // If there are absolutely no warnings, AI isn't strictly necessary.
-  if (staticReport.interactionWarnings.length === 0 && staticReport.diseaseWarnings.length === 0) {
-    return "Your profile looks excellent! No known severe medical conflicts were found in our database. Continue following standard medical advice.";
-  }
-
-  if (!groqClient) {
-    return "API Key for generative insights missing. Please consult the static warnings strictly.";
-  }
-
-  // Construct context prompt securely referencing the static output
+async function generateAIInsight(staticReport, liveData = [], language = 'English') {
   const prompt = `
-  You are VaidyaSetu, a highly intelligent hybrid AI health advisor. 
-  Your job is NOT to diagnose new conditions. Your job is exclusively to explain the biological WHY behind the following hardcoded database interactions flag. 
+  You are VaidyaSetu, a highly experienced Indian Pharmacist and Hybrid AI Safety Expert.
+  TASK: Analyze the patient's medical profile based on these inputs.
   
-  Static Engine Flags detected:
+  SYSTEM DATA (Static Engine Flags):
   - Interaction Warnings: ${JSON.stringify(staticReport.interactionWarnings)}
-  - Disease Advice Flags: ${JSON.stringify(staticReport.diseaseWarnings)}
+  - AYUSH/Disease Advice: ${JSON.stringify(staticReport.diseaseWarnings)}
 
-  Explain the mechanism of these specific conflicts in simple, patient-friendly terms (max 3 paragraphs). 
-  Be empathetic but extremely clinically precise. Do not invent new interactions.
+  LIVE CLINICAL DATA (RxNav/openFDA):
+  ${JSON.stringify(liveData)}
+
+  INSTRUCTIONS:
+  1. EXPLAIN the biological mechanism and the "WHY" behind any conflicts in ${language}.
+  2. SUGGESTED ALTERNATIVES: For high-risk medications, identify 2-3 safer choices common in India.
+  3. LANGUAGE: Use simple, patient-friendly terms (10-year-old level).
+  4. FORMAT: Return the output strictly as a JSON object:
+  {
+    "explanation": "...",
+    "alternatives": [{ "name": "...", "type": "...", "reason": "..." }]
+  }
   `;
 
-  try {
-    const chatCompletion = await groqClient.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "llama-3.1-8b-instant",
-      temperature: 0.3, // Keep hallucinations at near-zero
-      max_tokens: 500
-    });
+  // Attempt 1: Groq (Llama-3)
+  if (groqClient) {
+    try {
+      const chatCompletion = await groqClient.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.1-8b-instant",
+        temperature: 0.3,
+        response_format: { type: "json_object" }
+      });
+      return JSON.parse(chatCompletion.choices[0]?.message?.content || "{}");
+    } catch (error) {
+      console.warn("Groq Insight Rate Limited. Falling back to Gemini...");
+    }
+  }
 
-    return chatCompletion.choices[0]?.message?.content || "No AI insight generated.";
+  // Attempt 2: Gemini 1.5 Flash Fallback
+  try {
+    const model = geminiAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt + "\nIMPORTANT: Return ONLY valid JSON.");
+    const response = await result.response;
+    let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(text);
   } catch (error) {
-    console.error("Llama-3 API Error:", error.message);
-    return "AI Insight module is temporarily down. Please refer strictly to the static warnings.";
+    console.error("Critical: All Insight Engines failed.", error.message);
+    return {
+      explanation: "AI Safety module is currently busy. Please strictly follow the static database warnings below.",
+      alternatives: []
+    };
   }
 }
 
-module.exports = { generateAIInsight };
+/**
+ * Extracts medicine names with auto-fallback.
+ */
+async function extractMedicinesFromOCR(rawText) {
+  const { refineTextAI } = require('./gemini');
+  return await refineTextAI(rawText);
+}
+
+module.exports = { generateAIInsight, extractMedicinesFromOCR };

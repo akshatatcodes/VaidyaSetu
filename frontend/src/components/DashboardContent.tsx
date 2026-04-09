@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Activity, HeartPulse, AlertTriangle, Pill, X, BrainCircuit } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Activity, HeartPulse, AlertTriangle, Pill, X, BrainCircuit, ScanSearch, Loader2 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import AutocompleteInput from "./AutocompleteInput";
 import OnboardingModal from "./OnboardingModal";
@@ -15,6 +15,57 @@ export default function DashboardContent() {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [language, setLanguage] = useState("English");
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Text to Speech Logic Phase 6
+  const speakText = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const langMap: any = { 'Hindi': 'hi-IN', 'Marathi': 'mr-IN', 'Tamil': 'ta-IN', 'English': 'en-US' };
+    utterance.lang = langMap[language] || 'en-US';
+    utterance.rate = 0.9;
+    utterance.onend = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeech = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  // File Upload Handler Phase 5
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    const formData = new FormData();
+    formData.append("prescription", file);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/ocr", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.status === "success" && Array.isArray(json.data)) {
+        const newMeds = json.data.filter((m: string) => !medicines.includes(m));
+        if (newMeds.length > 0) {
+          setMedicines(prev => [...prev, ...newMeds]);
+        }
+      }
+    } catch(e) {
+      console.error("OCR Failed", e);
+    } finally {
+      setIsScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Fetch User Profile
   useEffect(() => {
@@ -66,7 +117,7 @@ export default function DashboardContent() {
         const res = await fetch("http://localhost:5000/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ diseases, medicines })
+          body: JSON.stringify({ diseases, medicines, language })
         });
         if (!res.ok) return;
         const text = await res.text();
@@ -84,7 +135,7 @@ export default function DashboardContent() {
     
     const timeout = setTimeout(fetchAnalysis, 500);
     return () => clearTimeout(timeout);
-  }, [diseases, medicines]);
+  }, [diseases, medicines, language]);
 
 
   const hasInteractions = report?.interactionWarnings?.length > 0;
@@ -107,7 +158,23 @@ export default function DashboardContent() {
         />
       )}
 
-      {/* Dynamic Input Forms */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-1">Health Overview</h2>
+          <p className="text-gray-500 text-sm">Real-time analysis in {language}</p>
+        </div>
+        <div className="flex items-center bg-gray-900 border border-gray-800 rounded-xl p-1">
+          {["English", "Hindi", "Marathi", "Tamil"].map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setLanguage(lang)}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${language === lang ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              {lang}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <h3 className="text-gray-300 font-medium mb-4 flex items-center"><Activity className="w-4 h-4 mr-2 text-emerald-500"/> My Conditions</h3>
@@ -133,7 +200,18 @@ export default function DashboardContent() {
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-          <h3 className="text-gray-300 font-medium mb-4 flex items-center"><Pill className="w-4 h-4 mr-2 text-blue-500"/> My Medications</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-gray-300 font-medium flex items-center"><Pill className="w-4 h-4 mr-2 text-blue-500"/> My Medications</h3>
+            
+            <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isScanning}
+              className={`flex items-center text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${isScanning ? 'bg-indigo-900/50 border-indigo-700 text-indigo-400 cursor-not-allowed' : 'bg-indigo-600/20 hover:bg-indigo-600/30 border-indigo-500/50 text-indigo-400 cursor-pointer shadow-[0_0_10px_rgba(99,102,241,0.2)]'}`}>
+              {isScanning ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <ScanSearch className="w-4 h-4 mr-2"/>}
+              {isScanning ? "Scanning Image..." : "Scan Prescription"}
+            </button>
+          </div>
           
           <AutocompleteInput 
             placeholder="Search for medications..."
@@ -208,13 +286,43 @@ export default function DashboardContent() {
           {report && report.aiInsight && (
             <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/30 rounded-2xl p-6 relative overflow-hidden shadow-[0_0_30px_rgba(168,85,247,0.15)]">
               <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                <BrainCircuit className="w-6 h-6 mr-3 text-purple-400" /> 
-                Llama-3 Biological Insight
-              </h2>
-              <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap relative z-10">
+              
+              <div className="flex justify-between items-start mb-4 relative z-10">
+                <h2 className="text-xl font-bold text-white flex items-center">
+                  <BrainCircuit className="w-6 h-6 mr-3 text-purple-400" /> 
+                  VaidyaSetu AI Insight
+                </h2>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => isSpeaking ? stopSpeech() : speakText(report.aiInsight)}
+                    className="p-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 rounded-lg text-purple-300 transition-all"
+                    title={isSpeaking ? "Stop Reading" : "Read Aloud"}
+                  >
+                    {isSpeaking ? <X className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap relative z-10 mb-6">
                 {report.aiInsight}
               </div>
+
+              {report.alternatives && report.alternatives.length > 0 && (
+                <div className="relative z-10 pt-4 border-t border-purple-500/20">
+                  <h4 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">Suggested Indian Alternatives</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {report.alternatives.map((alt: any, i: number) => (
+                      <div key={i} className="bg-black/20 border border-purple-500/10 rounded-xl p-3">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-white font-bold text-xs">{alt.name}</p>
+                          <span className="text-[9px] px-1.5 py-0.5 bg-purple-900/40 text-purple-300 rounded uppercase">{alt.type}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 leading-tight">{alt.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

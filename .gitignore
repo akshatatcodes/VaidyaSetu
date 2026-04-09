@@ -7,3 +7,7 @@ node_modules/
 dist/
 build/
 .DS_Store
+
+Mediscan-Safety-main/
+Mediscan-Safety-main.zip
+backend/*.traineddata
