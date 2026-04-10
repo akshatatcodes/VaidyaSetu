@@ -1,0 +1,31 @@
+// Basic Service Worker for VaidyaSetu PWA
+const CACHE_NAME = 'vaidyasetu-v1';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/src/main.jsx',
+  '/src/App.jsx',
+  '/src/index.css',
+  '/manifest.json'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      })
+  );
+});
