@@ -124,7 +124,7 @@ const Dashboard = () => {
           className="px-4 py-2 bg-gray-900 border border-gray-800 hover:border-emerald-500 hover:text-emerald-400 rounded-lg text-sm font-medium transition-colors flex items-center text-gray-300 disabled:opacity-50"
         >
            <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin text-emerald-500' : ''}`} /> 
-           {generating ? 'Processing...' : 'Recalibrate'}
+           {generating ? 'Processing...' : 'Regenerate Analysis Report'}
         </button>
       </div>
 
@@ -180,16 +180,19 @@ const Dashboard = () => {
 
         {/* Right Column - Secondary Data */}
         <div className="space-y-6">
-           {/* Visualizer Simulation */}
-           <div className="bg-[#0b1221] border border-gray-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden">
+           {/* Visualizer Simulation (Body Scan Placeholder) */}
+           <div className="bg-[#0b1221] border border-gray-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden group hover:border-emerald-500/20 transition-all">
                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+               <h3 className="absolute top-6 left-6 text-white/50 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center">
+                  <Cpu className="w-4 h-4 mr-2" /> Predictive Body Scan
+               </h3>
                <div className="w-48 h-48 flex items-center justify-center relative">
                   <div className="absolute inset-0 bg-emerald-500/5 rounded-full animate-ping delay-100" />
                   <div className="absolute inset-4 bg-emerald-500/10 rounded-full animate-ping delay-300" />
-                  <Activity className="w-20 h-20 text-emerald-400 relative z-10" />
+                  <Activity className="w-20 h-20 text-emerald-400/50 relative z-10" />
                </div>
                <div className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest mt-4">
-                  Biometrics Synced
+                  Scanner Standby
                </div>
            </div>
 
@@ -197,7 +200,7 @@ const Dashboard = () => {
            <div className="bg-gray-900 border border-gray-800 p-6 rounded-3xl group hover:border-emerald-500/30 transition-all">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-white font-semibold flex items-center">
-                   <Activity className="w-5 h-5 text-emerald-500 mr-2" /> Activity Pulse
+                   <Activity className="w-5 h-5 text-emerald-500 mr-2" /> Step Tracker
                 </h3>
                 <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">Connected</span>
               </div>

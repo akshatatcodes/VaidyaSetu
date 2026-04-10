@@ -36,9 +36,6 @@ function calculatePreliminaryRisk(profile) {
 
     // Age factor
     if (age > 45) diabetes += 10;
-    
-    // Activity Factor
-    if (profile.activityLevel === 'Sedentary') diabetes += 15;
 
 
     // --- HYPERTENSION RISK LOGIC ---
@@ -50,7 +47,7 @@ function calculatePreliminaryRisk(profile) {
     
     // Substance factors
     if (profile.isSmoker) hypertension += 20;
-    if (profile.alcoholConsumption === 'Frequently') hypertension += 10;
+    if (profile.alcoholConsumption === 'Frequently' || profile.alcoholConsumption === 'frequently') hypertension += 10;
     
     if (hasFamilyHistory) hypertension += 20;
 
