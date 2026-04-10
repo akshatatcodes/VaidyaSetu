@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
-import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu } from 'lucide-react';
+import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, ThumbsUp, ThumbsDown, Download, Scan } from 'lucide-react';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import Lottie from 'lottie-react';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
@@ -36,7 +38,12 @@ const Dashboard = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
+  const [feedbackStatus, setFeedbackStatus] = useState({}); // cardId -> true/false
+
+  // Body Scan Lottie JSON (Free medical scan animation)
+  const bodyScanLottie = "https://lottie.host/80709673-f32a-43f0-82a8-f71694f4b232/vB3I7Y4G5u.json";
 
   const fetchReport = async () => {
     try {
@@ -70,6 +77,56 @@ const Dashboard = () => {
       console.error(err);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const syncGoogleFit = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setSyncing(true);
+      try {
+        const res = await axios.post(`${API_URL}/fitness/steps`, { 
+          clerkId: user.id, 
+          accessToken: tokenResponse.access_token 
+        });
+        if (res.data.status === 'success') {
+          fetchReport(); // Refresh to see updated steps influence
+        }
+      } catch (err) {
+        console.error("Fitness sync failed:", err);
+      } finally {
+        setSyncing(false);
+      }
+    },
+    scope: 'https://www.googleapis.com/auth/fitness.activity.read'
+  });
+
+  const handleFeedback = async (context, rating, query, response) => {
+    setFeedbackStatus(prev => ({...prev, [context]: true}));
+    try {
+      await axios.post(`${API_URL}/feedback`, { 
+        clerkId: user.id, 
+        context, 
+        rating, 
+        query, 
+        response 
+      });
+    } catch (err) {
+      console.error("Feedback failed:", err);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/user/export/${user.id}`);
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data.data, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", `VaidyaSetu_Health_Export_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    } catch (err) {
+      console.error("Export failed:", err);
     }
   };
 
@@ -118,14 +175,22 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-white mb-2">Health Ecosystem</h1>
           <p className="text-gray-400">Analysis completed on {new Date(report.createdAt).toLocaleDateString()}</p>
         </div>
-        <button 
-          onClick={generateReport}
-          disabled={generating}
-          className="px-4 py-2 bg-gray-900 border border-gray-800 hover:border-emerald-500 hover:text-emerald-400 rounded-lg text-sm font-medium transition-colors flex items-center text-gray-300 disabled:opacity-50"
-        >
-           <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin text-emerald-500' : ''}`} /> 
-           {generating ? 'Processing...' : 'Regenerate Analysis Report'}
-        </button>
+        <div className="flex flex-wrap gap-4">
+          <button 
+            onClick={handleExport}
+            className="px-4 py-2 bg-gray-900 border border-gray-800 hover:border-blue-500/50 hover:text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center text-gray-300 shadow-lg"
+          >
+             <Download className="w-4 h-4 mr-2" /> Export JSON
+          </button>
+          <button 
+            onClick={generateReport}
+            disabled={generating}
+            className="px-4 py-2 bg-gray-900 border border-gray-800 hover:border-emerald-500 hover:text-emerald-400 rounded-lg text-sm font-medium transition-colors flex items-center text-gray-300 disabled:opacity-50 shadow-lg"
+          >
+             <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin text-emerald-500' : ''}`} /> 
+             {generating ? 'Processing...' : 'Regenerate Analysis Report'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -153,27 +218,27 @@ const Dashboard = () => {
 
           {/* Targeted Advice */}
           <div className="space-y-4">
-            <div className="bg-gray-900 border border-gray-800 p-5 rounded-2xl flex items-start">
-               <AlertTriangle className="w-6 h-6 text-fuchsia-500 mr-4 shrink-0 mt-1" />
-               <div>
-                  <h4 className="text-white font-medium mb-1">Diabetes Insight</h4>
-                  <p className="text-gray-400 text-sm">{report?.diabetes_advice || "No advice generated."}</p>
-               </div>
-            </div>
-            <div className="bg-gray-900 border border-gray-800 p-5 rounded-2xl flex items-start">
-               <Activity className="w-6 h-6 text-amber-500 mr-4 shrink-0 mt-1" />
-               <div>
-                  <h4 className="text-white font-medium mb-1">Hypertension Insight</h4>
-                  <p className="text-gray-400 text-sm">{report?.hypertension_advice || "No advice generated."}</p>
-               </div>
-            </div>
-            <div className="bg-gray-900 border border-gray-800 p-5 rounded-2xl flex items-start">
-               <ShieldAlert className="w-6 h-6 text-blue-500 mr-4 shrink-0 mt-1" />
-               <div>
-                  <h4 className="text-white font-medium mb-1">Anemia Insight</h4>
-                  <p className="text-gray-400 text-sm">{report?.anemia_advice || "No advice generated."}</p>
-               </div>
-            </div>
+            <AdviceCard 
+              label="Diabetes Insight" 
+              text={report?.diabetes_advice} 
+              icon={<AlertTriangle className="w-6 h-6 text-fuchsia-500" />} 
+              onFeedback={(r) => handleFeedback('Diabetes', r, 'Diabetes status', report?.diabetes_advice)}
+              done={feedbackStatus['Diabetes']}
+            />
+            <AdviceCard 
+              label="Hypertension Insight" 
+              text={report?.hypertension_advice} 
+              icon={<Activity className="w-6 h-6 text-amber-500" />} 
+              onFeedback={(r) => handleFeedback('Hypertension', r, 'Hypertension status', report?.hypertension_advice)}
+              done={feedbackStatus['Hypertension']}
+            />
+            <AdviceCard 
+              label="Anemia Insight" 
+              text={report?.anemia_advice} 
+              icon={<ShieldAlert className="w-6 h-6 text-blue-500" />} 
+              onFeedback={(r) => handleFeedback('Anemia', r, 'Anemia status', report?.anemia_advice)}
+              done={feedbackStatus['Anemia']}
+            />
           </div>
 
         </div>
@@ -181,44 +246,60 @@ const Dashboard = () => {
         {/* Right Column - Secondary Data */}
         <div className="space-y-6">
            {/* Visualizer Simulation (Body Scan Placeholder) */}
-           <div className="bg-[#0b1221] border border-gray-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden group hover:border-emerald-500/20 transition-all">
+           <div className="bg-[#0b1221] border border-gray-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[340px] relative overflow-hidden group hover:border-emerald-500/20 transition-all shadow-2xl">
                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
                <h3 className="absolute top-6 left-6 text-white/50 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center">
-                  <Cpu className="w-4 h-4 mr-2" /> Predictive Body Scan
+                  <Scan className="w-4 h-4 mr-2" /> Predictive Body Scan
                </h3>
-               <div className="w-48 h-48 flex items-center justify-center relative">
-                  <div className="absolute inset-0 bg-emerald-500/5 rounded-full animate-ping delay-100" />
-                  <div className="absolute inset-4 bg-emerald-500/10 rounded-full animate-ping delay-300" />
-                  <Activity className="w-20 h-20 text-emerald-400/50 relative z-10" />
+               <div className="w-56 h-56 flex items-center justify-center relative translate-y-4">
+                  <Lottie 
+                    animationData={null} // We'll fetch the JSON dynamically to avoid massive files in memory
+                    path={bodyScanLottie}
+                    loop={true}
+                    className="w-full h-full opacity-60 group-hover:opacity-90 transition-opacity"
+                  />
                </div>
-               <div className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest mt-4">
-                  Scanner Standby
+               <div className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest mt-6">
+                  Scanner Active
                </div>
            </div>
 
            {/* Step Tracker Placeholder */}
-           <div className="bg-gray-900 border border-gray-800 p-6 rounded-3xl group hover:border-emerald-500/30 transition-all">
+           <div className="bg-gray-900 border border-gray-800 p-6 rounded-3xl group hover:border-emerald-500/30 transition-all shadow-xl">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-white font-semibold flex items-center">
                    <Activity className="w-5 h-5 text-emerald-500 mr-2" /> Step Tracker
                 </h3>
-                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">Connected</span>
+                <button 
+                  onClick={() => syncGoogleFit()}
+                  disabled={syncing}
+                  className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-3 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest font-bold transition-all disabled:opacity-50"
+                >
+                   {syncing ? 'Syncing...' : 'Sync Fit'}
+                </button>
               </div>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
                   <div>
-                    <div className="text-3xl font-bold text-white tracking-tight">4,821</div>
+                    <div className="text-3xl font-bold text-white tracking-tight">
+                       {report.userProfile?.steps || '0'}
+                    </div>
                     <div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Daily Steps</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-emerald-500 font-bold">60%</div>
+                    <div className="text-emerald-500 font-bold">
+                       {Math.round(((report.userProfile?.steps || 0) / 8000) * 100)}%
+                    </div>
                     <div className="text-[10px] text-gray-500 uppercase">Goal: 8,000</div>
                   </div>
                 </div>
                 
                 <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full w-[60%] shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000" />
+                  <div 
+                    className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000" 
+                    style={{ width: `${Math.min(100, ((report.userProfile?.steps || 0) / 8000) * 100)}%` }}
+                  />
                 </div>
               </div>
            </div>
@@ -249,5 +330,31 @@ const Dashboard = () => {
     </div>
   );
 };
+
+const AdviceCard = ({ label, text, icon, onFeedback, done }) => (
+  <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl flex items-start group hover:border-emerald-500/20 transition-all">
+     <div className="mr-5 shrink-0 mt-1">{icon}</div>
+     <div className="flex-1">
+        <h4 className="text-white font-medium mb-1">{label}</h4>
+        <p className="text-gray-400 text-sm mb-4 leading-relaxed">{text || "No advice generated."}</p>
+        
+        {!done ? (
+          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
+             <span className="text-[9px] font-black uppercase tracking-widest text-gray-600 mr-2">Helpful?</span>
+             <button onClick={() => onFeedback('up')} className="p-1.5 bg-gray-800 hover:bg-emerald-500/10 text-gray-500 hover:text-emerald-500 rounded-lg transition-all active:scale-95">
+                <ThumbsUp className="w-4 h-4" />
+             </button>
+             <button onClick={() => onFeedback('down')} className="p-1.5 bg-gray-800 hover:bg-red-500/10 text-gray-500 hover:text-red-500 rounded-lg transition-all active:scale-95">
+                <ThumbsDown className="w-4 h-4" />
+             </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 animate-in zoom-in">
+             <CheckCircle className="w-3 h-3" /> Feedback Received
+          </div>
+        )}
+     </div>
+  </div>
+);
 
 export default Dashboard;

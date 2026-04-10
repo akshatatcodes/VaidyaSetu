@@ -5,7 +5,7 @@ import {
   FileText, ScanSearch, Upload, Search, AlertCircle, 
   ShieldAlert, Info, Download, Trash2, CheckCircle2, 
   RefreshCw, Loader2, Sparkles, ChevronDown, ChevronUp,
-  Clock, Cpu
+  Clock, Cpu, Mic, Volume2
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -26,6 +26,11 @@ const Prescriptions = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [explanations, setExplanations] = useState({}); // drugPair -> explanation
   const [loadingExpl, setLoadingExpl] = useState({});
+  const [voicePlaying, setVoicePlaying] = useState(false);
+  const [showVoiceToast, setShowVoiceToast] = useState(false);
+
+  // Audio for Voice Demo
+  const voiceAudioUrl = "https://www.soundjay.com/buttons/beep-01a.mp3"; // Placeholder demo beep
 
   // Fetch History
   useEffect(() => {
@@ -49,6 +54,21 @@ const Prescriptions = () => {
       setInputText("Warfarin, Guggul");
       setScanning(false);
     }, 2000);
+  };
+
+  // 10.5 Voice Input Simulation
+  const handleVoiceSimulation = () => {
+    setVoicePlaying(true);
+    const audio = new Audio(voiceAudioUrl);
+    audio.play();
+    
+    // Simulate voice detection delay
+    setTimeout(() => {
+      setInputText("Warfarin, Guggul");
+      setVoicePlaying(false);
+      setShowVoiceToast(true);
+      setTimeout(() => setShowVoiceToast(false), 3000);
+    }, 1500);
   };
 
   // 9.2 Fuzzy Matching
@@ -191,6 +211,13 @@ const Prescriptions = () => {
                <div className="absolute bottom-4 right-4 text-[9px] text-gray-600 font-bold uppercase tracking-widest pointer-events-none">
                  Manual Overlay
                </div>
+               <button 
+                 onClick={handleVoiceSimulation}
+                 disabled={voicePlaying}
+                 className={`absolute bottom-4 left-4 p-2 rounded-full transition-all ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-800 text-gray-400 hover:text-emerald-500'}`}
+               >
+                 <Mic className="w-4 h-4" />
+               </button>
              </div>
 
              <div className="mt-4 flex items-center gap-3 p-3 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
@@ -278,6 +305,22 @@ const Prescriptions = () => {
                    </div>
                    <p className="text-emerald-500/80 font-black uppercase tracking-[0.3em] text-xs mt-8">Synthesizing Safety Data</p>
                    <p className="text-gray-500 text-sm mt-2">Checking across 250+ Allopathic-AYUSH contraindications...</p>
+                </div>
+              )}
+
+              {/* 10.7 High-Risk Red Banner */}
+              {interactions.some(i => i.severity?.toLowerCase() === 'high') && (
+                <div className="bg-red-600 animate-pulse py-4 px-8 rounded-3xl flex items-center justify-between shadow-[0_0_30px_rgba(220,38,38,0.4)] mb-8">
+                   <div className="flex items-center gap-4">
+                      <ShieldAlert className="w-8 h-8 text-white" />
+                      <div>
+                         <h4 className="text-white font-black uppercase tracking-tighter text-lg">Urgent Safety Warning</h4>
+                         <p className="text-red-100 text-xs font-bold uppercase tracking-widest opacity-80">Critical interaction detected. Consult doctor immediately.</p>
+                      </div>
+                   </div>
+                   <div className="hidden md:block px-4 py-1.5 bg-white/20 rounded-full text-[10px] font-black text-white uppercase tracking-widest">
+                      Action Required
+                   </div>
                 </div>
               )}
 
@@ -438,6 +481,13 @@ const Prescriptions = () => {
             DISCLAIMER: This system utilizes AI and clinical databases for screening purposes only. It is not a substitute for professional medical advice. Always consult your healthcare provider before starting or stopping any medication or supplement.
          </p>
       </div>
+      {/* Voice Toast */}
+      {showVoiceToast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-10 font-bold z-50">
+           <Volume2 className="w-5 h-5 animate-bounce" />
+           Voice input detected: "Warfarin, Guggul"
+        </div>
+      )}
     </div>
   );
 };
