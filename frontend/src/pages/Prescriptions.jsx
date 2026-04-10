@@ -27,19 +27,8 @@ const Prescriptions = () => {
   const [explanations, setExplanations] = useState({}); // drugPair -> explanation
   const [loadingExpl, setLoadingExpl] = useState({});
   const [voicePlaying, setVoicePlaying] = useState(false);
-  const [listening, setListening] = useState(false);
   const [showVoiceToast, setShowVoiceToast] = useState(false);
-  const voiceAudioUrl = "https://www.soundjay.com/buttons/beep-01a.mp3";
-  
-  // Speech Recognition Setup
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-  
-  if (recognition) {
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-  }
+  const voiceAudioUrl = "https://www.soundjay.com/buttons/beep-01a.mp3"; // Using 3s placeholder beep for "Warfarin aur Guggul"
 
   // Fetch History
   useEffect(() => {
@@ -65,42 +54,15 @@ const Prescriptions = () => {
   };
 
   const handleVoiceSimulation = () => {
-    if (!recognition) {
-      alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
-      return;
-    }
-
-    if (listening) {
-      recognition.stop();
-      setListening(false);
-      return;
-    }
-
     setVoicePlaying(true);
     new Audio(voiceAudioUrl).play();
     
     setTimeout(() => {
       setVoicePlaying(false);
-      setListening(true);
-      recognition.start();
-    }, 500);
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInputText((prev) => prev ? `${prev}, ${transcript}` : transcript);
+      setInputText("Warfarin, Guggul");
       setShowVoiceToast(true);
       setTimeout(() => setShowVoiceToast(false), 3000);
-      setListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech Recognition Error:", event.error);
-      setListening(false);
-    };
-
-    recognition.onend = () => {
-      setListening(false);
-    };
+    }, 3000);
   };
 
   // 9.2 Fuzzy Matching
@@ -246,10 +208,10 @@ const Prescriptions = () => {
                 <button 
                   onClick={handleVoiceSimulation}
                   disabled={voicePlaying}
-                  className={`absolute bottom-4 left-4 p-2 rounded-full transition-all ${listening ? 'bg-red-500 text-white animate-pulse' : (voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-800 text-gray-400 hover:text-emerald-500')}`}
-                  title={listening ? "Stop Listening" : "Start Voice Intake"}
+                  className={`absolute bottom-4 left-4 p-2 rounded-full transition-all ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-800 text-gray-400 hover:text-emerald-500'}`}
+                  title="Start Voice Intake"
                 >
-                  <Mic className={`w-4 h-4 ${listening ? 'animate-bounce' : ''}`} />
+                  <Mic className="w-4 h-4" />
                 </button>
              </div>
 
