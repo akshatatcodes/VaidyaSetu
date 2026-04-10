@@ -239,6 +239,18 @@
       "mechanism": "Guggul can inhibit the metabolic pathway of Simvastatin, leading to higher blood levels and toxicity.",
       "recommendation": "Avoid combination. Use an alternative cholesterol-lowering herb like Amla with statins.",
       "source": "IMPPAT / PubChem"
+    },
+    {
+      "id": "INT021",
+      "allopathy_drug": "Warfarin",
+      "allopathy_aliases": ["Coumadin", "Jantoven"],
+      "ayurveda_herb": ["Garlic", "Turmeric", "Allium sativum", "Curcuma longa"],
+      "homeopathy_remedy": [],
+      "severity": "high",
+      "effect": "Severe hemorrhage / Increased INR",
+      "mechanism": "Both Garlic and Turmeric possess strong antiplatelet and mild anticoagulant properties. When combined with Warfarin, the cumulative blood-thinning effect drastically increases bleeding risk.",
+      "recommendation": "STOP combination. Do not take therapeutic doses of Garlic or Turmeric supplements while on Warfarin.",
+      "source": "DrugBank / IMPPAT / PubChem"
     }
   ]
 }
