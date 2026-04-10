@@ -1,54 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
-import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert } from 'lucide-react';
-import Lottie from 'lottie-react';
+import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu } from 'lucide-react';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
-
-// Fallback Lottie Animation data (Simple pulsing circle to simulate scan)
-const scanAnimation = {
-  v: "5.5.2",
-  fr: 30,
-  ip: 0,
-  op: 60,
-  w: 500,
-  h: 500,
-  nm: "Scan",
-  ddd: 0,
-  assets: [],
-  layers: [
-    {
-      ddd: 0,
-      ind: 1,
-      ty: 4,
-      nm: "Circle",
-      sr: 1,
-      ks: {
-        o: { a: 1, k: [{ i: { x: [0.833], y: [0.833] }, o: { x: [0.167], y: [0.167] }, t: 0, s: [100] }, { i: { x: [0.833], y: [0.833] }, o: { x: [0.167], y: [0.167] }, t: 30, s: [0] }, { t: 60, s: [100] }] },
-        s: { a: 1, k: [{ i: { x: [0.833, 0.833, 0.833], y: [0.833, 0.833, 0.833] }, o: { x: [0.167, 0.167, 0.167], y: [0.167, 0.167, 0.167] }, t: 0, s: [50, 50, 100] }, { i: { x: [0.833, 0.833, 0.833], y: [0.833, 0.833, 0.833] }, o: { x: [0.167, 0.167, 0.167], y: [0.167, 0.167, 0.167] }, t: 30, s: [150, 150, 100] }, { t: 60, s: [50, 50, 100] }] },
-        p: { a: 0, k: [250, 250, 0] },
-      },
-      shapes: [
-        {
-          ty: "el",
-          d: 1,
-          p: { a: 0, k: [0, 0] },
-          s: { a: 0, k: [200, 200] },
-          nm: "Ellipse",
-        },
-        {
-          ty: "st",
-          c: { a: 0, k: [0.063, 0.725, 0.506, 1] },
-          o: { a: 0, k: 100 },
-          w: { a: 0, k: 4 },
-          nm: "Stroke",
-        }
-      ]
-    }
-  ]
-};
 
 const GaugeChart = ({ score, color, label }) => {
   const data = [{ name: label, value: score, fill: color }];
@@ -124,8 +80,8 @@ const Dashboard = () => {
   if (!report) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] text-center max-w-2xl mx-auto animate-fade-in">
-         <div className="w-48 h-48 mb-8 opacity-80">
-            <Lottie animationData={scanAnimation} loop={true} />
+         <div className="w-48 h-48 mb-8 opacity-80 flex items-center justify-center bg-gray-900/50 rounded-full border-4 border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+            <Cpu className="w-24 h-24 text-emerald-500 animate-pulse" />
          </div>
          <h1 className="text-4xl font-bold text-white mb-4">Profile Synchronization Complete</h1>
          <p className="text-gray-400 mb-8 text-lg">
@@ -227,8 +183,10 @@ const Dashboard = () => {
            {/* Visualizer Simulation */}
            <div className="bg-[#0b1221] border border-gray-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden">
                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-               <div className="w-48 h-48">
-                  <Lottie animationData={scanAnimation} loop={true} />
+               <div className="w-48 h-48 flex items-center justify-center relative">
+                  <div className="absolute inset-0 bg-emerald-500/5 rounded-full animate-ping delay-100" />
+                  <div className="absolute inset-4 bg-emerald-500/10 rounded-full animate-ping delay-300" />
+                  <Activity className="w-20 h-20 text-emerald-400 relative z-10" />
                </div>
                <div className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest mt-4">
                   Biometrics Synced
