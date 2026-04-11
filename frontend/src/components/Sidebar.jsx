@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle } from 'lucide-react';
+import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle } from 'lucide-react';
 import { UserButton, useClerk, SignedIn, SignedOut, SignInButton } from '../clerkMock.jsx';
 
 /**
@@ -16,6 +16,7 @@ const Sidebar = () => {
 
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
+    { to: '/profile', icon: UserCircle, label: 'My Health Profile' },
     { to: '/prescriptions', icon: ShieldAlert, label: 'Safety Bridge' },
     { to: '/vitals', icon: Activity, label: 'My Vitals' },
     { to: '/alerts', icon: AlertCircle, label: 'Alerts' },
@@ -32,8 +33,8 @@ const Sidebar = () => {
         <div className="block md:hidden">
             <SignedIn>
                 <div className="flex items-center space-x-4">
-                  <Link to="/settings" className="text-gray-400 hover:text-emerald-500 transition-colors" title="Profile Settings">
-                    <Settings className="w-5 h-5" />
+                  <Link to="/profile" className="text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
+                    <UserCircle className="w-5 h-5" />
                   </Link>
                   <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8" } }} />
                 </div>
@@ -81,8 +82,8 @@ const Sidebar = () => {
                   } 
                 }} 
               />
-              <Link to="/settings" className="text-gray-400 hover:text-emerald-500 transition-colors" title="Profile Settings">
-                <Settings className="w-5 h-5" />
+              <Link to="/profile" className="text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
+                <UserCircle className="w-5 h-5" />
               </Link>
             </div>
           </SignedIn>

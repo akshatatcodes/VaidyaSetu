@@ -129,7 +129,7 @@ const Dashboard = () => {
 
   const handleExport = async () => {
     try {
-      const res = await axios.get(`${API_URL}/user/export/${user.id}`);
+      const res = await axios.get(`${API_URL}/feedback/export/${user.id}`);
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data.data, null, 2));
       const downloadAnchorNode = document.createElement('a');
       downloadAnchorNode.setAttribute("href", dataStr);
@@ -145,6 +145,13 @@ const Dashboard = () => {
   if (loading) {
     return <div className="flex min-h-[60vh] items-center justify-center"><RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /></div>;
   }
+
+  // Determine if profile is nested or flat for backward compatibility/defensiveness
+  const getProfileVal = (field) => {
+    const val = report?.userProfile?.[field];
+    if (val && typeof val === 'object' && val.value !== undefined) return val.value;
+    return val;
+  };
 
   if (!report) {
     return (
@@ -179,6 +186,8 @@ const Dashboard = () => {
     if (score >= 40) return '#f59e0b'; // Amber
     return '#10b981'; // Emerald
   };
+
+  const stepCount = getProfileVal('steps') || 0;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -297,11 +306,11 @@ const Dashboard = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
                   <div>
-                    <div className="text-3xl font-bold text-white tracking-tight">{report.userProfile?.steps || '0'}</div>
+                    <div className="text-3xl font-bold text-white tracking-tight">{stepCount}</div>
                     <div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Daily Steps</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-emerald-500 font-bold">{Math.round(((report.userProfile?.steps || 0) / 8000) * 100)}%</div>
+                    <div className="text-emerald-500 font-bold">{Math.round((stepCount / 8000) * 100)}%</div>
                     <div className="text-[10px] text-gray-500 uppercase">Goal: 8,000</div>
                   </div>
                 </div>
@@ -309,7 +318,7 @@ const Dashboard = () => {
                 <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000" 
-                    style={{ width: `${Math.min(100, ((report.userProfile?.steps || 0) / 8000) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (stepCount / 8000) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -361,7 +370,7 @@ const AdviceCard = ({ label, text, icon, onFeedback, done }) => (
           <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
              <span className="text-[9px] font-black uppercase tracking-widest text-gray-600 mr-2">Helpful?</span>
              <button onClick={() => onFeedback('up')} className="p-1.5 bg-gray-800 hover:bg-emerald-500/10 text-gray-500 hover:text-emerald-500 rounded-lg transition-all active:scale-95"><ThumbsUp className="w-4 h-4" /></button>
-             <button onClick={() => onFeedback('down')} className="p-1.5 bg-gray-800 hover:bg-red-500/10 text-gray-500 hover:text-red-500 rounded-lg transition-all active:scale-95"><ThumbsDown className="w-4 h-4" /></button>
+             <button onClick={() => onFeedback('down')} className="p-1.5 bg-gray-800 hover:bg-red-500/10 text-gray-400 hover:text-red-500 rounded-lg transition-all active:scale-95"><ThumbsDown className="w-4 h-4" /></button>
           </div>
         ) : (
           <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 animate-in zoom-in"><CheckCircle className="w-3 h-3" /> Feedback Received</div>

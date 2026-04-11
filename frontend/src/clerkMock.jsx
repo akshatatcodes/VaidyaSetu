@@ -1,15 +1,18 @@
 import React from 'react';
 
+// Stabilize user object reference outside the hook
+const DEMO_USER = {
+  id: "user_2test123",
+  fullName: "Demo User",
+  primaryEmailAddress: { emailAddress: "demo@vaidyasetu.test" },
+  imageUrl: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
+};
+
 export const useUser = () => {
   return {
     isLoaded: true,
     isSignedIn: true,
-    user: {
-      id: "user_2test123",
-      fullName: "Demo User",
-      primaryEmailAddress: { emailAddress: "demo@vaidyasetu.test" },
-      imageUrl: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
-    }
+    user: DEMO_USER
   };
 };
 
@@ -29,4 +32,3 @@ export const useAuth = () => ({
 export const UserButton = () => null;
 export const SignInButton = ({ children }) => <button>{children}</button>;
 export const useClerk = () => ({ signOut: () => {} });
-

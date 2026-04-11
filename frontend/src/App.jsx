@@ -6,6 +6,9 @@ import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Prescriptions from './pages/Prescriptions';
 import Privacy from './pages/Privacy';
+import HealthProfile from './pages/HealthProfile';
+import ChangeHistory from './pages/ChangeHistory';
+import ProfileEditor from './pages/ProfileEditor';
 import Chatbot from './components/Chatbot';
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
@@ -23,26 +26,19 @@ const AppLayout = () => {
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    // Check if this user has completed onboarding
-    axios.get(`${API_URL}/user/${user.id}`)
+    axios.get(`${API_URL}/profile/${user.id}`)
       .then((res) => {
         if (res.data?.status === 'success') {
           const profile = res.data.data;
           if (!profile.onboardingComplete) {
             navigate('/onboarding', { replace: true });
           }
-          // else: onboarding complete, show dashboard
-        } else {
-          // No profile found — send to onboarding
-          navigate('/onboarding', { replace: true });
         }
       })
       .catch((err) => {
-        // Only redirect on 404 (no profile). Network/server errors should not kick user out.
         if (err.response?.status === 404) {
           navigate('/onboarding', { replace: true });
         }
-        // Otherwise, just show the dashboard and let individual pages handle their own data fetching
       })
       .finally(() => setChecking(false));
   }, [isLoaded, user]);
@@ -66,6 +62,9 @@ const AppLayout = () => {
         <main className="p-4 sm:p-8 md:p-12 w-full overflow-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/profile" element={<HealthProfile />} />
+            <Route path="/profile/edit" element={<ProfileEditor />} />
+            <Route path="/history" element={<ChangeHistory />} />
             <Route path="/prescriptions" element={<Prescriptions />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/vitals" element={<Dashboard />} />
