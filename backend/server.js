@@ -99,10 +99,22 @@ app.get('/api/user/:clerkId', async (req, res) => {
 // POST Update User Profile
 app.post('/api/user/update', async (req, res) => {
   try {
-    const { clerkId, age, height, weight, diseases, medicines, onboardingComplete } = req.body;
+    const { 
+      clerkId, age, height, weight, 
+      diseases, customDiseases, medicines, 
+      exerciseFrequency, dietType, 
+      onboardingComplete 
+    } = req.body;
+    
     const user = await User.findOneAndUpdate(
       { clerkId },
-      { $set: { age, height, weight, diseases, medicines, onboardingComplete } },
+      { $set: { 
+        age, height, weight, 
+        diseases, customDiseases, medicines, 
+        exerciseFrequency, dietType, 
+        onboardingComplete,
+        lastProfileUpdate: Date.now()
+      } },
       { returnDocument: 'after', upsert: true }
     );
     res.json({ status: 'success', data: user });
