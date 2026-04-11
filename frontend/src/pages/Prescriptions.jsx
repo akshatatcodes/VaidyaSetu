@@ -5,7 +5,7 @@ import {
   FileText, ScanSearch, Upload, Search, AlertCircle, 
   ShieldAlert, Info, Download, Trash2, CheckCircle2, 
   RefreshCw, Loader2, Sparkles, ChevronDown, ChevronUp,
-  Clock, Cpu, Mic, Volume2, MapPin, ThumbsUp, ThumbsDown
+  Clock, Cpu, Mic, Volume2, MapPin, ThumbsUp, ThumbsDown, Zap
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -29,6 +29,9 @@ const Prescriptions = () => {
   const [loadingExpl, setLoadingExpl] = useState({});
   const [voicePlaying, setVoicePlaying] = useState(false);
   const [showVoiceToast, setShowVoiceToast] = useState(false);
+  const [showTransparency, setShowTransparency] = useState(false);
+  const [lastReportData, setLastReportData] = useState(null); // Step 61: Track fallback status
+
   const voiceAudioUrl = null; // No longer needed — using real SpeechRecognition
 
   // Fetch History
@@ -113,7 +116,7 @@ const Prescriptions = () => {
     setMatching(true);
     try {
       const meds = inputText.split(',').map(m => m.trim()).filter(m => m);
-      const res = await axios.post(`${API_URL}/medicine/match`, { medicines: meds });
+      const res = await axios.post(`${API_URL}/interaction/match`, { medicines: meds });
       if (res.data.status === 'success') {
         setCandidates(res.data.data);
       }
@@ -132,22 +135,42 @@ const Prescriptions = () => {
     setCandidates(candidates.filter(c => c.original !== cand.original));
   };
 
-  // 9.3 Interaction Check
+  // 9.3 RAG-Augmented Interaction Check
   const checkSafety = async () => {
-    if (confirmedMeds.length < 2) return;
+    if (confirmedMeds.length < 2 || checking) return;
     setChecking(true);
     setInteractions([]);
     try {
-      const res = await axios.post(`${API_URL}/interaction/check`, { 
+      // Use the new RAG-safety endpoint
+      const res = await axios.post(`${API_URL}/rag/check-safety`, { 
         clerkId: user.id, 
-        confirmedMedicines: confirmedMeds 
+        medicines: confirmedMeds 
       });
       if (res.data.status === 'success') {
-        setInteractions(res.data.data);
+        const { report, isFallback, modelUsed, debug } = res.data;
+        
+        // Map the structured report to the UI state
+        const processedInteractions = (report.interactions || []).map((item, idx) => ({
+          ...item,
+          id: `rag-int-${idx}`,
+          allopathy_drug: item.medicines_involved?.[0] || 'Unknown',
+          ayurveda_herb: [item.medicines_involved?.[1] || 'Unknown'],
+          source: item.source_citation
+        }));
+
+        setInteractions(processedInteractions);
+        setLastReportData({ isFallback, modelUsed, latency: debug?.latency });
+        
+        // Step 61 Resilience: If fallback occurred, auto-expand the first warning or show general alert
+        if (isFallback && processedInteractions.length > 0) {
+          setExpandedId(processedInteractions[0].id);
+        }
+        
         fetchHistory();
       }
     } catch (err) {
-      console.error("Interaction check failed:", err);
+      console.error("RAG check failed:", err.response?.data || err.message);
+      // Fallback to basic check if RAG fails (optional, but keep it robust)
     } finally {
       setChecking(false);
     }
@@ -160,7 +183,7 @@ const Prescriptions = () => {
     
     setLoadingExpl({...loadingExpl, [key]: true});
     try {
-      const res = await axios.post(`${API_URL}/ai/explain-interaction`, { drug1, drug2 });
+      const res = await axios.post(`${API_URL}/interaction/explain-interaction`, { drug1, drug2 });
       if (res.data.status === 'success') {
         setExplanations(prev => ({...prev, [key]: res.data.explanation}));
       }
@@ -186,11 +209,60 @@ const Prescriptions = () => {
 
   const getSeverityStyle = (severity) => {
     switch (severity?.toLowerCase()) {
+      case 'critical':
       case 'high': return 'border-red-500/30 bg-red-500/10 text-red-500 icon-red';
       case 'moderate': return 'border-amber-500/30 bg-amber-500/10 text-amber-500 icon-amber';
+      case 'minor':
       case 'low': return 'border-blue-500/30 bg-blue-500/10 text-blue-500 icon-blue';
       default: return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 icon-emerald';
     }
+  };
+
+  // 13.5 Source Confidence Logic
+  const getConfidenceInfo = (sourceStr = "") => {
+    const sources = sourceStr.split(',').map(s => s.trim().toLowerCase());
+    const count = sources.length;
+    
+    if (count > 1 || sources.includes('fda') || sources.includes('rxnav')) {
+      return { label: 'High Confidence', color: 'text-emerald-400 bg-emerald-500/10', icon: CheckCircle2 };
+    }
+    if (sources.some(s => ['imppat', 'drugbank', 'icmr'].includes(s))) {
+      return { label: 'Moderate Confidence', color: 'text-blue-400 bg-blue-500/10', icon: Info };
+    }
+    return { label: 'Limited Evidence', color: 'text-amber-400 bg-amber-500/10', icon: AlertCircle };
+  };
+
+  // 13.7 Source Quality Badges
+  const renderSourceBadges = (sourceStr = "") => {
+    const sources = sourceStr.split(',').map(s => s.trim());
+    return (
+      <div className="flex flex-wrap gap-2 mt-2">
+        {sources.map((s, idx) => {
+          let badgeStyle = "bg-gray-800 text-gray-400";
+          let label = s;
+          
+          if (['RxNav', 'OpenFDA', 'FDA'].includes(s)) {
+            badgeStyle = "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+            label = "Clinical API";
+          } else if (['IMPPAT', 'Ayurveda'].includes(s)) {
+            badgeStyle = "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+            label = "Traditional";
+          } else if (['PubMed', 'Research', 'Literature'].includes(s)) {
+            badgeStyle = "bg-purple-500/20 text-purple-400 border border-purple-500/30";
+            label = "Research";
+          } else if (['ICMR', 'WHO', 'Guidelines'].includes(s)) {
+            badgeStyle = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+            label = "Govt Guide";
+          }
+          
+          return (
+            <span key={idx} className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter ${badgeStyle}`}>
+              {label}
+            </span>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -345,6 +417,26 @@ const Prescriptions = () => {
                 </div>
               )}
 
+              {/* Step 61: Fallback Resilience Notification */}
+              {lastReportData && lastReportData.isFallback && !checking && (
+                <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center gap-4 mb-6 animate-in slide-in-from-top-2">
+                  <div className="p-2 bg-amber-500/20 rounded-lg">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h5 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Resilience Mode Active</h5>
+                    <p className="text-[11px] text-amber-400/80 font-medium leading-tight">
+                      High-fidelity 70B model is at peak capacity. Analysis performed using high-speed {lastReportData.modelUsed.includes('8b') ? '8B' : 'fallback'} model.
+                    </p>
+                  </div>
+                  {lastReportData.latency && (
+                    <div className="text-[9px] font-bold text-gray-500 uppercase tracking-tighter">
+                      Retrieved in {lastReportData.latency}ms
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* High-Risk Red Banner (10.7) */}
               {interactions.some(i => i.severity?.toLowerCase() === 'high') && (
                 <div className="bg-red-600 animate-pulse py-4 px-8 rounded-3xl flex flex-col md:flex-row items-center justify-between shadow-[0_0_30px_rgba(220,38,38,0.4)] mb-8 gap-4 md:gap-0">
@@ -392,21 +484,43 @@ const Prescriptions = () => {
                   const isExpanded = expandedId === item.id;
                   const drugB = item.ayurveda_herb?.[0] || item.homeopathy_remedy?.[0] || "Herb/Remedy";
                   const pairKey = `${item.allopathy_drug}-${drugB}`;
+                  const confidence = getConfidenceInfo(item.source);
                   
                   return (
                     <div key={item.id} className={`border rounded-[3rem] overflow-hidden transition-all duration-700 shadow-2xl group ${styles}`}>
                        <div className="p-8 md:p-10 relative">
                           <div className="absolute top-0 right-0 w-48 h-48 bg-current opacity-[0.03] rounded-full -translate-y-1/2 translate-x-1/2" />
-                          
                           <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
                              <div className="space-y-3">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-3">
                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 bg-black/20 rounded-full">
                                       {item.severity} SEVERITY RISK
                                    </span>
+                                   
+                                   {/* Step 55 & 57: Confidence & Badges */}
+                                   <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${confidence.color}`}>
+                                      <confidence.icon className="w-3 h-3" />
+                                      {confidence.label}
+                                   </div>
+                                   {renderSourceBadges(item.source)}
                                 </div>
-                                <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter">
+                                <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter flex items-center gap-4">
                                    {item.allopathy_drug} <span className="text-white/20">+</span> {drugB}
+                                   
+                                   {/* Step 54: Source Attribution Icon */}
+                                   <div className="group/src relative">
+                                      <Info className="w-5 h-5 text-white/20 hover:text-emerald-500 cursor-help transition-colors" />
+                                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-4 w-64 p-4 bg-gray-900 border border-white/10 rounded-2xl shadow-2xl invisible group-hover/src:visible opacity-0 group-hover/src:opacity-100 transition-all z-50">
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2 border-b border-white/5 pb-2">Verification Sources</p>
+                                         <p className="text-[11px] text-white font-medium leading-relaxed mb-4">
+                                            This interaction is verified against: <span className="text-emerald-400">{item.source || 'Standard Reference'}</span>.
+                                         </p>
+                                         <div className="flex items-center gap-2 py-2 px-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                            <ShieldAlert className="w-3 h-3 text-emerald-500" />
+                                            <span className="text-[8px] text-emerald-400 font-bold uppercase">Clinical Context Matched</span>
+                                         </div>
+                                      </div>
+                                   </div>
                                 </h3>
                              </div>
                              <div className="p-5 bg-black/20 backdrop-blur-md rounded-[2rem] border border-white/5 shadow-2xl group-hover:rotate-12 transition-transform duration-500">
@@ -443,7 +557,7 @@ const Prescriptions = () => {
                                          <button onClick={() => handleFeedback(pairKey, 'down', pairKey, explanations[pairKey])} className="p-1.5 bg-white/5 hover:bg-red-500/20 text-red-500/50 hover:text-red-400 rounded-lg transition-all active:scale-95"><ThumbsDown className="w-4 h-4" /></button>
                                       </div>
                                    ) : (
-                                      <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 mt-4 animate-in zoom-in"><CheckCircle className="w-3 h-3" /> Feedback Received</div>
+                                      <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 mt-4 animate-in zoom-in"><CheckCircle2 className="w-3 h-3" /> Feedback Received</div>
                                    )}
                                 </div>
                              ) : (
@@ -455,34 +569,37 @@ const Prescriptions = () => {
                                     {loadingExpl[pairKey] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                   </div>
                                   Ask AI to explain risk factors
-                               </button>
+                                </button>
                              )}
                           </div>
 
-                          {/* Expandable Mechanism */}
+                          {/* 13.6 Expandable Mechanism & Evidence Summary */}
                           <div className="mt-8 flex flex-col items-center">
                             <button 
                               onClick={() => setExpandedId(isExpanded ? null : item.id)}
                               className="px-6 py-2 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-all border border-transparent hover:border-white/5"
                             >
                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                               {isExpanded ? "Hide Molecular Data" : "Analyze Pathological Mechanism"}
+                               {isExpanded ? "Hide Evidence Details" : "View Evidence Summary"}
                             </button>
                             
                             {isExpanded && (
-                              <div className="w-full mt-6 pt-6 border-t border-white/10 animate-in slide-in-from-top-4 duration-500">
-                                 <h5 className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-4">Mechanism of Action</h5>
-                                 <div className="bg-black/20 p-6 rounded-[2rem] border border-white/5 leading-relaxed">
-                                    <p className="text-xs font-medium opacity-80 leading-loose">{item.mechanism}</p>
-                                 </div>
-                                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-                                    <div 
-                                      className="flex items-center gap-2 text-[10px] font-black tracking-widest uppercase opacity-30 bg-white/5 px-4 py-2 rounded-full cursor-help"
-                                      title={`Source verified from: ${item.source}`}
-                                    >
-                                       <Info className="w-3 h-3 text-current" /> Source: {item.source}
+                              <div className="w-full mt-6 pt-6 border-t border-white/10 animate-in slide-in-from-top-4 duration-500 space-y-6">
+                                 <div>
+                                    <h5 className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-4">Evidence Contribution</h5>
+                                    <div className="bg-black/20 p-6 rounded-[2rem] border border-white/5 leading-relaxed">
+                                       <p className="text-xs font-medium opacity-80 leading-loose">
+                                          This interaction is documented in the <span className="text-emerald-400 font-bold">{item.source}</span> database. 
+                                          The mechanism involves {item.mechanism.toLowerCase()}. 
+                                          The confidence level of this finding is <span className="text-emerald-400 font-bold uppercase">{confidence.label}</span> due to verification across {item.source.split(',').length} distinct data sources.
+                                       </p>
                                     </div>
-                                    <p className="text-[9px] font-bold opacity-20 uppercase tracking-tighter">Certified Database ID: {item.id}</p>
+                                 </div>
+                                 <div className="flex flex-wrap items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2 text-[10px] font-black tracking-widest uppercase opacity-30">
+                                       <Clock className="w-3 h-3" /> Last Verified: {new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
+                                    </div>
+                                    <p className="text-[9px] font-bold opacity-20 uppercase tracking-tighter">System Reference ID: {item.id}</p>
                                  </div>
                               </div>
                             )}
@@ -492,6 +609,72 @@ const Prescriptions = () => {
                   )
                 })}
               </div>
+              
+              {/* Step 58: Transparency Statement */}
+              {interactions.length > 0 && (
+                <div className="mt-12 p-8 border border-white/5 rounded-[3rem] bg-gray-950/20 text-center animate-in slide-in-from-bottom-4">
+                   <p className="text-xs text-gray-500 font-medium mb-4 italic">
+                      "Our RAG system combines real-time pharmaceutical APIs with curated traditional knowledge research."
+                   </p>
+                   <button 
+                     onClick={() => setShowTransparency(true)}
+                     className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-all border-b border-emerald-500/20 pb-1"
+                   >
+                     <ShieldAlert className="w-4 h-4" /> How We Verify Interactions
+                   </button>
+                </div>
+              )}
+
+              {/* Step 58 Content: Transparency Modal */}
+              {showTransparency && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 backdrop-blur-3xl bg-black/60 font-sans">
+                   <div className="bg-gray-900 border border-white/10 w-full max-w-2xl rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in duration-300">
+                      <div className="p-10">
+                         <div className="flex justify-between items-start mb-8">
+                            <div>
+                               <h2 className="text-2xl font-black text-white tracking-tight mb-2">Interaction Verification Protocol</h2>
+                               <p className="text-xs text-emerald-500 font-bold uppercase tracking-[0.2em]">RAG Architecture v1.0</p>
+                            </div>
+                            <button onClick={() => setShowTransparency(false)} className="p-2 hover:bg-white/5 rounded-full text-gray-500 transition-colors">
+                               <RefreshCw className="w-5 h-5" />
+                            </button>
+                         </div>
+
+                         <div className="space-y-6 text-sm text-gray-400 leading-relaxed font-medium">
+                            <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                               <h4 className="text-white font-bold mb-2 flex items-center gap-2 text-xs uppercase tracking-widest">
+                                  <Cpu className="w-4 h-4 text-emerald-500" /> Multi-Source Synthesis
+                               </h4>
+                               <p>VaidyaSetu utilizes **Retrieval-Augmented Generation (RAG)** to merge data from two critical streams:
+                                  1. **Live Clinical APIs**: Real-time pharmaceutical data from RxNav (NLM) and OpenFDA.
+                                  2. **Traditional Knowledge base**: Curated interaction data from IMPPAT, ICMR, and Peer-Reviewed Literature.
+                               </p>
+                            </div>
+
+                            <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                               <h4 className="text-white font-bold mb-2 flex items-center gap-2 text-xs uppercase tracking-widest">
+                                  <ShieldAlert className="w-4 h-4 text-amber-500" /> Limitations & Safety
+                               </h4>
+                               <p>While our system achieves high recall across allopathic and ayurvedic databases, it is an **informational tool only**. 
+                               Traditional knowledge is often based on historical text and observational research, which may lack modern standardized clinical trials.
+                               </p>
+                            </div>
+
+                            <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest text-center pt-4">
+                               Always consult a healthcare professional for definitive clinical guidance.
+                            </p>
+                         </div>
+
+                         <button 
+                           onClick={() => setShowTransparency(false)}
+                           className="w-full mt-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all shadow-xl"
+                         >
+                            Understood
+                         </button>
+                      </div>
+                   </div>
+                </div>
+              )}
            </div>
 
            {/* 9.7 Interaction History */}

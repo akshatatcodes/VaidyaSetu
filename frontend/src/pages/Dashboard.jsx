@@ -3,7 +3,7 @@ import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, ThumbsUp, ThumbsDown, Download, Scan, Trash2 } from 'lucide-react';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import Lottie from 'lottie-react';
+import BodyScan3D from '../components/BodyScan3D';
 import { useGoogleLogin } from '@react-oauth/google';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
@@ -41,17 +41,6 @@ const Dashboard = () => {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
   const [feedbackStatus, setFeedbackStatus] = useState({}); // context -> true/false
-  const [lottieData, setLottieData] = useState(null);
-
-  // Body Scan Lottie JSON
-  const lottieUrl = "https://lottie.host/80709673-f32a-43f0-82a8-f71694f4b232/vB3I7Y4G5u.json";
-
-  useEffect(() => {
-    fetch(lottieUrl)
-      .then(res => res.json())
-      .then(data => setLottieData(data))
-      .catch(err => console.error("Lottie load failed:", err));
-  }, []);
 
   const fetchReport = async () => {
     try {
@@ -273,21 +262,22 @@ const Dashboard = () => {
 
         {/* Right Column - Secondary Data */}
         <div className="space-y-6">
-           {/* Visualizer Simulation (Body Scan Placeholder) */}
-           <div className="bg-[#0b1221] border border-gray-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[340px] relative overflow-hidden group hover:border-emerald-500/20 transition-all shadow-2xl">
-               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-               <h3 className="absolute top-6 left-6 text-white/50 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center">
-                  <Scan className="w-4 h-4 mr-2" /> Predictive Body Scan
+           {/* 3D Holographic Bio-Matrix Card */}
+           <div className="bg-[#030712] border border-gray-800 rounded-[2.5rem] min-h-[520px] relative overflow-hidden group hover:border-emerald-500/20 transition-all shadow-2xl backdrop-blur-3xl">
+               {/* Background Grid and Atmosphere */}
+               <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+               <h3 className="absolute top-6 left-6 text-emerald-400/40 text-[10px] font-black uppercase tracking-[0.3em] flex items-center z-20">
+                  <Scan className="w-4 h-4 mr-2" /> Predictive Bio-Matrix
                </h3>
-               <div className="w-56 h-56 flex items-center justify-center relative translate-y-4">
-                  {lottieData ? (
-                    <Lottie animationData={lottieData} loop={true} className="w-full h-full opacity-60 group-hover:opacity-90 transition-opacity" />
-                  ) : (
-                    <Activity className="w-12 h-12 text-emerald-500/20 animate-pulse" />
-                  )}
-               </div>
-               <div className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest mt-6">
-                  Scanner Active
+               
+               <div className="w-full h-[520px] relative z-10">
+                  <BodyScan3D 
+                    riskScore={Math.max(
+                      report?.risk_scores?.diabetes || 0, 
+                      report?.risk_scores?.hypertension || 0, 
+                      report?.risk_scores?.anemia || 0
+                    )} 
+                  />
                </div>
            </div>
 

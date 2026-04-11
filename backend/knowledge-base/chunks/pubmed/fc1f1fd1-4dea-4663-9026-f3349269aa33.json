@@ -1,0 +1,10 @@
+{
+    "chunk_id": "fc1f1fd1-4dea-4663-9026-f3349269aa33",
+    "source_database": "PubMed",
+    "document_title": "PMC13062221.xml",
+    "publication_version": "Latest",
+    "chunk_sequence_number": 4,
+    "content_type": "Research Paper",
+    "language": "English",
+    "text": "95% CI: 0.854\u20130.927) and long-term mortality (0.847, 95% CI: 0.794\u20130.900), and strong performance for AKI prediction (0.825, 95% CI: 0.756\u20130.894). Many complication-specific models achieved AUCs above 0.90. However, these estimates must be interpreted with extreme caution. Significant heterogeneity was observed across analyses (I2\u2009=\u200961.3\u201378.8%), and the PROBAST assessment revealed that 100% (40/40) of studies were at high or unclear risk of bias, predominantly due to deficiencies in the analysis domain (e.g., inadequate events-per-variable, lack of external validation). Adherence to TRIPOD reporting standards was suboptimal (average 78.7%), with critical shortcomings in reporting predictor definitions (62.5% unreported), sample size justification (82.5% unreported), and full model"
+}

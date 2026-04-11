@@ -12,6 +12,8 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.61.4",
     "@react-oauth/google": "^0.13.5",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
     "axios": "^1.15.0",
     "framer-motion": "^12.38.0",
     "fuse.js": "^7.3.0",
@@ -23,6 +25,7 @@
     "react-router-dom": "^7.14.0",
     "react-select": "^5.10.2",
     "recharts": "^3.8.1",
+    "three": "^0.183.2",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

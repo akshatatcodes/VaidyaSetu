@@ -1,0 +1,10 @@
+{
+    "chunk_id": "610dc39d-d69a-4775-b747-bb828bd24c46",
+    "source_database": "PubMed",
+    "document_title": "PMC13057478.xml",
+    "publication_version": "Latest",
+    "chunk_sequence_number": 1,
+    "content_type": "Research Paper",
+    "language": "English",
+    "text": "Research Paper: Closing the loop: human-augmented, mechanistically enhanced AI for proactive management of drug\u2013drug interactions\nAbstract:\nDrug\u2013drug interactions (DDIs) represent a major challenge in pharmaceutical research for ensuring safe and effective medication use in clinical practice. Pharmacological DDI assays generate data that underpin clinical guidelines, drug interaction checkers, and decision support systems. Although these approaches remain indispensable, contemporary clinical practice is far more complex, shaped by polypharmacy, multimorbidity, diverse phenotypes, and social determinants of health. Artificial intelligence (AI) offers opportunities to integrate molecular, pharmacokinetic, and pharmacodynamic knowledge with real-world observations, enabling more proactive and"
+}

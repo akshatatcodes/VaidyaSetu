@@ -1,0 +1,80 @@
+--- PUBMED RECORD ---
+Source: PubMed
+Document: PMC13057478.xml
+Content:
+Research Paper: Closing the loop: human-augmented, mechanistically enhanced AI for proactive management of drug–drug interactions
+Abstract:
+Drug–drug interactions (DDIs) represent a major challenge in pharmaceutical research for ensuring safe and effective medication use in clinical practice. Pharmacological DDI assays generate data that underpin clinical guidelines, drug interaction checkers, and decision support systems. Although these approaches remain indispensable, contemporary clinical practice is far more complex, shaped by polypharmacy, multimorbidity, diverse phenotypes, and social determinants of health. Artificial intelligence (AI) offers opportunities to integrate molecular, pharmacokinetic, and pharmacodynamic knowledge with real-world observations, enabling more proactive and patient-centered approaches to DDI risk assessment. This perspective proposes a conceptual framework for transitioning from static, rule-based DDI tools toward human-augmented AI systems in which clinician feedback is embedded as an integral component of model learning and interpretation, rather than serving solely as post hoc validation. Through structured incorporation of clinical expertise, experimental pharmacology is continuously contextualized against real-world decision-making. The manuscript outlines an AI ecosystem that is ethically grounded, mechanistically informed, and enriched through pharmacovigilance data and systematic clinician input. By operationalizing human-in-the-loop learning as a core design principle, this framework establishes human-augmented AI as a foundational paradigm for future DDI research, drug development, and personalized medication safety.
+
+
+--- PUBMED RECORD ---
+Source: PubMed
+Document: PMC13062217.xml
+Content:
+Research Paper: The symbiotic axis between the acidic tumor microenvironment and cancer stem cells: a driver of malignancy and therapeutic resistance
+Abstract:
+The physicochemical conditions of tumors—such as acidosis, stiffness, and hypoxia—actively drive cancer progression yet have been insufficiently incorporated into the current hallmarks of cancer model. This review focuses on one such dominant condition, the acidic tumor microenvironment (ATME), and its dynamic interplay with cancer stem cells (CSCs), proposing their cooperative interaction as a central driver of tumor aggressiveness. We present evidence that acidosis, driven by glycolytic metabolism and proton extrusion, epigenetically reprograms tumor cells toward a stem-like state through mechanisms including histone lactylation. In turn, CSCs reinforce acidity through metabolic remodeling and stromal reprogramming, forming a self-sustaining feedback loop. This ATME-CSC axis underpins key cancer hallmarks: uncontrolled self-renewal, metabolic adaptability, immune evasion, and metastasis. Disrupting this axis requires multi-target strategies that concurrently neutralize niche acidity, target CSC metabolism, and reset associated epigenetic programs. Future advances will depend on spatial mapping of this axis in vivo, development of microenvironment-responsive agents, and functional validation using patient-derived organoids. Targeting the symbiotic interface between tumor acidity and stemness offers a transformative pathway to durable therapeutic control.
+
+
+--- PUBMED RECORD ---
+Source: PubMed
+Document: PMC13062221.xml
+Content:
+Research Paper: Machine learning approaches for risk prediction in aortic dissection: a systematic review and meta-analysis
+Abstract:
+BackgroundAortic dissection (AD) is a life-threatening cardiovascular emergency with high morbidity and mortality. Accurate risk prediction is essential for timely intervention, yet traditional statistical models often fail to capture the complex, nonlinear interactions inherent in AD pathophysiology. In recent years, machine learning (ML) has emerged as a promising approach to improve prognostic accuracy. However, the overall performance, methodological quality, and clinical applicability of ML-based prediction models for AD have not been comprehensively evaluated.ObjectiveThis systematic review and meta-analysis followed PRISMA, CHARMS, and TRIPOD guidelines and was registered with PROSPERO (CRD420251154262). Six major databases (PubMed, Web of Science, Cochrane Library, Embase, CNKI, Wanfang) were searched from inception to September 30, 2025. Studies developing or validating ML models for predicting adverse outcomes in AD were included. Data extraction adhered to CHARMS, and risk of bias was assessed using PROBAST. Meta-analysis synthesized C-statistics (AUC) using fixed- or random-effects models depending on heterogeneity. Subgroup, sensitivity, and publication bias analyses were performed.ResultsForty studies were included, covering outcomes such as early mortality, long-term mortality, acute kidney injury (AKI), neurological complications, gastrointestinal bleeding, mesenteric malperfusion, and composite adverse events. ML algorithms included random forest, SVM, XGBoost, LightGBM, neural networks, and ensemble approaches. The pooled C-statistic demonstrated excellent discriminative performance for early mortality (0.891, 95% CI: 0.854–0.927) and long-term mortality (0.847, 95% CI: 0.794–0.900), and strong performance for AKI prediction (0.825, 95% CI: 0.756–0.894). Many complication-specific models achieved AUCs above 0.90. However, these estimates must be interpreted with extreme caution. Significant heterogeneity was observed across analyses (I2 = 61.3–78.8%), and the PROBAST assessment revealed that 100% (40/40) of studies were at high or unclear risk of bias, predominantly due to deficiencies in the analysis domain (e.g., inadequate events-per-variable, lack of external validation). Adherence to TRIPOD reporting standards was suboptimal (average 78.7%), with critical shortcomings in reporting predictor definitions (62.5% unreported), sample size justification (82.5% unreported), and full model specifications (72.5% unreported). Methodological limitations were common, including inadequate events-per-variable ratios, a near-absence of robust external validation (only 5 of 40 studies), inconsistent outcome definitions, and incomplete reporting of model specifications. Furthermore, over a quarter (27.5%) of models omitted calibration assessment, and decision-curve analysis was rarely performed, limiting insights into clinical utility.ConclusionML-based prediction models demonstrate strong potential for risk stratification in AD across multiple clinically relevant outcomes. However, current evidence does not justify their routine clinical implementation. The high reported performance metrics are likely optimistic estimates derived from methodologically weak studies. Future research should emphasize rigorous analytic frameworks, standardized outcome definitions, transparent reporting, and, most critically, multicenter external validation before these tools can be considered for real-world clinical utility.Systematic Review Registrationhttps://www.crd.york.ac.uk/PROSPERO/view/CRD420251154262, identifier CRD420251154262.
+
+
+--- PUBMED RECORD ---
+Source: PubMed
+Document: PMC13063083.xml
+Content:
+Research Paper: Scale-Up Isolation
+of High-Purity Shatavarins from Asparagus racemosus via Flash Chromatography with
+Bioavailability and Pharmacological Insights
+Abstract:
+Asparagus racemosus, commonly
+known
+as Shatavari, is an established Ayurvedic plant whose bioactivity
+is credited to its steroidal saponins, generally referred to as shatavarins,
+exerting adaptogenic and estrogenic effects. However, traditional
+methods of isolation often produce products with limited purity and
+poor reproducibility, which seriously limit scalability in pharmacological
+applications. This study describes an effective, scalable, flash chromatography-based
+approach toward the isolation and purification of six bioactive steroidal
+saponins, AR-1 to AR-6, from AR root material. The methanolic extract
+was subjected to successive liquid–liquid partitioning and
+multistep chromatographic purification to give high-purity compounds
+identified as spirostan derivatives (AR-1 to AR-4), shatavarins, and
+aglycone derivatives (AR-5 and AR-6). The structural identities and
+chemical homogeneity were clearly supported by various spectroscopic
+analyses: HPLC-ELSD, FTIR, NMR, and LC-MS. The in silico ADME predictions
+performed by SwissADME were used as a prioritization strategy to inform
+compound selection for biological testing, providing relative comparisons
+of absorption potential rather than validating oral bioavailability.
+Derivatives of aglycone compounds AR-5 and AR-6 showed greater predicted
+absorption potential, while highly glycosylated saponins AR-2 and
+AR-4 showed low permeability, as expected for compounds of their size
+and polarity. While steroidal saponins are not typical of oral drug
+chemical space, these models correlate well with permeability and
+metabolic properties. Molecular docking studies of GPER and estrogen
+receptors (ERα, ERβ, and ERRγ) showed binding affinities
+of −7.7 to −12.4 kcal/mol, with AR-1, AR-2, and AR-4
+showing a preference for hydrophobic and hydrogen-bonding interactions
+in GPER and ERα binding pockets typical of estrogen ligands.
+The developed flash chromatography workflow represents an efficient,
+scalable route to pharmacologically relevant standards of shatavarins.
+Combined with chromatographic and in silico results, the findings
+reveal the translational potential of AR saponins as multitarget phytoestrogens
+for hormone-modulatory and adaptogenic therapeutic applications.
+
+
+--- PUBMED RECORD ---
+Source: PubMed
+Document: PMC13063906.xml
+Content:
+Research Paper: Explant origin and growth regulators as determinants of callus performance and terpenoid indole alkaloid accumulation in Catharanthus roseus
+Abstract:
+Catharanthus roseus (L.) G. Don (Apocynaceae) is a highly important medicinal plant and a valuable source of diverse pharmacologically active compounds particularly anticancer terpenoid indole alkaloids (TIAs), such as catharanthine (CAT), vinblastine (VBL) and vincristine (VCR). This study investigated the impact of various plant growth regulator (PGR) combinations on callus induction and production of CAT, VBL and VCR. Leaf and stem explants were cultured on media containing seven combinations of auxins and cytokinins, and evaluated for callus induction frequency, biomass accumulation, and alkaloid content after eight weeks. Stem explants exhibited superior responsiveness, achieving 100% callus induction under most PGR treatments, whereas the combination of GA₃ and BAP failed to induce callogenesis in both explant types. HPLC analysis revealed that the combination of 1.5 mg/L 2,4-D and 1.5 mg/L kinetin (Kin) in leaf-derived callus yielded the highest CAT and VBL concentrations (5.01 µg/gFW and 1.96 µg/gFW; respectively). However, VCR notable enhanced in the stem- derived callus grown on a medium containing a combination of 1.0 mg/L each of BAP and NAA (4.71 µg/gFW) and leaf-derived callus grown in a medium containing 1.5 mg/L each of BAP and 2,4-D (2.79 µg/gFW) as compared with the controls (leaves and stems from in vivo grown plants, 1.51 µg/gFW and 0.38 µg/gFW; respectively). Gene expression analysis revealed that the combined application of 1.0 mg/L BAP and 1.0 mg/L NAA enhanced the transcript levels of peroxidase 1 (PRX1), secologanin synthase (SLS), and strictosidine synthase (STR) in stem-derived callus. The upregulation of these genes was positively correlated with increased VCR accumulation. In contrast, the expression levels of octadecanoid-derivative Responsive Catharanthus AP2-domain protein 3 (ORCA3) and desacetoxyvindoline 4-hydroxylase (D4H) were reduced. These findings highlight the importance of tailored hormonal treatments for optimizing in vitro biomass production and secondary metabolite synthesis in C. roseus, offering insights into sustainable alkaloid production for pharmaceutical applications. This study addresses the link between tailored plant growth regulator regimes and the coordinated activation of late-pathway genes, resulting in the selective enhancement of individual TIAs in C. roseus callus cultures, thereby providing a novel molecular–biotechnological strategy for targeted alkaloid production.
+
+

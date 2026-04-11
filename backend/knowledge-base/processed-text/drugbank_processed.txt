@@ -1,0 +1,20 @@
+--- DRUGBANK RECORD ---
+Source: DrugBank
+Record: Warfarin
+Content:
+Drug Profile for Warfarin:
+Mechanism of Action: Warfarin competitively inhibits the vitamin K epoxide reductase complex 1 (VKORC1), an essential enzyme for activating the vitamin K available in the body.
+Known Drug Interactions:
+- Interacts with Acetaminophen: Acetaminophen may increase the anticoagulant activities of Warfarin.
+
+
+--- DRUGBANK RECORD ---
+Source: DrugBank
+Record: Acetaminophen
+Content:
+Drug Profile for Acetaminophen:
+Mechanism of Action: Acetaminophen exerts its effects through inhibition of the cyclooxygenase (COX) pathways.
+Known Drug Interactions:
+- Interacts with Warfarin: The risk or severity of bleeding can be increased when Acetaminophen is combined with Warfarin.
+
+

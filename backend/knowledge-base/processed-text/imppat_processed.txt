@@ -1,0 +1,30 @@
+--- IMPPAT RECORD ---
+Source: IMPPAT
+Record: Withania somnifera
+Content:
+Indian Medicinal Plant 'Indian Ginseng' (Botanical: Withania somnifera, Sanskrit: Ashwagandha) is traditionally used for Stress, Anxiety, Inflammation, Immunomodulation. It contains active phytochemicals such as Withaferin A, Withanolide D, Sitoindoside IX, which interact with molecular targets including COX-2, TNF-alpha, NF-kappaB.
+
+--- IMPPAT RECORD ---
+Source: IMPPAT
+Record: Ocimum tenuiflorum
+Content:
+Indian Medicinal Plant 'Holy Basil' (Botanical: Ocimum tenuiflorum, Sanskrit: Tulsi) is traditionally used for Respiratory disorders, Stress, Antimicrobial. It contains active phytochemicals such as Eugenol, Ursolic acid, Rosmarinic acid, which interact with molecular targets including COX-2, LOX, Acetylcholinesterase.
+
+--- IMPPAT RECORD ---
+Source: IMPPAT
+Record: Curcuma longa
+Content:
+Indian Medicinal Plant 'Turmeric' (Botanical: Curcuma longa, Sanskrit: Haridra) is traditionally used for Inflammation, Wound healing, Antioxidant. It contains active phytochemicals such as Curcumin, Demethoxycurcumin, Bisdemethoxycurcumin, which interact with molecular targets including COX-2, LOX, TNF-alpha, Interleukins.
+
+--- IMPPAT RECORD ---
+Source: IMPPAT
+Record: Justicia adhatoda
+Content:
+Indian Medicinal Plant 'Malabar Nut' (Botanical: Justicia adhatoda, Sanskrit: Vasaka) is traditionally used for Asthma, Bronchitis, Cough. It contains active phytochemicals such as Vasicine, Vasicinone, which interact with molecular targets including Phosphodiesterase, Histamine H1 receptor.
+
+--- IMPPAT RECORD ---
+Source: IMPPAT
+Record: Commiphora wightii
+Content:
+Indian Medicinal Plant 'Guggul' (Botanical: Commiphora wightii, Sanskrit: Guggulu) is traditionally used for Hyperlipidemia, Obesity, Arthritis. It contains active phytochemicals such as Guggulsterone E, Guggulsterone Z, which interact with molecular targets including FXR, RXR, LDL receptor.
+

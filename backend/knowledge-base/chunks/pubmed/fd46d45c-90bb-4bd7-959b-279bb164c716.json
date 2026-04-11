@@ -1,0 +1,10 @@
+{
+    "chunk_id": "fd46d45c-90bb-4bd7-959b-279bb164c716",
+    "source_database": "PubMed",
+    "document_title": "PMC13062221.xml",
+    "publication_version": "Latest",
+    "chunk_sequence_number": 3,
+    "content_type": "Research Paper",
+    "language": "English",
+    "text": "C-statistics (AUC) using fixed- or random-effects models depending on heterogeneity. Subgroup, sensitivity, and publication bias analyses were performed.ResultsForty studies were included, covering outcomes such as early mortality, long-term mortality, acute kidney injury (AKI), neurological complications, gastrointestinal bleeding, mesenteric malperfusion, and composite adverse events. ML algorithms included random forest, SVM, XGBoost, LightGBM, neural networks, and ensemble approaches. The pooled C-statistic demonstrated excellent discriminative performance for early mortality (0.891, 95% CI: 0.854\u20130.927) and long-term mortality (0.847, 95% CI: 0.794\u20130.900), and strong performance for AKI prediction (0.825, 95% CI: 0.756\u20130.894). Many complication-specific models achieved AUCs above"
+}

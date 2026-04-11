@@ -1,0 +1,10 @@
+{
+    "chunk_id": "840920ec-dbc8-4bbd-83ae-5fc9a1c175d3",
+    "source_database": "PubMed",
+    "document_title": "PMC13062221.xml",
+    "publication_version": "Latest",
+    "chunk_sequence_number": 5,
+    "content_type": "Research Paper",
+    "language": "English",
+    "text": "reporting standards was suboptimal (average 78.7%), with critical shortcomings in reporting predictor definitions (62.5% unreported), sample size justification (82.5% unreported), and full model specifications (72.5% unreported). Methodological limitations were common, including inadequate events-per-variable ratios, a near-absence of robust external validation (only 5 of 40 studies), inconsistent outcome definitions, and incomplete reporting of model specifications. Furthermore, over a quarter (27.5%) of models omitted calibration assessment, and decision-curve analysis was rarely performed, limiting insights into clinical utility.ConclusionML-based prediction models demonstrate strong potential for risk stratification in AD across multiple clinically relevant outcomes. However, current"
+}
