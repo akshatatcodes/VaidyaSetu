@@ -12,6 +12,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 *, *::before, *::after {
@@ -23,6 +24,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #030712;
+  transition: background-color 0.3s ease;
 }
 
 #root {
@@ -32,7 +34,77 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', sans-serif;
   color: #ffffff;
+  transition: color 0.3s ease;
 }
+
+/* ==============================
+   LIGHT MODE OVERRIDES
+   Triggered by .light on <html>
+   ============================== */
+html.light {
+  color-scheme: light;
+  background-color: #f0fdf8;
+}
+
+html.light body {
+  background-color: #f0fdf8;
+}
+
+html.light h1, html.light h2, html.light h3,
+html.light h4, html.light h5, html.light h6 {
+  color: #064e3b;
+}
+
+/* === Global text overrides === */
+html.light .text-white { color: #064e3b !important; }
+html.light .text-gray-100 { color: #065f46 !important; }
+html.light .text-gray-200 { color: #065f46 !important; }
+html.light .text-gray-300 { color: #374151 !important; }
+html.light .text-gray-400 { color: #4b5563 !important; }
+html.light .text-gray-500 { color: #6b7280 !important; }
+
+/* === Background overrides === */
+html.light .bg-\[\#030712\] { background-color: #f0fdf8 !important; }
+html.light .bg-gray-900 { background-color: #ffffff !important; }
+html.light .bg-gray-900\/50 { background-color: rgba(255,255,255,0.85) !important; }
+html.light .bg-gray-800 { background-color: #ecfdf5 !important; }
+html.light .bg-gray-800\/30 { background-color: rgba(209,250,229,0.5) !important; }
+html.light .bg-gray-800\/50 { background-color: rgba(167,243,208,0.4) !important; }
+html.light .bg-\[\#030712\]\/50 { background-color: rgba(240,253,248,0.85) !important; }
+html.light .bg-\[linear-gradient\(rgba\(16\,185\,129\,0\.03\)_1px\,transparent_1px\)\,linear-gradient\(90deg\,rgba\(16\,185\,129\,0\.03\)_1px\,transparent_1px\)\] {
+  opacity: 0.5;
+}
+
+/* === Border overrides === */
+html.light .border-gray-800 { border-color: #a7f3d0 !important; }
+html.light .border-gray-700\/50 { border-color: rgba(167,243,208,0.7) !important; }
+
+/* === Sidebar specific === */
+html.light .vs-sidebar {
+  background-color: #ffffff !important;
+  border-color: #a7f3d0 !important;
+}
+html.light .vs-sidebar .text-gray-300 { color: #374151 !important; }
+html.light .vs-sidebar .text-gray-400 { color: #4b5563 !important; }
+html.light .vs-sidebar h2 { color: #064e3b !important; }
+html.light .vs-sidebar .bg-gray-800\/30 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+/* === Card / Panel overrides === */
+html.light .bg-red-950\/20 { background-color: #fff1f2 !important; }
+html.light .border-red-900\/30 { border-color: #fecaca !important; }
+
+/* === Main content area === */
+html.light .vs-main-content { background-color: #f0fdf8 !important; }
+
+/* === Smooth transition on all elements === */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
+}
+
+/* ============================== */
 
 @keyframes fadeIn {
   from { opacity: 0; }

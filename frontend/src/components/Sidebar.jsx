@@ -2,6 +2,8 @@ import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle } from 'lucide-react';
 import { UserButton, useClerk, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
+import { useTheme } from '../context/ThemeContext';
+
 
 /**
  * Sidebar component replicated from VaidyaSetu1
@@ -24,7 +26,8 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="flex flex-col w-full md:w-64 h-auto md:h-screen sticky top-0 px-4 py-4 md:py-8 bg-gray-900 border-b md:border-r border-gray-800 text-gray-300 shrink-0 z-50">
+    <div className="vs-sidebar flex flex-col w-full md:w-64 h-auto md:h-screen sticky top-0 px-4 py-4 md:py-8 bg-gray-900 border-b md:border-r border-gray-800 text-gray-300 shrink-0 z-50">
+
       <div className="flex items-center justify-between md:justify-center mb-4 md:mb-10">
         <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
           Vaidya<span className="text-emerald-500">Setu</span>
