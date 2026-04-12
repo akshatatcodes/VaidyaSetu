@@ -1,20 +1,27 @@
+import React, { useEffect, useState } from 'react';
+import { SignedIn, SignedOut, SignIn, SignUp, useUser } from '@clerk/clerk-react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { SignedIn, SignedOut, useUser, SignIn, SignUp } from '@clerk/clerk-react';
-import { useEffect, useState } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { Loader2, Sun, Moon } from 'lucide-react';
+import axios from 'axios';
+
+// Context
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+
+// Components
 import Sidebar from './components/Sidebar';
-import Onboarding from './pages/Onboarding';
+import Chatbot from './components/Chatbot';
+import DisclaimerBanner from './components/DisclaimerBanner';
+
+// Pages
 import Dashboard from './pages/Dashboard';
+import HealthProfile from './pages/HealthProfile';
+import ProfileEditor from './pages/ProfileEditor';
+import ChangeHistory from './pages/ChangeHistory';
 import Prescriptions from './pages/Prescriptions';
 import Privacy from './pages/Privacy';
-import HealthProfile from './pages/HealthProfile';
-import ChangeHistory from './pages/ChangeHistory';
-import ProfileEditor from './pages/ProfileEditor';
 import Settings from './pages/Settings';
-import Chatbot from './components/Chatbot';
-import { Loader2 } from 'lucide-react';
-import axios from 'axios';
-import { GoogleOAuthProvider } from '@react-oauth/google';
-import DisclaimerBanner from './components/DisclaimerBanner';
+import Onboarding from './pages/Onboarding';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
@@ -30,14 +37,18 @@ const ProtectedRoute = ({ children }) => {
   );
 };
 
-// Main app shell — checks onboarding status and redirects if needed
+// Main app shell
 const AppLayout = () => {
   const { user, isLoaded } = useUser();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (!isLoaded || !user) {
+        if (isLoaded && !user) setChecking(false);
+        return;
+    }
 
     axios.get(`${API_URL}/profile/${user.id}`)
       .then((res) => {
@@ -54,24 +65,37 @@ const AppLayout = () => {
         }
       })
       .finally(() => setChecking(false));
-  }, [isLoaded, user]);
+  }, [isLoaded, user, navigate]);
 
-  if (checking) {
+  if (checking || !isLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#030712]">
+      <div className="flex items-center justify-center min-h-screen bg-[#030712] dark:bg-[#030712]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
-          <p className="text-gray-400 text-sm">Loading your profile...</p>
+          <p className="text-gray-400 text-sm">Validating session...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full">
+    <div className="flex flex-col md:flex-row min-h-screen w-full relative">
+      {/* Floating Theme Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-6 right-6 z-[100] p-3 bg-white/20 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/5 rounded-2xl text-emerald-500 hover:scale-110 active:scale-95 transition-all shadow-2xl group"
+        title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      >
+        {theme === 'dark' ? (
+          <Sun className="w-5 h-5 group-hover:rotate-45 transition-transform" />
+        ) : (
+          <Moon className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
+        )}
+      </button>
+
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <main className="p-4 sm:p-8 md:p-12 w-full overflow-auto">
+        <main className="p-4 sm:p-8 md:p-12 w-full overflow-auto vs-main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/profile" element={<HealthProfile />} />
@@ -91,7 +115,6 @@ const AppLayout = () => {
   );
 };
 
-// Auth Page wrapper — centers the Clerk widget on a dark background
 const AuthPage = ({ children }) => (
   <div className="min-h-screen flex items-center justify-center bg-[#030712] py-12">
     {children}
@@ -100,55 +123,23 @@ const AuthPage = ({ children }) => (
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER">
-      <BrowserRouter>
-        <Routes>
-          {/* Redirect /login to /sign-in for backward compat */}
-          <Route path="/login" element={<Navigate to="/sign-in" replace />} />
-          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+    <ThemeProvider>
+      <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER">
+        <BrowserRouter>
+          <Routes>
+            {/* Auth Routes */}
+            <Route path="/login" element={<Navigate to="/sign-in" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/sign-in/*" element={<AuthPage><SignIn routing="path" path="/sign-in" /></AuthPage>} />
+            <Route path="/sign-up/*" element={<AuthPage><SignUp routing="path" path="/sign-up" /></AuthPage>} />
 
-          {/* Public: Clerk Sign In */}
-          <Route
-            path="/sign-in/*"
-            element={
-              <AuthPage>
-                <SignIn routing="path" path="/sign-in" />
-              </AuthPage>
-            }
-          />
-
-          {/* Public: Clerk Sign Up */}
-          <Route
-            path="/sign-up/*"
-            element={
-              <AuthPage>
-                <SignUp routing="path" path="/sign-up" />
-              </AuthPage>
-            }
-          />
-
-          {/* Protected: Onboarding */}
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Protected: Main App */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </GoogleOAuthProvider>
+            {/* Application Routes */}
+            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+            <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          </Routes>
+        </BrowserRouter>
+      </GoogleOAuthProvider>
+    </ThemeProvider>
   );
 }
 

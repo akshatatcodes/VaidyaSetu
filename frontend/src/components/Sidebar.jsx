@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle } from 'lucide-react';
 import { UserButton, useClerk, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
+import { useTheme } from '../context/ThemeContext';
 
 /**
  * Sidebar component replicated from VaidyaSetu1
@@ -13,6 +14,7 @@ import { UserButton, useClerk, SignedIn, SignedOut, SignInButton } from '@clerk/
  */
 const Sidebar = () => {
   const { signOut } = useClerk();
+  const { theme } = useTheme();
 
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
@@ -24,9 +26,10 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="flex flex-col w-full md:w-64 h-auto md:h-screen sticky top-0 px-4 py-4 md:py-8 bg-gray-900 border-b md:border-r border-gray-800 text-gray-300 shrink-0 z-50">
+    <div className="vs-sidebar flex flex-col w-full md:w-64 h-auto md:h-screen sticky top-0 px-4 py-4 md:py-8 bg-white dark:bg-gray-900 border-b md:border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 shrink-0 z-50 transition-colors duration-300">
+
       <div className="flex items-center justify-between md:justify-center mb-4 md:mb-10">
-        <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
           Vaidya<span className="text-emerald-500">Setu</span>
         </h2>
         
@@ -34,7 +37,7 @@ const Sidebar = () => {
         <div className="block md:hidden">
             <SignedIn>
                 <div className="flex items-center space-x-4">
-                  <Link to="/profile" className="text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
+                  <Link to="/profile" className="text-gray-500 dark:text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
                     <UserCircle className="w-5 h-5" />
                   </Link>
                   <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8" } }} />
@@ -58,8 +61,8 @@ const Sidebar = () => {
               className={({ isActive }) =>
                 `flex whitespace-nowrap items-center px-4 py-2 md:py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'text-emerald-400 bg-gray-800/50'
-                    : 'text-gray-400 hover:text-emerald-400 hover:bg-gray-800/30'
+                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-gray-800/50 active-link'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-gray-800/30'
                 }`
               }
             >
@@ -73,18 +76,18 @@ const Sidebar = () => {
         <div className="hidden md:block space-y-4 pt-6 mt-auto">
           <SignedIn>
             <div className="space-y-2">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-800/30 rounded-xl border border-gray-700/50">
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
                 <UserButton 
                   showName 
                   appearance={{ 
                     elements: { 
                       userButtonAvatarBox: "w-8 h-8", 
                       userButtonBox: "flex-row-reverse",
-                      userButtonOuterIdentifier: "text-gray-300 font-medium" 
+                      userButtonOuterIdentifier: "text-gray-700 dark:text-gray-300 font-medium" 
                     } 
                   }} 
                 />
-                <Link to="/profile" className="text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
+                <Link to="/profile" className="text-gray-500 dark:text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
                   <UserCircle className="w-5 h-5" />
                 </Link>
               </div>
@@ -100,5 +103,6 @@ const Sidebar = () => {
     </div>
   );
 };
+
 
 export default Sidebar;

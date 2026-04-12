@@ -438,17 +438,17 @@ const Prescriptions = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Left Column: Input Control Center */}
         <div className="lg:col-span-4 space-y-8">
-          <div className="bg-gray-900/40 backdrop-blur-xl border border-white/5 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]" />
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden transition-colors duration-300">
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-[80px]" />
 
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-white font-bold flex items-center gap-3 text-lg">
+              <h3 className="text-gray-900 dark:text-white font-bold flex items-center gap-3 text-lg">
                 <FileText className="w-6 h-6 text-emerald-500" /> Intake Terminal
               </h3>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="bg-gray-950 border border-white/10 text-[10px] text-emerald-500 font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl outline-none focus:border-emerald-500/50 transition-all cursor-pointer"
+                className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-white/10 text-[10px] text-emerald-600 dark:text-emerald-500 font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl outline-none focus:border-emerald-500/50 transition-all cursor-pointer"
               >
                 <option value="English">English</option>
                 <option value="Hindi">Hindi</option>
@@ -463,25 +463,25 @@ const Prescriptions = () => {
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full h-40 bg-gray-950/50 border border-gray-800 group-hover:border-emerald-500/30 rounded-3xl p-5 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all placeholder:text-gray-700 resize-none font-medium"
+                className="w-full h-40 bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 group-hover:border-emerald-500/30 rounded-3xl p-5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-700 resize-none font-medium"
                 placeholder="Type medicines or herbs separated by commas..."
               />
-              <div className="absolute bottom-4 right-4 text-[9px] text-gray-600 font-bold uppercase tracking-widest pointer-events-none">
+              <div className="absolute bottom-4 right-4 text-[9px] text-gray-400 dark:text-gray-600 font-bold uppercase tracking-widest pointer-events-none">
                 Manual Overlay
               </div>
               <button
                 onClick={handleVoiceInput}
                 disabled={voicePlaying}
-                className={`absolute bottom-4 left-4 p-2 rounded-full transition-all ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-800 text-gray-400 hover:text-emerald-500'}`}
+                className={`absolute bottom-4 left-4 p-2 rounded-full transition-all ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-500'}`}
                 title="Start Voice Intake"
               >
                 <Mic className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="mt-4 flex items-center gap-3 p-3 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
-              <Info className="w-4 h-4 text-blue-400 shrink-0" />
-              <p className="text-[10px] text-blue-400/80 font-medium leading-relaxed">
+            <div className="mt-4 flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 rounded-2xl">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <p className="text-[10px] text-blue-700 dark:text-blue-400/80 font-medium leading-relaxed">
                 OCR Engine is currently operating in 'Demo Simulation' mode for hackathon stability.
               </p>
             </div>
@@ -489,7 +489,7 @@ const Prescriptions = () => {
             <button
               onClick={startMatching}
               disabled={matching || !inputText.trim()}
-              className="w-full mt-6 py-4 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white disabled:opacity-30 disabled:hover:bg-emerald-500/10 disabled:hover:text-emerald-500 font-black rounded-2xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs border border-emerald-500/20"
+              className="w-full mt-6 py-4 bg-emerald-600 dark:bg-emerald-500/10 hover:bg-emerald-700 dark:hover:bg-emerald-500 text-white dark:text-emerald-500 dark:hover:text-white disabled:opacity-30 font-black rounded-2xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs border border-emerald-600 dark:border-emerald-500/20"
             >
               {matching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               Calibrate Medicine List
@@ -498,8 +498,8 @@ const Prescriptions = () => {
 
           {/* 9.2 Match Confirmation */}
           {candidates.length > 0 && (
-            <div className="bg-emerald-500/5 border border-emerald-500/10 p-8 rounded-[2.5rem] animate-in zoom-in duration-500 shadow-xl">
-              <h4 className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.25em] mb-6 flex items-center gap-2">
+            <div className="bg-white dark:bg-emerald-500/5 border border-gray-200 dark:border-emerald-500/10 p-8 rounded-[2.5rem] animate-in zoom-in duration-500 shadow-xl">
+              <h4 className="text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-[0.25em] mb-6 flex items-center gap-2">
                 <RefreshCw className="w-4 h-4" /> Identity Verification
               </h4>
               <div className="space-y-3">
