@@ -9,17 +9,10 @@ const reportSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  diabetes_advice: {
-    type: String,
-    required: true,
-  },
-  hypertension_advice: {
-    type: String,
-    required: true,
-  },
-  anemia_advice: {
-    type: String,
-    required: true,
+  // Dynamic Map for disease-specific advice (e.g., { "thyroid": "...", "diabetes": "..." })
+  advice: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   },
   general_tips: {
     type: String,
@@ -29,15 +22,23 @@ const reportSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // Dynamic Map for risk scores
   risk_scores: {
-    diabetes: { type: Number, required: true },
-    hypertension: { type: Number, required: true },
-    anemia: { type: Number, required: true }
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+  // Category-level insights (e.g., { "metabolic": "...", "cardio": "..." })
+  category_insights: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
+}, {
+  toObject: { flattenMaps: true },
+  toJSON: { flattenMaps: true }
 });
 
 module.exports = mongoose.model('Report', reportSchema);

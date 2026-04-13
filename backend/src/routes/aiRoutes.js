@@ -43,45 +43,66 @@ router.post('/generate-report', async (req, res) => {
       "${changeContext}"
       
       IMPORTANT GUIDELINES FOR THIS REPORT:
-      1. If the update is a CORRECTION: Use neutral language like "updated," "adjusted," or "recalculated." Never congratulate the user or imply health progress.
-      2. If the update is a REAL CHANGE (Positive): Use factual but mildly encouraging language.
-      3. If the update is a REAL CHANGE (Negative): State the change factually and provide supportive, neutral recommendations.
-      4. If the update is an ADDITION: Acknowledge the new information has been recorded for future assessments.
-      5. Do not use false celebratory language for data corrections.
+      1. If the update is a CORRECTION: Use neutral language like "updated," "adjusted," or "recalculated."
+      2. If the update is a REAL CHANGE: Use factual language.
       `;
     }
 
-    // --- Step 84: Vitals to AI Insights Integration ---
+    // Vitals Integration
     const recentVitals = await Vital.find({ clerkId }).sort({ timestamp: -1 }).limit(5);
     let vitalsContext = "";
     if (recentVitals.length > 0) {
       vitalsContext = `
       RECENT VITALS SNAPSHOT:
       ${JSON.stringify(recentVitals.map(v => ({ type: v.type, value: v.value, unit: v.unit, date: v.timestamp })))}
-      Please incorporate these physiological trends into your insights if they show concerning patterns.
       `;
     }
 
+    // --- Phase 4: Expanded AI Prompt for 20+ Diseases ---
     const prompt = `
-    You are VaidyaSetu AI, a compassionate health assistant for Indian users. 
-    Analyze this user profile, preliminary risk scores, and recent vitals telemetry.
+    You are VaidyaSetu AI, a comprehensive health assistant for Indian users.
+    Analyze this user profile, preliminary risk scores, and vitals telemetry across 20+ disease categories.
 
-    IMPORTANT RULES FOR TONE AND PRONOUNS:
-    Always speak directly to the user using "you" or "your". Never use third-person pronouns like "his", "her", "he", or "she" to refer to the user.
-    
-    Profile: ${JSON.stringify(flatProfile)}
-    Risk Scores: ${JSON.stringify(riskScores)}
+    USER PROFILE: ${JSON.stringify(flatProfile)}
+    PRELIMINARY RISK SCORES: ${JSON.stringify(riskScores)}
     ${vitalsContext}
     ${changeInstruction}
-    
-    Output a valid JSON object matching exactly this schema:
+
+    NUTRITIONAL GUIDANCE RULES:
+    - Prioritize vegetarian and locally available Indian foods.
+    - For iron: Suggest palak, methi, beetroot, jaggery, lentils + vitamin C.
+    - For B12: Acknowledge vegetarian challenge; suggest fortified foods/supplements.
+    - For Vitamin D: Emphasize sunlight exposure.
+    - For protein: Emphasize dal, chana, rajma, paneer, soy, sprouts.
+
+    DISEASE CATEGORIES:
+    1. METABOLIC: Diabetes, Pre-diabetes, Obesity, Thyroid, PCOS, Fatty Liver.
+    2. CARDIOVASCULAR: Hypertension, Heart Disease, Stroke.
+    3. RESPIRATORY: Asthma, COPD, Allergic Rhinitis.
+    4. RENAL: CKD, Kidney Stones.
+    5. NUTRITIONAL: Anemia, Vitamin D, Vitamin B12.
+    6. MENTAL HEALTH: Depression, Anxiety, Sleep Disorders.
+
+    STRICT SCORING & MEDICAL RULES:
+    1. NEVER show 100% risk. Maximum possible risk is 95% (Extreme Risk).
+    2. GENDER SHIELD: If a disease risk is -1, it is "Not Applicable" (e.g., PCOS for males). State "Not applicable for [Gender]" in advice.
+    3. NO HALLUCINATIONS: Only use the disease names listed above. DO NOT invent names like "RUTHA", "CRISIS", or others.
+    4. REALISM: If BMI is 19.4, Obesity risk must be Low (2-5%). Adhere to the PRELIMINARY RISK SCORES provided.
+
+    OUTPUT SCHEMA (JSON):
     {
-      "summary": "2-sentence warm, slightly clinical summary of their health status incorporating recent vital trends if present",
-      "diabetes_advice": "Actionable advice based on their diabetes risk",
-      "hypertension_advice": "Actionable advice based on their hypertension risk",
-      "anemia_advice": "Actionable advice based on their anemia risk",
-      "general_tips": "2-3 short bullet points of general lifestyle advice, formatted as a single string with '\\n' for newlines",
-      "disclaimer": "Standard short medical disclaimer"
+      "summary": "2-sentence warm summary of overall health status",
+      "advice": {
+         "diabetes": "Actionable advice (Current Risk: X%). Explain WHY based on user data.",
+         "pcos": "Advice or 'Not applicable for male' if risk is -1",
+         ... (include ALL diseases where risk > 10% OR risk is -1. DO NOT omit high risk categories.)
+      },
+      "category_insights": {
+         "metabolic": "Aggregated insight for this category",
+         ...
+      },
+      "general_tips": "2-3 short bullet points of lifestyle advice",
+      "disclaimer": "Standard medical disclaimer"
     }
     `;
 
@@ -91,29 +112,47 @@ router.post('/generate-report', async (req, res) => {
       response_format: { type: 'json_object' }
     });
 
-    const aiData = JSON.parse(completion.choices[0].message.content);
+    const reportResponse = completion.choices[0].message.content;
+    let aiData;
+    try {
+      // Robust JSON detection (strips markdown blocks if present)
+      const jsonMatch = reportResponse.match(/\{[\s\S]*\}/);
+      aiData = JSON.parse(jsonMatch ? jsonMatch[0] : reportResponse);
+    } catch (e) {
+      console.error("AI JSON Parse Error. Raw response:", reportResponse);
+      throw new Error("Invalid AI response format");
+    }
 
     const reportData = {
       clerkId,
-      summary: aiData.summary,
-      diabetes_advice: aiData.diabetes_advice,
-      hypertension_advice: aiData.hypertension_advice,
-      anemia_advice: aiData.anemia_advice,
-      general_tips: aiData.general_tips,
-      disclaimer: aiData.disclaimer,
+      summary: aiData.summary || "Health analysis complete. Please see risk matrix for details.",
+      advice: (aiData.advice && typeof aiData.advice === 'object') ? aiData.advice : {},
+      category_insights: (aiData.category_insights && typeof aiData.category_insights === 'object') ? aiData.category_insights : {},
+      general_tips: Array.isArray(aiData.general_tips) ? aiData.general_tips.join('\n') : (aiData.general_tips || "Maintain a balanced diet and regular exercise."),
+      disclaimer: aiData.disclaimer || "VaidyaSetu is an AI screening tool, not a diagnostic service. Please consult a doctor for clinical advice.",
       risk_scores: riskScores,
       createdAt: new Date()
     };
 
-    const savedReport = await Report.findOneAndUpdate(
-      { clerkId },
-      reportData,
-      { returnDocument: 'after', upsert: true }
-    );
-
-    res.json({ status: 'success', data: savedReport });
+    console.log("Saving report for user:", clerkId);
+    try {
+      // Cleanup any duplicate reports for this user
+      await Report.deleteMany({ clerkId }); 
+      
+      const savedReport = await Report.findOneAndUpdate(
+        { clerkId },
+        reportData,
+        { upsert: true, new: true, lean: true }
+      );
+      
+      console.log(`[AI-Report] Created fresh report for ${clerkId}. Advice keys: ${Object.keys(savedReport.advice || {}).length}`);
+      res.json({ status: 'success', data: savedReport });
+    } catch (saveError) {
+      console.error("Database save error:", saveError);
+      throw saveError;
+    }
   } catch (error) {
-    console.error('AI Report generation error:', error);
+    console.error('AI Report generation overall error:', error);
     res.status(500).json({ status: 'error', message: error.message });
   }
 });

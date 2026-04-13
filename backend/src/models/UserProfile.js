@@ -83,7 +83,47 @@ const UserProfileSchema = new mongoose.Schema({
     reminderSound: { type: String, default: 'Chime' },
     snoozeDuration: { type: Number, default: 10 }, // minutes
     refillAlertThreshold: { type: Number, default: 7 } // days
-  }
+  },
+
+  // --- EXPANDED SCREENING FIELDS (Phase 2) ---
+  
+  // Thyroid & Metabolic (Step 4/5)
+  weightChangeUnexplained: FieldSchema,
+  fatiguePersistent: FieldSchema,
+  drySkinHairLoss: FieldSchema,
+  coldIntolerance: FieldSchema,
+  familyHistoryThyroid: FieldSchema,
+  autoimmuneHistory: FieldSchema,
+
+  // Women's Health (Step 4 - Female Only)
+  menstrualCycleIrregular: FieldSchema,
+  facialBodyHairExcess: FieldSchema,
+  persistentAcne: FieldSchema,
+  tryingToConceiveDifficulty: FieldSchema,
+  pcosDiagnosis: FieldSchema,
+
+  // Respiratory & Environment (Step 5)
+  wheezing: FieldSchema,
+  persistentCough: FieldSchema,
+  shortnessBreath: FieldSchema,
+  highPollutionArea: FieldSchema,
+  biomassFuelUse: FieldSchema,
+  seasonalAllergies: FieldSchema,
+
+  // Mental Health (Step 6)
+  mentalHealthDepressed: FieldSchema, // PHQ-2
+  mentalHealthAnxiety: FieldSchema,    // GAD-2
+  energyLevelsLow: FieldSchema,
+  lostInterestActivities: FieldSchema,
+
+  // Kidney & Liver (Step 7)
+  swellingAnkles: FieldSchema,
+  frequentUrination: FieldSchema,
+  foamyUrine: FieldSchema,
+  nsaidOveruse: FieldSchema,
+  liverPain: FieldSchema,
+  fattyLiverDiagnosis: FieldSchema,
+  alcoholFrequency: FieldSchema
 });
 
 module.exports = mongoose.model('UserProfile', UserProfileSchema);

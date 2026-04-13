@@ -3,7 +3,10 @@ import useOnboardingStore from '../store/useOnboardingStore';
 import Step1Biometrics from './onboarding/Step1Biometrics';
 import Step2Lifestyle from './onboarding/Step2Lifestyle';
 import Step3Diet from './onboarding/Step3Diet';
-import Step4History from './onboarding/Step4History';
+import Step4WomenHealth from './onboarding/Step4WomenHealth';
+import Step5Respiratory from './onboarding/Step5Respiratory';
+import Step6MentalHealth from './onboarding/Step6MentalHealth';
+import Step7History from './onboarding/Step7History';
 import { Activity } from 'lucide-react';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 
@@ -12,16 +15,14 @@ const Onboarding = () => {
 
   const renderStep = () => {
     switch (step) {
-      case 1:
-        return <Step1Biometrics />;
-      case 2:
-        return <Step2Lifestyle />;
-      case 3:
-        return <Step3Diet />;
-      case 4:
-        return <Step4History />;
-      default:
-        return <Step1Biometrics />;
+      case 1: return <Step1Biometrics />;
+      case 2: return <Step2Lifestyle />;
+      case 3: return <Step3Diet />;
+      case 4: return <Step4WomenHealth />;
+      case 5: return <Step5Respiratory />;
+      case 6: return <Step6MentalHealth />;
+      case 7: return <Step7History />;
+      default: return <Step1Biometrics />;
     }
   };
 
@@ -29,7 +30,10 @@ const Onboarding = () => {
     { id: 1, title: 'Biometrics' },
     { id: 2, title: 'Lifestyle' },
     { id: 3, title: 'Diet' },
-    { id: 4, title: 'Medical' },
+    { id: 4, title: 'Women\'s' },
+    { id: 5, title: 'Resp.' },
+    { id: 6, title: 'Mental' },
+    { id: 7, title: 'History' },
   ];
 
   return (
