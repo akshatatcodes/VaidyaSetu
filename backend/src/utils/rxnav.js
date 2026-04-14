@@ -133,4 +133,61 @@ async function getRxNavInteractions(rxcui) {
   }
 }
 
-module.exports = { getRxCui, getRxNavInteractions, getInteractionsBetween };
+/**
+ * Fetch drug composition and active ingredients from RxNav
+ * @param {string} drugName - The name of the drug
+ * @returns {Object} Drug composition information
+ */
+async function getDrugComposition(drugName) {
+  if (!drugName || typeof drugName !== 'string') {
+    return { name: drugName, composition: 'Information not available', rxcui: null };
+  }
+
+  try {
+    // Step 1: Get RxCUI
+    const rxCuiData = await getRxCui(drugName);
+    
+    if (!rxCuiData || !rxCuiData.rxcui) {
+      return { name: drugName, composition: 'Not found in RxNav database', rxcui: null };
+    }
+
+    // Step 2: Get drug properties including active ingredients
+    const propsResponse = await axios.get(`${RXNAV_BASE}/rxcui/${rxCuiData.rxcui}/allProperties.json`, {
+      params: { prop: 'ATTRIBUTES' },
+      timeout: 8000
+    });
+
+    const props = propsResponse.data?.propConceptGroup?.propConcept || [];
+    
+    // Extract active ingredients
+    const activeIngredients = props
+      .filter(p => p.propName === 'Active_ingredient')
+      .map(p => p.propValue)
+      .join(', ');
+
+    // Extract strength/ dosage form if available
+    const strength = props
+      .filter(p => p.propName === 'STRENGTH')
+      .map(p => p.propValue)
+      .join(', ');
+
+    const dosageForm = props
+      .filter(p => p.propName === 'DOSAGE_FORM')
+      .map(p => p.propValue)
+      .join(', ');
+
+    return {
+      name: drugName,
+      rxcui: rxCuiData.rxcui,
+      normalizedName: rxCuiData.normalizedName,
+      composition: activeIngredients || 'Active ingredients not specified',
+      strength: strength || null,
+      dosageForm: dosageForm || null
+    };
+  } catch (err) {
+    console.error(`[RxNav] getDrugComposition failed for "${drugName}":`, err.message);
+    return { name: drugName, composition: 'Error fetching composition data', rxcui: null };
+  }
+}
+
+module.exports = { getRxCui, getRxNavInteractions, getInteractionsBetween, getDrugComposition };

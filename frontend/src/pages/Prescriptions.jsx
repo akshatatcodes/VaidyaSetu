@@ -37,6 +37,8 @@ const Prescriptions = () => {
   const [language, setLanguage] = useState('English'); // Language for AI analysis
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [medicineBreakdown, setMedicineBreakdown] = useState(null); // Detailed medicine info
+  const [loadingBreakdown, setLoadingBreakdown] = useState(false);
   const fileInputRef = React.useRef(null);
 
   const voiceAudioUrl = null; // No longer needed — using real SpeechRecognition
@@ -199,6 +201,37 @@ const Prescriptions = () => {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       setIsPaused(false);
+    }
+  };
+
+  // Fetch detailed medicine breakdown
+  const fetchMedicineBreakdown = async () => {
+    if (confirmedMeds.length === 0 || loadingBreakdown) return;
+    
+    console.log('[SafetyBridge] Fetching medicine breakdown for:', confirmedMeds);
+    setLoadingBreakdown(true);
+    setMedicineBreakdown(null);
+    
+    try {
+      const res = await axios.post(`${API_URL}/rag/medicine-breakdown`, {
+        medicines: confirmedMeds,
+        language: language
+      });
+      
+      console.log('[SafetyBridge] Breakdown response:', res.data.status);
+      
+      if (res.data.status === 'success') {
+        setMedicineBreakdown(res.data.data);
+        console.log('[SafetyBridge] Breakdown loaded for', res.data.data.medicines?.length, 'medicines');
+      }
+    } catch (err) {
+      console.error('[SafetyBridge] Failed to fetch breakdown:', err.response?.data || err.message);
+      setScanStatus({ 
+        type: 'error', 
+        message: 'Failed to load medicine details. Please try again.' 
+      });
+    } finally {
+      setLoadingBreakdown(false);
     }
   };
 
@@ -920,6 +953,170 @@ const Prescriptions = () => {
                 >
                   <ShieldAlert className="w-4 h-4" /> How We Verify Interactions
                 </button>
+              </div>
+            )}
+
+            {/* Medicine Breakdown & Safety Analysis */}
+            {confirmedMeds.length > 0 && (
+              <div className="space-y-6">
+                {/* Fetch Button */}
+                {!medicineBreakdown && !loadingBreakdown && (
+                  <button
+                    onClick={fetchMedicineBreakdown}
+                    className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-2xl transition-all shadow-[0_15px_40px_rgba(59,130,246,0.3)] flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-xs"
+                  >
+                    <FileText className="w-5 h-5" />
+                    View Detailed Medicine Breakdown & Alternatives
+                  </button>
+                )}
+
+                {/* Loading State */}
+                {loadingBreakdown && (
+                  <div className="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 p-12 rounded-[2.5rem] text-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400 font-bold">Analyzing medicines...</p>
+                    <p className="text-xs text-gray-500 mt-2">Generating composition, dosage, and safety data</p>
+                  </div>
+                )}
+
+                {/* Breakdown Display */}
+                {medicineBreakdown && (
+                  <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                    {/* Medicine Cards */}
+                    <div className="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] p-8 shadow-xl">
+                      <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                        <FileText className="w-6 h-6 text-blue-500" />
+                        Detailed Medicine Breakdown
+                      </h3>
+                      <div className="space-y-4">
+                        {medicineBreakdown.medicines?.map((med, idx) => (
+                          <div key={idx} className="p-6 bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-2xl">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h4 className="text-lg font-black text-gray-900 dark:text-white">
+                                  {med.correctedName || med.name}
+                                </h4>
+                                {med.correctedName && med.correctedName !== med.name && (
+                                  <p className="text-xs text-blue-500 font-bold mt-1">
+                                    (corrected from: {med.name})
+                                  </p>
+                                )}
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                  <span className="font-bold">Composition:</span> {med.composition}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  <span className="font-bold">Dosage:</span> {med.dosage}
+                                </p>
+                              </div>
+                              <span className="px-3 py-1 bg-blue-500/10 text-blue-500 text-[9px] font-black uppercase tracking-wider rounded-full">
+                                {med.category}
+                              </span>
+                            </div>
+                            
+                            {/* Warnings */}
+                            {med.warnings && med.warnings.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-2 flex items-center gap-2">
+                                  <AlertCircle className="w-3 h-3" /> Warnings / Allergies
+                                </p>
+                                <ul className="space-y-1">
+                                  {med.warnings.map((warning, wIdx) => (
+                                    <li key={wIdx} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                                      <span className="text-amber-500 mt-1">•</span>
+                                      {warning}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Safety Analysis */}
+                    {medicineBreakdown.safetyAnalysis && (
+                      <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-800/30 rounded-[2.5rem] p-8 shadow-xl">
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                          <AlertCircle className="w-6 h-6 text-amber-500" />
+                          Safety Analysis
+                        </h3>
+                        
+                        {/* Overall Risk */}
+                        <div className="mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-2xl border border-amber-200 dark:border-amber-800/30">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full ${
+                              medicineBreakdown.safetyAnalysis.overallRisk === 'CAUTION' || medicineBreakdown.safetyAnalysis.overallRisk === 'HIGH'
+                                ? 'bg-red-500/10 text-red-500'
+                                : 'bg-amber-500/10 text-amber-500'
+                            }`}>
+                              {medicineBreakdown.safetyAnalysis.overallRisk}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {medicineBreakdown.safetyAnalysis.summary}
+                          </p>
+                        </div>
+
+                        {/* Alternatives */}
+                        {medicineBreakdown.safetyAnalysis.alternatives && medicineBreakdown.safetyAnalysis.alternatives.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                              <RefreshCw className="w-4 h-4 text-emerald-500" />
+                              Suggested Alternatives
+                            </h4>
+                            <div className="space-y-3">
+                              {medicineBreakdown.safetyAnalysis.alternatives.map((alt, idx) => (
+                                <div key={idx} className="p-4 bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                        {alt.alternative}
+                                      </p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Alternative to: {alt.originalMedicine}
+                                      </p>
+                                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                        {alt.reason}
+                                      </p>
+                                    </div>
+                                    <span className={`px-3 py-1 text-[8px] font-black uppercase tracking-wider rounded-full ${
+                                      alt.type === 'Generic Equivalent' ? 'bg-emerald-500/10 text-emerald-500' :
+                                      alt.type === 'Safer Alternative' ? 'bg-blue-500/10 text-blue-500' :
+                                      'bg-purple-500/10 text-purple-500'
+                                    }`}>
+                                      {alt.type}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Disclaimer */}
+                    {medicineBreakdown.disclaimer && (
+                      <div className="p-6 bg-gray-100 dark:bg-gray-950/50 border border-gray-300 dark:border-gray-800 rounded-2xl">
+                        <p className="text-[10px] text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
+                          <AlertCircle className="w-3 h-3" /> Disclaimer
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                          {medicineBreakdown.disclaimer}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setMedicineBreakdown(null)}
+                      className="w-full py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-bold rounded-2xl transition-all"
+                    >
+                      Hide Breakdown
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

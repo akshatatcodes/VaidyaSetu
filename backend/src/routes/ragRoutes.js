@@ -13,6 +13,8 @@ const router = express.Router();
 const { Groq } = require('groq-sdk');
 const { retrieveRelevantKnowledge } = require('../utils/ragRetriever');
 const { compileRagPrompt } = require('../utils/ragPromptEngine');
+const { generateMedicineBreakdown } = require('../services/medicineInfoService');
+const { checkDirectInteractions } = require('../utils/interactionChecker');
 const Alert = require('../models/Alert');
 const UserProfile = require('../models/UserProfile');
 const Medication = require('../models/Medication');
@@ -30,7 +32,15 @@ router.post('/check-safety', async (req, res) => {
 
     console.log(`[RAG-Safety] Starting High-Speed Analysis (${language}): ${medicines.join(', ')}`);
 
-    // 1. Unified Parallel Retrieval (Covers Vector Store + Live APIs + Direct RxNav)
+    // LAYER 1: Direct JSON Database Check (FASTEST & MOST RELIABLE)
+    console.log('[RAG-Safety] Layer 1: Checking direct interaction database...');
+    const directMatches = checkDirectInteractions(medicines);
+    if (directMatches.length > 0) {
+      console.log(`[RAG-Safety] ✅ Found ${directMatches.length} direct database match(es)!`);
+    }
+
+    // LAYER 2: Vector Search (RAG)
+    console.log('[RAG-Safety] Layer 2: Searching knowledge base...');
     const ragResult = await retrieveRelevantKnowledge(medicines);
 
     // 1.5 Fetch user context for personalized analysis
@@ -51,8 +61,8 @@ router.post('/check-safety', async (req, res) => {
       }
     }
 
-    // 2. Compile RAG Prompt with language support and user context
-    const prompt = compileRagPrompt(medicines, ragResult.groqContext, language, userContext);
+    // 2. Compile RAG Prompt with language support, user context, and direct database matches
+    const prompt = compileRagPrompt(medicines, ragResult.groqContext, language, userContext, directMatches);
 
     // 3. Resilient Groq Call (Fallback Logic)
     let report = null;
@@ -95,6 +105,47 @@ router.post('/check-safety', async (req, res) => {
       }
     }
 
+    // LAYER 3: Post-Processing Verification - Ensure direct database matches are included
+    if (directMatches.length > 0 && report) {
+      console.log('[RAG-Safety] Layer 3: Verifying direct database matches are included...');
+      
+      // Merge direct matches into report interactions
+      if (!report.interactions) {
+        report.interactions = [];
+      }
+      
+      // Add any direct matches that AI didn't include
+      for (const directMatch of directMatches) {
+        const alreadyIncluded = report.interactions.some(existing => 
+          existing.source_citation === 'direct_database_match' ||
+          (existing.medicines_involved && 
+           directMatch.medicines_involved.some(m => 
+             existing.medicines_involved.some(em => em.toLowerCase().includes(m.toLowerCase()))
+           ))
+        );
+        
+        if (!alreadyIncluded) {
+          console.log(`[RAG-Safety] Adding missing direct match: ${directMatch.id}`);
+          report.interactions.push(directMatch);
+        }
+      }
+      
+      // Update total risks and status if we found interactions
+      report.total_risks_found = report.interactions.length;
+      
+      // If we have direct matches, ensure status is at least CAUTION
+      if (report.interactions.length > 0 && report.status === 'SAFE') {
+        const hasModerateOrHigher = report.interactions.some(i => 
+          i.severity === 'Critical' || i.severity === 'High' || i.severity === 'Moderate'
+        );
+        if (hasModerateOrHigher) {
+          report.status = 'CAUTION';
+          report.summary = 'Potential interactions detected. Please review the warnings below and consult your doctor.';
+          console.log('[RAG-Safety] ⚠️  Upgraded status from SAFE to CAUTION due to direct database matches');
+        }
+      }
+    }
+
     // Step 57: Generate Alert for Severe Interactions if clerkId provided
     if (clerkId && report && (report.severity === 'Severe' || report.severity === 'High Risk' || report.hasInteraction)) {
       try {
@@ -128,6 +179,34 @@ router.post('/check-safety', async (req, res) => {
 
   } catch (error) {
     console.error('[RAG-Safety] Global Route Error:', error.message);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * POST /api/rag/medicine-breakdown
+ * Generate detailed medicine information with composition, dosage, warnings, and alternatives
+ */
+router.post('/medicine-breakdown', async (req, res) => {
+  try {
+    const { medicines, language = 'English' } = req.body;
+
+    if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
+      return res.status(400).json({ status: 'error', message: 'medicines array is required.' });
+    }
+
+    console.log(`[MedicineInfo] Generating breakdown for: ${medicines.join(', ')} (${language})`);
+
+    const breakdown = await generateMedicineBreakdown(medicines, language);
+
+    console.log(`[MedicineInfo] ✅ Generated breakdown for ${breakdown.medicines?.length || 0} medicines`);
+
+    return res.json({
+      status: 'success',
+      data: breakdown
+    });
+  } catch (error) {
+    console.error('[MedicineInfo] Route Error:', error.message);
     return res.status(500).json({ status: 'error', message: error.message });
   }
 });

@@ -82,4 +82,76 @@ function extractFDAData(labelDocument, originalQuery) {
   };
 }
 
-module.exports = { searchFDA };
+/**
+ * Fetch drug warnings and safety information from OpenFDA
+ * @param {string} drugName - The name of the drug
+ * @returns {Object} Drug warnings and safety information
+ */
+async function getDrugWarnings(drugName) {
+  if (!drugName || typeof drugName !== 'string') {
+    return { 
+      name: drugName, 
+      warnings: 'Information not available',
+      sideEffects: 'Information not available',
+      interactions: 'Information not available'
+    };
+  }
+
+  try {
+    const fdaData = await searchFDA(drugName);
+    
+    if (!fdaData) {
+      return {
+        name: drugName,
+        warnings: 'No warnings found in FDA database',
+        sideEffects: 'No side effects listed in FDA database',
+        interactions: 'No interaction data found in FDA database'
+      };
+    }
+
+    // Extract warnings (simplified for display)
+    let warnings = 'No major warnings found';
+    if (fdaData.warningsText) {
+      // Take first 500 chars of warnings for brevity
+      warnings = fdaData.warningsText.length > 500 
+        ? fdaData.warningsText.substring(0, 500) + '...'
+        : fdaData.warningsText;
+    }
+
+    // Extract side effects from adverse reactions
+    let sideEffects = 'Consult your physician for side effects';
+    if (fdaData.adverseReactionsText) {
+      sideEffects = fdaData.adverseReactionsText.length > 500
+        ? fdaData.adverseReactionsText.substring(0, 500) + '...'
+        : fdaData.adverseReactionsText;
+    }
+
+    // Extract drug interactions
+    let interactions = 'No specific interactions found';
+    if (fdaData.drugInteractionsText) {
+      interactions = fdaData.drugInteractionsText.length > 500
+        ? fdaData.drugInteractionsText.substring(0, 500) + '...'
+        : fdaData.drugInteractionsText;
+    }
+
+    return {
+      name: drugName,
+      brandName: fdaData.brandName,
+      genericName: fdaData.genericName,
+      warnings: warnings,
+      sideEffects: sideEffects,
+      interactions: interactions,
+      source: fdaData.source
+    };
+  } catch (err) {
+    console.error(`[OpenFDA] getDrugWarnings failed for "${drugName}":`, err.message);
+    return {
+      name: drugName,
+      warnings: 'Error fetching warning data',
+      sideEffects: 'Error fetching side effects data',
+      interactions: 'Error fetching interaction data'
+    };
+  }
+}
+
+module.exports = { searchFDA, getDrugWarnings };
