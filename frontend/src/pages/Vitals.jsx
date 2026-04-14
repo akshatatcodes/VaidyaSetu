@@ -6,7 +6,8 @@ import {
   Moon, Droplets, ArrowUp, ArrowDown, Minus,
   AlertCircle, CheckCircle2, RefreshCw, Calendar,
   ChevronRight, Download, Trash2, Filter, Trash, FileText,
-  FlaskConical, Trophy, Zap, Thermometer, Wind, Stethoscope
+  FlaskConical, Trophy, Zap, Thermometer, Wind, Stethoscope,
+  TrendingUp, Eye, X
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -17,6 +18,8 @@ import {
 import VitalsModals from '../components/VitalsModals';
 import LabResultsModals from '../components/LabResultsModals';
 import GoalsModals from '../components/GoalsModals';
+import VitalAnalysisModal from '../components/VitalAnalysisModal';
+import LabAnalysisModal from '../components/LabAnalysisModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
@@ -84,21 +87,27 @@ const Vitals = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState([]);
+  const [currentVitalsWithAnalysis, setCurrentVitalsWithAnalysis] = useState([]);
   const [labResults, setLabResults] = useState([]);
   const [goals, setGoals] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [modal, setModal] = useState({ open: false, type: '' });
   const [labModalOpen, setLabModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [analysisModal, setAnalysisModal] = useState({ open: false, vitalType: null, currentValue: null });
+  const [labAnalysisModal, setLabAnalysisModal] = useState({ open: false });
+  const [labTrendsModal, setLabTrendsModal] = useState({ open: false, testName: null });
+  const [labTrends, setLabTrends] = useState([]);
 
   const fetchVitals = async () => {
     try {
-      const [latestRes, historyRes, reportRes, labRes, goalRes] = await Promise.all([
+      const [latestRes, historyRes, reportRes, labRes, goalRes, currentAnalysisRes] = await Promise.all([
         axios.get(`${API_URL}/vitals/latest/${activeUser.id}`),
         axios.get(`${API_URL}/vitals/${activeUser.id}`),
         axios.get(`${API_URL}/reports/${activeUser.id}`).catch(() => ({ data: { status: 'error' } })),
         axios.get(`${API_URL}/lab-results/${activeUser.id}`),
-        axios.get(`${API_URL}/goals/${activeUser.id}`)
+        axios.get(`${API_URL}/goals/${activeUser.id}`),
+        axios.get(`${API_URL}/vitals/latest-with-analysis/${activeUser.id}`).catch(() => ({ data: { status: 'error' } }))
       ]);
       
       if (latestRes.data.status === 'success') {
@@ -110,6 +119,17 @@ const Vitals = () => {
       if (reportRes.data.status === 'success') setReport(reportRes.data.data);
       if (labRes.data.status === 'success') setLabResults(labRes.data.data);
       if (goalRes.data.status === 'success') setGoals(goalRes.data.data);
+      
+      // Set current vitals with analysis, fallback to latest vitals if analysis fails
+      if (currentAnalysisRes.data.status === 'success' && currentAnalysisRes.data.data.length > 0) {
+        setCurrentVitalsWithAnalysis(currentAnalysisRes.data.data);
+      } else if (latestRes.data.status === 'success' && latestRes.data.data.length > 0) {
+        // Fallback: use latest vitals without analysis
+        console.log('[Vitals] Using fallback - latest vitals without analysis');
+        setCurrentVitalsWithAnalysis(latestRes.data.data);
+      } else {
+        setCurrentVitalsWithAnalysis([]);
+      }
 
     } catch (err) {
       console.error("Vitals fetch failed", err);
@@ -121,6 +141,32 @@ const Vitals = () => {
   useEffect(() => {
     if (activeUser) fetchVitals();
   }, [activeUser]);
+
+  const handleDeleteLabResult = async (labId) => {
+    if (!confirm('Are you sure you want to delete this lab result?')) return;
+    
+    try {
+      await axios.delete(`${API_URL}/lab-results/${labId}`);
+      // Remove from state immediately (no reload needed)
+      setLabResults(prev => prev.filter(lab => lab._id !== labId));
+    } catch (err) {
+      console.error('[Delete Lab] Error:', err);
+      alert('Failed to delete lab result');
+    }
+  };
+
+  const handleViewTrends = async (testName) => {
+    try {
+      const res = await axios.get(`${API_URL}/lab-results/${activeUser.id}/trends/${testName}`);
+      if (res.data.status === 'success') {
+        setLabTrends(res.data.data);
+        setLabTrendsModal({ open: true, testName });
+      }
+    } catch (err) {
+      console.error('[View Trends] Error:', err);
+      alert('Failed to load trends data');
+    }
+  };
 
   const handleSaveVital = async (data) => {
     console.log("[Vitals] Save clicked with payload:", data);
@@ -149,7 +195,7 @@ const Vitals = () => {
         value: finalValue,
         unit: getUnit(modal.type),
         notes: data.notes || '',
-        mealContext: data.context === 'bedtime' ? 'none' : data.context || 'none',
+        mealContext: data.context || 'none',
         source: 'manual'
       };
 
@@ -245,6 +291,10 @@ const Vitals = () => {
     return val;
   }
 
+  const handleVitalCardClick = (vitalType, value) => {
+    setAnalysisModal({ open: true, vitalType, currentValue: value });
+  };
+
   const handleExportJSON = async () => {
     try {
       const res = await axios.get(`${API_URL}/profile/export/${user.id}`);
@@ -261,14 +311,16 @@ const Vitals = () => {
   };
 
   const handleExportPDF = () => {
-    if (!history || history.length === 0) {
-       alert("No vitals data available to export.");
+    console.log('[PDF Export] Current vitals:', currentVitalsWithAnalysis);
+    console.log('[PDF Export] Latest vitals object:', vitals);
+    
+    if (!currentVitalsWithAnalysis || currentVitalsWithAnalysis.length === 0) {
+       alert("No current vitals data available to export. Please add at least one vital reading first.");
        return;
     }
     generateVitalsPDF(
       activeUser?.fullName || 'Valued User',
-      history,
-      labResults,
+      currentVitalsWithAnalysis,
       formatValue,
       getStatus
     );
@@ -472,7 +524,7 @@ const Vitals = () => {
                   icon={Heart} 
                   status={getStatus('blood_pressure', vitals.blood_pressure?.value)}
                   timestamp={vitals.blood_pressure?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'bp' })}
+                  onClick={() => handleVitalCardClick('blood_pressure', vitals.blood_pressure?.value)}
                 />
                 <VitalCard 
                   title="Blood Glucose" 
@@ -481,7 +533,7 @@ const Vitals = () => {
                   icon={Activity} 
                   status={getStatus('blood_glucose', vitals.blood_glucose?.value)}
                   timestamp={vitals.blood_glucose?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'glucose' })}
+                  onClick={() => handleVitalCardClick('blood_glucose', vitals.blood_glucose?.value)}
                 />
                 <VitalCard 
                   title="Heart Rate" 
@@ -490,7 +542,7 @@ const Vitals = () => {
                   icon={Stethoscope} 
                   status={getStatus('heart_rate', vitals.heart_rate?.value)}
                   timestamp={vitals.heart_rate?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'heart_rate' })}
+                  onClick={() => handleVitalCardClick('heart_rate', vitals.heart_rate?.value)}
                 />
                 <VitalCard 
                   title="Oxygen Saturation" 
@@ -499,7 +551,7 @@ const Vitals = () => {
                   icon={Wind} 
                   status={getStatus('oxygen_saturation', vitals.oxygen_saturation?.value)}
                   timestamp={vitals.oxygen_saturation?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'oxygen_saturation' })}
+                  onClick={() => handleVitalCardClick('oxygen_saturation', vitals.oxygen_saturation?.value)}
                 />
                 <VitalCard 
                   title="Sleep Quality" 
@@ -508,7 +560,7 @@ const Vitals = () => {
                   icon={Moon} 
                   status={getStatus('sleep_duration', vitals.sleep_duration?.value)}
                   timestamp={vitals.sleep_duration?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'sleep' })}
+                  onClick={() => handleVitalCardClick('sleep_duration', vitals.sleep_duration?.value)}
                 />
                 <VitalCard 
                   title="Daily Steps" 
@@ -517,7 +569,7 @@ const Vitals = () => {
                   icon={Footprints} 
                   status={getStatus('steps', vitals.steps?.value)}
                   timestamp={vitals.steps?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'steps' })}
+                  onClick={() => handleVitalCardClick('steps', vitals.steps?.value)}
                 />
                 <VitalCard 
                   title="Water Intake" 
@@ -526,7 +578,7 @@ const Vitals = () => {
                   icon={Droplets} 
                   status={getStatus('water_intake', vitals.water_intake?.value)}
                   timestamp={vitals.water_intake?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'water' })}
+                  onClick={() => handleVitalCardClick('water_intake', vitals.water_intake?.value)}
                 />
                 <VitalCard 
                   title="Body Temperature" 
@@ -535,7 +587,7 @@ const Vitals = () => {
                   icon={Thermometer} 
                   status={getStatus('body_temperature', vitals.body_temperature?.value)}
                   timestamp={vitals.body_temperature?.timestamp}
-                  onClick={() => setModal({ open: true, type: 'body_temperature' })}
+                  onClick={() => handleVitalCardClick('body_temperature', vitals.body_temperature?.value)}
                 />
              </div>
 
@@ -709,12 +761,22 @@ const Vitals = () => {
                    <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-widest">Diagnostic Repository</h2>
                    <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest">Comparative Analysis of Laboratory Metrics</p>
                 </div>
-                <button 
-                  onClick={() => setLabModalOpen(true)}
-                  className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl flex items-center gap-3"
-                >
-                   <Plus className="w-5 h-5" /> Append New Report
-                </button>
+                <div className="flex gap-3">
+                  {labResults.length > 0 && (
+                    <button 
+                      onClick={() => setLabAnalysisModal({ open: true })}
+                      className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl flex items-center gap-3"
+                    >
+                       <Activity className="w-5 h-5" /> AI Analysis
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setLabModalOpen(true)}
+                    className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl flex items-center gap-3"
+                  >
+                     <Plus className="w-5 h-5" /> Append New Report
+                  </button>
+                </div>
              </div>
 
              {labResults.length > 0 ? (
@@ -762,6 +824,24 @@ const Vitals = () => {
                              <button className="text-[9px] font-black text-emerald-500 uppercase hover:underline flex items-center gap-1">History <ChevronRight className="w-3 h-3" /></button>
                           </div>
                        </div>
+                       
+                       {/* Action Buttons */}
+                       <div className="flex gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+                          <button
+                            onClick={() => handleViewTrends(lab.testName)}
+                            className="flex-1 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl text-[9px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1"
+                            title="View History"
+                          >
+                             <TrendingUp className="w-3 h-3" /> History
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLabResult(lab._id)}
+                            className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-[9px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1"
+                            title="Delete"
+                          >
+                             <Trash2 className="w-3 h-3" />
+                          </button>
+                       </div>
                     </div>
                   )})}
                </div>
@@ -793,12 +873,109 @@ const Vitals = () => {
         clerkId={user.id}
       />
 
-      <GoalsModals 
+      <GoalsModals
          isOpen={goalModalOpen}
          onClose={() => setGoalModalOpen(false)}
          onSave={fetchVitals}
          clerkId={user.id}
       />
+            
+      <VitalAnalysisModal
+        isOpen={analysisModal.open}
+        onClose={() => setAnalysisModal({ open: false, vitalType: null, currentValue: null })}
+        vitalType={analysisModal.vitalType}
+        currentValue={analysisModal.currentValue}
+        clerkId={user.id}
+      />
+
+      <LabAnalysisModal
+        isOpen={labAnalysisModal.open}
+        onClose={() => setLabAnalysisModal({ open: false })}
+        labResults={labResults}
+        clerkId={user.id}
+      />
+
+      {/* Lab Trends Modal */}
+      {labTrendsModal.open && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-wider">
+                  {labTrendsModal.testName} History
+                </h2>
+                <p className="text-blue-100 text-sm mt-1">
+                  {labTrends.length} records over time
+                </p>
+              </div>
+              <button
+                onClick={() => setLabTrendsModal({ open: false, testName: null })}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto max-h-[calc(80vh-100px)] p-6">
+              {labTrends.length > 0 ? (
+                <div className="space-y-4">
+                  {labTrends.map((trend, idx) => {
+                    const isInRange = (() => {
+                      const lab = labResults.find(l => l.testName === labTrendsModal.testName);
+                      if (!lab?.referenceRange || typeof trend.value !== 'number') return null;
+                      const range = lab.referenceRange.match(/([\d.]+)\s*[-–]\s*([\d.]+)/);
+                      if (range) return trend.value >= parseFloat(range[1]) && trend.value <= parseFloat(range[2]);
+                      return null;
+                    })();
+                    
+                    return (
+                      <div key={idx} className={`flex items-center justify-between p-4 rounded-xl border ${
+                        isInRange === true ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' :
+                        isInRange === false ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20' :
+                        'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50'
+                      }`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg ${
+                            isInRange === true ? 'bg-emerald-500 text-white' :
+                            isInRange === false ? 'bg-red-500 text-white' :
+                            'bg-gray-500 text-white'
+                          }`}>
+                            {trend.value}
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-900 dark:text-white">
+                              {trend.value} {trend.unit}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {new Date(trend.date).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-xs font-black uppercase px-3 py-1 rounded-lg ${
+                          isInRange === true ? 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50' :
+                          isInRange === false ? 'text-red-600 bg-red-100 dark:bg-red-900/50' :
+                          'text-gray-600 bg-gray-100 dark:bg-gray-800'
+                        }`}>
+                          {isInRange === true ? 'In Range' : isInRange === false ? 'Out of Range' : 'N/A'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <TrendingUp className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">No historical data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

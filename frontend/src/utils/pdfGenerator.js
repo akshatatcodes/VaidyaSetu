@@ -187,70 +187,220 @@ export function generateDashboardPDF(userName, report, profile, medications) {
 /**
  * Generate Vitals PDF with history + lab results
  */
-export function generateVitalsPDF(userName, history, labResults, formatValue, getStatus) {
+/**
+ * Generate Vitals PDF with current records and personalized mitigations
+ * Shows only latest readings with mitigation steps (no backlog history)
+ */
+export function generateVitalsPDF(userName, currentVitals, formatValue, getStatus) {
   const doc = new jsPDF();
-  let y = addHeader(doc, 'Vitals & Lab Report', userName, 'Complete Biometric & Laboratory Summary');
+  let y = addHeader(doc, 'Current Vitals Report', userName, 'Latest Readings with Personalized Mitigation Steps');
 
-  // Vitals history
-  if (history?.length > 0) {
-    y = addSection(doc, y, 'Vitals History');
-    const tableData = history.map(h => [
-      h.type.replace(/_/g, ' ').toUpperCase(),
-      typeof formatValue === 'function' ? formatValue(h.type, h.value) : String(h.value),
-      h.unit,
-      new Date(h.timestamp).toLocaleString(),
-      typeof getStatus === 'function' ? getStatus(h.type, typeof h.value === 'object' ? h.value.systolic : h.value) : '',
-      h.notes || ''
-    ]);
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Metric', 'Value', 'Unit', 'Timestamp', 'Status', 'Notes']],
-      body: tableData,
-      headStyles: { fillColor: EMERALD },
-      margin: { left: 20, right: 20 },
-      theme: 'striped',
-      styles: { fontSize: 8 },
-    });
-    y = doc.lastAutoTable.finalY + 10;
-  }
-
-  // Lab results
-  if (labResults?.length > 0) {
-    if (y > 220) { doc.addPage(); y = 20; }
-    y = addSection(doc, y, 'Laboratory Results');
-    const labData = labResults.map(l => {
-      const inRange = checkInRange(l);
+  // Current vitals with mitigations
+  if (currentVitals && currentVitals.length > 0) {
+    y = addSection(doc, y, 'Current Vital Readings');
+    
+    // Summary table
+    const tableData = currentVitals.map(vital => {
+      const value = typeof formatValue === 'function' 
+        ? formatValue(vital.type, vital.value) 
+        : String(vital.value || '--');
+      
+      // Use backend status if available, otherwise calculate from frontend
+      let status = vital.status;
+      if (!status) {
+        status = typeof getStatus === 'function' 
+          ? getStatus(vital.type, typeof vital.value === 'object' ? vital.value.systolic : vital.value) 
+          : 'Normal';
+      }
+      
+      // Capitalize first letter for display
+      status = status.charAt(0).toUpperCase() + status.slice(1);
+      
       return [
-        l.testName,
-        String(l.resultValue),
-        l.unit,
-        l.referenceRange || 'N/A',
-        inRange === true ? 'IN RANGE' : inRange === false ? 'OUT OF RANGE' : 'N/A',
-        new Date(l.sampleDate).toLocaleDateString()
+        vital.type.replace(/_/g, ' ').toUpperCase(),
+        value,
+        vital.unit || '',
+        status,
+        vital.normalRange || 'Consult doctor'
       ];
     });
 
     autoTable(doc, {
       startY: y,
-      head: [['Test', 'Result', 'Unit', 'Reference', 'Status', 'Date']],
-      body: labData,
+      head: [['Vital', 'Current Value', 'Unit', 'Status', 'Normal Range']],
+      body: tableData,
       headStyles: { fillColor: EMERALD },
       margin: { left: 20, right: 20 },
       theme: 'striped',
-      styles: { fontSize: 8 },
+      styles: { fontSize: 9 },
       didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 4) {
-          if (data.cell.raw === 'OUT OF RANGE') data.cell.styles.textColor = RED;
-          else if (data.cell.raw === 'IN RANGE') data.cell.styles.textColor = EMERALD;
+        // Color-code the status column
+        if (data.section === 'body' && data.column.index === 3) {
+          const status = data.cell.raw.toLowerCase();
+          if (status === 'high' || status === 'critical' || status === 'warning') {
+            data.cell.styles.textColor = RED;
+            data.cell.styles.fontStyle = 'bold';
+          } else if (status === 'borderline') {
+            data.cell.styles.textColor = [245, 158, 11]; // Amber
+            data.cell.styles.fontStyle = 'bold';
+          } else if (status === 'normal') {
+            data.cell.styles.textColor = EMERALD;
+            data.cell.styles.fontStyle = 'bold';
+          }
         }
       },
     });
+    y = doc.lastAutoTable.finalY + 10;
+
+    // Detailed mitigations for abnormal vitals
+    const abnormalVitals = currentVitals.filter(v => {
+      const status = (v.status || 'normal').toLowerCase();
+      return status !== 'normal' && v.mitigations;
+    });
+    
+    if (abnormalVitals.length > 0) {
+      y = addSection(doc, y, 'Personalized Mitigation Steps');
+      
+      abnormalVitals.forEach((vital, idx) => {
+        if (y > 230) { doc.addPage(); y = 20; }
+        
+        // Vital header
+        doc.setFontSize(12);
+        doc.setTextColor(...EMERALD);
+        const vitalName = vital.type.replace(/_/g, ' ').toUpperCase();
+        const currentValue = typeof formatValue === 'function' 
+          ? formatValue(vital.type, vital.value) 
+          : String(vital.value);
+        doc.text(`${vitalName}: ${currentValue} (${vital.status.toUpperCase()})`, 20, y);
+        y += 8;
+
+        // Mitigations
+        if (vital.mitigations) {
+          // Immediate Actions
+          if (vital.mitigations.immediateActions?.length > 0) {
+            if (y > 250) { doc.addPage(); y = 20; }
+            doc.setFontSize(10);
+            doc.setTextColor(...RED);
+            doc.text('Immediate Actions:', 25, y);
+            y += 6;
+            doc.setFontSize(8);
+            doc.setTextColor(...GRAY);
+            vital.mitigations.immediateActions.forEach((action, i) => {
+              if (y > 270) { doc.addPage(); y = 20; }
+              doc.text(`${i + 1}. ${action}`, 30, y);
+              y += 5;
+            });
+            y += 3;
+          }
+
+          // Lifestyle Changes
+          if (vital.mitigations.lifestyleChanges?.length > 0) {
+            if (y > 250) { doc.addPage(); y = 20; }
+            doc.setFontSize(10);
+            doc.setTextColor(59, 130, 246); // Blue
+            doc.text('Lifestyle Changes:', 25, y);
+            y += 6;
+            doc.setFontSize(8);
+            doc.setTextColor(...GRAY);
+            vital.mitigations.lifestyleChanges.forEach((change, i) => {
+              if (y > 270) { doc.addPage(); y = 20; }
+              doc.text(`${i + 1}. ${change}`, 30, y);
+              y += 5;
+            });
+            y += 3;
+          }
+
+          // Dietary Advice
+          if (vital.mitigations.dietaryAdvice?.length > 0) {
+            if (y > 250) { doc.addPage(); y = 20; }
+            doc.setFontSize(10);
+            doc.setTextColor(...EMERALD);
+            doc.text('Dietary Advice:', 25, y);
+            y += 6;
+            doc.setFontSize(8);
+            doc.setTextColor(...GRAY);
+            vital.mitigations.dietaryAdvice.forEach((advice, i) => {
+              if (y > 270) { doc.addPage(); y = 20; }
+              doc.text(`${i + 1}. ${advice}`, 30, y);
+              y += 5;
+            });
+            y += 3;
+          }
+
+          // Precautions
+          if (vital.mitigations.precautions?.length > 0) {
+            if (y > 250) { doc.addPage(); y = 20; }
+            doc.setFontSize(10);
+            doc.setTextColor(245, 158, 11); // Amber
+            doc.text('Precautions:', 25, y);
+            y += 6;
+            doc.setFontSize(8);
+            doc.setTextColor(...GRAY);
+            vital.mitigations.precautions.forEach((precaution, i) => {
+              if (y > 270) { doc.addPage(); y = 20; }
+              doc.text(`${i + 1}. ${precaution}`, 30, y);
+              y += 5;
+            });
+            y += 3;
+          }
+
+          // When to see doctor
+          if (vital.mitigations.whenToSeeDoctor) {
+            if (y > 260) { doc.addPage(); y = 20; }
+            doc.setFontSize(9);
+            doc.setTextColor(147, 51, 234); // Purple
+            doc.text(`When to See Doctor: ${vital.mitigations.whenToSeeDoctor}`, 25, y);
+            y += 8;
+          }
+        }
+        
+        y += 5;
+      });
+    } else {
+      // Check if there are ANY abnormal vitals (even without mitigations)
+      const anyAbnormal = currentVitals.some(v => {
+        const status = (v.status || 'normal').toLowerCase();
+        return status !== 'normal';
+      });
+      
+      if (!anyAbnormal) {
+        // All vitals normal
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFontSize(12);
+        doc.setTextColor(...EMERALD);
+        doc.text('All vitals are within normal range. Great job!', 20, y);
+        y += 10;
+        doc.setFontSize(9);
+        doc.setTextColor(...GRAY);
+        doc.text('Continue maintaining your healthy lifestyle and regular monitoring.', 20, y);
+        y += 15;
+      }
+    }
   }
 
+  // General precautions
+  y = addSection(doc, y, 'General Health Precautions');
+  const precautions = [
+    'Monitor your vitals regularly as advised by your healthcare provider',
+    'Report any unusual symptoms or readings to your doctor immediately',
+    'Maintain a healthy diet, regular exercise, and adequate sleep',
+    'Take prescribed medications on time and do not skip doses',
+    'Stay hydrated and manage stress through relaxation techniques',
+    'Keep all scheduled follow-up appointments with your healthcare team'
+  ];
+  
+  doc.setFontSize(8);
+  doc.setTextColor(...GRAY);
+  precautions.forEach((precaution, i) => {
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.text(`${i + 1}. ${precaution}`, 25, y);
+    y += 5;
+  });
+
   addDisclaimer(doc);
-  doc.save(`VaidyaSetu-Vitals-Report-${Date.now()}.pdf`);
+  doc.save(`VaidyaSetu_Vitals_Report_${new Date().toISOString().split('T')[0]}.pdf`);
 }
+
 
 /**
  * Generate Settings full health archive PDF

@@ -18,8 +18,12 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
     source: 'manual'
   });
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [reportUrl, setReportUrl] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [extractedTests, setExtractedTests] = useState([]);
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [showExtraction, setShowExtraction] = useState(false);
 
   if (!isOpen) return null;
 
@@ -27,19 +31,31 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setUploading(true);
+    setExtracting(true);
     const data = new FormData();
     data.append('report', file);
 
     try {
-      const res = await axios.post(`${API_URL}/lab-results/upload`, data);
+      console.log('[Lab Upload] Extracting data from:', file.name);
+      const res = await axios.post(`${API_URL}/lab-results/extract`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
       if (res.data.status === 'success') {
-        setReportUrl(res.data.fileUrl);
+        console.log('[Lab Upload] Extracted', res.data.data.totalTests, 'tests');
+        setExtractedTests(res.data.data.tests);
+        setSelectedTests(res.data.data.tests.map((_, idx) => idx)); // Select all by default
+        setShowExtraction(true);
       }
     } catch (err) {
-      console.error("Upload failed", err);
+      console.error('[Lab Upload] Extraction failed:', err);
+      if (err.response?.data?.fallback === 'manual') {
+        alert('AI extraction unavailable. Please enter lab results manually.');
+      } else {
+        alert('Failed to extract data. Please try again or enter manually.');
+      }
     } finally {
-      setUploading(false);
+      setExtracting(false);
     }
   };
 
@@ -69,6 +85,56 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
     }
   };
 
+  const handleSaveExtracted = async () => {
+    if (selectedTests.length === 0) {
+      alert('Please select at least one test to save.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const testsToSave = selectedTests.map(idx => ({
+        ...extractedTests[idx],
+        clerkId
+      }));
+
+      // Save all selected tests
+      const savePromises = testsToSave.map(test => 
+        axios.post(`${API_URL}/lab-results`, test)
+      );
+
+      await Promise.all(savePromises);
+      console.log('[Lab Save] Saved', testsToSave.length, 'tests');
+      
+      onSave();
+      onClose();
+      setExtractedTests([]);
+      setSelectedTests([]);
+      setShowExtraction(false);
+    } catch (err) {
+      console.error('[Lab Save] Failed to save extracted tests:', err);
+      alert('Failed to save some tests. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleTestSelection = (idx) => {
+    setSelectedTests(prev => 
+      prev.includes(idx) 
+        ? prev.filter(i => i !== idx)
+        : [...prev, idx]
+    );
+  };
+
+  const selectAllTests = () => {
+    setSelectedTests(extractedTests.map((_, idx) => idx));
+  };
+
+  const deselectAllTests = () => {
+    setSelectedTests([]);
+  };
+
   const commonTests = [
     { name: 'Hemoglobin', unit: 'g/dL', range: '13.5-17.5' },
     { name: 'Glucose (Fasting)', unit: 'mg/dL', range: '70-100' },
@@ -79,7 +145,7 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#030712]/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-2xl shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
         
         <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
           <div className="flex items-center gap-4">
@@ -192,23 +258,47 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                         <p className="text-xs font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest">Upload PDF Report</p>
                         <p className="text-[9px] text-gray-600 dark:text-gray-300 font-bold">MAX SIZE 10MB</p>
                       </div>
-                      <input type="file" accept="application/pdf" className="hidden" onChange={handleFileUpload} />
+                      <input type="file" accept="application/pdf,image/*" className="hidden" onChange={handleFileUpload} />
                    </label>
-                 )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="p-8 bg-gray-50 dark:bg-gray-950/50 border-t border-gray-100 dark:border-gray-800">
-           <button 
-             onClick={handleSave}
-             disabled={saving || !formData.testName || !formData.resultValue}
-             className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-30 uppercase tracking-[0.2em] text-xs"
-           >
-             {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-             Commit to Diagnostic Record
-           </button>
+           {showExtraction ? (
+             <div className="flex gap-4">
+               <button 
+                 onClick={() => {
+                   setShowExtraction(false);
+                   setExtractedTests([]);
+                   setSelectedTests([]);
+                 }}
+                 className="flex-1 py-5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-black rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] uppercase tracking-[0.2em] text-xs"
+               >
+                 <X className="w-5 h-5" />
+                 Manual Entry
+               </button>
+               <button 
+                 onClick={handleSaveExtracted}
+                 disabled={saving || selectedTests.length === 0}
+                 className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-30 uppercase tracking-[0.2em] text-xs"
+               >
+                 {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                 Save Selected ({selectedTests.length})
+               </button>
+             </div>
+           ) : (
+             <button 
+               onClick={handleSave}
+               disabled={saving || !formData.testName || !formData.resultValue}
+               className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-30 uppercase tracking-[0.2em] text-xs"
+             >
+               {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+               Commit to Diagnostic Record
+             </button>
+           )}
         </div>
       </div>
     </div>

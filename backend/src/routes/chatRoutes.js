@@ -94,21 +94,53 @@ IMPORTANT GUIDELINES:
 7. Always include a standard medical disclaimer
 8. Be warm, conversational, and supportive`;
 
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...(conversationHistory || []),
-        { role: 'user', content: message }
-      ],
-      model: 'llama-3.3-70b-versatile',
-    });
+    let completion;
+    try {
+      // Try primary model first
+      completion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...(conversationHistory || []),
+          { role: 'user', content: message }
+        ],
+        model: 'llama-3.3-70b-versatile',
+      });
+    } catch (primaryError) {
+      // Fallback to smaller model if rate limited
+      if (primaryError.status === 429 || primaryError.message?.includes('rate_limit')) {
+        console.log('[Chat] Rate limited, falling back to llama-3.1-8b-instant');
+        completion = await groq.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...(conversationHistory || []),
+            { role: 'user', content: message }
+          ],
+          model: 'llama-3.1-8b-instant',
+        });
+      } else {
+        throw primaryError;
+      }
+    }
 
     res.json({
       status: 'success',
       reply: completion.choices[0]?.message?.content || "I apologize, but I am unable to process your request."
     });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    console.error('[Chat] Error:', error.message);
+    
+    // If Groq is completely unavailable, return a friendly message
+    if (error.status === 429 || error.message?.includes('rate_limit')) {
+      return res.json({
+        status: 'success',
+        reply: "I'm currently experiencing high demand and my AI services are temporarily unavailable. Please try again in a few minutes. Your health data is safe and I'll be ready to help you shortly! 🙏"
+      });
+    }
+    
+    res.status(500).json({ 
+      status: 'error', 
+      message: error.message 
+    });
   }
 });
 
