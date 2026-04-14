@@ -11,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile, onScoreUpdate }) => {
   const [questionnaire, setQuestionnaire] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [calculatedScore, setCalculatedScore] = useState(null);
@@ -18,6 +19,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
 
   useEffect(() => {
     if (isOpen && diseaseId) {
+      setError(null);
       fetchQuestionnaire();
       setAnswers({});
       setCurrentStep(0);
@@ -28,6 +30,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
 
   const fetchQuestionnaire = async () => {
     setLoading(true);
+    setError(null);
     try {
       console.log('[QuestionnaireModal] Fetching questionnaire for:', diseaseId);
       const res = await axios.get(`${API_URL}/diseases/${diseaseId}/questionnaire`);
@@ -36,11 +39,14 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
         setQuestionnaire(res.data.data);
         console.log('[QuestionnaireModal] Questions loaded:', res.data.data.questions?.length || 0);
       } else {
-        console.error('[QuestionnaireModal] Failed to load:', res.data.message);
+        const errorMsg = res.data.message || 'Failed to load questionnaire data';
+        console.error('[QuestionnaireModal] Failed to load:', errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
-      console.error('[QuestionnaireModal] Failed to fetch questionnaire:', err.response?.data || err.message);
-      // Don't close modal, just show error
+      const msg = err.response?.data?.message || err.message || 'Network error occurred';
+      console.error('[QuestionnaireModal] Failed to fetch questionnaire:', msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -275,9 +281,48 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed inset-4 md:inset-6 lg:inset-8 bg-white dark:bg-gray-950 rounded-3xl shadow-2xl z-50 flex items-center justify-center"
             >
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-                <p className="text-gray-600 dark:text-gray-400 font-bold">Loading questionnaire...</p>
+              <div className="absolute top-6 right-6">
+                <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="text-center p-8 max-w-sm">
+                {error ? (
+                  <>
+                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <AlertCircle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Fetch Protocol Failed</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                      We couldn't retrieve the assessment for <span className="text-emerald-500 font-bold uppercase tracking-wider">{diseaseId.replace(/_/g, ' ')}</span>.
+                      <br/><span className="text-[10px] opacity-50 mt-1 block">Log: {error}</span>
+                    </p>
+                    <div className="space-y-3">
+                      <button 
+                        onClick={fetchQuestionnaire}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all shadow-lg active:scale-95"
+                      >
+                        Re-attempt Fetch
+                      </button>
+                      <button 
+                        onClick={onClose}
+                        className="w-full py-3 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 font-bold rounded-2xl transition-all"
+                      >
+                        Abort Assessment
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative w-24 h-24 mx-auto mb-8">
+                      <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-pulse" />
+                      <div className="animate-spin rounded-full h-full w-full border-b-4 border-emerald-500 relative z-10" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">Syncing Disease Logic</h3>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium animate-pulse">Initializing questionnaire modules...</p>
+                  </>
+                )}
               </div>
             </motion.div>
           </>

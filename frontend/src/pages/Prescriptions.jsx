@@ -176,9 +176,21 @@ const Prescriptions = () => {
   const confirmMed = (cand) => {
     // Phase 2 Step 8: Confirm generic mapping
     const medName = cand.matched ? cand.generic : cand.original;
+    console.log('[SafetyBridge] Confirming medicine:', {
+      original: cand.original,
+      matched: cand.matched,
+      generic: cand.generic,
+      selected: medName
+    });
+    
     if (!confirmedMeds.includes(medName)) {
-      setConfirmedMeds([...confirmedMeds, medName]);
+      const newConfirmed = [...confirmedMeds, medName];
+      setConfirmedMeds(newConfirmed);
+      console.log('[SafetyBridge] Confirmed medicines:', newConfirmed);
+    } else {
+      console.log('[SafetyBridge] Medicine already confirmed:', medName);
     }
+    
     setCandidates(candidates.filter(c => c.original !== cand.original));
   };
 
@@ -232,6 +244,10 @@ const Prescriptions = () => {
   // 9.3 RAG-Augmented Interaction Check
   const checkSafety = async () => {
     if (confirmedMeds.length < 2 || checking) return;
+    
+    console.log('[SafetyBridge] Starting safety check with medicines:', confirmedMeds);
+    console.log('[SafetyBridge] Language:', language);
+    
     setChecking(true);
     setScanStatus({ type: 'loading', message: `Analyzing safety in ${language}...` });
     setInteractions([]);
@@ -242,6 +258,9 @@ const Prescriptions = () => {
         medicines: confirmedMeds,
         language: language  // Pass selected language to AI analysis
       });
+      
+      console.log('[SafetyBridge] Safety check response:', res.data.status);
+      
       if (res.data.status === 'success') {
         const { report, isFallback, modelUsed, debug } = res.data;
 
@@ -533,20 +552,23 @@ const Prescriptions = () => {
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full h-40 bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 group-hover:border-emerald-500/30 rounded-3xl p-5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-700 resize-none font-medium"
+                className="w-full h-40 bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 group-hover:border-emerald-500/30 rounded-3xl p-5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-700 resize-none font-medium mb-2"
                 placeholder="Type medicines or herbs separated by commas..."
               />
-              <div className="absolute bottom-4 right-4 text-[9px] text-gray-400 dark:text-gray-600 font-bold uppercase tracking-widest pointer-events-none">
-                Manual Overlay
+              <div className="flex flex-col md:flex-row items-center justify-between px-2 gap-4">
+                <button
+                  onClick={handleVoiceInput}
+                  disabled={voicePlaying}
+                  className={`w-full md:w-auto p-2.5 rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-500 border border-gray-200 dark:border-gray-700'}`}
+                  title="Voice Command Mode"
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                  {voicePlaying ? 'Listening...' : 'Voice Intake'}
+                </button>
+                <div className="text-[8px] text-gray-400 dark:text-gray-600 font-bold uppercase tracking-[0.2em] pointer-events-none text-center md:text-right">
+                  Manual Entry Protocol active
+                </div>
               </div>
-              <button
-                onClick={handleVoiceInput}
-                disabled={voicePlaying}
-                className={`absolute bottom-4 left-4 p-2 rounded-full transition-all ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-500'}`}
-                title="Start Voice Intake"
-              >
-                <Mic className="w-4 h-4" />
-              </button>
             </div>
 
             <div className="mt-4 flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 rounded-2xl">
@@ -570,42 +592,50 @@ const Prescriptions = () => {
           {candidates.length > 0 && (
             <div className="bg-white dark:bg-emerald-500/5 border border-gray-200 dark:border-emerald-500/10 p-8 rounded-[2.5rem] animate-in zoom-in duration-500 shadow-xl">
               <h4 className="text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-[0.25em] mb-6 flex items-center gap-2">
-                <RefreshCw className="w-4 h-4" /> Identity Verification
+                <RefreshCw className="w-4 h-4" /> Medicine Verification
               </h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-6 font-medium">
+                Click the ✓ button to confirm each medicine name
+              </p>
               <div className="space-y-3">
                 {candidates.map((cand, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-gray-950/80 border border-gray-800/50 rounded-2xl group hover:border-emerald-500/40 transition-all">
+                  <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-950/80 border border-gray-100 dark:border-gray-800/50 rounded-2xl group hover:border-emerald-500/40 transition-all cursor-pointer">
                     <div className="flex flex-col flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-emerald-500 font-bold uppercase">Identification:</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[9px] text-emerald-500 font-bold uppercase">Detected:</span>
                         {cand.isCombination && (
                           <span className="bg-amber-500/20 text-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded">COMBO</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-medium text-gray-500 line-through decoration-emerald-500/30">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-black text-gray-900 dark:text-white group-hover:text-emerald-500 transition-colors">
                           {cand.original}
-                        </span>
-                        <ChevronDown className="w-3 h-3 text-emerald-500 -rotate-90" />
-                        <span className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
-                          {cand.matched ? cand.generic : "Keep Original"}
                         </span>
                       </div>
                       {cand.matched && (
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[8px] text-emerald-500/70 font-bold uppercase tracking-widest">
-                            Mapped to {cand.matched} ({Math.round(cand.confidence * 100)}% match)
+                        <div className="mt-2 flex items-center gap-2">
+                          <ChevronDown className="w-3 h-3 text-emerald-500 -rotate-90" />
+                          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                            {cand.generic}
                           </span>
+                          <div className="flex items-center gap-1.5 ml-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[8px] text-emerald-500/70 font-bold uppercase tracking-widest">
+                              {Math.round(cand.confidence * 100)}% match
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
                     <button
-                      onClick={() => confirmMed(cand)}
-                      className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white rounded-xl transition-all shadow-lg active:scale-95 shrink-0"
-                      title="Verify Identity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmMed(cand);
+                      }}
+                      className="p-3 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white rounded-xl transition-all shadow-lg active:scale-95 shrink-0"
+                      title="Confirm this medicine"
                     >
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle2 className="w-5 h-5" />
                     </button>
                   </div>
                 ))}

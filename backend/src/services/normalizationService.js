@@ -51,17 +51,37 @@ async function normalizeMedicineNames(names) {
     
     // 1. Direct Alias Check (Case insensitive)
     for (const [alias, canonical] of Object.entries(ALIAS_MAP)) {
-        if (cleanName === alias) return canonical;
+        if (cleanName === alias) {
+          return {
+            original: name,
+            matched: 'Exact Alias',
+            generic: canonical,
+            confidence: 1.0,
+            isCombination: false
+          };
+        }
     }
 
     // 2. Fuzzy Match
     const results = fuse.search(name);
     if (results.length > 0 && results[0].score < 0.4) {
-      return results[0].item;
+      return {
+        original: name,
+        matched: 'Fuzzy Match',
+        generic: results[0].item,
+        confidence: 1 - results[0].score,
+        isCombination: false
+      };
     }
 
     // 3. Keep original if no confident match
-    return name;
+    return {
+      original: name,
+      matched: null,
+      generic: null,
+      confidence: 0,
+      isCombination: false
+    };
   });
 }
 
