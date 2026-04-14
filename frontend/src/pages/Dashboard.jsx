@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
-import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText } from 'lucide-react';
+import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText, HeartPulse, Scan, ThumbsUp, ThumbsDown } from 'lucide-react';
 import BodyScan3D from '../components/BodyScan3D';
 import DiseaseCard from '../components/disease-cards/DiseaseCard';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -174,6 +174,48 @@ const Dashboard = () => {
     }
   };
 
+  const syncGoogleFit = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setSyncing(true);
+      try {
+        const res = await axios.post(`${API_URL}/fitness/steps`, { 
+          clerkId: user.id, 
+          accessToken: tokenResponse.access_token 
+        });
+        if (res.data.status === 'success') fetchData();
+      } catch (err) {
+        console.error("Fitness sync failed:", err);
+      } finally {
+        setSyncing(false);
+      }
+    },
+    scope: 'https://www.googleapis.com/auth/fitness.activity.read'
+  });
+
+  const handleFeedback = async (context, rating, query, response) => {
+    setFeedbackStatus(prev => ({...prev, [context]: true}));
+    try {
+      await axios.post(`${API_URL}/feedback`, { clerkId: user.id, context, rating, query, response });
+    } catch (err) {
+      console.error("Feedback failed:", err);
+    }
+  };
+
+  const getProfileVal = (field) => {
+    const val = report?.userProfile?.[field];
+    if (val && typeof val === 'object' && val.value !== undefined) return val.value;
+    return val;
+  };
+
+  const getRiskColor = (score) => {
+    if (score === -1) return '#6b7280'; // Gray for N/A
+    if (score >= 70) return '#ef4444'; // Red
+    if (score >= 40) return '#f59e0b'; // Amber
+    return '#10b981'; // Emerald
+  };
+
+  const stepCount = getProfileVal('steps') || 0;
+
   const handleExport = async () => {
     try {
       const [profileRes] = await Promise.all([
@@ -319,7 +361,7 @@ const Dashboard = () => {
         </div>
 
         {/* Right Column - Secondary Data */}
-        <div className="space-y-6">
+        <div className="lg:col-span-4 space-y-6">
            {/* 3D Holographic Bio-Matrix Card */}
            <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 rounded-[2.5rem] min-h-[520px] relative overflow-hidden group hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1">
                {/* Background Grid and Atmosphere */}
@@ -412,7 +454,8 @@ const Dashboard = () => {
                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 mr-3 shrink-0 group-hover:scale-125 transition-transform" />
                        <span className="text-slate-700 dark:text-gray-400 text-[15px] font-medium leading-relaxed">{tip.replace(/^-/,'').trim()}</span>
                     </div>
-                 ))}                  {!feedbackStatus['Lifestyle'] ? (
+                 ))}
+                 {!feedbackStatus['Lifestyle'] ? (
                     <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mr-2">Helpful?</span>
                        <button onClick={() => handleFeedback('Lifestyle', 'up', 'General Tips', report?.general_tips)} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-gray-500 hover:text-white dark:hover:text-emerald-400 rounded-lg transition-all active:scale-95"><ThumbsUp className="w-4 h-4" /></button>
@@ -421,16 +464,31 @@ const Dashboard = () => {
                  ) : (
                     <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800"><CheckCircle className="w-3 h-3" /> Feedback Received</div>
                  )}
-
               </div>
            </div>
 
-           {/* Medical Disclaimer */}
-           <div className="bg-red-950/20 border border-red-900/30 p-4 rounded-xl text-center">
-              <p className="text-red-400/80 text-[10px] uppercase tracking-wider leading-relaxed">
-                 {report.disclaimer}
-              </p>
-           </div>
+            <SavedDoctorsWidget 
+              doctors={profile?.savedDoctors} 
+              clerkId={user.id}
+              onRefresh={fetchData}
+              onRemove={async (placeId) => {
+                try {
+                  await axios.delete(`${API_URL}/profile/saved-doctors/${user.id}/${placeId}`);
+                  fetchData();
+                } catch (err) {
+                  console.error("Error removing doctor:", err);
+                }
+              }}
+            />
+
+            <div className="bg-red-950/20 border border-red-900/30 p-6 rounded-[2rem] text-center">
+               <div className="w-8 h-8 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShieldAlert className="w-4 h-4 text-red-500" />
+               </div>
+               <p className="text-red-400/80 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed">
+                  {report.disclaimer}
+               </p>
+            </div>
         </div>
       </div>
 
@@ -474,6 +532,4 @@ const AdviceCard = ({ label, text, icon, onFeedback, done }) => (
   </div>
 );
 
-=======
->>>>>>> e6cb2b6b79901ab83a7f73377f2a8ee0346c8188
 export default Dashboard;

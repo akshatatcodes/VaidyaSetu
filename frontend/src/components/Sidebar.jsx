@@ -51,7 +51,18 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="vs-sidebar flex flex-col w-full md:w-72 h-auto md:h-screen sticky top-0 px-5 py-6 md:py-10 bg-white dark:bg-none dark:bg-[#050b14]/40 backdrop-blur-3xl border-b md:border-r border-slate-100 dark:border-white/5 text-slate-700 dark:text-gray-300 shrink-0 z-50 transition-all duration-500 shadow-[8px_0_40px_rgba(35,60,111,0.04)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.2)] relative before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/40 before:to-transparent before:dark:from-white/5 before:pointer-events-none">
+    <div 
+      className="vs-sidebar flex flex-col w-full md:w-72 h-auto md:h-screen sticky top-0 px-5 py-6 md:py-10 backdrop-blur-3xl border-b md:border-r text-slate-700 dark:text-gray-300 shrink-0 z-50 transition-all duration-500 relative"
+      style={theme === 'dark' ? {
+        background: 'rgba(5, 11, 20, 0.4)',
+        borderColor: 'rgba(255,255,255,0.05)',
+        boxShadow: '4px 0 24px rgba(0,0,0,0.2)'
+      } : {
+        background: 'linear-gradient(170deg, #ffffff 0%, #f0f9ff 55%, #f0fdf4 100%)',
+        borderColor: 'rgba(16, 185, 129, 0.18)',
+        boxShadow: '4px 0 40px rgba(16,185,129,0.1), 2px 0 12px rgba(59,130,246,0.06)'
+      }}
+    >
 
       <div className="flex items-center justify-between md:justify-center mb-6 md:mb-12 relative z-10">
         <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 drop-shadow-sm">
@@ -86,8 +97,8 @@ const Sidebar = () => {
               className={({ isActive }) =>
                 `flex whitespace-nowrap items-center px-4 py-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
                   isActive
-                    ? 'text-blue-700 dark:text-emerald-300 bg-blue-50/80 dark:bg-emerald-500/10 active-link shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_4px_12px_rgba(35,60,111,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-blue-100 dark:border-emerald-500/20 font-bold'
-                    : 'text-slate-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-emerald-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:border-slate-100 dark:hover:border-white/5 border border-transparent font-medium hover:shadow-[0_2px_10px_rgba(35,60,111,0.04)]'
+                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-500/10 active-link shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_4px_12px_rgba(16,185,129,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-emerald-100 dark:border-emerald-500/20 font-bold'
+                    : 'text-slate-700 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50/30 dark:hover:bg-white/5 hover:border-emerald-100/30 dark:hover:border-white/5 border border-transparent font-medium hover:shadow-[0_2px_10px_rgba(16,185,129,0.04)]'
                 }`
               }
             >

@@ -94,11 +94,16 @@ const AppLayout = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full relative bg-[#f7f9fc] dark:bg-[#030712] transition-colors duration-700 overflow-hidden">
-      {/* Premium Ambient Background Glows - Medical Aesthetic */}
-      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-100/40 dark:bg-emerald-500/15 blur-[120px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-teal-50/50 dark:bg-blue-500/15 blur-[120px] pointer-events-none z-0" />
-      <div className="fixed top-[30%] left-[50%] w-[40%] h-[40%] rounded-full bg-indigo-50/40 dark:bg-purple-500/10 blur-[120px] pointer-events-none z-0" />
+    <div 
+      className="flex flex-col md:flex-row min-h-screen w-full relative transition-colors duration-700 overflow-hidden"
+      style={theme === 'dark' ? { background: '#030712' } : {
+        background: 'linear-gradient(180deg, #f0f9ff 0%, #ffffff 40%, #f0fdf4 100%)'
+      }}
+    >
+      {/* Premium Ambient Background Glows */}
+      <div className="fixed top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full dark:bg-emerald-500/15 blur-[140px] pointer-events-none z-0" style={{background: theme === 'dark' ? '' : 'radial-gradient(ellipse, rgba(59,130,246,0.15) 0%, transparent 70%)'}} />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full dark:bg-blue-500/15 blur-[140px] pointer-events-none z-0" style={{background: theme === 'dark' ? '' : 'radial-gradient(ellipse, rgba(16,185,129,0.12) 0%, transparent 70%)'}} />
+      <div className="fixed top-[30%] left-[50%] w-[50%] h-[50%] rounded-full dark:bg-purple-500/10 blur-[120px] pointer-events-none z-0" style={{background: theme === 'dark' ? '' : 'radial-gradient(ellipse, rgba(99,102,241,0.07) 0%, transparent 70%)'}} />
       {/* Floating Theme Toggle Button */}
       <button
         onClick={toggleTheme}
