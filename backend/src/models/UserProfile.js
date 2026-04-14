@@ -3,10 +3,10 @@ const mongoose = require('mongoose');
 const FieldSchema = {
   value: mongoose.Schema.Types.Mixed,
   lastUpdated: { type: Date, default: Date.now },
-  updateType: { 
-    type: String, 
+  updateType: {
+    type: String,
     enum: ['initial', 'correction', 'real_change', 'auto_add', 'auto_remove', 'sync'],
-    default: 'initial' 
+    default: 'initial'
   },
   previousValue: mongoose.Schema.Types.Mixed,
   unit: String
@@ -18,7 +18,7 @@ const UserProfileSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  
+
   // Step 1: Biometrics
   name: FieldSchema,
   age: FieldSchema,
@@ -48,12 +48,12 @@ const UserProfileSchema = new mongoose.Schema({
   allergies: FieldSchema,
   medicalHistory: FieldSchema,
   otherConditions: FieldSchema,
-  
+
   onboardingComplete: {
     type: Boolean,
     default: true
   },
-  
+
   // Data Quality Score (Phase B)
   dataQualityScore: {
     type: Number,
@@ -82,11 +82,26 @@ const UserProfileSchema = new mongoose.Schema({
     defaultReminderTime: { type: String, default: '08:00 AM' },
     reminderSound: { type: String, default: 'Chime' },
     snoozeDuration: { type: Number, default: 10 }, // minutes
-    refillAlertThreshold: { type: Number, default: 7 } // days
+    refillAlertThreshold: { type: Number, default: 7 }, // days
+    doctorSearchFilters: {
+      type: Map,
+      of: Boolean,
+      default: { ayushman: false, janAushadhi: false, govt: false, online: true }
+    }
   },
 
-  // --- EXPANDED SCREENING FIELDS (Phase 2) ---
-  
+  // --- EXPANDED SCREENING FIELDS (Phase 2 & 7) ---
+
+  // Emergency Symptoms (Step 58)
+  chestPain: FieldSchema,
+  visionChanges: FieldSchema,
+  severeHeadache: FieldSchema,
+  abdominalPain: FieldSchema,
+  vomiting: FieldSchema,
+  suicidalThoughts: FieldSchema,
+  difficultyBreathing: FieldSchema,
+  confusion: FieldSchema,
+
   // Thyroid & Metabolic (Step 4/5)
   weightChangeUnexplained: FieldSchema,
   fatiguePersistent: FieldSchema,
@@ -123,7 +138,37 @@ const UserProfileSchema = new mongoose.Schema({
   nsaidOveruse: FieldSchema,
   liverPain: FieldSchema,
   fattyLiverDiagnosis: FieldSchema,
-  alcoholFrequency: FieldSchema
+  alcoholFrequency: FieldSchema,
+
+  // --- NEW FIELDS FOR PHASE 2 ---
+  waistCircumference: FieldSchema,
+  familyHistoryDiabetes: FieldSchema,
+  ironSupplementation: FieldSchema,
+  occupationalDustExposure: FieldSchema,
+  // --- PHASE 6: DOCTOR FINDER ---
+  savedDoctors: [{
+    name: String,
+    specialty: String,
+    address: String,
+    rating: Number,
+    placeId: String,
+    isPracto: Boolean,
+    notes: String,
+    savedAt: { type: Date, default: Date.now }
+  }],
+
+  currentLocation: {
+    city: String,
+    state: String,
+    lastDetected: Date
+  },
+
+  // UI Persistence (Step 61)
+  cardMeta: {
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: {}
+  }
 });
 
 module.exports = mongoose.model('UserProfile', UserProfileSchema);

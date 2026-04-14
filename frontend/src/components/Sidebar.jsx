@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle } from 'lucide-react';
+import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill } from 'lucide-react';
 import { UserButton, useClerk, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '@clerk/clerk-react';
@@ -42,10 +42,11 @@ const Sidebar = () => {
 
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
-    { to: '/profile', icon: UserCircle, label: 'My Health Profile' },
     { to: '/prescriptions', icon: ShieldAlert, label: 'Safety Bridge' },
     { to: '/vitals', icon: Activity, label: 'My Vitals' },
+    { to: '/medicines', icon: Pill, label: 'My Medicines' },
     { to: '/alerts', icon: AlertCircle, label: 'Alerts' },
+    { to: '/profile', icon: UserCircle, label: 'Profile' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 

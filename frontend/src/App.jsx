@@ -27,6 +27,7 @@ import Alerts from './pages/Alerts';
 import Vitals from './pages/Vitals';
 import MedicationSchedule from './pages/MedicationSchedule';
 import AlertSettings from './pages/AlertSettings';
+import MyMedicines from './pages/MyMedicines';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
@@ -126,6 +127,7 @@ const AppLayout = () => {
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/alerts/settings" element={<AlertSettings />} />
             <Route path="/medications" element={<MedicationSchedule />} />
+            <Route path="/medicines" element={<MyMedicines />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>

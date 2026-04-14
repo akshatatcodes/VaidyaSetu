@@ -1,0 +1,556 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  X, TrendingUp, TrendingDown, Shield, AlertTriangle, Lightbulb, 
+  Info, ChevronDown, ChevronUp, ChevronRight, Activity, Coffee, Star, Leaf,
+  CheckCircle, ArrowRight, Heart
+} from 'lucide-react';
+
+const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfile, loading, onOpenQuestionnaire }) => {
+  const [activeTab, setActiveTab] = useState('calculation'); // 'calculation' or 'mitigation'
+  const [expandedStep, setExpandedStep] = useState(null);
+
+  if (!isOpen) return null;
+
+  // Debug logging
+  console.log('[RiskDetailModal] Props:', {
+    diseaseId,
+    score,
+    hasDetails: !!details,
+    loading,
+    factorBreakdown: details?.factorBreakdown?.length || 0,
+    protectiveFactors: details?.protectiveFactors?.length || 0,
+    mitigationSteps: details?.mitigationSteps?.length || 0
+  });
+
+  const getRiskColor = (score) => {
+    if (score === -1) return '#6b7280';
+    if (score >= 76) return '#ef4444';
+    if (score >= 51) return '#f59e0b';
+    if (score >= 26) return '#f59e0b';
+    return '#10b981';
+  };
+
+  const getRiskLabel = (score) => {
+    if (score === -1) return 'N/A';
+    if (score >= 76) return 'Very High';
+    if (score >= 51) return 'High';
+    if (score >= 26) return 'Moderate';
+    if (score >= 5) return 'Low';
+    return 'Very Low';
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'bg-red-500 text-white';
+      case 'medium': return 'bg-amber-500 text-white';
+      case 'low': return 'bg-emerald-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getCategoryIcon = (category) => {
+    switch (category) {
+      case 'dietary': return <Coffee className="w-4 h-4" />;
+      case 'lifestyle': return <Activity className="w-4 h-4" />;
+      case 'monitoring': return <Star className="w-4 h-4" />;
+      case 'precaution': return <Shield className="w-4 h-4" />;
+      default: return <Leaf className="w-4 h-4" />;
+    }
+  };
+
+  const getCategoryColor = (category) => {
+    switch (category) {
+      case 'dietary': return 'text-orange-500 bg-orange-50 dark:bg-orange-900/20';
+      case 'lifestyle': return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20';
+      case 'monitoring': return 'text-purple-500 bg-purple-50 dark:bg-purple-900/20';
+      case 'precaution': return 'text-red-500 bg-red-50 dark:bg-red-900/20';
+      default: return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20';
+    }
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 md:inset-6 lg:inset-8 bg-white dark:bg-gray-950 rounded-3xl shadow-2xl z-50 flex items-center justify-center"
+            >
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400 font-bold">Loading risk analysis...</p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+  }
+
+  // Show error state if details failed to load
+  if (!details) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 md:inset-6 lg:inset-8 bg-white dark:bg-gray-950 rounded-3xl shadow-2xl z-50 flex items-center justify-center"
+            >
+              <div className="text-center p-8">
+                <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                <p className="text-gray-900 dark:text-white font-black text-lg mb-2">No Data Available</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                  Risk analysis data could not be loaded for {diseaseId?.replace('_', ' ')}
+                </p>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="fixed inset-4 md:inset-6 lg:inset-8 bg-white dark:bg-gray-950 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-emerald-500/5 to-blue-500/5">
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: `${getRiskColor(score)}20` }}
+                >
+                  <Activity 
+                    className="w-8 h-8" 
+                    style={{ color: getRiskColor(score) }} 
+                  />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white capitalize">
+                    {diseaseId?.replace('_', ' ')} Risk Analysis
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span 
+                      className="text-2xl font-black"
+                      style={{ color: getRiskColor(score) }}
+                    >
+                      {score}%
+                    </span>
+                    <span className="text-sm font-bold text-gray-500">
+                      • {getRiskLabel(score)} Risk
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Take Detailed Assessment Button */}
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800/30">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h4 className="font-black text-blue-900 dark:text-blue-400 flex items-center mb-1">
+                    <Lightbulb className="w-4 h-4 mr-2" />
+                    Get More Accurate Risk Score
+                  </h4>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    Answer {details?.questionnaireLength || 6-8} targeted questions about {diseaseId?.replace('_', ' ')}. 
+                    We'll also consider your allergies, medications, and medical history.
+                  </p>
+                </div>
+                <button
+                  onClick={onOpenQuestionnaire}
+                  className="ml-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-black rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Take Assessment
+                  <ChevronRight className="w-3 h-3 inline ml-1" />
+                </button>
+              </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-gray-200 dark:border-gray-800">
+              <button
+                onClick={() => setActiveTab('calculation')}
+                className={`flex-1 p-4 font-bold text-sm transition-all ${
+                  activeTab === 'calculation'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4 inline mr-2" />
+                Calculation Breakdown
+              </button>
+              <button
+                onClick={() => setActiveTab('mitigation')}
+                className={`flex-1 p-4 font-bold text-sm transition-all ${
+                  activeTab === 'mitigation'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <Lightbulb className="w-4 h-4 inline mr-2" />
+                Recovery Strategy
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+              {activeTab === 'calculation' && (
+                <div className="p-6 space-y-6">
+                  {/* User Profile Considerations */}
+                  {userProfile && (userProfile.allergies?.length > 0 || userProfile.activeMedications?.length > 0) && (
+                    <div className="p-5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800/30">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-3 flex items-center">
+                        <Heart className="w-4 h-4 mr-2" />
+                        Your Profile Factors
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {userProfile.allergies?.length > 0 && (
+                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                            <div className="text-xs font-bold text-gray-500 mb-1">Allergies</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.allergies.length} known</div>
+                          </div>
+                        )}
+                        {userProfile.activeMedications?.length > 0 && (
+                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                            <div className="text-xs font-bold text-gray-500 mb-1">Medications</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.activeMedications.length} active</div>
+                          </div>
+                        )}
+                        {userProfile.age && (
+                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                            <div className="text-xs font-bold text-gray-500 mb-1">Age</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.age} years</div>
+                          </div>
+                        )}
+                        {userProfile.bmi && (
+                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                            <div className="text-xs font-bold text-gray-500 mb-1">BMI</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.bmi}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Risk Factors */}
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
+                      <TrendingUp className="w-5 h-5 mr-2 text-red-500" />
+                      Risk Factors ({details?.factorBreakdown?.length || 0})
+                    </h3>
+                    
+                    {details?.factorBreakdown && details.factorBreakdown.length > 0 ? (
+                      <div className="space-y-3">
+                        {details.factorBreakdown.map((factor, idx) => (
+                          <motion.div
+                            key={factor.id || idx}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="p-4 bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center mb-2">
+                                  <h4 className="font-bold text-gray-900 dark:text-white">
+                                    {factor.name}
+                                  </h4>
+                                  <span className="ml-2 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
+                                    {factor.category}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  {factor.explanation}
+                                </p>
+                                <p className="text-xs font-bold text-gray-500">
+                                  Your Value: <span className="text-gray-900 dark:text-white">{factor.displayValue}</span>
+                                </p>
+                              </div>
+                              <div className="ml-4 text-right">
+                                <div className="flex items-center font-black text-lg text-red-500">
+                                  <TrendingUp className="w-4 h-4 mr-1" />
+                                  +{factor.impact}%
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-6 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                          <Info className="w-5 h-5 inline mr-2" />
+                          No specific risk factors detected. Your score of <strong>{score}%</strong> is based on baseline population data.
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2 text-center">
+                          Complete your health profile to get personalized risk factor analysis.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Protective Factors */}
+                  {details.protectiveFactors?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
+                        <Shield className="w-5 h-5 mr-2 text-emerald-500" />
+                        Protective Factors ({details.protectiveFactors.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {details.protectiveFactors.map((factor, idx) => (
+                          <div
+                            key={factor.id || idx}
+                            className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 rounded-xl"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-bold text-gray-900 dark:text-white mb-1">
+                                  {factor.name}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {factor.explanation}
+                                </p>
+                              </div>
+                              <div className="ml-4 text-emerald-500 font-black text-lg">
+                                -{factor.impact}%
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Calculation Methodology */}
+                  <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-xl">
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-3 flex items-center">
+                      <Info className="w-5 h-5 mr-2 text-blue-500" />
+                      How is this calculated?
+                    </h3>
+                    <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                      <p><strong>1. Baseline Risk:</strong> Indian population prevalence data (ICMR-INDIAB)</p>
+                      <p><strong>2. Risk Factors:</strong> Added based on your profile ({details.factorBreakdown?.length || 0} factors)</p>
+                      {details.protectiveFactors?.length > 0 && (
+                        <p><strong>3. Protective Factors:</strong> Subtracted for healthy behaviors ({details.protectiveFactors.length} factors)</p>
+                      )}
+                      <p><strong>4. Final Score:</strong> Capped between 2-95% for clinical relevance</p>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800/30">
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        <strong>Data Sources:</strong> ICMR-INDIAB 2023, NFHS-5, WHO Guidelines, IDRS
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'mitigation' && (
+                <div className="p-6 space-y-6">
+                  {/* User Profile Considerations */}
+                  {userProfile && (
+                    <div className="p-5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800/30">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-3 flex items-center">
+                        <Heart className="w-4 h-4 mr-2" />
+                        Considering Your Profile
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {userProfile.allergies?.length > 0 && (
+                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">Allergies</p>
+                            <p className="text-xs font-bold text-red-600 dark:text-red-400 mt-1">
+                              {userProfile.allergies.join(', ')}
+                            </p>
+                          </div>
+                        )}
+                        {userProfile.activeMedications?.length > 0 && (
+                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">Medications</p>
+                            <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1">
+                              {userProfile.activeMedications.map(m => m.name).join(', ')}
+                            </p>
+                          </div>
+                        )}
+                        {userProfile.age && (
+                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">Age</p>
+                            <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{userProfile.age} yrs</p>
+                          </div>
+                        )}
+                        {userProfile.bmi && (
+                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">BMI</p>
+                            <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{userProfile.bmi}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Critical Precautions */}
+                  {details.mitigationSteps?.filter(s => s.priority === 'high').length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
+                        <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+                        Critical Precautions
+                      </h3>
+                      <div className="space-y-3">
+                        {details.mitigationSteps
+                          .filter(s => s.priority === 'high')
+                          .map((step, idx) => (
+                            <div
+                              key={step.id || idx}
+                              className="p-4 bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-red-500 rounded-lg">
+                                  <AlertTriangle className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-bold text-gray-900 dark:text-white mb-1">
+                                    {step.title}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {step.description}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* All Mitigation Steps */}
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
+                      <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
+                      All Recovery Steps
+                    </h3>
+                    <div className="space-y-3">
+                      {details.mitigationSteps?.map((step, idx) => (
+                        <div
+                          key={step.id || idx}
+                          className="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-emerald-500/30 transition-colors"
+                        >
+                          <button
+                            onClick={() => setExpandedStep(expandedStep === step.id ? null : step.id)}
+                            className="w-full p-4 text-left flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              <span className={`p-2 rounded-lg ${getCategoryColor(step.category)}`}>
+                                {getCategoryIcon(step.category)}
+                              </span>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${getPriorityColor(step.priority)}`}>
+                                    {step.priority}
+                                  </span>
+                                  <h4 className="font-bold text-gray-900 dark:text-white">
+                                    {step.title}
+                                  </h4>
+                                </div>
+                                <p className="text-xs text-gray-500 line-clamp-1">
+                                  {step.description}
+                                </p>
+                              </div>
+                            </div>
+                            <ArrowRight 
+                              className={`w-5 h-5 text-gray-400 transition-transform ${
+                                expandedStep === step.id ? 'rotate-90' : ''
+                              }`} 
+                            />
+                          </button>
+
+                          <AnimatePresence>
+                            {expandedStep === step.id && (
+                              <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                <div className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-3 ${getCategoryColor(step.category)}`}>
+                                  {getCategoryIcon(step.category)}
+                                  <span className="ml-2">{step.category}</span>
+                                </div>
+                                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                  {step.description}
+                                </p>
+                                {step.isRegional && (
+                                  <div className="mt-3 inline-flex items-center text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
+                                    🇮🇳 Indian Context Applied
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Medical Disclaimer */}
+                  <div className="p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Medical Disclaimer:</strong> These recommendations are based on clinical guidelines and your health profile. 
+                      Always consult with a qualified healthcare provider before making significant changes to your treatment plan.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default RiskDetailModal;

@@ -32,6 +32,11 @@ const reportSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {}
   },
+  // Per-disease mitigations (exercise, diet, lifestyle, precautions)
+  mitigations: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Bell, AlertTriangle, ShieldAlert, Heart, Activity, 
@@ -12,6 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
 const Alerts = () => {
   const { user } = useUser();
+  const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('unread'); // unread, critical, all
@@ -56,13 +58,32 @@ const Alerts = () => {
 
   const markAllRead = async () => {
     try {
-      // Logic for bulk mark read if endpoint exists, else iterate
-      const unread = alerts.filter(a => a.status === 'unread');
-      await Promise.all(unread.map(a => axios.patch(`${API_URL}/alerts/${a._id}/read`)));
+      await axios.patch(`${API_URL}/alerts/${user.id}/read-all`);
       setAlerts(alerts.map(a => ({ ...a, status: 'read' })));
     } catch (err) {
       console.error("Mark all read failed", err);
     }
+  };
+
+  const [feedbackStatus, setFeedbackStatus] = useState({});
+
+  const handleAlertFeedback = async (alertId, rating) => {
+    try {
+      await axios.post(`${API_URL}/alerts/${alertId}/feedback`, { rating });
+      setFeedbackStatus(prev => ({ ...prev, [alertId]: true }));
+    } catch (err) {
+      console.error('Feedback failed', err);
+    }
+  };
+
+  const getProtocolRoute = (alert) => {
+    const t = (alert.type || '').toLowerCase();
+    if (t.includes('interaction') || t === 'interaction_detected') return '/prescriptions';
+    if (t.includes('vital') || t === 'vital_out_of_range') return '/vitals';
+    if (t.includes('medication') || t === 'medication_reminder') return '/medicines';
+    if (t.includes('lab') || t === 'lab_test_due') return '/vitals';
+    if (t.includes('profile') || t === 'profile_incomplete') return '/profile';
+    return alert.actionUrl || '/';
   };
 
   const filteredAlerts = alerts
@@ -302,13 +323,32 @@ const Alerts = () => {
                      <h5 className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-[0.3em]">AI Protocol Recommendations</h5>
                      <ul className="space-y-3">
                         {selectedAlert.priority === 'critical' ? (
-                          <li className="flex items-start gap-3 text-sm font-bold text-red-500">
-                             <AlertOctagon className="w-5 h-5 shrink-0" /> Immediate physician follow-up required.
-                          </li>
+                          <>
+                            <li className="flex items-start gap-3 text-sm font-bold text-red-500">
+                               <AlertOctagon className="w-5 h-5 shrink-0" /> Immediate physician follow-up required. Do not adjust medications without consulting your doctor.
+                            </li>
+                            <li className="flex items-start gap-3 text-sm text-gray-500">
+                               <Heart className="w-5 h-5 shrink-0 text-red-400" /> Monitor vitals closely every 2 hours until stabilized.
+                            </li>
+                          </>
+                        ) : selectedAlert.priority === 'high' ? (
+                          <>
+                            <li className="flex items-start gap-3 text-sm font-bold text-orange-500">
+                               <AlertTriangle className="w-5 h-5 shrink-0" /> Schedule a physician consultation within 24-48 hours.
+                            </li>
+                            <li className="flex items-start gap-3 text-sm text-gray-500">
+                               <Activity className="w-5 h-5 shrink-0 text-orange-400" /> Log vitals more frequently to track trends.
+                            </li>
+                          </>
                         ) : (
-                          <li className="flex items-start gap-3 text-sm font-bold text-emerald-500">
-                             <CheckCircle2 className="w-5 h-5 shrink-0" /> Routine monitoring active. Follow log interval guidance.
-                          </li>
+                          <>
+                            <li className="flex items-start gap-3 text-sm font-bold text-emerald-500">
+                               <CheckCircle2 className="w-5 h-5 shrink-0" /> Routine monitoring active. Follow log interval guidance.
+                            </li>
+                            <li className="flex items-start gap-3 text-sm text-gray-500">
+                               <Info className="w-5 h-5 shrink-0 text-blue-400" /> Keep logging vitals at regular intervals for better AI predictions.
+                            </li>
+                          </>
                         )}
                         <li className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
                            <RefreshCw className="w-5 h-5 shrink-0" /> System will auto-reevaluate on next biometric log.
@@ -325,12 +365,12 @@ const Alerts = () => {
                <div className="p-10 bg-gray-50 dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 flex gap-4">
                   <button 
                     onClick={() => {
-                        if (selectedAlert.actionUrl) window.location.href = selectedAlert.actionUrl;
+                        navigate(getProtocolRoute(selectedAlert));
                         setSelectedAlert(null);
                     }}
                     className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl uppercase tracking-widest text-xs active:scale-95"
                   >
-                    {selectedAlert.actionText || 'Acknowledge Protocol'}
+                    {selectedAlert.actionText || 'View Full Protocol'}
                   </button>
                   <button 
                     onClick={() => dismissAlert(selectedAlert._id)}

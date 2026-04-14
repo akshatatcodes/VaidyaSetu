@@ -8,7 +8,8 @@ import {
   Clock, Cpu, Mic, Volume2, MapPin, ThumbsUp, ThumbsDown, Zap
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import autoTable from 'jspdf-autotable';
+import { addHeader, addSection, addDisclaimer } from '../utils/pdfGenerator';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
@@ -315,15 +316,66 @@ const Prescriptions = () => {
 
   // 9.6 PDF Generation
   const downloadReport = async () => {
-    const element = document.getElementById('interaction-report');
-    const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#030712' });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`VaidyaSetu-Safety-Report-${new Date().getTime()}.pdf`);
+    const doc = new jsPDF();
+    let y = addHeader(doc, 'Drug Interaction Safety Report', user?.fullName || 'User', `Medicines Analyzed: ${confirmedMeds.join(', ')}`);
+
+    // Overall status
+    if (lastReportData?.overallStatus) {
+      y = addSection(doc, y, 'Overall Safety Status');
+      doc.setFontSize(12);
+      doc.setTextColor(lastReportData.overallStatus === 'DANGEROUS' ? 239 : lastReportData.overallStatus === 'CAUTION' ? 245 : 16, lastReportData.overallStatus === 'DANGEROUS' ? 68 : lastReportData.overallStatus === 'CAUTION' ? 158 : 185, lastReportData.overallStatus === 'DANGEROUS' ? 68 : lastReportData.overallStatus === 'CAUTION' ? 11 : 129);
+      doc.text(`Status: ${lastReportData.overallStatus}`, 20, y);
+      y += 8;
+      if (lastReportData.overallSummary) {
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        const lines = doc.splitTextToSize(lastReportData.overallSummary, 170);
+        doc.text(lines, 20, y);
+        y += lines.length * 5 + 8;
+      }
+    }
+
+    // Interactions table
+    if (interactions.length > 0) {
+      y = addSection(doc, y, 'Detected Interactions');
+      const tableData = interactions.map(item => {
+        const drugB = item.ayurveda_herb?.[0] || item.homeopathy_remedy?.[0] || 'Unknown';
+        return [
+          `${item.allopathy_drug} + ${drugB}`,
+          item.severity || 'N/A',
+          item.effect || 'N/A',
+          item.recommendation || 'N/A'
+        ];
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Drug Pair', 'Severity', 'Effect', 'Recommendation']],
+        body: tableData,
+        headStyles: { fillColor: [16, 185, 129] },
+        margin: { left: 20, right: 20 },
+        theme: 'striped',
+        styles: { fontSize: 8 },
+        columnStyles: { 2: { cellWidth: 50 }, 3: { cellWidth: 50 } },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 1) {
+            const sev = data.cell.raw?.toLowerCase();
+            if (sev === 'high' || sev === 'critical') data.cell.styles.textColor = [239, 68, 68];
+            else if (sev === 'moderate') data.cell.styles.textColor = [245, 158, 11];
+            else data.cell.styles.textColor = [16, 185, 129];
+          }
+        },
+      });
+      y = doc.lastAutoTable.finalY + 10;
+    } else {
+      y = addSection(doc, y, 'Result');
+      doc.setFontSize(11);
+      doc.setTextColor(16, 185, 129);
+      doc.text('No harmful interactions detected for this combination.', 20, y);
+    }
+
+    addDisclaimer(doc);
+    doc.save(`VaidyaSetu-Safety-Report-${Date.now()}.pdf`);
   };
 
   const getSeverityStyle = (severity) => {

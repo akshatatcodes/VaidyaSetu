@@ -24,6 +24,9 @@ const alertRoutes = require('./src/routes/alertRoutes');
 const preferenceRoutes = require('./src/routes/preferenceRoutes');
 const medicationRoutes = require('./src/routes/medicationRoutes');
 const governanceRoutes = require('./src/routes/governanceRoutes');
+const diseaseRoutes = require('./src/routes/diseaseRoutes');
+const doctorRoutes = require('./src/routes/doctorRoutes');
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const { runReminderService } = require('./src/services/reminderService');
 const initCronJobs = require('./src/scripts/cronJobs');
 
@@ -58,6 +61,9 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/preferences', preferenceRoutes);
 app.use('/api/medications', medicationRoutes);
 app.use('/api/governance', governanceRoutes);
+app.use('/api/diseases', diseaseRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

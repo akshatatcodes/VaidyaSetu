@@ -9,16 +9,6 @@ const AlertSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: [
-      'interaction_detected', 
-      'vital_out_of_range', 
-      'medication_reminder', 
-      'lab_test_due', 
-      'profile_incomplete', 
-      'goal_achieved', 
-      'new_feature', 
-      'health_tip'
-    ],
     index: true
   },
   priority: {

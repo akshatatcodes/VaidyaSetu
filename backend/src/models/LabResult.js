@@ -9,18 +9,12 @@ const LabResultSchema = new mongoose.Schema({
   testName: {
     type: String,
     required: true,
-    enum: [
-      'HbA1c', 
-      'CBC', 
-      'lipid_profile', 
-      'thyroid_panel', 
-      'vitamin_b12', 
-      'vitamin_d', 
-      'ferritin', 
-      'fasting_glucose', 
-      'postprandial_glucose'
-    ],
+    trim: true,
     index: true
+  },
+  labName: {
+    type: String,
+    default: ''
   },
   resultValue: {
     type: mongoose.Schema.Types.Mixed, // Supports Numbers and complex results

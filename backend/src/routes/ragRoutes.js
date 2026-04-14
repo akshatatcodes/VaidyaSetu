@@ -14,6 +14,8 @@ const { Groq } = require('groq-sdk');
 const { retrieveRelevantKnowledge } = require('../utils/ragRetriever');
 const { compileRagPrompt } = require('../utils/ragPromptEngine');
 const Alert = require('../models/Alert');
+const UserProfile = require('../models/UserProfile');
+const Medication = require('../models/Medication');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -31,8 +33,26 @@ router.post('/check-safety', async (req, res) => {
     // 1. Unified Parallel Retrieval (Covers Vector Store + Live APIs + Direct RxNav)
     const ragResult = await retrieveRelevantKnowledge(medicines);
 
-    // 2. Compile RAG Prompt with language support
-    const prompt = compileRagPrompt(medicines, ragResult.groqContext, language);
+    // 1.5 Fetch user context for personalized analysis
+    let userContext = '';
+    if (clerkId) {
+      const [profile, activeMeds] = await Promise.all([
+        UserProfile.findOne({ clerkId }),
+        Medication.find({ clerkId, active: true })
+      ]);
+      if (profile) {
+        const allergies = profile.allergies?.value || [];
+        const conditions = profile.medicalHistory?.value || [];
+        const age = profile.age?.value || 'unknown';
+        const gender = profile.gender?.value || 'unknown';
+        const diet = profile.dietType?.value || 'unknown';
+        const otherMeds = activeMeds.filter(m => !medicines.includes(m.name)).map(m => m.name);
+        userContext = `\nUSER HEALTH PROFILE:\n- Age: ${age}, Gender: ${gender}, Diet: ${diet}\n- Allergies: ${allergies.join(', ') || 'None'}\n- Medical Conditions: ${conditions.join(', ') || 'None'}\n- Other Active Medications: ${otherMeds.join(', ') || 'None'}\n`;
+      }
+    }
+
+    // 2. Compile RAG Prompt with language support and user context
+    const prompt = compileRagPrompt(medicines, ragResult.groqContext, language, userContext);
 
     // 3. Resilient Groq Call (Fallback Logic)
     let report = null;

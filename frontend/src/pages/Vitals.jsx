@@ -6,10 +6,11 @@ import {
   Moon, Droplets, ArrowUp, ArrowDown, Minus,
   AlertCircle, CheckCircle2, RefreshCw, Calendar,
   ChevronRight, Download, Trash2, Filter, Trash, FileText,
-  FlaskConical, Trophy, Zap
+  FlaskConical, Trophy, Zap, Thermometer, Wind, Stethoscope
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { generateVitalsPDF } from '../utils/pdfGenerator';
 import { 
   BloodPressureChart, GlucoseChart, WeightBMIChart, StepsChart, SleepPatternChart 
 } from '../components/VitalsCharts';
@@ -131,6 +132,7 @@ const Vitals = () => {
       else if (modal.type === 'glucose') finalType = 'blood_glucose';
       else if (modal.type === 'sleep') finalType = 'sleep_duration';
       else if (modal.type === 'water') finalType = 'water_intake';
+      else finalType = modal.type;
       
       if (modal.type === 'bp') {
          if (!data.systolic || !data.diastolic) {
@@ -187,6 +189,8 @@ const Vitals = () => {
       case 'steps': return 'steps';
       case 'sleep': return 'hours';
       case 'heart_rate': return 'BPM';
+      case 'body_temperature': return '°F';
+      case 'oxygen_saturation': return '%';
       default: return '';
     }
   };
@@ -217,6 +221,21 @@ const Vitals = () => {
       if (val > 100 || val < 60) return 'Warning';
       return 'Normal';
     }
+    if (type === 'body_temperature') {
+      if (val > 100.4) return 'High';
+      if (val < 97) return 'Warning';
+      return 'Normal';
+    }
+    if (type === 'oxygen_saturation') {
+      if (val < 92) return 'Warning';
+      if (val < 95) return 'Borderline';
+      return 'Normal';
+    }
+    if (type === 'water_intake') {
+      if (val >= 2500) return 'Normal';
+      if (val >= 1500) return 'Borderline';
+      return 'Warning';
+    }
     return 'Normal';
   };
 
@@ -246,32 +265,13 @@ const Vitals = () => {
        alert("No vitals data available to export.");
        return;
     }
-
-    const doc = new jsPDF();
-    doc.setFontSize(22);
-    doc.setTextColor(16, 185, 129); // Emerald-500
-    doc.text('VaidyaSetu Health Report', 20, 20);
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(`Generated for: ${activeUser?.fullName || 'Valued User'}`, 20, 30);
-    doc.text(`Date: ${new Date().toLocaleString()}`, 20, 37);
-
-    const tableData = history.map(h => [
-      h.type.replace('_', ' ').toUpperCase(),
-      formatValue(h.type, h.value),
-      h.unit,
-      new Date(h.timestamp).toLocaleString(),
-      getStatus(h.type, h.value)
-    ]);
-
-    autoTable(doc, {
-      startY: 50,
-      head: [['Metric', 'Value', 'Unit', 'Timestamp', 'Status']],
-      body: tableData,
-      headStyles: { fillStyle: [16, 185, 129] },
-    });
-
-    doc.save(`VaidyaSetu-Vitals-${new Date().getTime()}.pdf`);
+    generateVitalsPDF(
+      activeUser?.fullName || 'Valued User',
+      history,
+      labResults,
+      formatValue,
+      getStatus
+    );
   };
 
   const calculateHbA1c = () => {
@@ -425,10 +425,13 @@ const Vitals = () => {
           {[
             { id: 'bp', icon: Heart, label: 'Blood Pressure', color: 'text-rose-500' },
             { id: 'glucose', icon: Activity, label: 'Glucose Level', color: 'text-amber-500' },
+            { id: 'heart_rate', icon: Stethoscope, label: 'Heart Rate', color: 'text-pink-500' },
             { id: 'weight', icon: Scale, label: 'Current Weight', color: 'text-blue-500' },
             { id: 'steps', icon: Footprints, label: 'Daily Steps', color: 'text-emerald-500' },
             { id: 'sleep', icon: Moon, label: 'Sleep Tracker', color: 'text-indigo-500' },
             { id: 'water', icon: Droplets, label: 'Water Log', color: 'text-cyan-500' },
+            { id: 'body_temperature', icon: Thermometer, label: 'Body Temp', color: 'text-orange-500' },
+            { id: 'oxygen_saturation', icon: Wind, label: 'SpO2 Level', color: 'text-teal-500' },
           ].map((item) => (
             <button
               key={item.id}
@@ -481,6 +484,24 @@ const Vitals = () => {
                   onClick={() => setModal({ open: true, type: 'glucose' })}
                 />
                 <VitalCard 
+                  title="Heart Rate" 
+                  value={vitals.heart_rate?.value}
+                  unit="BPM"
+                  icon={Stethoscope} 
+                  status={getStatus('heart_rate', vitals.heart_rate?.value)}
+                  timestamp={vitals.heart_rate?.timestamp}
+                  onClick={() => setModal({ open: true, type: 'heart_rate' })}
+                />
+                <VitalCard 
+                  title="Oxygen Saturation" 
+                  value={vitals.oxygen_saturation?.value}
+                  unit="%"
+                  icon={Wind} 
+                  status={getStatus('oxygen_saturation', vitals.oxygen_saturation?.value)}
+                  timestamp={vitals.oxygen_saturation?.timestamp}
+                  onClick={() => setModal({ open: true, type: 'oxygen_saturation' })}
+                />
+                <VitalCard 
                   title="Sleep Quality" 
                   value={vitals.sleep_duration?.value}
                   unit="Hours"
@@ -497,6 +518,24 @@ const Vitals = () => {
                   status={getStatus('steps', vitals.steps?.value)}
                   timestamp={vitals.steps?.timestamp}
                   onClick={() => setModal({ open: true, type: 'steps' })}
+                />
+                <VitalCard 
+                  title="Water Intake" 
+                  value={vitals.water_intake?.value}
+                  unit="ml"
+                  icon={Droplets} 
+                  status={getStatus('water_intake', vitals.water_intake?.value)}
+                  timestamp={vitals.water_intake?.timestamp}
+                  onClick={() => setModal({ open: true, type: 'water' })}
+                />
+                <VitalCard 
+                  title="Body Temperature" 
+                  value={vitals.body_temperature?.value}
+                  unit="°F"
+                  icon={Thermometer} 
+                  status={getStatus('body_temperature', vitals.body_temperature?.value)}
+                  timestamp={vitals.body_temperature?.timestamp}
+                  onClick={() => setModal({ open: true, type: 'body_temperature' })}
                 />
              </div>
 
@@ -578,7 +617,10 @@ const Vitals = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50 dark:divide-gray-900">
-                      {history.slice(0, 5).map((h) => (
+                      {history.slice(0, 8).map((h) => {
+                        const st = getStatus(h.type, typeof h.value === 'object' ? h.value.systolic : h.value);
+                        const statusColor = st === 'Normal' ? 'text-emerald-500' : st === 'Borderline' ? 'text-amber-500' : st === 'High' || st === 'Warning' ? 'text-red-500' : 'text-gray-400';
+                        return (
                         <tr key={h._id} className="group hover:bg-emerald-500/[0.04]">
                           <td className="px-8 py-6 text-sm font-bold text-slate-900 dark:text-white capitalize">{h.type.replace('_', ' ')}</td>
                           <td className="px-8 py-6 text-lg font-black text-emerald-600 dark:text-emerald-500">{formatValue(h.type, h.value)}</td>
@@ -588,7 +630,7 @@ const Vitals = () => {
                             <button onClick={() => handleDeleteVital(h._id)} className="text-slate-600 dark:text-gray-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                   {history.length > 5 && (
@@ -677,13 +719,31 @@ const Vitals = () => {
 
              {labResults.length > 0 ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {labResults.map(lab => (
-                    <div key={lab._id} className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-8 rounded-[3rem] shadow-2xl space-y-6 group hover:border-emerald-500/20 transition-all">
+                  {labResults.map(lab => {
+                    const isInRange = (() => {
+                      if (!lab.referenceRange || typeof lab.resultValue !== 'number') return null;
+                      const range = lab.referenceRange.match(/([\d.]+)\s*[-–]\s*([\d.]+)/);
+                      if (range) return lab.resultValue >= parseFloat(range[1]) && lab.resultValue <= parseFloat(range[2]);
+                      const lt = lab.referenceRange.match(/<\s*([\d.]+)/);
+                      if (lt) return lab.resultValue < parseFloat(lt[1]);
+                      const gt = lab.referenceRange.match(/>\s*([\d.]+)/);
+                      if (gt) return lab.resultValue > parseFloat(gt[1]);
+                      return null;
+                    })();
+                    const rangeColor = isInRange === true ? 'border-emerald-500/30 bg-emerald-500/5' : isInRange === false ? 'border-red-500/30 bg-red-500/5' : 'border-gray-100 dark:border-gray-800';
+                    const valueTxt = isInRange === true ? 'text-emerald-500' : isInRange === false ? 'text-red-500' : 'text-emerald-500';
+                    const rangeLabel = isInRange === true ? 'In Range' : isInRange === false ? 'Out of Range' : 'N/A';
+                    const rangeLabelColor = isInRange === true ? 'text-emerald-500 bg-emerald-500/10' : isInRange === false ? 'text-red-500 bg-red-500/10' : 'text-gray-400 bg-gray-100 dark:bg-gray-800';
+                    return (
+                    <div key={lab._id} className={`bg-white dark:bg-gray-950 border ${rangeColor} p-8 rounded-[3rem] shadow-2xl space-y-6 group hover:border-emerald-500/20 transition-all`}>
                        <div className="flex justify-between items-start">
                           <div className="p-4 bg-emerald-500/10 rounded-2xl">
                              <FlaskConical className="w-6 h-6 text-emerald-500" />
                           </div>
-                          {lab.reportRef && <FileText className="w-5 h-5 text-gray-300 group-hover:text-emerald-500 transition-colors" />}
+                          <div className="flex items-center gap-2">
+                             <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${rangeLabelColor}`}>{rangeLabel}</span>
+                             {lab.reportRef && <FileText className="w-5 h-5 text-gray-300 group-hover:text-emerald-500 transition-colors" />}
+                          </div>
                        </div>
                        <div>
                           <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{lab.testName}</h4>
@@ -692,6 +752,8 @@ const Vitals = () => {
                              <span className="text-[10px] font-bold text-slate-700 dark:text-gray-300 uppercase">{lab.unit}</span>
                           </div>
                           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-white/5">
+                             <div className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Reference Range</div>
+                             <div className="text-[11px] font-bold text-gray-600 dark:text-gray-300">{lab.referenceRange || 'Not specified'} {lab.referenceRange ? lab.unit : ''}</div>
                              <div className="text-[8px] font-black text-slate-600 dark:text-gray-300 uppercase tracking-[0.2em] mb-1">Reference Alignment</div>
                              <div className="text-[11px] font-bold text-slate-600 dark:text-gray-300">{lab.referenceRange} {lab.unit}</div>
                           </div>
@@ -701,7 +763,7 @@ const Vitals = () => {
                           </div>
                        </div>
                     </div>
-                  ))}
+                  )})}
                </div>
              ) : (
                <div className="py-24 text-center bg-gray-50 dark:bg-gray-950/20 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-800">

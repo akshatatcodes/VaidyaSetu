@@ -278,4 +278,89 @@ router.delete('/account/:clerkId', async (req, res) => {
   }
 });
 
+// STEP 55: Save Doctor Feature
+router.post('/saved-doctors', async (req, res) => {
+  try {
+    const { clerkId, doctor } = req.body;
+    if (!clerkId || !doctor) {
+      return res.status(400).json({ status: 'error', message: 'clerkId and doctor data are required' });
+    }
+
+    const profile = await UserProfile.findOne({ clerkId });
+    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
+
+    // Check if duplicate
+    const exists = profile.savedDoctors.some(d => d.placeId === doctor.placeId || d.name === doctor.name);
+    if (exists) return res.status(409).json({ status: 'error', message: 'Doctor already saved' });
+
+    profile.savedDoctors.push(doctor);
+    await profile.save();
+
+    res.json({ status: 'success', data: profile.savedDoctors });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+router.delete('/saved-doctors/:clerkId/:placeId', async (req, res) => {
+  try {
+    const { clerkId, placeId } = req.params;
+    const profile = await UserProfile.findOne({ clerkId });
+    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
+
+    profile.savedDoctors = profile.savedDoctors.filter(d => d.placeId !== placeId);
+    await profile.save();
+
+    res.json({ status: 'success', data: profile.savedDoctors });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+// Update Doctor Notes
+router.patch('/saved-doctors/:clerkId/:placeId/notes', async (req, res) => {
+  try {
+    const { clerkId, placeId } = req.params;
+    const { notes } = req.body;
+    
+    const profile = await UserProfile.findOne({ clerkId });
+    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
+
+    const doctor = profile.savedDoctors.find(d => d.placeId === placeId);
+    if (!doctor) return res.status(404).json({ status: 'error', message: 'Doctor not found in your network' });
+
+    doctor.notes = notes;
+    await profile.save();
+
+    res.json({ status: 'success', data: profile.savedDoctors });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+// STEP 61: Card Persistence
+router.patch('/card-meta/:clerkId', async (req, res) => {
+  try {
+    const { clerkId } = req.params;
+    const { updates } = req.body; // { 'diabetes': { reviewed: true, dismissed: ['waist'] } }
+
+    const profile = await UserProfile.findOne({ clerkId });
+    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
+
+    // Deep merge or replace depending on needs. Here we replace keys to keep it simple.
+    Object.entries(updates).forEach(([diseaseId, meta]) => {
+      const current = profile.cardMeta.get(diseaseId) || {};
+      profile.cardMeta.set(diseaseId, { ...current, ...meta });
+    });
+
+    profile.markModified('cardMeta');
+    await profile.save();
+
+    res.json({ status: 'success', data: profile.cardMeta });
+  } catch (error) {
+    console.error('Card meta error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 module.exports = router;

@@ -127,4 +127,41 @@ router.get('/:clerkId/summary', async (req, res) => {
   }
 });
 
+/**
+ * @route PATCH /api/alerts/:clerkId/read-all
+ * @desc  Mark all unread alerts as read (bulk)
+ */
+router.patch('/:clerkId/read-all', async (req, res) => {
+  try {
+    const result = await Alert.updateMany(
+      { clerkId: req.params.clerkId, status: 'unread' },
+      { status: 'read' }
+    );
+    res.json({ status: 'success', message: `${result.modifiedCount} alerts marked as read` });
+  } catch (error) {
+    console.error('Bulk mark read error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/alerts/:id/feedback
+ * @desc  Submit relevance feedback for an alert
+ */
+router.post('/:id/feedback', async (req, res) => {
+  try {
+    const { rating } = req.body; // 'helpful' or 'not_helpful'
+    const alert = await Alert.findByIdAndUpdate(
+      req.params.id,
+      { $set: { feedback: rating } },
+      { new: true }
+    );
+    if (!alert) return res.status(404).json({ status: 'error', message: 'Alert not found' });
+    res.json({ status: 'success', data: alert });
+  } catch (error) {
+    console.error('Alert feedback error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 module.exports = router;

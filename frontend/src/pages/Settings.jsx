@@ -13,6 +13,7 @@ import {
   MessageSquare, Trash
 } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { generateArchivePDF } from '../utils/pdfGenerator';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
@@ -138,16 +139,24 @@ const Settings = () => {
   };
 
   const exportDataPDF = async () => {
-     const doc = new jsPDF();
-     doc.setFontSize(22);
-     doc.setTextColor(16, 185, 129);
-     doc.text('VaidyaSetu Health Archive', 20, 20);
-     doc.setFontSize(12);
-     doc.setTextColor(100);
-     doc.text(`User: ${user.fullName || 'User'}`, 20, 30);
-     doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 37);
-     doc.text('This is an exported summary of your complete health records.', 20, 45);
-     doc.save(`VaidyaSetu_Export_${new Date().getTime()}.pdf`);
+     try {
+       const [profileRes, vitalsRes, labRes, medsRes, reportRes] = await Promise.all([
+         axios.get(`${API_URL}/profile/${user.id}`).catch(() => ({ data: { data: null } })),
+         axios.get(`${API_URL}/vitals/${user.id}`).catch(() => ({ data: { data: [] } })),
+         axios.get(`${API_URL}/lab-results/${user.id}`).catch(() => ({ data: { data: [] } })),
+         axios.get(`${API_URL}/medications/${user.id}`).catch(() => ({ data: { data: [] } })),
+         axios.get(`${API_URL}/reports/${user.id}`).catch(() => ({ data: { data: null } }))
+       ]);
+       generateArchivePDF(user.fullName || 'User', {
+         profile: profileRes.data?.data,
+         vitals: vitalsRes.data?.data || [],
+         labResults: labRes.data?.data || [],
+         medications: medsRes.data?.data || [],
+         report: reportRes.data?.data
+       });
+     } catch (err) {
+       console.error('PDF export failed', err);
+     }
   };
 
   const handlePurgeData = async () => {
