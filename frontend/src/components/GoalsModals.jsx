@@ -69,23 +69,23 @@ const GoalsModals = ({ isOpen, onClose, onSave, clerkId }) => {
             </div>
             <div>
               <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Define Health Goal</h3>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Target Selection Mode</p>
+              <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest">Target Selection Mode</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
 
         <div className="p-8 space-y-6">
           <div>
-            <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Goal Category</label>
+            <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Goal Category</label>
             <div className="grid grid-cols-2 gap-2">
                {goalTypes.map(g => (
                  <button 
                     key={g.id}
                     onClick={() => setFormData({...formData, type: g.id, unit: g.unit})}
-                    className={`p-4 rounded-2xl text-left border transition-all ${formData.type === g.id ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-500 hover:border-emerald-500/30'}`}
+                    className={`p-4 rounded-2xl text-left border transition-all ${formData.type === g.id ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-emerald-500/30'}`}
                  >
                     <div className="text-[10px] font-black uppercase mb-1">{g.id.replace('_', ' ')}</div>
                     <div className="text-xs font-bold">{g.label}</div>
@@ -96,18 +96,18 @@ const GoalsModals = ({ isOpen, onClose, onSave, clerkId }) => {
 
           <div className="grid grid-cols-2 gap-4">
              <div>
-                <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Target Value</label>
+                <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Target Value</label>
                 <div className="relative">
                    <input 
                      type="number" 
                      className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none"
                      onChange={(e) => setFormData({...formData, targetValue: e.target.value})}
                    />
-                   <span className="absolute right-4 top-4 text-xs font-bold text-gray-500">{formData.unit}</span>
+                   <span className="absolute right-4 top-4 text-xs font-bold text-gray-700 dark:text-gray-300">{formData.unit}</span>
                 </div>
              </div>
              <div>
-                <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Deadline (Optional)</label>
+                <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Deadline (Optional)</label>
                 <input 
                    type="date" 
                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none"

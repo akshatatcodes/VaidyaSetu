@@ -47,7 +47,7 @@ const Step1Biometrics = () => {
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center">
             <User className="w-4 h-4 mr-2 text-emerald-500" />
             First Name
           </label>
@@ -61,7 +61,7 @@ const Step1Biometrics = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center">
             <User className="w-4 h-4 mr-2 text-emerald-500" />
             Last Name
           </label>
@@ -75,7 +75,7 @@ const Step1Biometrics = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center">
             <User className="w-4 h-4 mr-2 text-emerald-500" />
             Age
           </label>
@@ -89,7 +89,7 @@ const Step1Biometrics = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center">
             <User className="w-4 h-4 mr-2 text-emerald-500" />
             Gender
           </label>
@@ -107,7 +107,7 @@ const Step1Biometrics = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center">
             <ArrowUpCircle className="w-4 h-4 mr-2 text-emerald-500" />
             Height (cm)
           </label>
@@ -121,7 +121,7 @@ const Step1Biometrics = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center">
             <Weight className="w-4 h-4 mr-2 text-emerald-500" />
             Weight (kg)
           </label>

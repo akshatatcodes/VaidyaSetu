@@ -18,7 +18,7 @@ const Step4WomenHealth = () => {
           <Venus className="w-12 h-12 text-gray-600" />
         </div>
         <h2 className="text-xl font-bold text-white">Gender-Specific Screening</h2>
-        <p className="text-gray-400">This section is tailored for women's health metrics. Based on your profile, we'll skip to the next section.</p>
+        <p className="text-gray-600 dark:text-gray-300">This section is tailored for women's health metrics. Based on your profile, we'll skip to the next section.</p>
         <div className="flex gap-4 mt-8">
           <button onClick={() => setStep(3)} className="btn-secondary flex-1 py-4 border border-gray-800 rounded-2xl font-bold hover:bg-gray-800 transition-all text-white">Back</button>
           <button 
@@ -38,7 +38,7 @@ const Step4WomenHealth = () => {
         <h2 className="text-xl font-bold text-white flex items-center">
           <Venus className="w-5 h-5 mr-3 text-fuchsia-400" /> Women's Health Screening
         </h2>
-        <p className="text-gray-400 text-sm">Help us understand PCOS and reproductive health indicators.</p>
+        <p className="text-gray-600 dark:text-gray-300 text-sm">Help us understand PCOS and reproductive health indicators.</p>
       </div>
 
       <div className="grid gap-4">
@@ -58,12 +58,12 @@ const Step4WomenHealth = () => {
                 : 'bg-gray-950/50 border-gray-800 hover:border-gray-700'
             }`}
           >
-            <div className={`p-2 rounded-xl mr-4 ${formData[item.id] ? 'bg-fuchsia-500 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            <div className={`p-2 rounded-xl mr-4 ${formData[item.id] ? 'bg-fuchsia-500 text-white' : 'bg-gray-800 text-gray-700 dark:text-gray-300'}`}>
               <item.icon className="w-5 h-5" />
             </div>
             <div>
               <div className={`font-bold text-sm ${formData[item.id] ? 'text-fuchsia-400' : 'text-gray-200'}`}>{item.label}</div>
-              <div className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{item.desc}</div>
+              <div className="text-[10px] text-gray-700 dark:text-gray-300 mt-0.5 leading-relaxed">{item.desc}</div>
             </div>
           </button>
         ))}

@@ -11,7 +11,7 @@ const Step3Diet = () => {
       onClick={() => onClick(value)}
       className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center ${current === value
           ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400'
-          : 'bg-gray-950 border-gray-800 text-gray-400 hover:border-gray-600'
+          : 'bg-gray-950 border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-600'
         }`}
     >
       {Icon && <Icon className="w-4 h-4 mr-2" />}
@@ -23,7 +23,7 @@ const Step3Diet = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
       {/* Diet Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-400 mb-4 flex items-center">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-4 flex items-center">
           <Salad className="w-4 h-4 mr-2 text-emerald-500" />
           Primary Diet Type
         </label>
@@ -43,7 +43,7 @@ const Step3Diet = () => {
       {/* Sugar & Salt */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-4 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-4 flex items-center">
             <Coffee className="w-4 h-4 mr-2 text-emerald-500" />
             Sugar Intake
           </label>
@@ -54,7 +54,7 @@ const Step3Diet = () => {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-4 flex items-center">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-4 flex items-center">
             <Cookie className="w-4 h-4 mr-2 text-emerald-500" />
             Salt Intake
           </label>
@@ -68,7 +68,7 @@ const Step3Diet = () => {
 
       {/* Junk Food */}
       <div>
-        <label className="block text-sm font-medium text-gray-400 mb-4 flex items-center">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-4 flex items-center">
           <Pizza className="w-4 h-4 mr-2 text-emerald-500" />
           Junk Food Frequency
         </label>
@@ -88,7 +88,7 @@ const Step3Diet = () => {
       {/* Greens & Fruits */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-4">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-4">
             Regular Leafy Greens?
           </label>
           <div className="flex gap-3">
@@ -97,7 +97,7 @@ const Step3Diet = () => {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-4">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-4">
             Regular Fresh Fruits?
           </label>
           <div className="flex gap-3">
@@ -110,7 +110,7 @@ const Step3Diet = () => {
       <div className="flex gap-4 mt-8">
         <button
           onClick={() => setStep(2)}
-          className="flex-1 py-4 bg-gray-950 border border-gray-800 text-gray-400 font-bold rounded-xl hover:bg-gray-900 transition-all flex items-center justify-center group"
+          className="flex-1 py-4 bg-gray-950 border border-gray-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-900 transition-all flex items-center justify-center group"
         >
           <ChevronLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
           Back

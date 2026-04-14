@@ -19,11 +19,11 @@ const ModalWrapper = ({ isOpen, onClose, title, icon: Icon, children }) => {
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Add new reading to your timeline</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">Add new reading to your timeline</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
 
@@ -59,7 +59,7 @@ const VitalsModals = ({
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Systolic (High)</label>
+          <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Systolic (High)</label>
           <input 
             type="number" 
             placeholder="120"
@@ -68,7 +68,7 @@ const VitalsModals = ({
           />
         </div>
         <div>
-          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Diastolic (Low)</label>
+          <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Diastolic (Low)</label>
           <input 
             type="number" 
             placeholder="80"
@@ -79,7 +79,7 @@ const VitalsModals = ({
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Reading Time</label>
+          <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Reading Time</label>
           <input 
             type="time" 
             className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white outline-none"
@@ -87,7 +87,7 @@ const VitalsModals = ({
           />
         </div>
         <div>
-          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Notes (Optional)</label>
+          <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Notes (Optional)</label>
           <input 
             type="text" 
             placeholder="Relaxed, after exercise, etc."
@@ -100,7 +100,7 @@ const VitalsModals = ({
          <div className="flex items-center gap-2 text-emerald-500 text-[10px] font-bold uppercase tracking-widest mb-1">
             <Info className="w-3 h-3" /> Target Range
          </div>
-         <p className="text-xs text-gray-600 dark:text-gray-400">Normal BP is typically around <span className="text-emerald-500 font-bold">120/80 mmHg</span>. Readings above 140/90 are considered high.</p>
+         <p className="text-xs text-gray-700 dark:text-gray-300">Normal BP is typically around <span className="text-emerald-500 font-bold">120/80 mmHg</span>. Readings above 140/90 are considered high.</p>
       </div>
     </div>
   );
@@ -108,7 +108,7 @@ const VitalsModals = ({
   const renderGlucose = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-xs font-black uppercase text-gray-500 mb-2">Glucose Level (mg/dL)</label>
+        <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Glucose Level (mg/dL)</label>
         <input 
           type="number" 
           className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none"
@@ -116,7 +116,7 @@ const VitalsModals = ({
         />
       </div>
       <div>
-        <label className="block text-xs font-black uppercase text-gray-500 mb-2">Meal Context</label>
+        <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Meal Context</label>
         <select 
           className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white outline-none"
           onChange={(e) => setFormData({...formData, context: e.target.value})}
@@ -137,7 +137,7 @@ const VitalsModals = ({
     return (
       <div className="space-y-6">
         <div>
-          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Weight (kg)</label>
+          <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Weight (kg)</label>
           <input 
             type="number" 
             className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none"
@@ -146,11 +146,11 @@ const VitalsModals = ({
         </div>
         <div className="flex items-center justify-between p-6 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-[2rem]">
           <div>
-            <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest ">Calculated BMI</div>
+            <div className="text-[10px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest ">Calculated BMI</div>
             <div className="text-3xl font-black text-emerald-500">{bmi}</div>
           </div>
           <div className="text-right">
-             <div className="text-[10px] text-gray-500 uppercase font-bold">Profile Height</div>
+             <div className="text-[10px] text-gray-700 dark:text-gray-300 uppercase font-bold">Profile Height</div>
              <div className="text-sm font-bold text-gray-900 dark:text-white">{height} cm</div>
           </div>
         </div>
@@ -195,14 +195,14 @@ const VitalsModals = ({
     water: { title: 'Hydration Intake', icon: Droplets, render: renderWater },
     steps: { title: 'Activity Steps', icon: Footprints, render: () => (
       <div>
-        <p className="text-gray-400 text-sm mb-6">Manual logging for steps is only used if device sync is unavailable. Tracking history is better managed via Google Fit sync on the dashboard.</p>
+        <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">Manual logging for steps is only used if device sync is unavailable. Tracking history is better managed via Google Fit sync on the dashboard.</p>
         <input type="number" placeholder="Enter steps count..." className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white outline-none" onChange={(e) => setFormData({value: e.target.value})} />
       </div>
     )},
     sleep: { title: 'Sleep Duration', icon: Moon, render: () => (
       <div className="space-y-6">
         <div>
-          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Sleep Hours (Duration)</label>
+          <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Sleep Hours (Duration)</label>
           <input 
              type="number" 
              step="0.1"
@@ -212,13 +212,13 @@ const VitalsModals = ({
           />
         </div>
         <div>
-          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Sleep Quality (1-10)</label>
+          <label className="block text-xs font-black uppercase text-gray-700 dark:text-gray-300 mb-2">Sleep Quality (1-10)</label>
           <div className="flex justify-between gap-1">
              {[1,2,3,4,5,6,7,8,9,10].map(s => (
                <button 
                  key={s}
                  onClick={() => setFormData({...formData, quality: s})}
-                 className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${formData.quality === s ? 'bg-emerald-500 text-white' : 'bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-400'}`}
+                 className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${formData.quality === s ? 'bg-emerald-500 text-white' : 'bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}
                >
                  {s}
                </button>

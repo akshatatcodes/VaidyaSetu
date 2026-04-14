@@ -47,7 +47,7 @@ const Onboarding = () => {
           <h1 className="text-3xl font-bold mb-2 tracking-tight">
             Build Your Health <span className="text-emerald-500">Baseline</span>
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-600 dark:text-gray-300 text-sm">
             Complete your profile to activate intelligent safety tracking.
           </p>
         </div>
@@ -64,7 +64,7 @@ const Onboarding = () => {
                 className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                   step >= s.id
                     ? 'bg-emerald-600 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]'
-                    : 'bg-gray-950 border-gray-800 text-gray-500'
+                    : 'bg-gray-950 border-gray-800 text-gray-700 dark:text-gray-300'
                 }`}
               >
                 {s.id}

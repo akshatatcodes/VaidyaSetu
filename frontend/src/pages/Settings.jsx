@@ -33,14 +33,14 @@ const SettingsNav = ({ active, onSelect }) => {
         <button
           key={cat.id}
           onClick={() => onSelect(cat.id)}
-          className={`group flex items-center p-4 rounded-[1.5rem] transition-all ${active === cat.id ? 'bg-emerald-600 text-white shadow-xl translate-x-1' : 'bg-white dark:bg-gray-950 text-gray-400 hover:text-emerald-500 hover:bg-emerald-500/5'}`}
+          className={`group flex items-center p-4 rounded-[1.5rem] transition-all ${active === cat.id ? 'bg-emerald-600 text-white shadow-xl translate-x-1' : 'bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-300 hover:text-emerald-500 hover:bg-emerald-500/5'}`}
         >
           <div className={`p-2.5 rounded-xl mr-4 ${active === cat.id ? 'bg-white/20' : 'bg-gray-50 dark:bg-gray-900 group-hover:bg-emerald-500/10 transition-colors'}`}>
              <cat.icon className="w-5 h-5" />
           </div>
           <div className="text-left">
             <div className="text-xs font-black uppercase tracking-widest">{cat.label}</div>
-            <div className={`text-[9px] font-bold uppercase opacity-60 ${active === cat.id ? 'text-white' : 'text-gray-400'}`}>{cat.sub}</div>
+            <div className={`text-[9px] font-bold uppercase opacity-60 ${active === cat.id ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{cat.sub}</div>
           </div>
           <ChevronRight className={`ml-auto w-4 h-4 transition-transform ${active === cat.id ? 'rotate-90' : 'opacity-0 group-hover:opacity-100'}`} />
         </button>
@@ -181,7 +181,7 @@ const Settings = () => {
               <span className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.4em]">Configuration Center</span>
            </div>
            <h1 className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase italic underline decoration-emerald-500/20 underline-offset-8">User Control hub</h1>
-           <p className="text-gray-500 dark:text-gray-400 mt-4 font-bold uppercase tracking-widest text-[9px]">Build v1.2.0-Alpha • Core Engine Status: Online</p>
+           <p className="text-gray-600 dark:text-gray-300 mt-4 font-bold uppercase tracking-widest text-[9px]">Build v1.2.0-Alpha • Core Engine Status: Online</p>
         </div>
       </div>
 
@@ -200,7 +200,7 @@ const Settings = () => {
               <div className="space-y-12 animate-in slide-in-from-right-8 duration-500">
                 <div className="space-y-2">
                   <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Identity Core</h2>
-                  <p className="text-gray-400 font-medium">Demographic metadata and verification status.</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-medium">Demographic metadata and verification status.</p>
                 </div>
 
                 <div className="flex items-center gap-6 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-gray-100 dark:border-white/5">
@@ -212,7 +212,7 @@ const Settings = () => {
                    </div>
                    <div>
                       <h4 className="text-lg font-black text-gray-900 dark:text-white">{user.fullName || 'User'}</h4>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-widest flex items-center gap-2 mt-1">
+                      <p className="text-xs text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest flex items-center gap-2 mt-1">
                          <Mail className="w-3 h-3" /> {user.primaryEmailAddress?.emailAddress} <span className="text-emerald-500">(Verified)</span>
                       </p>
                    </div>
@@ -221,11 +221,11 @@ const Settings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                    <div className="space-y-6">
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest px-1">Legal Full Name</label>
+                        <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest px-1">Legal Full Name</label>
                         <input type="text" value={profileFormData.name} onChange={e => setProfileFormData({...profileFormData, name: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-2xl p-5 text-sm font-bold outline-none focus:border-emerald-500/30 transition-all" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest px-1">Phone Number</label>
+                        <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest px-1">Phone Number</label>
                         <div className="flex gap-2">
                            <input type="text" placeholder="+91" value={profileFormData.phone} onChange={e => setProfileFormData({...profileFormData, phone: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-2xl p-5 text-sm font-bold outline-none focus:border-emerald-500/30" />
                            <button className="px-6 bg-emerald-500/10 text-emerald-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hidden md:block">Verify</button>
@@ -234,13 +234,13 @@ const Settings = () => {
                    </div>
                    <div className="space-y-6">
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest px-1">Demographic Gender</label>
+                        <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest px-1">Demographic Gender</label>
                         <select value={profileFormData.gender} onChange={e => setProfileFormData({...profileFormData, gender: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-2xl p-5 text-sm font-bold outline-none focus:border-emerald-500/30 appearance-none">
                            <option>Male</option><option>Female</option><option>Other</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest px-1">Chronological Entry (DOB)</label>
+                        <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest px-1">Chronological Entry (DOB)</label>
                         <input type="date" value={profileFormData.dob} onChange={e => setProfileFormData({...profileFormData, dob: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-2xl p-5 text-sm font-bold outline-none focus:border-emerald-500/30 transition-all" />
                       </div>
                    </div>
@@ -259,7 +259,7 @@ const Settings = () => {
               <div className="space-y-12 animate-in slide-in-from-right-8 duration-500">
                  <div className="space-y-2">
                     <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Sync Intelligence</h2>
-                    <p className="text-gray-400 font-medium">Manage integrated health platforms and real-time biometric pipelines.</p>
+                    <p className="text-gray-600 dark:text-gray-300 font-medium">Manage integrated health platforms and real-time biometric pipelines.</p>
                  </div>
                  
                  <div className="space-y-6">
@@ -273,7 +273,7 @@ const Settings = () => {
                           </div>
                           <div>
                              <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Google Fit Protocol</h4>
-                             <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                             <div className="flex items-center gap-2 text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest mt-1">
                                 <div className="w-2 h-2 bg-gray-300 rounded-full" /> Not Connected
                              </div>
                           </div>
@@ -288,11 +288,11 @@ const Settings = () => {
                                 <Activity className="w-8 h-8 text-blue-500" />
                              </div>
                              <div>
-                                <h4 className="text-lg font-black text-gray-400 uppercase tracking-tight">Apple Health Link</h4>
-                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">iOS Ecosystem Sync</p>
+                                <h4 className="text-lg font-black text-gray-600 dark:text-gray-300 uppercase tracking-tight">Apple Health Link</h4>
+                                <p className="text-[10px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest mt-1">iOS Ecosystem Sync</p>
                              </div>
                           </div>
-                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-200 dark:bg-gray-800 px-4 py-2 rounded-lg">Beta Testing</span>
+                          <span className="text-[10px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest bg-gray-200 dark:bg-gray-800 px-4 py-2 rounded-lg">Beta Testing</span>
                        </div>
                     </div>
                  </div>
@@ -304,7 +304,7 @@ const Settings = () => {
               <div className="space-y-12 animate-in slide-in-from-right-8 duration-500">
                 <div className="space-y-2">
                   <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Security & Alerts</h2>
-                  <p className="text-gray-400 font-medium">Notification delivery, biometric thresholds, and medication defaults.</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-medium">Notification delivery, biometric thresholds, and medication defaults.</p>
                 </div>
 
                 <div className="space-y-8">
@@ -313,7 +313,7 @@ const Settings = () => {
                          <div className="p-3 bg-emerald-500/10 rounded-2xl"><Bell className="w-6 h-6 text-emerald-500" /></div>
                          <div className="space-y-1">
                             <h4 className="text-lg font-black uppercase tracking-tight">Full Alert Matrix Rules</h4>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Configure channels and quiet hours.</p>
+                            <p className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Configure channels and quiet hours.</p>
                          </div>
                       </div>
                       <button onClick={() => window.location.href='/alerts/settings'} className="p-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-500 transition-all shadow-xl">
@@ -329,11 +329,11 @@ const Settings = () => {
                          </div>
                          <div className="space-y-4">
                             <div className="p-5 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">High Systolic BP</span>
+                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">High Systolic BP</span>
                                <input type="number" defaultValue={140} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
                             </div>
                             <div className="p-5 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">Low SPO2 Trigger</span>
+                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Low SPO2 Trigger</span>
                                <input type="number" defaultValue={92} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
                             </div>
                          </div>
@@ -346,15 +346,15 @@ const Settings = () => {
                          </div>
                          <div className="space-y-4">
                             <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">Default Time</span>
+                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Default Time</span>
                                <input type="time" defaultValue="09:00" className="bg-transparent text-sm font-bold text-right outline-none" />
                             </div>
                             <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">Snooze Duration</span>
+                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Snooze Duration</span>
                                <select className="text-sm font-bold bg-transparent outline-none text-right"><option>15 mins</option><option>30 mins</option></select>
                             </div>
                             <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">Refill Alert At</span>
+                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Refill Alert At</span>
                                <select className="text-sm font-bold bg-transparent outline-none text-right"><option>7 days</option><option>3 days</option></select>
                             </div>
                          </div>
@@ -369,7 +369,7 @@ const Settings = () => {
                <div className="space-y-12 animate-in slide-in-from-right-8 duration-500">
                   <div className="space-y-2">
                     <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Global Prefs</h2>
-                    <p className="text-gray-400 font-medium">Localization and medical unit standards.</p>
+                    <p className="text-gray-600 dark:text-gray-300 font-medium">Localization and medical unit standards.</p>
                   </div>
                   {/* ... same as before, omitted the full copy to fit, keeping layout valid ... */}
                   <div className="space-y-8">
@@ -380,7 +380,7 @@ const Settings = () => {
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                            {['English', 'Hindi', 'Marathi', 'Tamil', 'Telugu', 'Bengali'].map(lang => (
-                             <button key={lang} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${lang === 'English' ? 'bg-emerald-500 text-white shadow-xl' : 'bg-white dark:bg-gray-950 text-gray-400 border border-gray-100 dark:border-gray-800'}`}>
+                             <button key={lang} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${lang === 'English' ? 'bg-emerald-500 text-white shadow-xl' : 'bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-800'}`}>
                                {lang}
                              </button>
                            ))}
@@ -393,15 +393,15 @@ const Settings = () => {
                         </div>
                         <div className="flex gap-6">
                            <div className="flex-1 p-6 bg-white dark:bg-gray-950 rounded-[2rem] border border-gray-100 dark:border-gray-800 space-y-4">
-                              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Weight Units</span>
+                              <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Weight Units</span>
                               <div className="flex gap-2">
-                                 {['Metric', 'Imperial'].map(u => <button key={u} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === 'Metric' ? 'bg-emerald-500 text-white' : 'text-gray-400 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
+                                 {['Metric', 'Imperial'].map(u => <button key={u} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === 'Metric' ? 'bg-emerald-500 text-white' : 'text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
                               </div>
                            </div>
                            <div className="flex-1 p-6 bg-white dark:bg-gray-950 rounded-[2rem] border border-gray-100 dark:border-gray-800 space-y-4">
-                              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Glucose Scale</span>
+                              <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Glucose Scale</span>
                               <div className="flex gap-2">
-                                 {['mg/dL', 'mmol/L'].map(u => <button key={u} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === 'mg/dL' ? 'bg-emerald-500 text-white' : 'text-gray-400 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
+                                 {['mg/dL', 'mmol/L'].map(u => <button key={u} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === 'mg/dL' ? 'bg-emerald-500 text-white' : 'text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
                               </div>
                            </div>
                         </div>
@@ -415,7 +415,7 @@ const Settings = () => {
                <div className="space-y-12 animate-in slide-in-from-right-8 duration-500">
                   <div className="space-y-2">
                      <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Data Sovereignty & Privacy</h2>
-                     <p className="text-gray-400 font-medium">Control over what data is logged, shared, and deleted.</p>
+                     <p className="text-gray-600 dark:text-gray-300 font-medium">Control over what data is logged, shared, and deleted.</p>
                   </div>
 
                   <div className="p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] space-y-6">
@@ -426,7 +426,7 @@ const Settings = () => {
                      <div className="flex justify-between items-center p-4 bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800">
                         <div>
                            <p className="text-sm font-black uppercase text-gray-700 dark:text-white">Clinical AI Analysis Pool</p>
-                           <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 max-w-sm">Allow system to use generalized biometric trends to improve alert modeling. Data remains completely unidentifiable.</p>
+                           <p className="text-[9px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest mt-1 max-w-sm">Allow system to use generalized biometric trends to improve alert modeling. Data remains completely unidentifiable.</p>
                         </div>
                         <label className="cursor-pointer flex items-center">
                            <input type="checkbox" checked={aiDataSharing} onChange={() => setAiDataSharing(!aiDataSharing)} className="hidden" />
@@ -448,7 +448,7 @@ const Settings = () => {
                         </div>
                         <div>
                            <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Clinical Archive</h4>
-                           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-2 leading-relaxed">Download a complete structured JSON dataset or a PDF ready for physician review. Includes all charts and timelines.</p>
+                           <p className="text-[10px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest mt-2 leading-relaxed">Download a complete structured JSON dataset or a PDF ready for physician review. Includes all charts and timelines.</p>
                         </div>
                      </div>
 
@@ -472,7 +472,7 @@ const Settings = () => {
                <div className="space-y-12 animate-in slide-in-from-right-8 duration-500">
                   <div className="space-y-2">
                     <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Display & UX</h2>
-                    <p className="text-gray-400 font-medium">Visual preferences and clinical accessibility controls.</p>
+                    <p className="text-gray-600 dark:text-gray-300 font-medium">Visual preferences and clinical accessibility controls.</p>
                   </div>
 
                   <div className="space-y-8">
@@ -482,14 +482,14 @@ const Settings = () => {
                            <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Chromatic Profile</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           <button onClick={() => theme !== 'light' && toggleTheme()} className={`flex items-center gap-6 p-6 rounded-3xl border transition-all ${theme === 'light' ? 'bg-white border-emerald-500 shadow-2xl' : 'bg-gray-50 dark:bg-gray-900 border-transparent text-gray-400'}`}>
+                           <button onClick={() => theme !== 'light' && toggleTheme()} className={`flex items-center gap-6 p-6 rounded-3xl border transition-all ${theme === 'light' ? 'bg-white border-emerald-500 shadow-2xl' : 'bg-gray-50 dark:bg-gray-900 border-transparent text-gray-600 dark:text-gray-300'}`}>
                               <Sun className={`w-8 h-8 ${theme === 'light' ? 'text-emerald-500' : ''}`} />
                               <div className="text-left">
                                  <div className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">Crystal Day</div>
                                  <p className="text-[9px] font-bold uppercase mt-1">Light Optimized Protocol</p>
                               </div>
                            </button>
-                           <button onClick={() => theme !== 'dark' && toggleTheme()} className={`flex items-center gap-6 p-6 rounded-3xl border transition-all ${theme === 'dark' ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-2xl' : 'bg-gray-50 dark:bg-gray-900 border-transparent text-gray-400'}`}>
+                           <button onClick={() => theme !== 'dark' && toggleTheme()} className={`flex items-center gap-6 p-6 rounded-3xl border transition-all ${theme === 'dark' ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-2xl' : 'bg-gray-50 dark:bg-gray-900 border-transparent text-gray-600 dark:text-gray-300'}`}>
                               <Moon className={`w-8 h-8 ${theme === 'dark' ? 'text-emerald-500' : ''}`} />
                               <div className="text-left">
                                  <div className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">Obsidian Night</div>
@@ -500,19 +500,19 @@ const Settings = () => {
                      </div>
 
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        <button onClick={toggleContrast} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${highContrast ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400'}`}>
+                        <button onClick={toggleContrast} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${highContrast ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}>
                            <Maximize className={`w-6 h-6 ${highContrast ? 'text-emerald-500' : ''}`} />
                            <span className="text-[10px] font-black uppercase tracking-widest leading-tight">High Contrast</span>
                         </button>
-                        <button className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400 cursor-pointer`}>
+                        <button className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 cursor-pointer`}>
                            <Type className="w-6 h-6" />
                            <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Font Scale (WIP)</span>
                         </button>
-                        <button onClick={toggleMotion} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${reducedMotion ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400'}`}>
+                        <button onClick={toggleMotion} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${reducedMotion ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}>
                            <Zap className={`w-6 h-6 ${reducedMotion ? 'text-emerald-500' : 'opacity-20'}`} />
                            <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Reduce Motion</span>
                         </button>
-                        <button onClick={toggleVoiceGuidance} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${voiceGuidance ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl text-emerald-500' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400'}`}>
+                        <button onClick={toggleVoiceGuidance} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${voiceGuidance ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl text-emerald-500' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}>
                            {voiceGuidance ? <Volume2 className="w-6 h-6 text-emerald-500" /> : <Volume2 className="w-6 h-6" />}
                            <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Voice Assist</span>
                         </button>
@@ -526,7 +526,7 @@ const Settings = () => {
               <div className="space-y-12 animate-in slide-in-from-right-8 duration-500">
                 <div className="space-y-2">
                   <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Support & Legal</h2>
-                  <p className="text-gray-400 font-medium">Platform policies, help center, and contribution forms.</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-medium">Platform policies, help center, and contribution forms.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -535,14 +535,14 @@ const Settings = () => {
                          <div className="p-4 bg-emerald-500/10 rounded-2xl"><Shield className="w-6 h-6 text-emerald-500" /></div>
                          <div>
                             <h4 className="text-sm font-black uppercase tracking-tight">Privacy Protocol</h4>
-                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Medical auditing logic</p>
+                            <p className="text-[9px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest">Medical auditing logic</p>
                          </div>
                       </button>
                       <button onClick={() => window.location.href='/terms'} className="w-full p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] flex items-center gap-6 hover:border-emerald-500/30 transition-all text-left">
                          <div className="p-4 bg-blue-500/10 rounded-2xl"><FileText className="w-6 h-6 text-blue-500" /></div>
                          <div>
                             <h4 className="text-sm font-black uppercase tracking-tight">Terms of Service</h4>
-                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Liabilities & usage consent</p>
+                            <p className="text-[9px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest">Liabilities & usage consent</p>
                          </div>
                       </button>
                    </div>
@@ -583,7 +583,7 @@ const Settings = () => {
                </div>
                <div className="space-y-4">
                   <h2 className="text-4xl font-black text-red-600 uppercase tracking-tighter leading-none italic underline decoration-red-500/20 underline-offset-8">Critical Warning</h2>
-                  <p className="text-gray-500 dark:text-gray-400 font-bold text-lg leading-relaxed px-4 uppercase tracking-tighter">You are about to permanently purge all clinical history from the VaidyaSetu matrix. Your identity will remain, but all biometric records will be liquidated.</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-bold text-lg leading-relaxed px-4 uppercase tracking-tighter">You are about to permanently purge all clinical history from the VaidyaSetu matrix. Your identity will remain, but all biometric records will be liquidated.</p>
                </div>
                <div className="flex flex-col md:flex-row gap-4">
                   <button onClick={() => setPurgeConfirm(false)} className="flex-1 py-6 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-black rounded-[2.5rem] uppercase tracking-widest text-xs hover:bg-gray-200">Abort Sequence</button>

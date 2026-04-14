@@ -9,7 +9,7 @@ const Terms = () => {
       <div className="flex flex-col gap-6">
         <button 
           onClick={() => window.history.back()}
-          className="w-max p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2"
+          className="w-max p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2"
         >
           <ChevronLeft className="w-5 h-5" />
           <span className="text-[10px] font-black uppercase tracking-widest">Return to App</span>
@@ -20,7 +20,7 @@ const Terms = () => {
               <span className="text-[10px] font-black uppercase text-blue-500 tracking-[0.4em]">Legal Directive</span>
            </div>
            <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight uppercase italic underline decoration-blue-500/20 underline-offset-8">Terms of Service</h1>
-           <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-4 flex items-center gap-2">
+           <p className="text-xs text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest mt-4 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-blue-500" /> Effective Date: April 2026 • v1.2.0-Alpha
            </p>
         </div>
@@ -49,7 +49,7 @@ const Terms = () => {
                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-4">
                   <span className="text-blue-500">02.</span> AI Analysis & Accuracy
                </h2>
-               <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+               <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">
                   <p>Our platform aggregates data using Scikit-Learn models and Llama-3 integrations for disease prediction and drug-herb interactions. By using the app, you agree that algorithmic outputs are probabilistic, not definitive.</p>
                   <ul className="space-y-3 mt-4">
                      <li className="flex items-start gap-3">
@@ -68,7 +68,7 @@ const Terms = () => {
                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-4">
                   <span className="text-blue-500">03.</span> Consent to Data Processing
                </h2>
-               <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+               <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">
                   <p>You explicitly consent to the parsing, temporary storage, and vectorization of your medical documents for the purpose of operational functionality (RAG processing, chart building). As outlined in our Privacy Protocol, you retain full sovereignty to purge your data permanently at any time.</p>
                </div>
                <button onClick={() => window.location.href='/settings'} className="px-6 py-3 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-colors">
@@ -80,7 +80,7 @@ const Terms = () => {
                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-4">
                   <span className="text-blue-500">04.</span> Account Deletion & Sovereignty
                </h2>
-               <p className="text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+               <p className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">
                   We guarantee the "Right to be Forgotten". Utilizing the "Permanent Purge" function in the Settings Hub will immediately and irreversibly wipe all biometric data linked to your Clerk authentication identity.
                </p>
             </section>

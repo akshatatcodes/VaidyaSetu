@@ -6,10 +6,15 @@ import {
   PointMaterial, 
   shaderMaterial,
   Text,
-  Environment
+  Environment,
+  useGLTF,
+  Center
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { Lock } from 'lucide-react';
+
+// Preload the model
+useGLTF.preload('/Xbot.glb');
 
 // CUSTOM HOLOGRAM SHADER
 const HologramMaterial = shaderMaterial(
@@ -79,49 +84,44 @@ const HologramMannequin = ({ riskLevel = 0 }) => {
   const materialRef = useRef();
   const scanLineRef = useRef();
   const ringRef = useRef();
+  const { scene } = useGLTF('/Xbot.glb');
 
-  // Create an ELITE ADULT medical mannequin silhouette
-  const mannequin = useMemo(() => {
-    const group = new THREE.Group();
+  // Safe calculation to isolate memory without graph modification loops
+  const modelProps = useMemo(() => {
+    // Reset transforms to avoid Strict-Mode recursive shift bug
+    scene.position.set(0, 0, 0);
+    scene.scale.set(1, 1, 1);
+    scene.rotation.set(0, 0, 0);
+    scene.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
     
-    // Segmented Torso for better silhouette
-    const torsoGeom = new THREE.CapsuleGeometry(0.38, 1.6, 8, 32);
-    const torso = new THREE.Mesh(torsoGeom);
-    torso.position.y = 0.5;
-    group.add(torso);
+    const scale = 3.2 / (size.y || 1);
 
-    // Proportional Head
-    const headGeom = new THREE.SphereGeometry(0.24, 32, 32);
-    const head = new THREE.Mesh(headGeom);
-    head.position.y = 1.68;
-    group.add(head);
+    // Flawless Blueprint Cyan Wireframe without crashing WebGL bindings
+    const wireframeMaterial = new THREE.MeshBasicMaterial({
+      color: "#06b6d4",
+      wireframe: true,
+      transparent: true,
+      opacity: 0.65,
+      side: THREE.DoubleSide
+    });
 
-    // Slimmer, medical-style limbs
-    const armGeom = new THREE.CapsuleGeometry(0.07, 1.3, 8, 16);
-    const legGeom = new THREE.CapsuleGeometry(0.13, 2.0, 8, 16);
-    
-    // Arms
-    const lArm = new THREE.Mesh(armGeom);
-    lArm.position.set(-0.6, 0.9, 0);
-    lArm.rotation.z = Math.PI / 15;
-    group.add(lArm);
+    scene.traverse((child) => {
+      // Clean up any old duplicate wireframes if React hot-reloaded previously
+      if (child.children) {
+         child.children = child.children.filter(c => !c.userData?.isWireframeClone);
+      }
+      
+      if (child.isMesh || child.isSkinnedMesh) {
+         child.material = wireframeMaterial;
+      }
+    });
 
-    const rArm = new THREE.Mesh(armGeom);
-    rArm.position.set(0.6, 0.9, 0);
-    rArm.rotation.z = -Math.PI / 15;
-    group.add(rArm);
-
-    // Legs
-    const lLeg = new THREE.Mesh(legGeom);
-    lLeg.position.set(-0.2, -1.3, 0);
-    group.add(lLeg);
-
-    const rLeg = new THREE.Mesh(legGeom);
-    rLeg.position.set(0.2, -1.3, 0);
-    group.add(rLeg);
-
-    return group;
-  }, []);
+    return { scale, cx: center.x, cy: center.y, cz: center.z };
+  }, [scene, riskLevel]);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -154,18 +154,10 @@ const HologramMannequin = ({ riskLevel = 0 }) => {
       </mesh>
 
       <group ref={groupRef} rotation={[0, Math.PI / 6, 0]}>
-        {/* The Mannequin with Elite Shader */}
-        {mannequin.children.map((child, i) => (
-          <mesh key={i} geometry={child.geometry} position={child.position} rotation={child.rotation}>
-            <hologramMaterial 
-              ref={materialRef} 
-              transparent 
-              depthWrite={false} 
-              blending={THREE.AdditiveBlending} 
-              uColor={new THREE.Color(riskLevel > 70 ? "#ef4444" : "#10b981")}
-            />
-          </mesh>
-        ))}
+        {/* The Mannequin dynamically scaled and centered in a parent group */}
+        <group scale={modelProps.scale} position={[0, -0.6, 0]}>
+           <primitive object={scene} position={[-modelProps.cx, -modelProps.cy, -modelProps.cz]} />
+        </group>
 
         {/* Digital Core Points */}
         <points>
@@ -218,9 +210,11 @@ const BodyScan3D = ({ riskScore = 0 }) => {
           </mesh>
         </group>
 
-        <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.2}>
-          <HologramMannequin riskLevel={riskScore} />
-        </Float>
+        <React.Suspense fallback={null}>
+          <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.2}>
+            <HologramMannequin riskLevel={riskScore} />
+          </Float>
+        </React.Suspense>
       </Canvas>
 
       {/* HUD OVERLAY */}

@@ -131,7 +131,7 @@ const Alerts = () => {
               </span>
             )}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium mt-2">Personalized safety intelligence and vital sign monitoring</p>
+          <p className="text-gray-600 dark:text-gray-300 font-medium mt-2">Personalized safety intelligence and vital sign monitoring</p>
         </div>
         <div className="flex gap-4">
            <button 
@@ -146,7 +146,7 @@ const Alerts = () => {
       {/* Search & Sort (Step 55) */}
       <div className="flex flex-col md:flex-row gap-6 items-center">
          <div className="relative flex-1 group w-full">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 dark:text-gray-300 group-focus-within:text-emerald-500 transition-colors" />
             <input 
                type="text" 
                placeholder="Search protocol history..." 
@@ -158,20 +158,20 @@ const Alerts = () => {
          <div className="flex gap-4 p-1.5 bg-gray-100 dark:bg-gray-950/50 border border-gray-100 dark:border-gray-800 rounded-2xl shrink-0">
             <button 
               onClick={() => setSortOrder('newest')}
-              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'newest' ? 'bg-white dark:bg-gray-800 text-emerald-500' : 'text-gray-400'}`}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'newest' ? 'bg-white dark:bg-gray-800 text-emerald-500' : 'text-gray-600 dark:text-gray-300'}`}
             >
                Latest
             </button>
             <button 
               onClick={() => setSortOrder('oldest')}
-              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest' ? 'bg-white dark:bg-gray-800 text-emerald-500' : 'text-gray-400'}`}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest' ? 'bg-white dark:bg-gray-800 text-emerald-500' : 'text-gray-600 dark:text-gray-300'}`}
             >
                Archival
             </button>
          </div>
          <button 
            onClick={() => window.location.href='/alerts/settings'}
-           className="p-5 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-gray-400 hover:text-emerald-500 transition-all shadow-xl"
+           className="p-5 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-gray-600 dark:text-gray-300 hover:text-emerald-500 transition-all shadow-xl"
          >
             <Settings2 className="w-6 h-6" />
          </button>
@@ -187,10 +187,10 @@ const Alerts = () => {
            <button
              key={tab.id}
              onClick={() => setActiveTab(tab.id)}
-             className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeTab === tab.id ? 'bg-white dark:bg-gray-800 text-emerald-500 shadow-md' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+             className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeTab === tab.id ? 'bg-white dark:bg-gray-800 text-emerald-500 shadow-md' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
            >
              {tab.label}
-             {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-lg text-[8px] bg-gray-100 dark:bg-gray-900 ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-400'}`}>{tab.count}</span>}
+             {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-lg text-[8px] bg-gray-100 dark:bg-gray-900 ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-600 dark:text-gray-300'}`}>{tab.count}</span>}
            </button>
          ))}
       </div>
@@ -221,14 +221,14 @@ const Alerts = () => {
                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md ${style.badge}`}>
                           {alert.priority}
                        </span>
-                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                       <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
                           {new Date(alert.createdAt).toLocaleString()}
                        </span>
                     </div>
-                    <h3 className={`text-xl font-black tracking-tight ${alert.status === 'unread' ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-500'}`}>
+                    <h3 className={`text-xl font-black tracking-tight ${alert.status === 'unread' ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                        {alert.title}
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-2xl">
+                    <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed max-w-2xl">
                        {alert.description}
                     </p>
                  </div>
@@ -239,12 +239,12 @@ const Alerts = () => {
                          e.stopPropagation();
                          dismissAlert(alert._id);
                        }}
-                       className="p-4 bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                       className="p-4 bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
                     >
                        <Trash2 className="w-5 h-5" />
                     </button>
                     <button 
-                       className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${alert.status === 'unread' ? 'bg-emerald-600 text-white shadow-lg lg:group-hover:translate-x-1' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}`}
+                       className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${alert.status === 'unread' ? 'bg-emerald-600 text-white shadow-lg lg:group-hover:translate-x-1' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}
                     >
                        Full Protocol <ChevronRight className="w-4 h-4" />
                     </button>
@@ -258,7 +258,7 @@ const Alerts = () => {
                 <ShieldAlert className="w-20 h-20 text-emerald-500/10" />
              </div>
              <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-widest">Safety Matrix Baseline</h3>
-             <p className="text-gray-500 max-w-sm mx-auto mt-3 font-medium text-lg leading-relaxed">System monitoring active. No security or biological deviations detected in current state.</p>
+             <p className="text-gray-700 dark:text-gray-300 max-w-sm mx-auto mt-3 font-medium text-lg leading-relaxed">System monitoring active. No security or biological deviations detected in current state.</p>
           </div>
         )}
       </div>
@@ -274,11 +274,11 @@ const Alerts = () => {
                      </div>
                      <div>
                         <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Security Analysis</h4>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none">Diagnostic Ref-ID: {selectedAlert._id.slice(-8)}</p>
+                        <p className="text-[10px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest leading-none">Diagnostic Ref-ID: {selectedAlert._id.slice(-8)}</p>
                      </div>
                   </div>
                   <button onClick={() => setSelectedAlert(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                     <X className="w-6 h-6 text-gray-400" />
+                     <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                   </button>
                </div>
 
@@ -288,18 +288,18 @@ const Alerts = () => {
                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${priorityStyles[selectedAlert.priority].badge}`}>
                            {selectedAlert.priority}
                         </span>
-                        <span className="text-xs font-bold text-gray-400">{new Date(selectedAlert.createdAt).toLocaleDateString()} at {new Date(selectedAlert.createdAt).toLocaleTimeString()}</span>
+                        <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{new Date(selectedAlert.createdAt).toLocaleDateString()} at {new Date(selectedAlert.createdAt).toLocaleTimeString()}</span>
                      </div>
                      <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter leading-tight">
                         {selectedAlert.title}
                      </h2>
-                     <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
+                     <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
                         {selectedAlert.description}
                      </p>
                   </div>
 
                   <div className="p-6 bg-gray-50 dark:bg-gray-950/50 border border-gray-100 dark:border-gray-800 rounded-3xl space-y-4">
-                     <h5 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">AI Protocol Recommendations</h5>
+                     <h5 className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-[0.3em]">AI Protocol Recommendations</h5>
                      <ul className="space-y-3">
                         {selectedAlert.priority === 'critical' ? (
                           <li className="flex items-start gap-3 text-sm font-bold text-red-500">
@@ -310,13 +310,13 @@ const Alerts = () => {
                              <CheckCircle2 className="w-5 h-5 shrink-0" /> Routine monitoring active. Follow log interval guidance.
                           </li>
                         )}
-                        <li className="flex items-start gap-3 text-sm text-gray-500">
+                        <li className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
                            <RefreshCw className="w-5 h-5 shrink-0" /> System will auto-reevaluate on next biometric log.
                         </li>
                      </ul>
                   </div>
                   <div className="flex gap-4 items-center">
-                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Relevance Feedback</span>
+                      <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Relevance Feedback</span>
                       <button className="p-2 bg-gray-50 dark:bg-gray-950 rounded-lg hover:text-emerald-500 transition-colors"><ThumbsUp className="w-4 h-4" /></button>
                       <button className="p-2 bg-gray-50 dark:bg-gray-950 rounded-lg hover:text-red-500 transition-colors"><ThumbsDown className="w-4 h-4" /></button>
                   </div>
@@ -334,7 +334,7 @@ const Alerts = () => {
                   </button>
                   <button 
                     onClick={() => dismissAlert(selectedAlert._id)}
-                    className="px-10 py-5 bg-white dark:bg-gray-800 text-gray-400 font-black rounded-2xl border border-gray-100 dark:border-gray-700 hover:text-red-500 transition-all uppercase tracking-widest text-xs"
+                    className="px-10 py-5 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-black rounded-2xl border border-gray-100 dark:border-gray-700 hover:text-red-500 transition-all uppercase tracking-widest text-xs"
                   >
                     Archive
                   </button>

@@ -211,7 +211,7 @@ const ProfileEditor = () => {
       className={`flex-1 px-4 py-3 rounded-xl border text-sm font-black transition-all flex items-center justify-center min-h-[50px] ${
         current === value
           ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg'
-          : 'bg-gray-900 border-gray-800 text-gray-400 hover:border-gray-600'
+          : 'bg-gray-900 border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-600'
       }`}
     >
       {Icon && <Icon className={`w-4 h-4 mr-2 ${current === value ? 'text-white' : 'text-emerald-500'}`} />}
@@ -223,7 +223,7 @@ const ProfileEditor = () => {
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="flex flex-col items-center gap-4">
         <RefreshCw className="w-10 h-10 text-emerald-500 animate-spin" />
-        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Accessing Bio-Ledger...</p>
+        <p className="text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest text-[10px]">Accessing Bio-Ledger...</p>
       </div>
     </div>
   );
@@ -234,9 +234,9 @@ const ProfileEditor = () => {
       <div className="flex items-center justify-between mb-10 pt-8">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Secure <span className="text-emerald-500">Matrix Update</span></h1>
-          <p className="text-gray-500 mt-1 font-medium italic">Synchronizing biometric parameters with core medical archive.</p>
+          <p className="text-gray-700 dark:text-gray-300 mt-1 font-medium italic">Synchronizing biometric parameters with core medical archive.</p>
         </div>
-        <Link to="/profile" className="p-3 bg-gray-900 hover:bg-gray-800 rounded-2xl text-gray-500 border border-gray-800 transition-colors">
+        <Link to="/profile" className="p-3 bg-gray-900 hover:bg-gray-800 rounded-2xl text-gray-700 dark:text-gray-300 border border-gray-800 transition-colors">
           <X size={24} />
         </Link>
       </div>
@@ -254,11 +254,11 @@ const ProfileEditor = () => {
           {sections.biometrics && (
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-4">
                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Current Age</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Current Age</label>
                   <input type="number" value={formData.age} onChange={e => updateField('age', e.target.value)} className="w-full bg-gray-900 border border-gray-800 rounded-2xl px-6 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all" />
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Biological Gender</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Biological Gender</label>
                   <div className="flex gap-2">
                     {['Male', 'Female', 'Other'].map(g => (
                       <OptionButton key={g} label={g} value={g} current={formData.gender} onClick={v => updateField('gender', v)} />
@@ -266,11 +266,11 @@ const ProfileEditor = () => {
                   </div>
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Stature (cm)</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Stature (cm)</label>
                   <input type="number" value={formData.height} onChange={e => updateField('height', e.target.value)} className="w-full bg-gray-900 border border-gray-800 rounded-2xl px-6 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all" />
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Body Mass (kg)</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Body Mass (kg)</label>
                   <input type="number" value={formData.weight} onChange={e => updateField('weight', e.target.value)} className="w-full bg-gray-900 border border-gray-800 rounded-2xl px-6 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all" />
                </div>
             </div>
@@ -289,7 +289,7 @@ const ProfileEditor = () => {
           {sections.lifestyle && (
             <div className="p-8 space-y-8 animate-in slide-in-from-top-4">
                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Activity Vectors</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Activity Vectors</label>
                   <div className="flex flex-wrap gap-2">
                     {['Sedentary', 'Moderate', 'Active'].map(v => (
                       <OptionButton key={v} label={v} value={v} current={formData.activityLevel} onClick={val => updateField('activityLevel', val)} />
@@ -298,7 +298,7 @@ const ProfileEditor = () => {
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Regenerative Sleep (hrs)</label>
+                    <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Regenerative Sleep (hrs)</label>
                     <div className="flex gap-2">
                        {['<5', '5-7', '7-9', '>9'].map(v => (
                          <OptionButton key={v} label={`${v} hrs`} value={v} current={formData.sleepHours} onClick={val => updateField('sleepHours', val)} />
@@ -306,7 +306,7 @@ const ProfileEditor = () => {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Stress Coefficient</label>
+                    <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Stress Coefficient</label>
                     <div className="flex gap-2">
                        {['Low', 'Medium', 'High'].map(v => (
                          <OptionButton key={v} label={v} value={v} current={formData.stressLevel} onClick={val => updateField('stressLevel', val)} />
@@ -316,14 +316,14 @@ const ProfileEditor = () => {
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Nicotine Intake</label>
+                    <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Nicotine Intake</label>
                     <div className="flex gap-2">
                        <OptionButton label="Non-smoker" value={false} current={formData.isSmoker} onClick={v => updateField('isSmoker', v)} />
                        <OptionButton label="Active Smoker" value={true} current={formData.isSmoker} onClick={v => updateField('isSmoker', v)} />
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Alcohol Consistency</label>
+                    <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Alcohol Consistency</label>
                     <div className="flex gap-2">
                        {['Never', 'Occasionally', 'Frequently'].map(v => (
                          <OptionButton key={v} label={v} value={v} current={formData.alcoholConsumption} onClick={val => updateField('alcoholConsumption', val)} />
@@ -347,7 +347,7 @@ const ProfileEditor = () => {
           {sections.diet && (
             <div className="p-8 space-y-8 animate-in slide-in-from-top-4">
                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Primary Fuel Type</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Primary Fuel Type</label>
                   <div className="flex gap-2">
                     {['Veg', 'Non-Veg', 'Mixed'].map(v => (
                       <OptionButton key={v} label={v} value={v} current={formData.dietType} onClick={val => updateField('dietType', val)} />
@@ -356,7 +356,7 @@ const ProfileEditor = () => {
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Refined Sugar Intake</label>
+                    <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Refined Sugar Intake</label>
                     <div className="flex gap-2">
                        {['Low', 'Medium', 'High'].map(v => (
                          <OptionButton key={v} label={v} value={v} current={formData.sugarIntake} onClick={val => updateField('sugarIntake', val)} />
@@ -364,7 +364,7 @@ const ProfileEditor = () => {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Sodium/Salt Profile</label>
+                    <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Sodium/Salt Profile</label>
                     <div className="flex gap-2">
                        {['Low', 'Medium', 'High'].map(v => (
                          <OptionButton key={v} label={v} value={v} current={formData.saltIntake} onClick={val => updateField('saltIntake', val)} />
@@ -373,7 +373,7 @@ const ProfileEditor = () => {
                   </div>
                </div>
                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Junk Food Frequency</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Junk Food Frequency</label>
                   <div className="flex gap-3">
                     {['Rare', 'Weekly', 'Daily'].map(v => (
                       <OptionButton key={v} label={v} value={v} current={formData.junkFoodFrequency} onClick={val => updateField('junkFoodFrequency', val)} />
@@ -384,15 +384,15 @@ const ProfileEditor = () => {
                   <div className="flex items-center justify-between p-5 bg-gray-900 rounded-2xl border border-gray-800">
                      <span className="text-sm font-bold text-gray-300">Daily Leafy Greens?</span>
                      <div className="flex gap-2">
-                        <button onClick={() => updateField('eatsLeafyGreens', true)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${formData.eatsLeafyGreens ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-500'}`}><CheckCircle2 size={18} /></button>
-                        <button onClick={() => updateField('eatsLeafyGreens', false)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${!formData.eatsLeafyGreens ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-500'}`}><X size={18} /></button>
+                        <button onClick={() => updateField('eatsLeafyGreens', true)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${formData.eatsLeafyGreens ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-700 dark:text-gray-300'}`}><CheckCircle2 size={18} /></button>
+                        <button onClick={() => updateField('eatsLeafyGreens', false)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${!formData.eatsLeafyGreens ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-700 dark:text-gray-300'}`}><X size={18} /></button>
                      </div>
                   </div>
                   <div className="flex items-center justify-between p-5 bg-gray-900 rounded-2xl border border-gray-800">
                      <span className="text-sm font-bold text-gray-300">Daily Fresh Fruits?</span>
                      <div className="flex gap-2">
-                        <button onClick={() => updateField('eatsFruits', true)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${formData.eatsFruits ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-500'}`}><CheckCircle2 size={18} /></button>
-                        <button onClick={() => updateField('eatsFruits', false)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${!formData.eatsFruits ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-500'}`}><X size={18} /></button>
+                        <button onClick={() => updateField('eatsFruits', true)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${formData.eatsFruits ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-700 dark:text-gray-300'}`}><CheckCircle2 size={18} /></button>
+                        <button onClick={() => updateField('eatsFruits', false)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${!formData.eatsFruits ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-700 dark:text-gray-300'}`}><X size={18} /></button>
                      </div>
                   </div>
                </div>
@@ -412,7 +412,7 @@ const ProfileEditor = () => {
           {sections.medical && (
             <div className="p-8 space-y-8 animate-in slide-in-from-top-4">
                <div className="space-y-4">
-                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Allergies (Multi-Select)</label>
+                 <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Allergies (Multi-Select)</label>
                  <CreatableSelect
                     isMulti
                     options={ALLERGY_OPTIONS}
@@ -423,7 +423,7 @@ const ProfileEditor = () => {
                  />
                </div>
                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 ml-2">Documented Pathologies</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest mb-4 ml-2">Documented Pathologies</label>
                   <div className="flex flex-wrap gap-2">
                     {CONDITION_OPTIONS.map(c => {
                       const isSel = (formData.medicalHistory || []).includes(c);
@@ -439,7 +439,7 @@ const ProfileEditor = () => {
                           className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${
                             isSel
                               ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg'
-                              : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-gray-600'
+                              : 'bg-gray-900 border-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-600'
                           }`}
                         >
                           {c}
@@ -449,7 +449,7 @@ const ProfileEditor = () => {
                   </div>
                </div>
                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2">Contextual Observations</label>
+                  <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2">Contextual Observations</label>
                   <textarea 
                     value={formData.otherConditions} 
                     onChange={e => updateField('otherConditions', e.target.value)}
@@ -473,7 +473,7 @@ const ProfileEditor = () => {
            </button>
            <button 
              onClick={() => navigate('/profile')}
-             className="flex-1 bg-gray-900 text-gray-500 py-6 rounded-[2rem] font-bold uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all border border-gray-800"
+             className="flex-1 bg-gray-900 text-gray-700 dark:text-gray-300 py-6 rounded-[2rem] font-bold uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all border border-gray-800"
            >
              Discard Edits
            </button>
@@ -486,7 +486,7 @@ const ProfileEditor = () => {
           <div className="absolute inset-0 bg-black/95 backdrop-blur-3xl" onClick={() => !saving && setShowIntentModal(false)}></div>
           <div className="relative bg-[#030712] border border-gray-800 rounded-[3rem] p-12 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 pb-8">
             <h2 className="text-3xl font-black text-white mb-3 uppercase italic tracking-tighter">Update <span className="text-emerald-500">Context</span></h2>
-            <p className="text-gray-500 text-sm leading-relaxed mb-8 font-medium italic">Select the catalyst for this data update.</p>
+            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-8 font-medium italic">Select the catalyst for this data update.</p>
             
             <div className="space-y-4 mb-8">
                {[
@@ -506,13 +506,13 @@ const ProfileEditor = () => {
                      {opt.label}
                      <Info size={14} className="text-gray-600 group-hover:text-emerald-500 transition-colors" title={opt.tip} />
                    </div>
-                   <div className="text-[10px] text-gray-500 font-bold italic">{opt.sub}</div>
+                   <div className="text-[10px] text-gray-700 dark:text-gray-300 font-bold italic">{opt.sub}</div>
                  </button>
                ))}
             </div>
 
             <div className="mb-10">
-               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-2 mb-2 block">Optional Notes</label>
+               <label className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-2 mb-2 block">Optional Notes</label>
                <textarea 
                  value={intentData.notes}
                  onChange={e => setIntentData({...intentData, notes: e.target.value})}

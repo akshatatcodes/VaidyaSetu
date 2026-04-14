@@ -88,11 +88,11 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
             </div>
             <div>
               <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Log Laboratory Result</h3>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Entry Protocol Alpha-7</p>
+              <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest">Entry Protocol Alpha-7</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
 
@@ -100,7 +100,7 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
           
           <div className="space-y-6">
             <div>
-              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Test Identification</label>
+              <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Test Identification</label>
               <div className="relative">
                  <input 
                    type="text" 
@@ -109,14 +109,14 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                    onChange={(e) => setFormData({...formData, testName: e.target.value})}
                  />
-                 <Search className="absolute right-4 top-4 w-4 h-4 text-gray-500" />
+                 <Search className="absolute right-4 top-4 w-4 h-4 text-gray-700 dark:text-gray-300" />
               </div>
               <div className="flex flex-wrap gap-2 mt-3">
                  {commonTests.map(t => (
                    <button 
                      key={t.name}
                      onClick={() => setFormData({...formData, testName: t.name, unit: t.unit, referenceRange: t.range})}
-                     className="px-3 py-1.5 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-lg text-[9px] font-black text-gray-500 hover:text-emerald-500 hover:border-emerald-500/30 transition-all uppercase tracking-tighter"
+                     className="px-3 py-1.5 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-lg text-[9px] font-black text-gray-700 dark:text-gray-300 hover:text-emerald-500 hover:border-emerald-500/30 transition-all uppercase tracking-tighter"
                    >
                      + {t.name}
                    </button>
@@ -126,7 +126,7 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Result Value</label>
+                <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Result Value</label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -135,7 +135,7 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Unit</label>
+                <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Unit</label>
                 <input 
                   type="text" 
                   value={formData.unit}
@@ -147,7 +147,7 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Reference Range</label>
+              <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Reference Range</label>
               <input 
                 type="text" 
                 value={formData.referenceRange}
@@ -160,7 +160,7 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Collection Date</label>
+              <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Collection Date</label>
               <div className="relative">
                  <input 
                    type="date" 
@@ -168,12 +168,12 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none"
                    onChange={(e) => setFormData({...formData, sampleDate: e.target.value})}
                  />
-                 <Calendar className="absolute right-4 top-4 w-4 h-4 text-gray-500" />
+                 <Calendar className="absolute right-4 top-4 w-4 h-4 text-gray-700 dark:text-gray-300" />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Digital Report Backup</label>
+              <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Digital Report Backup</label>
               <div className="border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-3xl p-8 text-center hover:border-emerald-500/30 transition-all group">
                  {reportUrl ? (
                    <div className="flex flex-col items-center gap-3">
@@ -181,16 +181,16 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                          <FileText className="w-8 h-8 text-emerald-500" />
                       </div>
                       <span className="text-[10px] font-black text-emerald-500 uppercase">Report Linked Successfully</span>
-                      <button onClick={() => setReportUrl(null)} className="text-[9px] text-gray-500 hover:text-red-500 font-bold uppercase underline">Remove File</button>
+                      <button onClick={() => setReportUrl(null)} className="text-[9px] text-gray-700 dark:text-gray-300 hover:text-red-500 font-bold uppercase underline">Remove File</button>
                    </div>
                  ) : (
                    <label className="cursor-pointer flex flex-col items-center gap-4">
                       <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl group-hover:scale-110 transition-transform">
-                        {uploading ? <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /> : <Upload className="w-8 h-8 text-gray-400" />}
+                        {uploading ? <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /> : <Upload className="w-8 h-8 text-gray-600 dark:text-gray-300" />}
                       </div>
                       <div className="space-y-1">
                         <p className="text-xs font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest">Upload PDF Report</p>
-                        <p className="text-[9px] text-gray-400 font-bold">MAX SIZE 10MB</p>
+                        <p className="text-[9px] text-gray-600 dark:text-gray-300 font-bold">MAX SIZE 10MB</p>
                       </div>
                       <input type="file" accept="application/pdf" className="hidden" onChange={handleFileUpload} />
                    </label>

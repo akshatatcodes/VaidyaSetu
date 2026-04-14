@@ -178,8 +178,8 @@ const Dashboard = () => {
          <div className="w-48 h-48 mb-8 opacity-80 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-full border-4 border-emerald-500/10 dark:border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
             <Cpu className="w-24 h-24 text-emerald-500 animate-pulse" />
          </div>
-         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Profile Synchronization Complete</h1>
-         <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
+         <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">Profile Synchronization Complete</h1>
+         <p className="text-slate-600 dark:text-gray-400 mb-8 text-lg font-medium">
            Your biometric baseline is ready. Proceed to activate the VaidyaSetu AI core and generate your personalized health matrix.
          </p>
          
@@ -213,10 +213,10 @@ const Dashboard = () => {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Welcome, {getProfileVal('name') || user?.fullName || 'User'}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-slate-600 dark:text-gray-400 font-medium">
             Health Ecosystem • Analysis completed on {report?.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'N/A'}
           </p>
         </div>
@@ -249,18 +249,18 @@ const Dashboard = () => {
         <div className="lg:col-span-2 space-y-8">
           
           {/* AI Executive Summary */}
-          <div className="bg-white dark:bg-gray-900/50 border border-emerald-200 dark:border-emerald-500/20 p-6 rounded-3xl relative overflow-hidden transition-colors duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 dark:bg-emerald-500/10 blur-3xl rounded-full" />
-            <h2 className="text-emerald-600 dark:text-emerald-400 font-semibold mb-3 flex items-center uppercase tracking-wide text-xs">
-               <Cpu className="w-4 h-4 mr-2" /> AI Clinical Perspective
+          <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] relative overflow-hidden transition-all duration-500 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none group hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:border-blue-100 dark:hover:border-emerald-500/40">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 dark:bg-emerald-500/20 blur-[80px] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150" />
+            <h2 className="text-emerald-700 dark:text-emerald-400 font-extrabold mb-3 flex items-center uppercase tracking-widest text-xs">
+               <Cpu className="w-5 h-5 mr-2" /> AI Clinical Perspective
             </h2>
-            <p className="text-gray-700 dark:text-gray-200 text-lg leading-relaxed relative z-10">{report?.summary || "Summary text is missing from the database."}</p>
+            <p className="text-slate-800 dark:text-gray-200 text-lg leading-relaxed relative z-10 font-semibold">{report?.summary || "Summary text is missing from the database."}</p>
           </div>
 
           {/* Priority Risk Matrix */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-gray-900 dark:text-white font-bold text-xl">Health Risk Matrix</h3>
+              <h3 className="text-slate-900 dark:text-white font-black text-xl">Health Risk Matrix</h3>
               <div className="flex gap-2">
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">High (&gt;70%)</span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">Mod (40-70%)</span>
@@ -284,10 +284,11 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(report?.risk_scores || {}).map(([key, score]) => (
-                <div key={key} className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl transition-all hover:border-emerald-500/20">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1 truncate">{key.replace('_', ' ')}</div>
-                  <div className="flex items-end gap-2">
-                    <div className={`text-2xl font-black ${score === -1 ? 'text-gray-500' : getRiskColor(score) === '#ef4444' ? 'text-red-500' : getRiskColor(score) === '#f59e0b' ? 'text-amber-500' : 'text-emerald-500'}`}>
+                <div key={key} className={`${score === -1 ? 'bg-white' : score > 60 ? 'bg-red-50/50' : score > 30 ? 'bg-amber-50/50' : 'bg-white'} dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-5 rounded-3xl transition-all duration-500 hover:scale-[1.03] shadow-[0_8px_30px_rgba(35,60,111,0.04)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(35,60,111,0.08)] hover:border-blue-100 dark:hover:border-emerald-500/40 group relative overflow-hidden`}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-transparent dark:from-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-400 mb-2 truncate relative z-10">{key.replace('_', ' ')}</div>
+                  <div className="flex items-end gap-3 relative z-10">
+                    <div className={`text-3xl font-black ${score === -1 ? 'text-gray-500' : getRiskColor(score) === '#ef4444' ? 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]' : getRiskColor(score) === '#f59e0b' ? 'text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'text-emerald-500 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}>
                       {score === -1 ? 'N/A' : `${score}%`}
                     </div>
                     {score !== -1 && (
@@ -303,8 +304,8 @@ const Dashboard = () => {
 
           {/* Targeted AI Insights (Dynamic Map) */}
           <div className="space-y-4">
-            <h3 className="text-gray-900 dark:text-white font-bold text-lg flex items-center">
-              <Cpu className="w-5 h-5 mr-3 text-emerald-500" /> Clinical Action Plan
+            <h3 className="text-slate-900 dark:text-white font-black text-lg flex items-center">
+              <Cpu className="w-5 h-5 mr-3 text-emerald-600 dark:text-emerald-500" /> Clinical Action Plan
             </h3>
             <div className="grid gap-4">
               {/* Support both new dynamic 'advice' map and legacy hardcoded advice fields */}
@@ -335,14 +336,14 @@ const Dashboard = () => {
         {/* Right Column - Secondary Data */}
         <div className="space-y-6">
            {/* 3D Holographic Bio-Matrix Card */}
-           <div className="bg-white dark:bg-[#030712] border border-gray-200 dark:border-gray-800 rounded-[2.5rem] min-h-[520px] relative overflow-hidden group hover:border-emerald-500/20 transition-all shadow-2xl backdrop-blur-3xl">
+           <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 rounded-[2.5rem] min-h-[520px] relative overflow-hidden group hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1">
                {/* Background Grid and Atmosphere */}
                <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50 dark:opacity-100" />
-               <h3 className="absolute top-6 left-6 text-emerald-600/40 dark:text-emerald-400/40 text-[10px] font-black uppercase tracking-[0.3em] flex items-center z-20">
+               <h3 className="absolute top-6 left-6 text-emerald-700/80 dark:text-emerald-400/40 text-[11px] font-black uppercase tracking-[0.3em] flex items-center z-20">
                   <Scan className="w-4 h-4 mr-2" /> Predictive Bio-Matrix
                </h3>
                
-               <div className="w-full h-[520px] relative z-10">
+               <div className="w-full h-[520px] relative z-10 flex items-center justify-center">
                   <BodyScan3D 
                     riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map(v => Number(v) || 0))} 
                   />
@@ -351,10 +352,11 @@ const Dashboard = () => {
 
            {/* Latest Vitals Integration (Step 82) */}
            {latestVitals && latestVitals.length > 0 && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-[2.5rem] shadow-xl group hover:border-emerald-500/30 transition-all">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-gray-900 dark:text-white font-semibold flex items-center">
-                     <HeartPulse className="w-5 h-5 text-rose-500 mr-2" /> Vitals Telemetry
+              <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 p-6 rounded-[2.5rem] shadow-xl group hover:border-emerald-500/30 transition-all relative overflow-hidden">
+                <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-rose-500/5 blur-[80px] rounded-full pointer-events-none" />
+                <div className="flex justify-between items-center mb-6 relative z-10">
+                  <h3 className="text-slate-900 dark:text-white font-bold flex items-center text-lg">
+                     <HeartPulse className="w-5 h-5 text-rose-600 dark:text-rose-500 mr-2" /> Vitals Telemetry
                   </h3>
                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" title="Live Sync Active" />
                 </div>
@@ -378,10 +380,11 @@ const Dashboard = () => {
            )}
 
            {/* Step Tracker Placeholder */}
-           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-3xl group hover:border-emerald-500/30 transition-all shadow-xl">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-gray-900 dark:text-white font-semibold flex items-center">
-                   <Activity className="w-5 h-5 text-emerald-500 mr-2" /> Step Tracker
+           <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] group hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1 relative overflow-hidden">
+              <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-emerald-500/15 dark:bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                <h3 className="text-slate-900 dark:text-white font-bold flex items-center text-lg">
+                   <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-500 mr-2" /> Step Tracker
                 </h3>
                 <button 
                   onClick={() => syncGoogleFit()} disabled={syncing}
@@ -394,8 +397,8 @@ const Dashboard = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
                   <div>
-                    <div className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{stepCount}</div>
-                    <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">Daily Steps</div>
+                    <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{stepCount}</div>
+                    <div className="text-[10px] text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest mt-1">Daily Steps</div>
                   </div>
                   <div className="text-right">
                     <div className="text-emerald-500 font-bold">{Math.round((stepCount / 8000) * 100)}%</div>
@@ -413,15 +416,16 @@ const Dashboard = () => {
            </div>
 
            {/* General Tips */}
-           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-3xl shadow-xl transition-colors">
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-4 flex items-center">
-                 <CheckCircle className="w-5 h-5 text-emerald-500 mr-2" /> Lifestyle Routine
+           <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1 hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 relative overflow-hidden group">
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-emerald-500/5 to-transparent pointer-events-none" />
+              <h3 className="text-slate-900 dark:text-white font-black mb-4 flex items-center relative z-10 text-lg">
+                 <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500 mr-2" /> Lifestyle Routine
               </h3>
               <div className="space-y-3 relative">
                  {(Array.isArray(report?.general_tips) ? report?.general_tips : (report?.general_tips || '').split('\n')).filter(t => t && t.trim()).map((tip, i) => (
                     <div key={i} className="flex items-start group">
                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 mr-3 shrink-0 group-hover:scale-125 transition-transform" />
-                       <span className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{tip.replace(/^-/,'').trim()}</span>
+                       <span className="text-slate-700 dark:text-gray-400 text-[15px] font-medium leading-relaxed">{tip.replace(/^-/,'').trim()}</span>
                     </div>
                  ))}                  {!feedbackStatus['Lifestyle'] ? (
                     <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
@@ -449,11 +453,12 @@ const Dashboard = () => {
 };
 
 const AdviceCard = ({ label, text, icon, onFeedback, done }) => (
-  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 rounded-2xl flex items-start group hover:border-emerald-500/20 transition-all shadow-sm hover:shadow-md">
-     <div className="mr-5 shrink-0 mt-1">{icon}</div>
+  <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] flex items-start group hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 shadow-[0_8px_30px_rgba(35,60,111,0.05)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(35,60,111,0.08)] relative overflow-hidden">
+     <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+     <div className="mr-5 shrink-0 mt-1 relative z-10">{icon}</div>
      <div className="flex-1">
-        <h4 className="text-gray-900 dark:text-white font-semibold mb-1">{label}</h4>
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 leading-relaxed">{text || "No advice generated."}</p>
+        <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-1">{label}</h4>
+        <p className="text-slate-700 dark:text-gray-400 text-[15px] font-medium mb-4 leading-relaxed">{text || "No advice generated."}</p>
         {!done ? (
           <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
              <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 mr-2">Helpful?</span>

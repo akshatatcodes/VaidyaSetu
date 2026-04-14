@@ -75,7 +75,7 @@ const MedicationSchedule = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
          <div>
             <h2 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Adherence Protocol</h2>
-            <p className="text-gray-500 font-medium mt-2 uppercase tracking-widest text-[10px]">Managed Clinical Supplementation & RX Schedule</p>
+            <p className="text-gray-700 dark:text-gray-300 font-medium mt-2 uppercase tracking-widest text-[10px]">Managed Clinical Supplementation & RX Schedule</p>
          </div>
          <button 
            onClick={() => setShowAdd(true)}
@@ -98,10 +98,10 @@ const MedicationSchedule = () => {
                       </div>
                       <div className="space-y-1">
                          <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">{med.name}</h3>
-                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{med.dosage} • {med.frequency.replace('_', ' ')}</p>
+                         <p className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">{med.dosage} • {med.frequency.replace('_', ' ')}</p>
                          <div className="flex gap-2 mt-4">
                             {med.timings.map(t => (
-                              <span key={t} className="px-3 py-1 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-white/5 rounded-lg text-[10px] font-black text-gray-500 flex items-center gap-1.5 shadow-sm">
+                              <span key={t} className="px-3 py-1 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-white/5 rounded-lg text-[10px] font-black text-gray-700 dark:text-gray-300 flex items-center gap-1.5 shadow-sm">
                                 <Clock className="w-3 h-3" /> {t}
                               </span>
                             ))}
@@ -120,7 +120,7 @@ const MedicationSchedule = () => {
                       </button>
                    </div>
                 </div>
-                <div className="mt-8 pt-6 border-t border-gray-50 dark:border-gray-900 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                <div className="mt-8 pt-6 border-t border-gray-50 dark:border-gray-900 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-300">
                    <span>Adherence Metric</span>
                    <div className="flex items-center gap-4 flex-1 max-w-[50%] px-4">
                       <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
@@ -135,7 +135,7 @@ const MedicationSchedule = () => {
              <div className="py-24 text-center bg-gray-50 dark:bg-gray-950/20 rounded-[4rem] border-2 border-dashed border-gray-100 dark:border-gray-800">
                 <Pill className="w-16 h-16 text-emerald-500/10 mx-auto mb-6" />
                 <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-widest">Awaiting Rx Matrix</h3>
-                <p className="text-gray-500 text-sm font-medium mt-2">Initialize your daily medical schedule for automated safety reminders.</p>
+                <p className="text-gray-700 dark:text-gray-300 text-sm font-medium mt-2">Initialize your daily medical schedule for automated safety reminders.</p>
              </div>
            )}
         </div>
@@ -146,20 +146,20 @@ const MedicationSchedule = () => {
               <div className="absolute top-0 right-0 p-8 opacity-5">
                  <TrendingUp className="w-32 h-32" />
               </div>
-              <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-6 px-2">Compliance Performance</h3>
+              <h3 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest mb-6 px-2">Compliance Performance</h3>
               <div className="space-y-10">
                  <div>
                     <div className="text-4xl font-black text-gray-900 dark:text-white">94%</div>
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">7-Day Consistency Index</div>
+                    <div className="text-[10px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest mt-1">7-Day Consistency Index</div>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl">
                        <div className="text-xl font-black text-emerald-500">42</div>
-                       <div className="text-[9px] font-black text-gray-400 uppercase">Doses Current Week</div>
+                       <div className="text-[9px] font-black text-gray-600 dark:text-gray-300 uppercase">Doses Current Week</div>
                     </div>
                     <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl">
                        <div className="text-xl font-black text-blue-500">12</div>
-                       <div className="text-[9px] font-black text-gray-400 uppercase">Active Schedules</div>
+                       <div className="text-[9px] font-black text-gray-600 dark:text-gray-300 uppercase">Active Schedules</div>
                     </div>
                  </div>
               </div>
@@ -180,12 +180,12 @@ const MedicationSchedule = () => {
                <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50">
                   <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Prescription Entry</h3>
                   <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                    <XCircle className="w-6 h-6 text-gray-400" />
+                    <XCircle className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                   </button>
                </div>
                <div className="p-8 space-y-6">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Medication Identifier</label>
+                     <label className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Medication Identifier</label>
                      <input 
                        type="text" 
                        placeholder="e.g. Metformin, Lisinopril..." 
@@ -195,7 +195,7 @@ const MedicationSchedule = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Unit Dosage</label>
+                        <label className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Unit Dosage</label>
                         <input 
                           type="text" 
                           placeholder="e.g. 500mg" 
@@ -204,7 +204,7 @@ const MedicationSchedule = () => {
                         />
                      </div>
                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Primary timing</label>
+                        <label className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Primary timing</label>
                         <input 
                           type="time" 
                           className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 text-sm outline-none focus:border-emerald-500" 

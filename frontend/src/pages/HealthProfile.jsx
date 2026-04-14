@@ -86,16 +86,17 @@ const HealthProfile = () => {
   };
 
   const SummarySection = ({ icon: Icon, title, children, lastUpdated }) => (
-    <div className="bg-gray-800/40 border border-gray-700/50 rounded-2xl p-6 hover:border-emerald-500/30 transition-all group">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(35,60,111,0.05)] dark:shadow-none hover:shadow-[0_15px_40px_rgba(35,60,111,0.08)] hover:-translate-y-1 hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 group relative overflow-hidden">
+      <div className="absolute inset-0 bg-blue-500/0 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="flex items-center justify-between mb-4 relative z-10">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gray-700/50 rounded-lg group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-colors">
+          <div className="p-2.5 bg-slate-100 dark:bg-white/5 rounded-xl group-hover:bg-emerald-500/10 group-hover:text-emerald-600 transition-colors shadow-sm text-slate-700 dark:text-gray-300">
             <Icon size={20} />
           </div>
-          <h3 className="font-semibold text-gray-200">{title}</h3>
+          <h3 className="font-bold text-slate-900 dark:text-gray-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">{title}</h3>
         </div>
         {lastUpdated && (
-          <div className="flex items-center text-[10px] text-gray-500 font-medium bg-gray-900/50 px-2 py-1 rounded-full uppercase tracking-wider">
+          <div className="flex items-center text-[9px] text-gray-700 dark:text-gray-300 font-bold bg-white/50 dark:bg-white/5 border border-white/20 dark:border-white/10 px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm">
             <Clock size={10} className="mr-1" /> {getRelativeTime(lastUpdated)}
           </div>
         )}
@@ -107,9 +108,9 @@ const HealthProfile = () => {
   );
 
   const DataItem = ({ label, value, unit = '' }) => (
-    <div className="flex justify-between items-center text-sm">
-      <span className="text-gray-400">{label}</span>
-      <span className="text-white font-medium">
+    <div className="flex justify-between items-center text-sm py-1 relative z-10">
+      <span className="text-slate-700 dark:text-gray-300 font-bold">{label}</span>
+      <span className="text-slate-900 dark:text-white font-black bg-white/60 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-slate-200/60 dark:border-white/5">
         {value !== null && value !== undefined ? `${value} ${unit}` : '—'}
       </span>
     </div>
@@ -128,13 +129,14 @@ const HealthProfile = () => {
         </div>
       )}
 
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
-            My Health Profile <span className="text-emerald-500">: {profile?.name?.value || user?.fullName || 'User'}</span>
+      {/* Header Profile Info */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10 bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl p-6 lg:p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none transition-all duration-500 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:border-blue-100 dark:hover:border-emerald-500/30 hover:-translate-y-1 group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none group-hover:scale-[1.2] transition-transform duration-700" />
+        <div className="relative">
+          <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-2 drop-shadow-sm">
+            My Health Profile <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-400">: {profile?.name?.value || user?.fullName || 'User'}</span>
           </h1>
-          <p className="text-gray-500 mt-2 font-medium italic max-w-lg">
+          <p className="text-slate-700 dark:text-gray-300 font-medium max-w-xl text-lg opacity-90">
             A comprehensive, real-time overview of your foundational health metrics and physiological parameters.
           </p>
         </div>
@@ -151,19 +153,19 @@ const HealthProfile = () => {
 
       {/* Data Quality Indicator Card */}
       {dataQuality && (
-        <div className="bg-gradient-to-r from-gray-800/80 to-gray-900 border border-emerald-500/20 rounded-3xl p-6 md:p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full -mr-32 -mt-32"></div>
+        <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 rounded-[2.5rem] p-6 lg:p-10 relative overflow-hidden shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none group hover:border-blue-100 dark:hover:border-emerald-500/40 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1 transition-all duration-500">
+          <div className="absolute top-[-50%] right-[-10%] w-96 h-96 bg-blue-500/5 dark:bg-emerald-500/10 blur-[100px] rounded-full group-hover:bg-blue-500/10 dark:group-hover:bg-emerald-500/20 transition-colors duration-700 pointer-events-none group-hover:scale-[1.2]"></div>
           <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
-            <div className="relative w-24 h-24 shrink-0">
-               <svg className="w-full h-full transform -rotate-90">
-                 <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-700" />
-                 <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                   strokeDasharray={2 * Math.PI * 40}
-                   strokeDashoffset={2 * Math.PI * 40 * (1 - (dataQuality?.score || 0) / 100)}
+            <div className="relative w-28 h-28 shrink-0">
+               <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                 <circle cx="56" cy="56" r="48" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-gray-200 dark:text-gray-800" />
+                 <circle cx="56" cy="56" r="48" stroke="currentColor" strokeWidth="10" fill="transparent" 
+                   strokeDasharray={2 * Math.PI * 48}
+                   strokeDashoffset={2 * Math.PI * 48 * (1 - (dataQuality?.score || 0) / 100)}
                    className="text-emerald-500 transition-all duration-1000 ease-out" 
                  />
                </svg>
-               <div className="absolute inset-0 flex items-center justify-center font-bold text-xl text-white">
+               <div className="absolute inset-0 flex items-center justify-center font-black text-2xl text-gray-900 dark:text-white drop-shadow-sm">
                  {dataQuality?.score || 0}%
                </div>
             </div>
@@ -176,8 +178,8 @@ const HealthProfile = () => {
                   {dataQuality?.label || 'Basic'} Profile
                 </span>
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">Data Quality Score</h2>
-              <p className="text-gray-400 text-sm md:text-base max-w-2xl leading-relaxed">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Data Quality Score</h2>
+              <p className="text-slate-700 dark:text-gray-300 text-sm md:text-base max-w-2xl leading-relaxed font-semibold">
                 {dataQuality?.message || 'Update your profile to improve insights.'}
               </p>
             </div>
@@ -196,11 +198,11 @@ const HealthProfile = () => {
           <DataItem label="Weight" value={profile.weight?.value} unit="kg" />
           <div className="pt-2 border-t border-gray-700/50 mt-2">
              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">Calculated BMI</span>
+                <span className="text-gray-600 dark:text-gray-300 text-sm">Calculated BMI</span>
                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                   profile.bmi?.value && profile.bmi.value > 0 
                     ? 'bg-emerald-500/10 text-emerald-400' 
-                    : 'bg-gray-700 text-gray-500'
+                    : 'bg-gray-700 text-gray-700 dark:text-gray-300'
                 }`}>
                   {profile.bmi?.value ? Number(profile.bmi.value).toFixed(1) : '—'} ({profile.bmiCategory?.value || 'N/A'})
                 </span>
@@ -233,43 +235,43 @@ const HealthProfile = () => {
         <SummarySection icon={AlertTriangle} title="Allergies & Medical" lastUpdated={profile.allergies?.lastUpdated}>
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 font-bold">Allergies</p>
+              <p className="text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest mb-2 font-bold">Allergies</p>
               <div className="flex flex-wrap gap-2">
                 {profile.allergies?.value?.length > 0 ? profile.allergies.value.map(a => (
                   <span key={a} className="bg-red-500/10 text-red-400 text-xs px-2 py-1 rounded-lg border border-red-500/20">{a}</span>
-                )) : <span className="text-gray-500 text-sm italic">None declared</span>}
+                )) : <span className="text-gray-700 dark:text-gray-300 text-sm italic">None declared</span>}
               </div>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 font-bold">Conditions</p>
+              <p className="text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest mb-2 font-bold">Conditions</p>
               <div className="flex flex-wrap gap-2">
                 {profile.medicalHistory?.value?.length > 0 ? profile.medicalHistory.value.map(c => (
                   <span key={c} className="bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded-lg border border-blue-500/20">{c}</span>
-                )) : <span className="text-gray-500 text-sm italic">No history provided</span>}
+                )) : <span className="text-gray-700 dark:text-gray-300 text-sm italic">No history provided</span>}
               </div>
             </div>
             {profile.otherConditions?.value && (
               <div className="pt-2 border-t border-gray-700/50">
-                <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 font-bold">Contextual Observations</p>
-                <p className="text-sm text-gray-300 italic">"{profile.otherConditions.value}"</p>
+                <p className="text-xs text-slate-600 dark:text-gray-300 uppercase tracking-widest mb-2 font-bold">Contextual Observations</p>
+                <p className="text-sm text-slate-700 dark:text-gray-300 font-medium italic">"{profile.otherConditions.value}"</p>
               </div>
             )}
           </div>
         </SummarySection>
 
         {/* Action Card */}
-        <div className="bg-emerald-600 rounded-2xl p-6 flex flex-col justify-between text-white relative overflow-hidden group">
-           <div className="absolute bottom-0 right-0 opacity-10 transform translate-x-4 translate-y-4 group-hover:scale-110 transition-transform">
-              <CheckCircle2 size={160} />
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-[2rem] p-8 flex flex-col justify-between text-white relative overflow-hidden group shadow-2xl shadow-emerald-900/20">
+           <div className="absolute top-[-20%] right-[-10%] opacity-20 transform group-hover:scale-125 transition-transform duration-700">
+              <CheckCircle2 size={240} className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,1)]" />
            </div>
-           <div className="relative z-10">
-             <h3 className="text-xl font-bold mb-2">Need a check-up?</h3>
-             <p className="text-emerald-100 text-sm mb-6">
+           <div className="relative z-10 mb-8">
+             <h3 className="text-2xl font-black mb-3">Need a check-up?</h3>
+             <p className="text-emerald-50 text-base opacity-90 w-3/4 leading-relaxed font-medium">
                Your latest AI report was generated {getRelativeTime(profile.createdAt)}. Update your stats for fresh tips.
              </p>
            </div>
-           <Link to="/" className="relative z-10 w-full bg-white text-emerald-600 font-bold py-3 rounded-xl flex items-center justify-center hover:bg-emerald-50 transition-colors">
-             Go to Dashboard <ArrowRight size={18} className="ml-2" />
+           <Link to="/" className="relative z-10 w-full bg-white/90 backdrop-blur-md text-emerald-700 font-bold py-4 rounded-xl flex items-center justify-center hover:bg-white transition-colors shadow-lg active:scale-[0.98]">
+             Go to Dashboard <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
            </Link>
         </div>
       </div>

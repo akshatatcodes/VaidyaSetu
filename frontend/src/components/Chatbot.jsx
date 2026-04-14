@@ -123,7 +123,7 @@ const Chatbot = () => {
               <p className="text-xs text-blue-400">Symptom Checker</p>
             </div>
           </div>
-          <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => setIsOpen(false)} className="text-gray-600 dark:text-gray-300 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -159,7 +159,7 @@ const Chatbot = () => {
         </div>
 
         {/* Disclaimer */}
-        <div className="px-4 py-2 bg-gray-800/50 border-t border-gray-800 text-[10px] text-gray-500 text-center leading-tight">
+        <div className="px-4 py-2 bg-gray-800/50 border-t border-gray-800 text-[10px] text-gray-700 dark:text-gray-300 text-center leading-tight">
           AI is for educational use only. Not medical advice.
         </div>
 
@@ -186,7 +186,7 @@ const Chatbot = () => {
             <button
               onClick={handleVoiceInput}
               disabled={loading || isListening}
-              className={`p-3 rounded-xl transition-all shadow-lg ${isListening ? 'bg-blue-500 text-white animate-pulse' : 'bg-gray-800 text-gray-400 hover:text-blue-500 border border-gray-700'}`}
+              className={`p-3 rounded-xl transition-all shadow-lg ${isListening ? 'bg-blue-500 text-white animate-pulse' : 'bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-blue-500 border border-gray-700'}`}
               title="Speak symptoms"
             >
               {isListening ? <Volume2 className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
