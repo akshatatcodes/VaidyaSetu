@@ -100,13 +100,18 @@ const HologramMannequin = ({ riskLevel = 0 }) => {
     
     const scale = 3.2 / (size.y || 1);
 
-    // Flawless Blueprint Cyan Wireframe without crashing WebGL bindings
-    const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: "#06b6d4",
-      wireframe: true,
+    // Premium Solid Holographic Glass Material for perfect structural shapes
+    const premiumHoloMaterial = new THREE.MeshPhysicalMaterial({
+      color: "#86efac",      // Light Green base
+      emissive: "#4ade80",   // Brighter light green glow
+      emissiveIntensity: 0.6,
+      metalness: 0.8,
+      roughness: 0.1,
+      transmission: 0.5,
       transparent: true,
-      opacity: 0.65,
-      side: THREE.DoubleSide
+      opacity: 0.85,
+      wireframe: false,
+      side: THREE.FrontSide
     });
 
     scene.traverse((child) => {
@@ -116,7 +121,7 @@ const HologramMannequin = ({ riskLevel = 0 }) => {
       }
       
       if (child.isMesh || child.isSkinnedMesh) {
-         child.material = wireframeMaterial;
+         child.material = premiumHoloMaterial;
       }
     });
 
@@ -191,7 +196,9 @@ const BodyScan3D = ({ riskScore = 0 }) => {
     <div className="absolute inset-0 w-full h-full overflow-hidden">
       <Canvas dpr={[1, 2]} className="w-full h-full"> 
         <PerspectiveCamera makeDefault position={[0, 0.2, 8]} fov={30} />
-        <ambientLight intensity={0.4} />
+        <ambientLight intensity={1.0} />
+        <directionalLight position={[10, 10, 5]} intensity={2.5} color="#34d399" />
+        <pointLight position={[-10, 5, -10]} intensity={1.5} color="#10b981" />
         
         {/* LARGE Holographic Halo Background (Reference Match) */}
         <group position={[0, 0.2, -2.5]}>

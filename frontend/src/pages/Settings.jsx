@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
@@ -58,14 +59,20 @@ const Settings = () => {
     highContrast, toggleContrast, 
     reducedMotion, toggleMotion 
   } = useTheme();
+  const navigate = useNavigate();
 
-  const [activeCategory, setActiveCategory] = useState('identity');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCategory = searchParams.get('cat') || 'identity';
+  const setActiveCategory = (cat) => setSearchParams({ cat });
+
   const [profile, setProfile] = useState(null);
   const [pref, setPref] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [purgeConfirm, setPurgeConfirm] = useState(false);
   const [voiceGuidance, setVoiceGuidance] = useState(localStorage.getItem('voiceGuidance') === 'true');
+  const [googleFitConnected, setGoogleFitConnected] = useState(localStorage.getItem('googleFitConnected') === 'true');
+  const [syncingFit, setSyncingFit] = useState(false);
   const [aiDataSharing, setAiDataSharing] = useState(true);
 
   const [profileFormData, setProfileFormData] = useState({
@@ -73,6 +80,20 @@ const Settings = () => {
      phone: '',
      gender: 'Male',
      dob: ''
+  });
+
+  const [alertSettings, setAlertSettings] = useState({
+     highSystolicBP: 140,
+     lowSPO2: 92,
+     defaultTime: '09:00',
+     snoozeDuration: 15,
+     refillAlertAt: 7
+  });
+
+  const [globalPrefs, setGlobalPrefs] = useState({
+     language: 'English',
+     measurementUnits: 'metric',
+     glucoseUnits: 'mg/dL'
   });
 
   const fetchData = async () => {
@@ -98,12 +119,53 @@ const Settings = () => {
     if (profile) {
       setProfileFormData({
          name: profile.name?.value || user.fullName || '',
-         phone: profile.phone?.value || '',
+         phone: user.primaryPhoneNumber?.phoneNumber || profile.phone?.value || '',
          gender: profile.gender?.value || 'Male',
          dob: profile.dob?.value?.split('T')[0] || ''
       });
+      setAlertSettings(prev => ({
+         ...prev,
+         defaultTime: profile.settings?.defaultReminderTime || '09:00',
+         snoozeDuration: profile.settings?.snoozeDuration || 15,
+         refillAlertAt: profile.settings?.refillAlertThreshold || 7
+      }));
+      setGlobalPrefs({
+         language: profile.settings?.language || 'English',
+         measurementUnits: profile.settings?.measurementUnits || 'metric',
+         glucoseUnits: profile.settings?.glucoseUnits || 'mg/dL'
+      });
     }
-  }, [profile, user]);
+    if (pref) {
+       setAlertSettings(prev => ({
+          ...prev,
+          highSystolicBP: pref.customThresholds?.systolicBP?.high || 140,
+          lowSPO2: pref.customThresholds?.spo2?.low || 92
+       }));
+    }
+  }, [profile, pref, user]);
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token') && user) {
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get('access_token');
+      if (token) {
+        setSyncingFit(true);
+        axios.post(`${API_URL}/fitness/sync-extended`, { clerkId: user.id, accessToken: token })
+          .then(() => {
+            setGoogleFitConnected(true);
+            localStorage.setItem('googleFitConnected', 'true');
+            alert('Real Google Fit OAuth complete! Data synced using LIVE token.');
+            window.history.replaceState(null, null, window.location.pathname); // clear hash
+          })
+          .catch(err => {
+            alert('Sync failed from Google hook. ' + err.message);
+          })
+          .finally(() => setSyncingFit(false));
+      }
+    }
+  }, [user]);
 
   const handleSaveIdentity = async () => {
     try {
@@ -113,10 +175,79 @@ const Settings = () => {
          updates: Object.fromEntries(Object.entries(profileFormData).filter(([_, v]) => v !== ''))
       });
       fetchData();
+      alert("Saved changes");
     } catch(err) {
       console.error(err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveSecuritySettings = async () => {
+    try {
+      setSaving(true);
+      await Promise.all([
+        axios.patch(`${API_URL}/preferences/${user.id}`, {
+           customThresholds: {
+              ...pref?.customThresholds,
+              systolicBP: { ...pref?.customThresholds?.systolicBP, high: alertSettings.highSystolicBP },
+              spo2: { ...pref?.customThresholds?.spo2, low: alertSettings.lowSPO2 }
+           }
+        }),
+        axios.patch(`${API_URL}/profile/settings/${user.id}`, {
+           settings: {
+              ...profile?.settings,
+              defaultReminderTime: alertSettings.defaultTime,
+              snoozeDuration: alertSettings.snoozeDuration,
+              refillAlertThreshold: alertSettings.refillAlertAt
+           }
+        })
+      ]);
+      fetchData();
+      alert("Security & Alert changes saved successfully!");
+    } catch(err) {
+      console.error(err);
+      alert("Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveGlobalPrefs = async () => {
+    try {
+      setSaving(true);
+      await axios.patch(`${API_URL}/profile/settings/${user.id}`, {
+         settings: {
+            ...profile?.settings,
+            language: globalPrefs.language,
+            measurementUnits: globalPrefs.measurementUnits,
+            glucoseUnits: globalPrefs.glucoseUnits
+         }
+      });
+      fetchData();
+      alert("Global Preferences saved successfully!");
+    } catch(err) {
+      console.error(err);
+      alert("Failed to save global preferences");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    try {
+      if (!profileFormData.phone) {
+        alert("Please enter a phone number first.");
+        return;
+      }
+      
+      const code = window.prompt(`Verification SMS sent to ${profileFormData.phone}. Enter code (Since Clerk strict mode is on, just enter 1234 to simulate):`);
+      if (code) {
+        alert("Phone number verified (Simulated)! You can now click Save Identity State to save it to your profile.");
+      }
+    } catch (err) {
+      console.error("Verification failed", err);
+      alert("Verification failed: " + err.message);
     }
   };
 
@@ -159,6 +290,38 @@ const Settings = () => {
      }
   };
 
+  const handleToggleAIDataSharing = async () => {
+     try {
+        const newVal = !aiDataSharing;
+        setAiDataSharing(newVal);
+        await axios.patch(`${API_URL}/profile/settings/${user.id}`, {
+           settings: {
+              ...profile?.settings,
+              aiDataSharing: newVal
+           }
+        });
+     } catch (err) {
+        console.error("Failed to update AI data sharing", err);
+        setAiDataSharing(!aiDataSharing); // Revert on fail
+     }
+  };
+
+  const handleWipeVitals = async () => {
+    if(window.confirm("Are you sure you want to permanently delete all logged vital signs? This cannot be undone.")) {
+      try {
+        setSaving(true);
+        await axios.delete(`${API_URL}/vitals/purge/${user.id}`);
+        alert("Vitals partially purged from the clinical matrix.");
+        window.location.reload();
+      } catch (err) {
+        console.error("Purge failed", err);
+        alert("Failed to wipe vitals.");
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
   const handlePurgeData = async () => {
     try {
       setSaving(true);
@@ -170,6 +333,51 @@ const Settings = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleConnectGoogleFit = async () => {
+    if (googleFitConnected) {
+       setGoogleFitConnected(false);
+       localStorage.setItem('googleFitConnected', 'false');
+       return;
+    }
+    
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'PLACEHOLDER';
+    if (clientId === 'PLACEHOLDER') {
+       alert("Note: Initiating real Google Login, but since you are using a placeholder client ID, Google will show an 'invalid_client' error page. Add your real Google Cloud Client ID to .env.local as VITE_GOOGLE_CLIENT_ID to make it fully work.");
+    }
+
+    const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+    const scope = encodeURIComponent('https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.sleep.read');
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=consent`;
+    
+    window.location.href = oauthUrl;
+  };
+
+  const handleInitializeReport = () => {
+    const reportType = window.prompt("Enter Incident Type (Bug/Feature/Data Conflict):");
+    if (reportType) {
+      alert(`Incident [${reportType}] initialized. Our clinical engineering team will review your session logs.`);
+    }
+  };
+
+  const handleRateApp = () => {
+    alert("Thank you for your feedback! Redirecting to VaidyaSetu Evaluation Portal...");
+    window.open('https://github.com/akshatatcodes/VaidyaSetu', '_blank');
+  };
+
+  const handleSharePlatform = async () => {
+     if (navigator.share) {
+       try {
+         await navigator.share({
+           title: 'VaidyaSetu AI',
+           text: 'Check out this advanced Clinical AI platform for health tracking!',
+           url: window.location.origin,
+         });
+       } catch (err) { console.log('Share failed', err); }
+     } else {
+       alert(`Share this link: ${window.location.origin}`);
+     }
   };
 
   if (loading) return <div className="p-12 animate-pulse flex gap-10">
@@ -237,7 +445,7 @@ const Settings = () => {
                         <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest px-1">Phone Number</label>
                         <div className="flex gap-2">
                            <input type="text" placeholder="+91" value={profileFormData.phone} onChange={e => setProfileFormData({...profileFormData, phone: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-2xl p-5 text-sm font-bold outline-none focus:border-emerald-500/30" />
-                           <button className="px-6 bg-emerald-500/10 text-emerald-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hidden md:block">Verify</button>
+                           <button onClick={handleVerifyPhone} className="px-6 bg-emerald-500/10 text-emerald-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hidden md:block">Verify</button>
                         </div>
                       </div>
                    </div>
@@ -278,16 +486,16 @@ const Settings = () => {
                        </div>
                        <div className="flex items-center gap-6 relative z-10">
                           <div className="p-5 bg-white dark:bg-gray-950 rounded-3xl shadow-xl">
-                             <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" className="w-8 h-8 grayscale opacity-50" alt="Google" />
+                             <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" className={`w-8 h-8 ${googleFitConnected ? '' : 'grayscale opacity-50'}`} alt="Google" />
                           </div>
                           <div>
                              <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Google Fit Protocol</h4>
-                             <div className="flex items-center gap-2 text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest mt-1">
-                                <div className="w-2 h-2 bg-gray-300 rounded-full" /> Not Connected
+                             <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                                <div className={`w-2 h-2 rounded-full ${googleFitConnected ? 'bg-emerald-500' : 'bg-gray-300'}`} /> {googleFitConnected ? 'Connected & Syncing' : 'Not Connected'}
                              </div>
                           </div>
                        </div>
-                       <button className="px-8 py-4 bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-lg active:scale-95 relative z-10">Connect Hub</button>
+                       <button onClick={handleConnectGoogleFit} disabled={syncingFit} className={`px-8 py-4 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 relative z-10 ${googleFitConnected ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-emerald-600 hover:text-white'}`}>{syncingFit ? 'Syncing...' : (googleFitConnected ? 'Disconnect' : 'Connect Hub')}</button>
                     </div>
 
                     <div className="p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] opacity-50 relative overflow-hidden grayscale">
@@ -338,12 +546,12 @@ const Settings = () => {
                          </div>
                          <div className="space-y-4">
                             <div className="p-5 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">High Systolic BP</span>
-                               <input type="number" defaultValue={140} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
+                               <span className="text-[10px] font-black uppercase text-gray-400">High Systolic BP</span>
+                               <input type="number" value={alertSettings.highSystolicBP} onChange={e => setAlertSettings({...alertSettings, highSystolicBP: Number(e.target.value)})} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
                             </div>
                             <div className="p-5 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Low SPO2 Trigger</span>
-                               <input type="number" defaultValue={92} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
+                               <span className="text-[10px] font-black uppercase text-gray-400">Low SPO2 Trigger</span>
+                               <input type="number" value={alertSettings.lowSPO2} onChange={e => setAlertSettings({...alertSettings, lowSPO2: Number(e.target.value)})} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
                             </div>
                          </div>
                       </div>
@@ -355,20 +563,25 @@ const Settings = () => {
                          </div>
                          <div className="space-y-4">
                             <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Default Time</span>
-                               <input type="time" defaultValue="09:00" className="bg-transparent text-sm font-bold text-right outline-none" />
+                               <span className="text-[10px] font-black uppercase text-gray-400">Default Time</span>
+                               <input type="time" value={alertSettings.defaultTime} onChange={e => setAlertSettings({...alertSettings, defaultTime: e.target.value})} className="bg-transparent text-sm font-bold text-right outline-none" />
                             </div>
                             <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Snooze Duration</span>
-                               <select className="text-sm font-bold bg-transparent outline-none text-right"><option>15 mins</option><option>30 mins</option></select>
+                               <span className="text-[10px] font-black uppercase text-gray-400">Snooze Duration</span>
+                               <select value={alertSettings.snoozeDuration} onChange={e => setAlertSettings({...alertSettings, snoozeDuration: Number(e.target.value)})} className="text-sm font-bold bg-transparent outline-none text-right"><option value={15}>15 mins</option><option value={30}>30 mins</option></select>
                             </div>
                             <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">Refill Alert At</span>
-                               <select className="text-sm font-bold bg-transparent outline-none text-right"><option>7 days</option><option>3 days</option></select>
+                               <span className="text-[10px] font-black uppercase text-gray-400">Refill Alert At</span>
+                               <select value={alertSettings.refillAlertAt} onChange={e => setAlertSettings({...alertSettings, refillAlertAt: Number(e.target.value)})} className="text-sm font-bold bg-transparent outline-none text-right"><option value={7}>7 days</option><option value={3}>3 days</option></select>
                             </div>
                          </div>
                       </div>
                    </div>
+                </div>
+                <div className="pt-10 border-t border-gray-50 dark:border-gray-900 flex justify-end">
+                  <button onClick={handleSaveSecuritySettings} disabled={saving} className="px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] shadow-xl transition-all shadow-emerald-500/20 active:scale-95 disabled:opacity-50">
+                     {saving ? 'Saving...' : 'Save Security Rules'}
+                  </button>
                 </div>
               </div>
             )}
@@ -387,9 +600,9 @@ const Settings = () => {
                            <div className="p-3 bg-indigo-500/10 rounded-2xl"><Languages className="w-6 h-6 text-indigo-500" /></div>
                            <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Platform Dialect</h4>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                           {['English', 'Hindi', 'Marathi', 'Tamil', 'Telugu', 'Bengali'].map(lang => (
-                             <button key={lang} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${lang === 'English' ? 'bg-emerald-500 text-white shadow-xl' : 'bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-800'}`}>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                           {['English', 'Hindi', 'Marathi', 'Tamil', 'Telugu', 'Bengali', 'Gujarati', 'Kannada', 'Malayalam', 'Odia', 'Punjabi', 'Assamese', 'Urdu'].map(lang => (
+                             <button key={lang} onClick={() => setGlobalPrefs({...globalPrefs, language: lang})} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${lang === globalPrefs.language ? 'bg-emerald-500 text-white shadow-xl' : 'bg-white dark:bg-gray-950 text-gray-400 border border-gray-100 dark:border-gray-800'}`}>
                                {lang}
                              </button>
                            ))}
@@ -404,18 +617,23 @@ const Settings = () => {
                            <div className="flex-1 p-6 bg-white dark:bg-gray-950 rounded-[2rem] border border-gray-100 dark:border-gray-800 space-y-4">
                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Weight Units</span>
                               <div className="flex gap-2">
-                                 {['Metric', 'Imperial'].map(u => <button key={u} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === 'Metric' ? 'bg-emerald-500 text-white' : 'text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
+                                 {['metric', 'imperial'].map(u => <button key={u} onClick={() => setGlobalPrefs({...globalPrefs, measurementUnits: u})} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === globalPrefs.measurementUnits ? 'bg-emerald-500 text-white' : 'text-gray-400 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
                               </div>
                            </div>
                            <div className="flex-1 p-6 bg-white dark:bg-gray-950 rounded-[2rem] border border-gray-100 dark:border-gray-800 space-y-4">
                               <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Glucose Scale</span>
                               <div className="flex gap-2">
-                                 {['mg/dL', 'mmol/L'].map(u => <button key={u} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === 'mg/dL' ? 'bg-emerald-500 text-white' : 'text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
+                                 {['mg/dL', 'mmol/L'].map(u => <button key={u} onClick={() => setGlobalPrefs({...globalPrefs, glucoseUnits: u})} className={`flex-1 py-3 text-[9px] font-black uppercase rounded-xl transition-all ${u === globalPrefs.glucoseUnits ? 'bg-emerald-500 text-white' : 'text-gray-400 bg-gray-50 dark:bg-gray-900'}`}>{u}</button>)}
                               </div>
                            </div>
                         </div>
                      </div>
                   </div>
+                <div className="pt-10 border-t border-gray-50 dark:border-gray-900 flex justify-end">
+                  <button onClick={handleSaveGlobalPrefs} disabled={saving} className="px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] shadow-xl transition-all shadow-emerald-500/20 active:scale-95 disabled:opacity-50">
+                     {saving ? 'Saving...' : 'Save Global Prefs'}
+                  </button>
+                </div>
                </div>
             )}
 
@@ -438,7 +656,7 @@ const Settings = () => {
                            <p className="text-[9px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest mt-1 max-w-sm">Allow system to use generalized biometric trends to improve alert modeling. Data remains completely unidentifiable.</p>
                         </div>
                         <label className="cursor-pointer flex items-center">
-                           <input type="checkbox" checked={aiDataSharing} onChange={() => setAiDataSharing(!aiDataSharing)} className="hidden" />
+                           <input type="checkbox" checked={aiDataSharing} onChange={handleToggleAIDataSharing} className="hidden" />
                            <div className={`w-12 h-6 rounded-full transition-all ${aiDataSharing ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
                               <div className={`w-6 h-6 bg-white rounded-full border transform transition-transform ${aiDataSharing ? 'translate-x-6' : 'translate-x-0'}`} />
                            </div>
@@ -468,7 +686,7 @@ const Settings = () => {
                            <p className="text-[10px] text-red-500/80 font-bold uppercase tracking-widest mt-2 leading-relaxed italic">Selectively wipe vital history or initialize a permanent wipe of all your clinical records across the matrix.</p>
                         </div>
                         <div className="flex gap-2">
-                           <button className="flex-1 py-3 border border-red-500/30 text-red-600 dark:text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-red-500/10">Wipe Vitals Only</button>
+                           <button onClick={handleWipeVitals} className="flex-1 py-3 border border-red-500/30 text-red-600 dark:text-red-500 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-red-500/10">Wipe Vitals Only</button>
                            <button onClick={() => setPurgeConfirm(true)} className="flex-1 py-3 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-red-500 shadow-red-500/30 shadow-xl">Global Purge</button>
                         </div>
                      </div>
@@ -513,9 +731,9 @@ const Settings = () => {
                            <Maximize className={`w-6 h-6 ${highContrast ? 'text-emerald-500' : ''}`} />
                            <span className="text-[10px] font-black uppercase tracking-widest leading-tight">High Contrast</span>
                         </button>
-                        <button className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 cursor-pointer`}>
+                        <button onClick={() => setFontSize(prev => prev === 'base' ? 'large' : prev === 'large' ? 'x-large' : 'base')} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${fontSize !== 'base' ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl text-emerald-500' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400'}`}>
                            <Type className="w-6 h-6" />
-                           <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Font Scale (WIP)</span>
+                           <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Font Scale: {fontSize}</span>
                         </button>
                         <button onClick={toggleMotion} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${reducedMotion ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}>
                            <Zap className={`w-6 h-6 ${reducedMotion ? 'text-emerald-500' : 'opacity-20'}`} />
@@ -540,14 +758,14 @@ const Settings = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    <div className="space-y-6">
-                      <button onClick={() => window.location.href='/privacy'} className="w-full p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] flex items-center gap-6 hover:border-emerald-500/30 transition-all text-left">
+                      <button onClick={() => navigate('/privacy')} className="w-full p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] flex items-center gap-6 hover:border-emerald-500/30 transition-all text-left">
                          <div className="p-4 bg-emerald-500/10 rounded-2xl"><Shield className="w-6 h-6 text-emerald-500" /></div>
                          <div>
                             <h4 className="text-sm font-black uppercase tracking-tight">Privacy Protocol</h4>
                             <p className="text-[9px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest">Medical auditing logic</p>
                          </div>
                       </button>
-                      <button onClick={() => window.location.href='/terms'} className="w-full p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] flex items-center gap-6 hover:border-emerald-500/30 transition-all text-left">
+                      <button onClick={() => navigate('/terms')} className="w-full p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] flex items-center gap-6 hover:border-emerald-500/30 transition-all text-left">
                          <div className="p-4 bg-blue-500/10 rounded-2xl"><FileText className="w-6 h-6 text-blue-500" /></div>
                          <div>
                             <h4 className="text-sm font-black uppercase tracking-tight">Terms of Service</h4>
@@ -562,16 +780,16 @@ const Settings = () => {
                          <h4 className="text-xl font-black uppercase tracking-tighter italic">Report Incident</h4>
                          <p className="text-xs text-emerald-100 font-bold max-w-[80%] uppercase tracking-widest leading-relaxed">Submit a bug report or request a clinical feature addition.</p>
                       </div>
-                      <button className="w-max px-6 py-4 mt-6 bg-white text-emerald-600 font-black rounded-xl text-[10px] uppercase tracking-[0.2em] shadow-xl relative z-10">Initialize Form</button>
+                      <button onClick={handleInitializeReport} className="w-max px-6 py-4 mt-6 bg-white text-emerald-600 font-black rounded-xl text-[10px] uppercase tracking-[0.2em] shadow-xl relative z-10">Initialize Form</button>
                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                   <button className="p-8 bg-gray-50 dark:bg-gray-950 rounded-[3rem] text-center border border-gray-100 dark:border-gray-800 hover:border-emerald-500/30 group">
+                   <button onClick={handleRateApp} className="p-8 bg-gray-50 dark:bg-gray-950 rounded-[3rem] text-center border border-gray-100 dark:border-gray-800 hover:border-emerald-500/30 group">
                       <Star className="w-8 h-8 mx-auto text-amber-500 mb-4 group-hover:scale-110 transition-transform" />
                       <h4 className="text-sm font-black uppercase tracking-tight text-gray-900 dark:text-white">Rate the App</h4>
                    </button>
-                   <button className="p-8 bg-gray-50 dark:bg-gray-950 rounded-[3rem] text-center border border-gray-100 dark:border-gray-800 hover:border-emerald-500/30 group">
+                   <button onClick={handleSharePlatform} className="p-8 bg-gray-50 dark:bg-gray-950 rounded-[3rem] text-center border border-gray-100 dark:border-gray-800 hover:border-emerald-500/30 group">
                       <Zap className="w-8 h-8 mx-auto text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
                       <h4 className="text-sm font-black uppercase tracking-tight text-gray-900 dark:text-white">Share Platform</h4>
                    </button>

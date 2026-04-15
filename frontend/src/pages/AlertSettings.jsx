@@ -19,7 +19,15 @@ const AlertSettings = () => {
     if (user) {
       axios.get(`${API_URL}/preferences/${user.id}`)
         .then(res => {
-          if (res.data.status === 'success') setPrefs(res.data.data);
+          if (res.data.status === 'success') {
+             const data = res.data.data || {};
+             if (!data.quietHours) data.quietHours = { enabled: false, start: '22:00', end: '07:00' };
+             if (!data.customThresholds) data.customThresholds = { systolicBP: { high: 140 }, spo2: { low: 90 } };
+             if (!data.customThresholds.systolicBP) data.customThresholds.systolicBP = { high: 140 };
+             if (!data.customThresholds.spo2) data.customThresholds.spo2 = { low: 90 };
+             if (!data.preferences) data.preferences = [];
+             setPrefs(data);
+          }
         })
         .finally(() => setLoading(false));
     }
@@ -37,10 +45,11 @@ const AlertSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.put(`${API_URL}/preferences/${user.id}`, prefs);
-      // Show success toast or similar
+      await axios.patch(`${API_URL}/preferences/${user.id}`, prefs);
+      alert("Alert preferences saved successfully!");
     } catch (err) {
       console.error("Save preferences failed", err);
+      alert("Failed to save. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -86,7 +95,7 @@ const AlertSettings = () => {
         </div>
 
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
-           {prefs.preferences.map((p) => (
+           {(prefs.preferences || []).map((p) => (
              <div key={p.alertType} className="p-8 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-900/20 transition-colors">
                 <div className="space-y-1">
                    <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tighter">{p.alertType.replace(/_/g, ' ')}</h4>
