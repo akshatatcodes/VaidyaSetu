@@ -46,7 +46,11 @@ const VitalSchema = new mongoose.Schema({
   },
   mealContext: {
     type: String,
-    enum: ['fasting', 'before_meal', 'after_meal', 'none'],
+    enum: [
+      'fasting', 'before_meal', 'after_meal', 'none',
+      'resting', 'after_exercise', 'before_bed', 'morning',
+      'sleeping', 'high_altitude'
+    ],
     default: 'none'
   }
 }, { timestamps: true });

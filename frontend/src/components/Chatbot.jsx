@@ -48,8 +48,15 @@ const Chatbot = () => {
         setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }]);
       }
     } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I am having trouble connecting to the server. Please try again later.' }]);
+      console.error('[Chatbot] Error:', err);
+      
+      // Check if it's a rate limit or server error
+      if (err.response?.data?.reply) {
+        // Backend returned a friendly message
+        setMessages(prev => [...prev, { role: 'assistant', content: err.response.data.reply }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I am having trouble connecting to the server. Please try again later.' }]);
+      }
     } finally {
       setLoading(false);
     }

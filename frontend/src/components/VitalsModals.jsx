@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   X, Activity, Droplets, Scale, Footprints, 
   Moon, Heart, AlertCircle, Info, CheckCircle2,
-  Clock, Calendar, ChevronRight, Zap, RefreshCw
+  Clock, Calendar, ChevronRight, Zap, RefreshCw,
+  Thermometer, Wind, Stethoscope
 } from 'lucide-react';
 
 const ModalWrapper = ({ isOpen, onClose, title, icon: Icon, children }) => {
@@ -224,6 +225,97 @@ const VitalsModals = ({
                </button>
              ))}
           </div>
+        </div>
+      </div>
+    )},
+    heart_rate: { title: 'Heart Rate', icon: Stethoscope, render: () => (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Heart Rate (BPM)</label>
+          <input 
+            type="number" 
+            placeholder="72"
+            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none"
+            onChange={(e) => setFormData({...formData, value: e.target.value})}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Measurement Context</label>
+          <select 
+            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white outline-none"
+            onChange={(e) => setFormData({...formData, context: e.target.value})}
+          >
+            <option value="resting">Resting</option>
+            <option value="after_exercise">After Exercise</option>
+            <option value="before_bed">Before Bed</option>
+            <option value="morning">Morning</option>
+          </select>
+        </div>
+        <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+           <div className="flex items-center gap-2 text-emerald-500 text-[10px] font-bold uppercase tracking-widest mb-1">
+              <Info className="w-3 h-3" /> Target Range
+           </div>
+           <p className="text-xs text-gray-600 dark:text-gray-400">Normal resting heart rate is typically <span className="text-emerald-500 font-bold">60-100 BPM</span>. Athletes may have lower resting rates.</p>
+        </div>
+      </div>
+    )},
+    body_temperature: { title: 'Body Temperature', icon: Thermometer, render: () => (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Temperature (°F)</label>
+          <input 
+            type="number" 
+            step="0.1"
+            placeholder="98.6"
+            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none"
+            onChange={(e) => setFormData({...formData, value: e.target.value})}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Notes (Optional)</label>
+          <input 
+            type="text" 
+            placeholder="Feeling feverish, chills, etc."
+            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white outline-none"
+            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+          />
+        </div>
+        <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+           <div className="flex items-center gap-2 text-emerald-500 text-[10px] font-bold uppercase tracking-widest mb-1">
+              <Info className="w-3 h-3" /> Target Range
+           </div>
+           <p className="text-xs text-gray-600 dark:text-gray-400">Normal body temperature is around <span className="text-emerald-500 font-bold">98.6°F (37°C)</span>. Above 100.4°F indicates fever.</p>
+        </div>
+      </div>
+    )},
+    oxygen_saturation: { title: 'SpO2 Level', icon: Wind, render: () => (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Oxygen Saturation (%)</label>
+          <input 
+            type="number" 
+            placeholder="98"
+            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none"
+            onChange={(e) => setFormData({...formData, value: e.target.value})}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-black uppercase text-gray-500 mb-2">Measurement Context</label>
+          <select 
+            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white outline-none"
+            onChange={(e) => setFormData({...formData, context: e.target.value})}
+          >
+            <option value="resting">Resting</option>
+            <option value="after_exercise">After Exercise</option>
+            <option value="sleeping">During Sleep</option>
+            <option value="high_altitude">High Altitude</option>
+          </select>
+        </div>
+        <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+           <div className="flex items-center gap-2 text-emerald-500 text-[10px] font-bold uppercase tracking-widest mb-1">
+              <Info className="w-3 h-3" /> Target Range
+           </div>
+           <p className="text-xs text-gray-600 dark:text-gray-400">Normal SpO2 is <span className="text-emerald-500 font-bold">95-100%</span>. Below 92% requires immediate medical attention.</p>
         </div>
       </div>
     )},
