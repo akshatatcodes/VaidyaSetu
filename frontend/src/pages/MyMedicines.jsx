@@ -128,7 +128,7 @@ const MyMedicines = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-8 animate-pulse p-4">
+      <div className="max-w-7xl mx-auto w-full pb-20 space-y-8 animate-pulse">
         <div className="h-10 w-64 bg-gray-200 dark:bg-gray-800 rounded-xl" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1,2,3,4].map(i => <div key={i} className="h-48 bg-gray-100 dark:bg-gray-900 rounded-[2.5rem]" />)}
@@ -138,18 +138,18 @@ const MyMedicines = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700 p-4">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-6 md:space-y-10 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">My Medicines</h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium mt-2">Capture, track and get AI-powered insights for your ongoing medications</p>
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">My Medicines</h1>
+          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 font-medium mt-2">Capture, track and get AI-powered insights for your ongoing medications</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full md:w-auto mt-4 md:mt-0">
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={scanning}
-            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-xl disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl disabled:opacity-50"
           >
             {scanning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
             {scanning ? 'Scanning...' : 'Scan Medicine'}
@@ -164,7 +164,7 @@ const MyMedicines = () => {
           />
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-emerald-500/50 transition-all shadow-xl text-gray-500 hover:text-emerald-500"
+            className="w-full sm:w-auto px-6 py-3 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:border-emerald-500/50 transition-all shadow-xl text-gray-500 hover:text-emerald-500"
           >
             <Plus className="w-5 h-5" /> Add Manually
           </button>
@@ -197,17 +197,17 @@ const MyMedicines = () => {
               <div key={med._id} className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] shadow-xl overflow-hidden transition-all hover:border-emerald-500/20">
                 {/* Medicine Header */}
                 <div 
-                  className="p-8 flex items-center justify-between cursor-pointer"
+                  className="p-5 md:p-8 flex items-center justify-between cursor-pointer"
                   onClick={() => getInsight(med)}
                 >
-                  <div className="flex items-center gap-6">
-                    <div className="p-4 bg-emerald-500/10 rounded-2xl">
-                      <Pill className="w-7 h-7 text-emerald-500" />
+                  <div className="flex items-center gap-4 md:gap-6">
+                    <div className="p-3 md:p-4 bg-emerald-500/10 rounded-2xl shrink-0">
+                      <Pill className="w-6 h-6 md:w-7 md:h-7 text-emerald-500" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">{med.name}</h3>
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-                        {med.dosage} &bull; {med.frequency?.replace('_', ' ')} &bull; Added {new Date(med.createdAt).toLocaleDateString()}
+                      <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white tracking-tight">{med.name}</h3>
+                      <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                        {med.dosage} &bull; {med.frequency?.replace('_', ' ')}
                       </p>
                     </div>
                   </div>
@@ -239,36 +239,33 @@ const MyMedicines = () => {
                     ) : insight?.error ? (
                       <div className="p-8 text-center text-red-400 font-bold">Failed to load insights. Try again.</div>
                     ) : insight ? (
-                      <div className="p-8 space-y-8">
+                      <div className="p-5 md:p-8 space-y-6 md:space-y-8">
                         {/* General Use */}
-                        <div className="p-6 bg-blue-500/5 border border-blue-500/10 rounded-2xl space-y-3">
+                        <div className="p-5 md:p-6 bg-blue-500/5 border border-blue-500/10 rounded-2xl space-y-3">
                           <div className="flex items-center gap-3">
                             <Stethoscope className="w-5 h-5 text-blue-500" />
-                            <h4 className="text-sm font-black uppercase tracking-widest text-blue-500">General Use</h4>
+                            <h4 className="text-xs md:text-sm font-black uppercase tracking-widest text-blue-500">General Use</h4>
                           </div>
-                          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{insight.general_use}</p>
-                          {insight.how_it_works && (
-                            <p className="text-xs text-gray-500 italic">{insight.how_it_works}</p>
-                          )}
+                          <p className="text-sm md:text-base text-gray-700 dark:text-gray-300 leading-relaxed">{insight.general_use}</p>
                         </div>
 
                         {/* Allergy & Interaction Alerts */}
                         {(insight.allergy_alert && insight.allergy_alert !== 'None detected') && (
-                          <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl flex items-start gap-4">
-                            <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-1" />
+                          <div className="p-5 md:p-6 bg-red-500/5 border border-red-500/20 rounded-2xl flex items-start gap-3 md:gap-4">
+                            <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-500 shrink-0 mt-1" />
                             <div>
-                              <h4 className="text-sm font-black uppercase tracking-widest text-red-500 mb-2">Allergy Alert</h4>
-                              <p className="text-red-400 text-sm">{insight.allergy_alert}</p>
+                              <h4 className="text-xs md:text-sm font-black uppercase tracking-widest text-red-500 mb-1 md:mb-2">Allergy Alert</h4>
+                              <p className="text-red-400 text-xs md:text-sm">{insight.allergy_alert}</p>
                             </div>
                           </div>
                         )}
 
                         {(insight.drug_interactions && insight.drug_interactions !== 'No known interactions') && (
-                          <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex items-start gap-4">
-                            <ShieldAlert className="w-6 h-6 text-amber-500 shrink-0 mt-1" />
+                          <div className="p-5 md:p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex items-start gap-3 md:gap-4">
+                            <ShieldAlert className="w-5 h-5 md:w-6 md:h-6 text-amber-500 shrink-0 mt-1" />
                             <div>
-                              <h4 className="text-sm font-black uppercase tracking-widest text-amber-500 mb-2">Drug Interactions</h4>
-                              <p className="text-amber-600 dark:text-amber-400 text-sm">{insight.drug_interactions}</p>
+                              <h4 className="text-xs md:text-sm font-black uppercase tracking-widest text-amber-500 mb-1 md:mb-2">Drug Interactions</h4>
+                              <p className="text-amber-600 dark:text-amber-400 text-xs md:text-sm">{insight.drug_interactions}</p>
                             </div>
                           </div>
                         )}
@@ -377,11 +374,11 @@ const MyMedicines = () => {
           </div>
           <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-widest">No Medicines Added</h3>
           <p className="text-gray-500 max-w-sm mx-auto mt-3 font-medium text-lg leading-relaxed">Scan a medicine label or add your ongoing medications manually to get AI-powered insights.</p>
-          <div className="flex gap-4 justify-center mt-8">
-            <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-all flex items-center gap-2 shadow-xl">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 px-8">
+            <button onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto justify-center px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-all flex items-center gap-2 shadow-xl">
               <Camera className="w-5 h-5" /> Scan Medicine
             </button>
-            <button onClick={() => setShowAddModal(true)} className="px-8 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-xl hover:border-emerald-500/50">
+            <button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto justify-center px-8 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-xl hover:border-emerald-500/50">
               <Plus className="w-5 h-5" /> Add Manually
             </button>
           </div>

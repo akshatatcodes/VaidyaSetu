@@ -178,7 +178,7 @@ const HealthProfile = () => {
   const initials = getInitials();
 
   return (
-    <div className="max-w-7xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* ── Toast ── */}
       {toastMessage && (
@@ -242,12 +242,12 @@ const HealthProfile = () => {
             </p>
           </div>
 
-          <div className="flex flex-row md:flex-col gap-3 flex-shrink-0">
-            <button onClick={() => window.print()} className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-300 text-sm font-bold hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest text-[10px]">
+          <div className="flex flex-col gap-3 flex-shrink-0 w-full md:w-auto">
+            <button onClick={() => window.print()} className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-300 text-sm font-bold hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest text-[10px]">
               <Download size={15} /> {t('profile.export_profile', { defaultValue: 'Export Data' })}
             </button>
             <Link to="/profile/edit"
-              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95 uppercase tracking-widest text-[10px]">
+              className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95 uppercase tracking-widest text-[10px]">
               <Edit3 size={15} /> {t('profile.edit_profile', { defaultValue: 'Edit Ledger' })}
             </Link>
           </div>

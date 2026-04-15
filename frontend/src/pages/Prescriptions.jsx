@@ -513,7 +513,7 @@ const Prescriptions = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-0 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in slide-in-from-bottom-6 duration-1000">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-emerald-500 font-bold uppercase tracking-[0.3em] text-[10px] mb-2">
@@ -531,11 +531,11 @@ const Prescriptions = () => {
             className="hidden"
             onChange={(e) => e.target.files[0] && handleSmartScan(e.target.files[0])}
           />
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-start gap-1 w-full md:w-auto">
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={scanning}
-              className="flex-1 md:flex-none px-6 py-3 bg-gray-900/80 backdrop-blur-md border border-gray-800 hover:border-emerald-500/50 hover:bg-gray-800 text-white rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-3 group shadow-xl"
+              className="w-full md:w-auto px-6 py-3 bg-gray-900/80 backdrop-blur-md border border-gray-800 hover:border-emerald-500/50 hover:bg-gray-800 text-white rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-3 group shadow-xl"
             >
               {scanning ? (
                 <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
@@ -551,7 +551,7 @@ const Prescriptions = () => {
           {interactions.length > 0 && (
             <button
               onClick={downloadReport}
-              className="flex-1 md:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.3)] active:scale-95"
+              className="w-full md:w-auto flex-1 md:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.3)] active:scale-95"
             >
               <Download className="w-5 h-5" /> {t('prescriptions.export_report')}
             </button>
@@ -587,9 +587,8 @@ const Prescriptions = () => {
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full h-40 bg-black/20 border border-white/10 group-hover/input:border-emerald-500/40 rounded-3xl p-5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-600 dark:text-gray-300 dark:placeholder:text-gray-500 resize-none font-medium backdrop-blur-md shadow-inner"
+                className="w-full h-40 bg-white/40 dark:bg-black/20 border border-gray-200 dark:border-white/10 group-hover/input:border-emerald-500/40 rounded-3xl p-5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none font-medium backdrop-blur-2xl shadow-inner"
                 placeholder={t('prescriptions.placeholder')}
-              />
               />
               <div className="absolute bottom-4 right-4 text-[9px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest pointer-events-none">
                 {t('prescriptions.manual_overlay')}
@@ -632,7 +631,7 @@ const Prescriptions = () => {
               </p>
               <div className="space-y-3">
                 {candidates.map((cand, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl group hover:border-emerald-500/40 hover:bg-black/60 transition-all cursor-pointer shadow-inner">
+                  <div key={i} className="flex items-center justify-between p-4 bg-white/40 dark:bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl group hover:border-emerald-500/40 hover:bg-black/60 transition-all cursor-pointer shadow-inner">
                     <div className="flex flex-col flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[9px] text-emerald-500 font-bold uppercase">Detected:</span>
@@ -796,7 +795,7 @@ const Prescriptions = () => {
                       <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 bg-black/20 rounded-full">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 bg-white/40 dark:bg-black/20 rounded-full">
                               {item.severity} SEVERITY RISK
                             </span>
 
@@ -843,7 +842,7 @@ const Prescriptions = () => {
                                </button>
                              )}
                           </div>
-                          <div className={`p-4 bg-black/20 backdrop-blur-md rounded-[2rem] border border-white/5 shadow-2xl transition-all ${item.status === 'DANGEROUS' ? 'text-red-500 shadow-red-500/10' : item.status === 'CAUTION' ? 'text-amber-500 shadow-amber-500/10' : 'text-emerald-500 shadow-emerald-500/10'}`}>
+                          <div className={`p-4 bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-white/5 shadow-2xl transition-all ${item.status === 'DANGEROUS' ? 'text-red-500 shadow-red-500/10' : item.status === 'CAUTION' ? 'text-amber-500 shadow-amber-500/10' : 'text-emerald-500 shadow-emerald-500/10'}`}>
                             <AlertCircle className="w-10 h-10" />
                           </div>
                         </div>
@@ -860,11 +859,11 @@ const Prescriptions = () => {
                       )}
 
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                        <div className="bg-black/20 backdrop-blur-md p-6 rounded-[2rem] border border-white/5">
+                        <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md p-6 rounded-[2rem] border border-white/5">
                           <span className="text-[10px] font-black uppercase tracking-widest opacity-40 block mb-3">{t('prescriptions.labels.effect')}</span>
                           <p className="text-sm font-bold leading-relaxed tracking-tight">{item.effect}</p>
                         </div>
-                        <div className="bg-black/20 backdrop-blur-md p-6 rounded-[2rem] border border-white/5">
+                        <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md p-6 rounded-[2rem] border border-white/5">
                           <span className="text-[10px] font-black uppercase tracking-widest opacity-40 block mb-3">{t('prescriptions.labels.recommendation')}</span>
                           <p className="text-sm font-bold leading-relaxed tracking-tight text-white/90">{item.recommendation}</p>
                         </div>
@@ -908,7 +907,7 @@ const Prescriptions = () => {
                       <div className="mt-8 flex flex-col items-center">
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                          className="px-6 py-2 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-all border border-transparent hover:border-white/5"
+                          className="px-6 py-2 bg-white/40 dark:bg-black/10 hover:bg-white/40 dark:bg-black/20 rounded-full flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-all border border-transparent hover:border-white/5"
                         >
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           {isExpanded ? t('prescriptions.hide_evidence') : t('prescriptions.view_evidence')}
@@ -918,7 +917,7 @@ const Prescriptions = () => {
                           <div className="w-full mt-6 pt-6 border-t border-white/10 animate-in slide-in-from-top-4 duration-500 space-y-6">
                             <div>
                               <h5 className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-4">Evidence Contribution</h5>
-                              <div className="bg-black/20 p-6 rounded-[2rem] border border-white/5 leading-relaxed">
+                              <div className="bg-white/40 dark:bg-black/20 p-6 rounded-[2rem] border border-white/5 leading-relaxed">
                                 <p className="text-xs font-medium opacity-80 leading-loose">
                                   This interaction is documented in the <span className="text-emerald-400 font-bold">{item.source}</span> database.
                                   The mechanism involves {item.mechanism.toLowerCase()}.

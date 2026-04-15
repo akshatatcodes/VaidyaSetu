@@ -61,7 +61,7 @@ const AlertSettings = () => {
   </div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-700">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-10 animate-in fade-in duration-700">
       
       <div className="flex justify-between items-end px-4">
         <div>

@@ -104,7 +104,7 @@ const Alerts = () => {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-12 animate-pulse p-4">
+      <div className="max-w-7xl mx-auto w-full pb-20 space-y-12 animate-pulse">
         <div className="h-10 w-64 bg-gray-200 dark:bg-gray-800 rounded-xl" />
         {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-100 dark:bg-gray-900 rounded-[2.5rem]" />)}
       </div>
@@ -139,7 +139,7 @@ const Alerts = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-1000 p-4">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-10 animate-in fade-in duration-1000">
       
       {/* Header (Step 50) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -199,7 +199,7 @@ const Alerts = () => {
       </div>
 
       {/* Triage Tabs (Step 55) */}
-      <div className="flex gap-4 p-1.5 bg-gray-100 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-[2rem] w-max">
+      <div className="flex gap-4 p-1.5 bg-gray-100 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-[2rem] w-full overflow-x-auto scrollbar-hide">
          {[
            { id: 'unread', label: 'Unresolved', count: alerts.filter(a => a.status === 'unread').length },
            { id: 'critical', label: 'Major Alerts', count: alerts.filter(a => a.priority === 'critical' || a.priority === 'high').length },
@@ -207,8 +207,8 @@ const Alerts = () => {
          ].map(tab => (
            <button
              key={tab.id}
-             onClick={() => setActiveTab(tab.id)}
-             className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeTab === tab.id ? 'bg-white dark:bg-gray-800 text-emerald-500 shadow-md' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+             onClick={() => setSelectedAlert(null) || setActiveTab(tab.id)}
+             className={`px-6 md:px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shrink-0 ${activeTab === tab.id ? 'bg-white dark:bg-gray-800 text-emerald-500 shadow-md' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
            >
              {tab.label}
              {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-lg text-[8px] bg-gray-100 dark:bg-gray-900 ${activeTab === tab.id ? 'text-emerald-500' : 'text-gray-600 dark:text-gray-300'}`}>{tab.count}</span>}
@@ -227,7 +227,7 @@ const Alerts = () => {
                 setSelectedAlert(alert);
                 if (alert.status === 'unread') markRead(alert._id);
               }}
-              className={`${style.bg} border p-8 rounded-[2.5rem] relative overflow-hidden group cursor-pointer transition-all hover:scale-[1.01] shadow-xl hover:shadow-${alert.priority === 'critical' ? 'red' : 'emerald'}-500/10`}
+              className={`${style.bg} border p-6 md:p-8 rounded-[2.5rem] relative overflow-hidden group cursor-pointer transition-all hover:scale-[1.01] shadow-xl hover:shadow-${alert.priority === 'critical' ? 'red' : 'emerald'}-500/10`}
             >
               {/* Priority Accent */}
               <div className={`absolute top-0 right-0 w-32 h-32 ${style.bg} blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 opacity-30`} />

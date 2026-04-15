@@ -8,11 +8,18 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Always reset analysis when modal opens with a new vitalType
   useEffect(() => {
-    if (isOpen && vitalType && currentValue && clerkId) {
-      fetchAnalysis();
+    if (isOpen && vitalType) {
+      setAnalysis(null);
+      if (currentValue !== null && currentValue !== undefined && clerkId) {
+        fetchAnalysis();
+      }
     }
-  }, [isOpen, vitalType, currentValue, clerkId]);
+    if (!isOpen) {
+      setAnalysis(null);
+    }
+  }, [isOpen, vitalType]);
 
   const fetchAnalysis = async () => {
     setLoading(true);
@@ -246,6 +253,16 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
                 </div>
               )}
             </>
+          ) : !currentValue ? (
+            <div className="text-center py-12">
+              <Activity className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+              <h3 className="text-lg font-black text-gray-700 dark:text-gray-300 mb-2">
+                No Reading Logged Yet
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                Log a <span className="capitalize font-bold text-emerald-500">{vitalType?.replace(/_/g, ' ')}</span> reading first to see your personalised analysis.
+              </p>
+            </div>
           ) : (
             <div className="text-center py-12">
               <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />

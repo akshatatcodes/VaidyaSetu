@@ -306,24 +306,24 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 py-8 md:py-16">
+    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Integrated Dashboard Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 pb-8 border-b border-slate-100 dark:border-white/5">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.3em] text-[10px] mb-2">
-             <div className="w-8 h-[2px] bg-emerald-500/30" />
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-8 md:mb-16 pb-6 md:pb-8 border-b border-slate-100 dark:border-white/5">
+        <div className="space-y-2 md:space-y-3">
+          <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.3em] text-[10px] mb-1 md:mb-2">
+             <div className="w-6 md:w-8 h-[2px] bg-emerald-500/30" />
              {t('dashboard.title')}
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.9]">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter leading-[1.1] md:leading-[0.9]">
             {t('dashboard.welcome')}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">{getProfileVal('name') || user?.firstName || 'User'}</span>
           </h1>
-          <p className="text-slate-500 dark:text-gray-400 font-medium text-lg max-w-2xl leading-relaxed">
+          <p className="text-slate-500 dark:text-gray-400 font-medium text-base md:text-lg max-w-2xl leading-relaxed">
             {t('dashboard.matrix_updated')} {report?.createdAt ? new Date(report.createdAt).toLocaleDateString('en-GB') : 'N/A'}. 
             {scoresAsOf && <span className="text-emerald-600 dark:text-emerald-400 ml-1">{t('dashboard.live_refresh')}</span>}
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 w-full md:w-auto">
           <button
             type="button"
             onClick={() => {
@@ -333,14 +333,14 @@ const Dashboard = () => {
                 setTimeout(() => setToast(null), 3000);
               });
             }}
-            className="group flex items-center gap-2 px-6 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-xl shadow-slate-200/20 active:scale-95 active:shadow-none"
+            className="group flex w-full sm:w-auto justify-center items-center gap-2 px-6 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-xl shadow-slate-200/20 active:scale-95 active:shadow-none"
           >
             <RefreshCw className={`w-4 h-4 text-emerald-500 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
             {t('dashboard.refresh_scan')}
           </button>
           <button 
             onClick={handleExport} 
-            className="flex items-center gap-2 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-500 transition-all shadow-[0_10px_30px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.4)] hover:-translate-y-1 active:scale-95 active:shadow-none"
+            className="flex w-full sm:w-auto justify-center items-center gap-2 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-500 transition-all shadow-[0_10px_30px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.4)] hover:-translate-y-1 active:scale-95 active:shadow-none"
           >
              <Download className="w-5 h-5" /> {t('dashboard.export_insights')}
           </button>
@@ -352,12 +352,12 @@ const Dashboard = () => {
         <div className="lg:col-span-8 space-y-10">
           
           {/* AI Executive Summary */}
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] relative overflow-hidden transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] group hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:border-emerald-500/30">
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-5 md:p-6 rounded-[2rem] relative overflow-hidden transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] group hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:border-emerald-500/30">
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 dark:bg-emerald-500/20 blur-[80px] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150" />
-            <h2 className="text-emerald-700 dark:text-emerald-400 font-extrabold mb-3 flex items-center uppercase tracking-widest text-xs">
+            <h2 className="text-emerald-700 dark:text-emerald-400 font-extrabold mb-3 flex items-center uppercase tracking-widest text-[10px] md:text-xs">
                <Cpu className="w-5 h-5 mr-2" /> {t('dashboard.ai_perspective')}
             </h2>
-            <p className="text-slate-800 dark:text-gray-200 text-lg leading-relaxed relative z-10 font-semibold">{report?.summary || t('dashboard.report_missing')}</p>
+            <p className="text-slate-800 dark:text-gray-200 text-base md:text-lg leading-relaxed relative z-10 font-semibold">{report?.summary || t('dashboard.report_missing')}</p>
           </div>
 
           <div className="space-y-6">
@@ -485,14 +485,14 @@ const Dashboard = () => {
         {/* Right Column - Secondary Data */}
         <div className="lg:col-span-4 space-y-6">
            {/* 3D Holographic Bio-Matrix Card */}
-           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] min-h-[520px] relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:-translate-y-1">
+           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] min-h-[400px] md:min-h-[520px] relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:-translate-y-1">
                {/* Background Grid and Atmosphere */}
                <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50 dark:opacity-100" />
                <h3 className="absolute top-6 left-6 text-emerald-700/80 dark:text-emerald-400/40 text-[11px] font-black uppercase tracking-[0.3em] flex items-center z-20">
                   <Scan className="w-4 h-4 mr-2" /> {t('dashboard.bio_matrix')}
                </h3>
                
-               <div className="w-full h-[520px] relative z-10 flex items-center justify-center">
+               <div className="w-full h-[400px] md:h-[520px] relative z-10 flex items-center justify-center">
                   <BodyScan3D 
                     riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map(v => Number(v) || 0))} 
                   />

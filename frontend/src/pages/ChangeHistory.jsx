@@ -142,7 +142,7 @@ tbody tr{border-bottom:1px solid #f0f0f0}
   );
 
   return (
-    <div className="max-w-7xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* ── HEADER ── */}
       <div className="relative rounded-[2rem] overflow-hidden mb-8 border border-white/8 p-8"

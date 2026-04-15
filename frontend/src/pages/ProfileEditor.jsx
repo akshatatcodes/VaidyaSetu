@@ -288,7 +288,7 @@ const ProfileEditor = () => {
   }).length;
 
   return (
-    <div className="max-w-3xl mx-auto pb-24 px-4 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in duration-500">
 
       {/* ── HEADER ── */}
       <div className="relative rounded-[2rem] overflow-hidden mb-8 border border-white/8 p-7 md:p-8"
