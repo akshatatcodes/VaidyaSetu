@@ -71,10 +71,13 @@ function calculateDetailedInsights(profile, diseaseId) {
     // Evaluate Global Emergency Conditions (Step 58)
     const emergencyAlerts = calculateEmergencyAlerts(profile);
     
-    let score = 0;
     let factors = [];
     let protective = [];
     let missingFactors = [];
+
+    // Allergy & Medication Data - normalized for all diseases
+    const allergies = getVal(profile.allergies) || [];
+    const activeMeds = getVal(profile.activeMedications) || [];
 
     const specialistMap = {
         diabetes: 'Endocrinologist',
@@ -183,22 +186,20 @@ function calculateDetailedInsights(profile, diseaseId) {
             score = idrs; // Overwrite baseline with validated score
             
             // Allergy & Medication Impact (Applied to all diseases)
-            const allergies = profile.allergies?.value || profile.allergies || [];
-            const activeMeds = profile.activeMedications?.value || profile.activeMedications || [];
-            
             if (allergies.length > 0) {
-                const relevantAllergies = allergies.filter(a => 
-                    a.toLowerCase().includes('medication') || 
-                    a.toLowerCase().includes('drug') ||
-                    a.toLowerCase().includes('insulin') ||
-                    a.toLowerCase().includes('metformin')
-                );
+                const relevantAllergies = allergies.filter(a => {
+                    const val = typeof a === 'string' ? a : (a?.name || '');
+                    return val.toLowerCase().includes('medication') || 
+                           val.toLowerCase().includes('drug') ||
+                           val.toLowerCase().includes('insulin') ||
+                           val.toLowerCase().includes('metformin');
+                });
                 if (relevantAllergies.length > 0) {
                     score += 10;
                     factors.push({ 
                         id: 'diabetes_allergies', 
                         name: 'Medication Allergies', 
-                        displayValue: relevantAllergies.join(', '), 
+                        displayValue: relevantAllergies.map(a => typeof a === 'string' ? a : a.name).join(', '), 
                         impact: 10, 
                         direction: 'increase',
                         category: 'clinical', 
@@ -208,11 +209,10 @@ function calculateDetailedInsights(profile, diseaseId) {
             }
             
             if (activeMeds.length > 0) {
-                const diabetesMeds = activeMeds.filter(m => 
-                    m.name?.toLowerCase().includes('metformin') || 
-                    m.name?.toLowerCase().includes('insulin') ||
-                    m.name?.toLowerCase().includes('glucose')
-                );
+                const diabetesMeds = activeMeds.filter(m => {
+                    const n = (m.name || '').toLowerCase();
+                    return n.includes('metformin') || n.includes('insulin') || n.includes('glucose') || n.includes('glycomet') || n.includes('januvia');
+                });
                 if (diabetesMeds.length > 0) {
                     score -= 15; // Already being treated
                     factors.push({ 
@@ -546,15 +546,28 @@ function calculateDetailedInsights(profile, diseaseId) {
 
         case 'thyroid':
             // STEP 13: LIKELIHOOD RATIO MODEL
-            let p = baseline / 100;
-            let odds = p / (1 - p);
-            if (profile.fatiguePersistent?.value) odds *= 1.5;
-            if (profile.weightChangeUnexplained?.value) odds *= 2.0;
-            if (profile.coldIntolerance?.value) odds *= 2.5;
-            if (profile.drySkinHairLoss?.value) odds *= 1.8;
-            score = (odds / (1 + odds)) * 100;
-            score = Math.min(80, score);
-            if (profile.fatiguePersistent?.value) factors.push({ id: 'lr_fatigue', name: 'Persistent Fatigue', impact: 15, direction: 'increase', category: 'symptom', explanation: 'Strong indicator of metabolic slowdown.' });
+            let thyP = baseline / 100;
+            let thyOdds = thyP / (1 - thyP);
+            const fatigue = getVal(profile.fatiguePersistent) || getVal(profile.weightChangeUnexplained);
+            if (fatigue) thyOdds *= 1.5;
+            if (getVal(profile.coldIntolerance)) thyOdds *= 2.0;
+            if (getVal(profile.drySkinHairLoss)) thyOdds *= 1.8;
+            
+            score = (thyOdds / (1 + thyOdds)) * 100;
+            
+            // Medication adjustment for Thyroid
+            if (activeMeds.length > 0) {
+                const thyMeds = activeMeds.filter(m => {
+                    const n = (m.name || '').toLowerCase();
+                    return n.includes('thyronorm') || n.includes('eltroxin') || n.includes('thyroxine') || n.includes('thyronyl');
+                });
+                if (thyMeds.length > 0) {
+                    score -= 20;
+                    factors.push({ id: 'thyroid_meds', name: 'Thyroid Medication', displayValue: thyMeds.map(m => m.name).join(', '), impact: 20, direction: 'decrease', category: 'clinical', explanation: 'Condition is being managed with hormone replacement therapy.' });
+                }
+            }
+            
+            score = Math.min(85, score);
             break;
 
         case 'anemia':
@@ -569,8 +582,33 @@ function calculateDetailedInsights(profile, diseaseId) {
             break;
 
         case 'asthma':
-            if (profile.wheezing?.value) addFactor('wheeze', 'Wheezing', 'Yes', 30, 'increase', 'Clinical hallmark of asthma.', 'symptom');
-            if (profile.highPollutionArea?.value) addFactor('pollution', 'Pollution Expo', 'Yes', 10, 'increase', 'Triggers airway inflammation.', 'lifestyle');
+            if (getVal(profile.wheezing)) addFactor('wheeze', 'Wheezing', 'Yes', 30, 'increase', 'Clinical hallmark of asthma.', 'symptom');
+            if (getVal(profile.highPollutionArea)) addFactor('pollution', 'Pollution Expo', 'Yes', 10, 'increase', 'Triggers airway inflammation.', 'lifestyle');
+            
+            // Respiratory / Asthma Meds (Inhalers)
+            if (activeMeds.length > 0) {
+                const inhalers = activeMeds.filter(m => {
+                    const n = (m.name || '').toLowerCase();
+                    return n.includes('inhaler') || n.includes('asthelin') || n.includes('seroflo') || n.includes('foracort') || n.includes('duolin');
+                });
+                if (inhalers.length > 0) {
+                    score -= 15;
+                    factors.push({ id: 'asthma_meds', name: 'Active Respi-Care', displayValue: inhalers.map(m => m.name).join(', '), impact: 15, direction: 'decrease', category: 'clinical', explanation: 'Using inhalers/medication helps control airway hyper-responsiveness.' });
+                }
+            }
+            
+            // Respiratory Allergies
+            if (allergies.length > 0) {
+                const respAllergies = allergies.filter(a => {
+                    const val = (typeof a === 'string' ? a : (a?.name || '')).toLowerCase();
+                    return val.includes('dust') || val.includes('pollen') || val.includes('smoke') || val.includes('pet');
+                });
+                if (respAllergies.length > 0) {
+                    score += 15;
+                    factors.push({ id: 'asthma_allergies', name: 'Environmental Triggers', displayValue: respAllergies.map(a => typeof a === 'string' ? a : a.name).join(', '), impact: 15, direction: 'increase', category: 'clinical', explanation: 'Sensitivities to environmental allergens significantly elevate asthma flare risk.' });
+                }
+            }
+
             if (bmi < 25) addProtective('normal_bmi', 'Healthy BMI', bmi, 10, 'Protects against respiratory strain.');
             break;
 
@@ -593,12 +631,33 @@ function calculateDetailedInsights(profile, diseaseId) {
             if (depScreen && intScreen) score = 70;
             break;
 
+        case 'heart_disease':
+            let heartScore = baseline + 10;
+            if (age > 50) heartScore += 15;
+            if (bmi > 27.5) heartScore += 12;
+            if (getVal(profile.chestPainActivity)) heartScore += 25;
+            if (getVal(profile.isSmoker)) heartScore += 15;
+            
+            // Heart Medications
+            if (activeMeds.length > 0) {
+                const heartMeds = activeMeds.filter(m => {
+                    const n = (m.name || '').toLowerCase();
+                    return n.includes('statin') || n.includes('aspirin') || n.includes('ecosprin') || n.includes('atorvastatin') || n.includes('rosuvastatin') || n.includes('clopidogrel');
+                });
+                if (heartMeds.length > 0) {
+                    heartScore -= 15;
+                    factors.push({ id: 'heart_meds', name: 'Heart Management Meds', displayValue: heartMeds.map(m => m.name).join(', '), impact: 15, direction: 'decrease', category: 'clinical', explanation: 'Using statins/blood thinners significantly reduces the risk of cardiovascular events.' });
+                }
+            }
+            score = heartScore;
+            break;
+
         case 'pcos':
             if (!isFemale) {
                 score = -1;
             } else {
-                if (profile.menstrualCycleIrregular?.value) addFactor('cycle', 'Irregular Periods', 'Yes', 30, 'increase', 'Common hormonal imbalance symptom.', 'symptom');
-                if (profile.facialBodyHairExcess?.value) addFactor('hirsutism', 'Excess Hair Growth', 'Yes', 20, 'increase', 'Indicator of high androgen levels.', 'symptom');
+                if (getVal(profile.menstrualCycleIrregular)) addFactor('cycle', 'Irregular Periods', 'Yes', 30, 'increase', 'Common hormonal imbalance symptom.', 'symptom');
+                if (getVal(profile.facialBodyHairExcess)) addFactor('hirsutism', 'Excess Hair Growth', 'Yes', 20, 'increase', 'Indicator of high androgen levels.', 'symptom');
             }
             break;
 
