@@ -260,11 +260,11 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                       </div>
                       <input type="file" accept="application/pdf,image/*" className="hidden" onChange={handleFileUpload} />
                    </label>
-                </div>
+                  )}
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         <div className="p-8 bg-gray-50 dark:bg-gray-950/50 border-t border-gray-100 dark:border-gray-800">
            {showExtraction ? (
