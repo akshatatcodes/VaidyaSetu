@@ -51,18 +51,29 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="vs-sidebar flex flex-col w-full md:w-64 h-auto md:h-screen sticky top-0 px-4 py-4 md:py-8 bg-white dark:bg-gray-900 border-b md:border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 shrink-0 z-50 transition-colors duration-300">
+    <div 
+      className="vs-sidebar flex flex-col w-full md:w-72 h-auto md:h-screen sticky top-0 px-5 py-6 md:py-10 backdrop-blur-3xl border-b md:border-r text-slate-700 dark:text-gray-300 shrink-0 z-50 transition-all duration-500 relative"
+      style={theme === 'dark' ? {
+        background: 'rgba(5, 11, 20, 0.4)',
+        borderColor: 'rgba(255,255,255,0.05)',
+        boxShadow: '4px 0 24px rgba(0,0,0,0.2)'
+      } : {
+        background: 'linear-gradient(170deg, #ffffff 0%, #f0f9ff 55%, #f0fdf4 100%)',
+        borderColor: 'rgba(16, 185, 129, 0.18)',
+        boxShadow: '4px 0 40px rgba(16,185,129,0.1), 2px 0 12px rgba(59,130,246,0.06)'
+      }}
+    >
 
-      <div className="flex items-center justify-between md:justify-center mb-4 md:mb-10">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-          Vaidya<span className="text-emerald-500">Setu</span>
+      <div className="flex items-center justify-between md:justify-center mb-6 md:mb-12 relative z-10">
+        <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 drop-shadow-sm">
+          Vaidya<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Setu</span>
         </h2>
         
         {/* Mobile Header Auth Controls */}
         <div className="block md:hidden">
             <SignedIn>
                 <div className="flex items-center space-x-4">
-                  <Link to="/profile" className="text-gray-500 dark:text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
+                  <Link to="/profile" className="text-slate-600 dark:text-gray-400 hover:text-emerald-600 transition-colors" title="My Health Profile">
                     <UserCircle className="w-5 h-5" />
                   </Link>
                   <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8" } }} />
@@ -84,10 +95,10 @@ const Sidebar = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex whitespace-nowrap items-center px-4 py-2 md:py-3 rounded-xl transition-all duration-200 relative ${
+                `flex whitespace-nowrap items-center px-4 py-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
                   isActive
-                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-gray-800/50 active-link'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-gray-800/30'
+                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-500/10 active-link shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_4px_12px_rgba(16,185,129,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-emerald-100 dark:border-emerald-500/20 font-bold'
+                    : 'text-slate-700 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50/30 dark:hover:bg-white/5 hover:border-emerald-100/30 dark:hover:border-white/5 border border-transparent font-medium hover:shadow-[0_2px_10px_rgba(16,185,129,0.04)]'
                 }`
               }
             >
@@ -103,21 +114,21 @@ const Sidebar = () => {
         </nav>
 
         {/* Desktop Footer Auth Controls */}
-        <div className="hidden md:block space-y-4 pt-6 mt-auto">
+        <div className="hidden md:block space-y-4 pt-6 mt-auto border-t border-gray-200/50 dark:border-white/5 relative z-10">
           <SignedIn>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
+            <div className="space-y-2 group">
+              <div className="flex items-center justify-between px-4 py-3 bg-white/40 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5 backdrop-blur-md transition-all duration-300 hover:shadow-lg hover:border-emerald-500/30">
                 <UserButton 
                   showName 
                   appearance={{ 
                     elements: { 
                       userButtonAvatarBox: "w-8 h-8", 
                       userButtonBox: "flex-row-reverse",
-                      userButtonOuterIdentifier: "text-gray-700 dark:text-gray-300 font-medium" 
+                      userButtonOuterIdentifier: "text-slate-800 dark:text-gray-300 font-bold" 
                     } 
                   }} 
                 />
-                <Link to="/profile" className="text-gray-500 dark:text-gray-400 hover:text-emerald-500 transition-colors" title="My Health Profile">
+                <Link to="/profile" className="text-slate-600 dark:text-gray-400 hover:text-emerald-600 transition-colors" title="My Health Profile">
                   <UserCircle className="w-5 h-5" />
                 </Link>
               </div>

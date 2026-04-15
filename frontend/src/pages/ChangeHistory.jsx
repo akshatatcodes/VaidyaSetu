@@ -90,7 +90,7 @@ const ChangeHistory = () => {
       case 'real_change': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
       case 'initial': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
       case 'sync': return 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20';
-      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+      default: return 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20';
     }
   };
 
@@ -98,7 +98,7 @@ const ChangeHistory = () => {
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <Link to="/profile" className="flex items-center text-sm text-gray-400 hover:text-emerald-500 transition-colors mb-2">
+          <Link to="/profile" className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 transition-colors mb-2">
             <ArrowLeft size={16} className="mr-1" /> Back to Profile
           </Link>
           <h1 className="text-3xl font-bold text-white tracking-tight">
@@ -120,13 +120,13 @@ const ChangeHistory = () => {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-xl font-semibold text-white">Weight Journey</h2>
-              <p className="text-gray-400 text-sm">Visualizing real changes vs. data corrections</p>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">Visualizing real changes vs. data corrections</p>
             </div>
             <div className="flex items-center space-x-4 text-xs">
-               <div className="flex items-center text-gray-400">
+               <div className="flex items-center text-gray-600 dark:text-gray-300">
                  <div className="w-3 h-3 bg-emerald-500 rounded-full mr-2"></div> Real Change
                </div>
-               <div className="flex items-center text-gray-400">
+               <div className="flex items-center text-gray-600 dark:text-gray-300">
                  <div className="w-3 h-3 bg-amber-500 rounded-full mr-2"></div> Correction
                </div>
             </div>
@@ -163,7 +163,7 @@ const ChangeHistory = () => {
                  key={type}
                  onClick={() => setFilter(type)}
                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                   filter === type ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-200'
+                   filter === type ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-600 dark:text-gray-300 hover:text-gray-200'
                  }`}
                >
                  {type.replace('_', ' ').toUpperCase()}
@@ -175,7 +175,7 @@ const ChangeHistory = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-gray-900/30 text-gray-400 text-xs font-bold uppercase tracking-widest">
+              <tr className="bg-gray-900/30 text-gray-600 dark:text-gray-300 text-xs font-bold uppercase tracking-widest">
                 <th className="px-6 py-4">Field</th>
                 <th className="px-6 py-4">Change</th>
                 <th className="px-6 py-4">Type</th>
@@ -198,7 +198,7 @@ const ChangeHistory = () => {
                   <td className="px-6 py-5">
                     <div className="flex flex-col space-y-1 text-sm text-gray-300">
                       {item.oldValue != null && (
-                         <span className="text-gray-500 line-through opacity-50 text-xs">
+                         <span className="text-gray-700 dark:text-gray-300 line-through opacity-50 text-xs">
                            {Array.isArray(item.oldValue) ? item.oldValue.join(', ') : String(item.oldValue)}
                          </span>
                       )}
@@ -212,7 +212,7 @@ const ChangeHistory = () => {
                       <div className="flex gap-2">
                          <button onClick={() => handleReclassify(item._id, 'correction')} disabled={updating} className="px-2 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-bold rounded hover:bg-amber-500 hover:text-white transition-colors">CORRECTION</button>
                          <button onClick={() => handleReclassify(item._id, 'real_change')} disabled={updating} className="px-2 py-1 bg-emerald-500/20 text-emerald-500 text-[10px] font-bold rounded hover:bg-emerald-500 hover:text-white transition-colors">REAL CHANGE</button>
-                         <button onClick={() => setEditingId(null)} className="px-2 py-1 text-gray-400 hover:text-white"><X size={14} /></button>
+                         <button onClick={() => setEditingId(null)} className="px-2 py-1 text-gray-600 dark:text-gray-300 hover:text-white"><X size={14} /></button>
                       </div>
                     ) : (
                       <div className="flex items-center group/edit cursor-pointer" onClick={() => setEditingId(item._id)}>
@@ -224,18 +224,18 @@ const ChangeHistory = () => {
                     )}
                   </td>
                   <td className="px-6 py-5">
-                    <p className="text-sm text-gray-400 max-w-[200px] truncate" title={item.notes || item.intent}>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 max-w-[200px] truncate" title={item.notes || item.intent}>
                       {item.notes || item.intent || '—'}
                     </p>
                   </td>
                   <td className="px-6 py-5">
                     <div className="text-sm">
                        <p className="text-white font-medium">{new Date(item.timestamp).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
-                       <p className="text-gray-500 text-[10px]">{new Date(item.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</p>
+                       <p className="text-gray-700 dark:text-gray-300 text-[10px]">{new Date(item.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <div className="flex items-center text-xs text-gray-400">
+                    <div className="flex items-center text-xs text-gray-600 dark:text-gray-300">
                        {item.source === 'user' ? <User size={12} className="mr-1" /> : <Calculator size={12} className="mr-1" />}
                        <span className="capitalize">{item.source}</span>
                     </div>
@@ -243,7 +243,7 @@ const ChangeHistory = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500 italic text-sm">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-700 dark:text-gray-300 italic text-sm">
                      No history entries found for the selected filter.
                   </td>
                 </tr>

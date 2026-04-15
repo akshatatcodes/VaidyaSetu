@@ -11,13 +11,13 @@ const CustomTooltip = ({ active, payload, label, unit }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
-        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">{new Date(label).toLocaleDateString()}</p>
+        <p className="text-[10px] text-gray-600 dark:text-gray-300 font-black uppercase tracking-widest mb-1">{new Date(label).toLocaleDateString()}</p>
         <div className="space-y-1">
           {payload.map((p, i) => (
             <div key={i} className="flex items-center justify-between gap-4">
-              <span className="text-xs font-bold text-gray-500">{p.name}:</span>
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{p.name}:</span>
               <span className={`text-sm font-black ${p.color ? '' : 'text-emerald-500'}`} style={{ color: p.color }}>
-                {p.value} <span className="text-[10px] text-gray-400">{unit}</span>
+                {p.value} <span className="text-[10px] text-gray-600 dark:text-gray-300">{unit}</span>
               </span>
             </div>
           ))}

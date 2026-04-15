@@ -15,7 +15,7 @@ const Step5Respiratory = () => {
         <h2 className="text-xl font-bold text-white flex items-center">
           <Wind className="w-5 h-5 mr-3 text-blue-400" /> Respiratory & Environment
         </h2>
-        <p className="text-gray-400 text-sm">Help us assess risks from air quality and environmental factors.</p>
+        <p className="text-gray-600 dark:text-gray-300 text-sm">Help us assess risks from air quality and environmental factors.</p>
       </div>
 
       <div className="grid gap-4">
@@ -36,12 +36,12 @@ const Step5Respiratory = () => {
                 : 'bg-gray-950/50 border-gray-800 hover:border-gray-700'
             }`}
           >
-            <div className={`p-2 rounded-xl mr-4 ${formData[item.id] ? 'bg-blue-500 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            <div className={`p-2 rounded-xl mr-4 ${formData[item.id] ? 'bg-blue-500 text-white' : 'bg-gray-800 text-gray-700 dark:text-gray-300'}`}>
               <item.icon className="w-5 h-5" />
             </div>
             <div>
               <div className={`font-bold text-sm ${formData[item.id] ? 'text-blue-400' : 'text-gray-200'}`}>{item.label}</div>
-              <div className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{item.desc}</div>
+              <div className="text-[10px] text-gray-700 dark:text-gray-300 mt-0.5 leading-relaxed">{item.desc}</div>
             </div>
           </button>
         ))}

@@ -90,7 +90,7 @@ const Step7History = () => {
           <ShieldCheck className="w-10 h-10 text-emerald-500" />
         </div>
         <h2 className="text-2xl font-bold text-white mb-2 text-center">Ecosystem Activated</h2>
-        <p className="text-gray-400 text-center">Redirecting you to your health bridge...</p>
+        <p className="text-gray-600 dark:text-gray-300 text-center">Redirecting you to your health bridge...</p>
       </div>
     );
   }
@@ -154,7 +154,7 @@ const Step7History = () => {
         <h2 className="text-xl font-bold text-white flex items-center">
           <ShieldCheck className="w-5 h-5 mr-3 text-emerald-400" /> Final Assessment
         </h2>
-        <p className="text-gray-400 text-sm">One last step to build your complete health matrix.</p>
+        <p className="text-gray-600 dark:text-gray-300 text-sm">One last step to build your complete health matrix.</p>
       </div>
 
       {/* Advanced Screening Sections */}
@@ -174,7 +174,7 @@ const Step7History = () => {
                 key={item.id}
                 onClick={() => handleToggle(item.id)}
                 className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
-                  formData?.[item.id] ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                  formData?.[item.id] ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-700 dark:text-gray-300'
                 }`}
               >
                 {item.label}
@@ -201,7 +201,7 @@ const Step7History = () => {
                 key={item.id}
                 onClick={() => handleToggle(item.id)}
                 className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
-                  formData?.[item.id] ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                  formData?.[item.id] ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-700 dark:text-gray-300'
                 }`}
               >
                 {item.label}
@@ -218,7 +218,7 @@ const Step7History = () => {
 
       {/* Allergies (Original) */}
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Allergies</label>
+        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300 mb-3">Allergies</label>
         <CreatableSelect
           isMulti
           options={ALLERGY_OPTIONS}
@@ -231,7 +231,7 @@ const Step7History = () => {
 
       {/* Medical History (Original) */}
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Clinical Diagnosis History</label>
+        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300 mb-3">Clinical Diagnosis History</label>
         <div className="flex flex-wrap gap-2">
           {CONDITION_OPTIONS.map((condition) => {
             const isSelected = (formData.medicalHistory || []).includes(condition);
@@ -240,7 +240,7 @@ const Step7History = () => {
                 key={condition}
                 onClick={() => toggleCondition(condition)}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
-                  isSelected ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-gray-950 border-gray-800 text-gray-500'
+                  isSelected ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-gray-950 border-gray-800 text-gray-700 dark:text-gray-300'
                 }`}
               >
                 {condition}
@@ -251,7 +251,7 @@ const Step7History = () => {
       </div>
 
       <div className="flex gap-4 pt-8">
-        <button onClick={() => setStep(6)} className="flex-1 py-4 bg-gray-950 border border-gray-800 text-gray-400 font-bold rounded-2xl hover:bg-gray-900 transition-all flex items-center justify-center group">
+        <button onClick={() => setStep(6)} className="flex-1 py-4 bg-gray-950 border border-gray-800 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-900 transition-all flex items-center justify-center group">
           <ChevronLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" /> Back
         </button>
         <button onClick={handleSubmit} disabled={loading} className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-2xl transition-all flex items-center justify-center group shadow-lg shadow-emerald-500/20 border border-emerald-400/20">

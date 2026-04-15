@@ -57,7 +57,7 @@ const AlertSettings = () => {
       <div className="flex justify-between items-end px-4">
         <div>
           <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Security Preferences</h2>
-          <p className="text-sm text-gray-500 font-medium">Configure clinical alert delivery and biometric thresholds</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Configure clinical alert delivery and biometric thresholds</p>
         </div>
         <button 
           onClick={handleSave}
@@ -78,7 +78,7 @@ const AlertSettings = () => {
               </div>
               <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-widest">Delivery Matrix</h3>
            </div>
-           <div className="flex gap-8 text-[9px] font-black text-gray-400 uppercase tracking-widest px-4">
+           <div className="flex gap-8 text-[9px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest px-4">
               <span className="w-16 text-center">In-App</span>
               <span className="w-16 text-center">Browser</span>
               <span className="w-16 text-center">Email</span>
@@ -90,7 +90,7 @@ const AlertSettings = () => {
              <div key={p.alertType} className="p-8 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-900/20 transition-colors">
                 <div className="space-y-1">
                    <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tighter">{p.alertType.replace(/_/g, ' ')}</h4>
-                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Protocol Type: {p.alertType.split('_')[0]}</p>
+                   <p className="text-[10px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest">Protocol Type: {p.alertType.split('_')[0]}</p>
                 </div>
                 <div className="flex gap-8">
                    <label className="w-16 flex justify-center cursor-pointer">
@@ -128,7 +128,7 @@ const AlertSettings = () => {
             </div>
             <div className="space-y-6">
                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Enable Quiet Hours</span>
+                  <span className="text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest">Enable Quiet Hours</span>
                   <label className="cursor-pointer">
                      <input type="checkbox" checked={prefs.quietHours.enabled} onChange={() => setPrefs({...prefs, quietHours: {...prefs.quietHours, enabled: !prefs.quietHours.enabled}})} className="hidden" />
                      <div className={`w-12 h-7 rounded-full p-1 transition-all ${prefs.quietHours.enabled ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-gray-800'}`}>
@@ -138,11 +138,11 @@ const AlertSettings = () => {
                </div>
                <div className="grid grid-cols-2 gap-4">
                   <div>
-                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Start Transmission</label>
+                     <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2">Start Transmission</label>
                      <input type="time" value={prefs.quietHours.start} onChange={(e) => setPrefs({...prefs, quietHours: {...prefs.quietHours, start: e.target.value}})} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-3 text-xs outline-none" />
                   </div>
                   <div>
-                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">End Transmission</label>
+                     <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2">End Transmission</label>
                      <input type="time" value={prefs.quietHours.end} onChange={(e) => setPrefs({...prefs, quietHours: {...prefs.quietHours, end: e.target.value}})} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-3 text-xs outline-none" />
                   </div>
                </div>
@@ -158,17 +158,17 @@ const AlertSettings = () => {
             </div>
             <div className="space-y-4">
                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
-                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">High BP Systolic</span>
+                  <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest">High BP Systolic</span>
                   <div className="flex items-center gap-3">
                      <input type="number" value={prefs.customThresholds.systolicBP.high || 140} className="w-16 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-2 text-xs text-center font-bold" />
-                     <span className="text-[9px] font-bold text-gray-400">mmHg</span>
+                     <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300">mmHg</span>
                   </div>
                </div>
                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
-                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Low SpO2 Critical</span>
+                  <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest">Low SpO2 Critical</span>
                   <div className="flex items-center gap-3">
                      <input type="number" value={prefs.customThresholds.spo2.low || 90} className="w-16 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-2 text-xs text-center font-bold" />
-                     <span className="text-[9px] font-bold text-gray-400">%</span>
+                     <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300">%</span>
                   </div>
                </div>
             </div>

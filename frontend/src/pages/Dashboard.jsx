@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
-import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText } from 'lucide-react';
+import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText, HeartPulse, Scan, ThumbsUp, ThumbsDown } from 'lucide-react';
 import BodyScan3D from '../components/BodyScan3D';
 import DiseaseCard from '../components/disease-cards/DiseaseCard';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -174,6 +174,48 @@ const Dashboard = () => {
     }
   };
 
+  const syncGoogleFit = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setSyncing(true);
+      try {
+        const res = await axios.post(`${API_URL}/fitness/steps`, { 
+          clerkId: user.id, 
+          accessToken: tokenResponse.access_token 
+        });
+        if (res.data.status === 'success') fetchData();
+      } catch (err) {
+        console.error("Fitness sync failed:", err);
+      } finally {
+        setSyncing(false);
+      }
+    },
+    scope: 'https://www.googleapis.com/auth/fitness.activity.read'
+  });
+
+  const handleFeedback = async (context, rating, query, response) => {
+    setFeedbackStatus(prev => ({...prev, [context]: true}));
+    try {
+      await axios.post(`${API_URL}/feedback`, { clerkId: user.id, context, rating, query, response });
+    } catch (err) {
+      console.error("Feedback failed:", err);
+    }
+  };
+
+  const getProfileVal = (field) => {
+    const val = report?.userProfile?.[field];
+    if (val && typeof val === 'object' && val.value !== undefined) return val.value;
+    return val;
+  };
+
+  const getRiskColor = (score) => {
+    if (score === -1) return '#6b7280'; // Gray for N/A
+    if (score >= 70) return '#ef4444'; // Red
+    if (score >= 40) return '#f59e0b'; // Amber
+    return '#10b981'; // Emerald
+  };
+
+  const stepCount = getProfileVal('steps') || 0;
+
   const handleExport = async () => {
     try {
       const [profileRes] = await Promise.all([
@@ -200,9 +242,9 @@ const Dashboard = () => {
          <div className="w-48 h-48 mb-8 opacity-80 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-full border-4 border-emerald-500/10 dark:border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
             <Cpu className="w-24 h-24 text-emerald-500 animate-pulse" />
          </div>
-         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Profile Synchronization Complete</h1>
-         <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
-            Your biometric baseline is ready. Activate the VaidyaSetu AI core to generate your personalized health matrix.
+         <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">Profile Synchronization Complete</h1>
+         <p className="text-slate-600 dark:text-gray-400 mb-8 text-lg font-medium">
+           Your biometric baseline is ready. Proceed to activate the VaidyaSetu AI core and generate your personalized health matrix.
          </p>
          <button onClick={generateReport} disabled={generating} className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-all disabled:opacity-50 flex items-center shadow-[0_0_20px_rgba(16,185,129,0.3)]">
            {generating ? <><RefreshCw className="w-5 h-5 mr-3 animate-spin" /> Analyzing...</> : <><Activity className="w-5 h-5 mr-3" /> Initiate Predictive Scan</>}
@@ -216,11 +258,11 @@ const Dashboard = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
         <div>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter mb-3">
-            Health Ecosystem
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+            Welcome, {getProfileVal('name') || user?.fullName || 'User'}
           </h1>
-          <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-            Analysis completed on {report?.createdAt ? new Date(report.createdAt).toLocaleDateString('en-GB') : 'N/A'}
+          <p className="text-slate-600 dark:text-gray-400 font-medium">
+            Health Ecosystem • Analysis completed on {report?.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'N/A'}
           </p>
         </div>
         <div className="flex items-center space-x-4">
@@ -234,102 +276,196 @@ const Dashboard = () => {
         {/* Main Column */}
         <div className="lg:col-span-8 space-y-10">
           
-          {/* AI Diagnostic Summary Hero (Step 34 Design) */}
-          <div className="bg-[#0b0f19] border border-emerald-500/20 p-8 md:p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20 group-hover:bg-emerald-500/10 transition-all duration-700" />
-            <div className="relative z-10">
-              <h2 className="text-emerald-500 font-black mb-6 flex items-center uppercase tracking-[0.2em] text-[10px]">
-                <Cpu className="w-4 h-4 mr-3" /> AI Diagnostic Summary
-              </h2>
-              <p className="text-gray-300 text-lg md:text-xl leading-relaxed font-medium">
-                {report.summary}
-              </p>
-            </div>
+          {/* AI Executive Summary */}
+          <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] relative overflow-hidden transition-all duration-500 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none group hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:border-blue-100 dark:hover:border-emerald-500/40">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 dark:bg-emerald-500/20 blur-[80px] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150" />
+            <h2 className="text-emerald-700 dark:text-emerald-400 font-extrabold mb-3 flex items-center uppercase tracking-widest text-xs">
+               <Cpu className="w-5 h-5 mr-2" /> AI Clinical Perspective
+            </h2>
+            <p className="text-slate-800 dark:text-gray-200 text-lg leading-relaxed relative z-10 font-semibold">{report?.summary || "Summary text is missing from the database."}</p>
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-gray-900 dark:text-white font-black text-xl tracking-tight">Predictive Risk Vectors</h3>
-            <p className="text-xs text-gray-400 font-medium">Click any card to see full analysis, fill missing data for better accuracy, and get personalized mitigations.</p>
-            
-            {/* Disease Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-slate-900 dark:text-white font-black text-xl">Health Risk Matrix</h3>
+              <div className="flex gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">High (&gt;70%)</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">Mod (40-70%)</span>
+              </div>
+            </div>
+
+            {/* High Priority Banner */}
+            {Object.entries(report?.risk_scores || {}).filter(([_, s]) => s >= 70).length > 0 && (
+              <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex items-center gap-4">
+                <div className="p-3 bg-rose-500 rounded-xl">
+                  <ShieldAlert className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-rose-500 font-black text-xs uppercase tracking-widest">High Priority Concerns</div>
+                  <div className="text-rose-400/80 text-sm font-medium mt-1">
+                    {Object.entries(report.risk_scores).filter(([_, s]) => s >= 70).map(([k]) => k.replace('_', ' ')).join(', ')}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(report?.risk_scores || {}).map(([key, score]) => (
-                <DiseaseCard 
-                  key={key}
-                  diseaseId={key}
-                  initialScore={score}
-                  clerkId={user.id}
-                  profile={profile}
-                  isExpanded={expandedDiseaseId === key}
-                  onToggle={() => handleToggle(key)}
-                  onScoreUpdated={handleDiseaseScoreUpdate}
-                />
+                <div key={key} className={`${score === -1 ? 'bg-white' : score > 60 ? 'bg-red-50/50' : score > 30 ? 'bg-amber-50/50' : 'bg-white'} dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-5 rounded-3xl transition-all duration-500 hover:scale-[1.03] shadow-[0_8px_30px_rgba(35,60,111,0.04)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(35,60,111,0.08)] hover:border-blue-100 dark:hover:border-emerald-500/40 group relative overflow-hidden`}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-transparent dark:from-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-400 mb-2 truncate relative z-10">{key.replace('_', ' ')}</div>
+                  <div className="flex items-end gap-3 relative z-10">
+                    <div className={`text-3xl font-black ${score === -1 ? 'text-gray-500' : getRiskColor(score) === '#ef4444' ? 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]' : getRiskColor(score) === '#f59e0b' ? 'text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'text-emerald-500 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}>
+                      {score === -1 ? 'N/A' : `${score}%`}
+                    </div>
+                    {score !== -1 && (
+                      <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full mb-2">
+                         <div className="h-full rounded-full" style={{ width: `${score}%`, backgroundColor: getRiskColor(score) }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
+            </div>
+          </div>
+
+          {/* Targeted AI Insights (Dynamic Map) */}
+          <div className="space-y-4">
+            <h3 className="text-slate-900 dark:text-white font-black text-lg flex items-center">
+              <Cpu className="w-5 h-5 mr-3 text-emerald-600 dark:text-emerald-500" /> Clinical Action Plan
+            </h3>
+            <div className="grid gap-4">
+              {/* Support both new dynamic 'advice' map and legacy hardcoded advice fields */}
+              {Object.entries(report?.advice || {}).length > 0 ? (
+                Object.entries(report.advice).map(([disease, text]) => (
+                  <AdviceCard 
+                    key={disease}
+                    label={`${disease.charAt(0).toUpperCase() + disease.slice(1).replace('_', ' ')} Insight`} 
+                    text={text} 
+                    icon={<AlertTriangle className={`w-6 h-6 ${getRiskColor(report?.risk_scores?.[disease]) === '#ef4444' ? 'text-red-500' : 'text-emerald-500'}`} />} 
+                    onFeedback={(r) => handleFeedback(disease, r, 'Status', text)}
+                    done={feedbackStatus[disease]}
+                  />
+                ))
+              ) : (
+                <div className="p-8 text-center bg-gray-50 dark:bg-gray-900/40 rounded-3xl border border-gray-200 dark:border-gray-800 border-dashed">
+                  <Cpu className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-500 italic text-sm">
+                    No specific clinical insights detected for your current biometric profile. 
+                    Continue tracking your vitals to activate deeper predictive analysis.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Sidebar Column */}
-        <div className="lg:col-span-4 space-y-8">
-            {/* Body Measurements */}
-            {profile && (
-              <div className="bg-white dark:bg-[#030712] border border-gray-200 dark:border-gray-800/60 rounded-[2.5rem] p-8 shadow-xl space-y-6">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Scale className="w-4 h-4 text-emerald-500" /> Body Measurements</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl text-center">
-                    <div className="text-2xl font-black text-gray-900 dark:text-white">{profile.height?.value || '--'}</div>
-                    <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Height (cm)</div>
-                  </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl text-center">
-                    <div className="text-2xl font-black text-gray-900 dark:text-white">{profile.weight?.value || '--'}</div>
-                    <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Weight (kg)</div>
-                  </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl text-center">
-                    <div className={`text-2xl font-black ${profile.bmi?.value >= 25 ? 'text-amber-500' : 'text-emerald-500'}`}>{profile.bmi?.value ? Number(profile.bmi.value).toFixed(1) : '--'}</div>
-                    <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">BMI</div>
-                  </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl text-center">
-                    <div className="text-sm font-black text-gray-900 dark:text-white">{profile.bmiCategory?.value || '--'}</div>
-                    <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Category</div>
-                  </div>
-                </div>
-              </div>
-            )}
+        {/* Right Column - Secondary Data */}
+        <div className="lg:col-span-4 space-y-6">
+           {/* 3D Holographic Bio-Matrix Card */}
+           <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 rounded-[2.5rem] min-h-[520px] relative overflow-hidden group hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1">
+               {/* Background Grid and Atmosphere */}
+               <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50 dark:opacity-100" />
+               <h3 className="absolute top-6 left-6 text-emerald-700/80 dark:text-emerald-400/40 text-[11px] font-black uppercase tracking-[0.3em] flex items-center z-20">
+                  <Scan className="w-4 h-4 mr-2" /> Predictive Bio-Matrix
+               </h3>
+               
+               <div className="w-full h-[520px] relative z-10 flex items-center justify-center">
+                  <BodyScan3D 
+                    riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map(v => Number(v) || 0))} 
+                  />
+               </div>
+           </div>
 
-            {/* Allergies */}
-            {profile?.allergies?.value?.length > 0 && (
-              <div className="bg-red-500/5 border border-red-500/10 rounded-[2.5rem] p-6 space-y-4">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-red-400 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Declared Allergies</h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.allergies.value.map(a => (
-                    <span key={a} className="px-3 py-1.5 bg-red-500/10 text-red-400 text-xs font-bold rounded-lg border border-red-500/20">{a}</span>
-                  ))}
+           {/* Latest Vitals Integration (Step 82) */}
+           {latestVitals && latestVitals.length > 0 && (
+              <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 p-6 rounded-[2.5rem] shadow-xl group hover:border-emerald-500/30 transition-all relative overflow-hidden">
+                <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-rose-500/5 blur-[80px] rounded-full pointer-events-none" />
+                <div className="flex justify-between items-center mb-6 relative z-10">
+                  <h3 className="text-slate-900 dark:text-white font-bold flex items-center text-lg">
+                     <HeartPulse className="w-5 h-5 text-rose-600 dark:text-rose-500 mr-2" /> Vitals Telemetry
+                  </h3>
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" title="Live Sync Active" />
                 </div>
-              </div>
-            )}
-
-            {/* Active Medicines */}
-            {medications.length > 0 && (
-              <div className="bg-blue-500/5 border border-blue-500/10 rounded-[2.5rem] p-6 space-y-4">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-2"><Pill className="w-4 h-4" /> Active Medicines</h3>
-                <div className="space-y-2">
-                  {medications.slice(0, 5).map(m => (
-                    <div key={m._id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800">
-                      <span className="text-sm font-bold text-gray-900 dark:text-white">{m.name}</span>
-                      <span className="text-[9px] font-bold text-gray-400 uppercase">{m.dosage}</span>
+                <div className="space-y-4">
+                  {latestVitals.slice(0, 3).map((vital) => (
+                    <div key={vital.type} className="flex justify-between items-end p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800">
+                       <div>
+                          <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest">{vital.type.replace('_', ' ')}</div>
+                          <div className="text-xl font-black text-gray-900 dark:text-white mt-1">
+                             {typeof vital.value === 'object' ? `${vital.value.systolic}/${vital.value.diastolic}` : vital.value}
+                             <span className="text-xs text-gray-400 font-bold ml-1">{vital.unit}</span>
+                          </div>
+                       </div>
+                       <div className="text-[9px] font-bold text-gray-400">
+                          {new Date(vital.timestamp).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}
+                       </div>
                     </div>
                   ))}
-                  {medications.length > 5 && <p className="text-[10px] text-blue-400 font-bold text-center">+{medications.length - 5} more</p>}
                 </div>
               </div>
             )}
 
-            {/* 3D Body Scan */}
-            <div className="bg-white dark:bg-[#030712] border border-gray-200 dark:border-gray-800/60 rounded-[3rem] min-h-[400px] relative overflow-hidden shadow-2xl">
-                <div className="w-full h-[400px]">
-                    <BodyScan3D riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map(v => Number(v) || 0))} />
+           {/* Step Tracker Placeholder */}
+           <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] group hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1 relative overflow-hidden">
+              <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-emerald-500/15 dark:bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                <h3 className="text-slate-900 dark:text-white font-bold flex items-center text-lg">
+                   <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-500 mr-2" /> Step Tracker
+                </h3>
+                <button 
+                  onClick={() => syncGoogleFit()} disabled={syncing}
+                  className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-3 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest font-bold transition-all disabled:opacity-50"
+                >
+                   {syncing ? 'Syncing...' : 'Sync Fit'}
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{stepCount}</div>
+                    <div className="text-[10px] text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest mt-1">Daily Steps</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-emerald-500 font-bold">{Math.round((stepCount / 8000) * 100)}%</div>
+                    <div className="text-[10px] text-gray-500 uppercase">Goal: 8,000</div>
+                  </div>
                 </div>
-            </div>
+                
+                <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000" 
+                    style={{ width: `${Math.min(100, (stepCount / 8000) * 100)}%` }}
+                  />
+                </div>
+              </div>
+           </div>
+
+           {/* General Tips */}
+           <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:-translate-y-1 hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 relative overflow-hidden group">
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-emerald-500/5 to-transparent pointer-events-none" />
+              <h3 className="text-slate-900 dark:text-white font-black mb-4 flex items-center relative z-10 text-lg">
+                 <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500 mr-2" /> Lifestyle Routine
+              </h3>
+              <div className="space-y-3 relative">
+                 {(Array.isArray(report?.general_tips) ? report?.general_tips : (report?.general_tips || '').split('\n')).filter(t => t && t.trim()).map((tip, i) => (
+                    <div key={i} className="flex items-start group">
+                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 mr-3 shrink-0 group-hover:scale-125 transition-transform" />
+                       <span className="text-slate-700 dark:text-gray-400 text-[15px] font-medium leading-relaxed">{tip.replace(/^-/,'').trim()}</span>
+                    </div>
+                 ))}
+                 {!feedbackStatus['Lifestyle'] ? (
+                    <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                       <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mr-2">Helpful?</span>
+                       <button onClick={() => handleFeedback('Lifestyle', 'up', 'General Tips', report?.general_tips)} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-gray-500 hover:text-white dark:hover:text-emerald-400 rounded-lg transition-all active:scale-95"><ThumbsUp className="w-4 h-4" /></button>
+                       <button onClick={() => handleFeedback('Lifestyle', 'down', 'General Tips', report?.general_tips)} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-500 hover:text-white dark:hover:text-red-400 rounded-lg transition-all active:scale-95"><ThumbsDown className="w-4 h-4" /></button>
+                    </div>
+                 ) : (
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800"><CheckCircle className="w-3 h-3" /> Feedback Received</div>
+                 )}
+              </div>
+           </div>
 
             <SavedDoctorsWidget 
               doctors={profile?.savedDoctors} 
@@ -375,5 +511,25 @@ const Dashboard = () => {
     </div>
   );
 };
+
+const AdviceCard = ({ label, text, icon, onFeedback, done }) => (
+  <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2rem] flex items-start group hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 shadow-[0_8px_30px_rgba(35,60,111,0.05)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(35,60,111,0.08)] relative overflow-hidden">
+     <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+     <div className="mr-5 shrink-0 mt-1 relative z-10">{icon}</div>
+     <div className="flex-1">
+        <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-1">{label}</h4>
+        <p className="text-slate-700 dark:text-gray-400 text-[15px] font-medium mb-4 leading-relaxed">{text || "No advice generated."}</p>
+        {!done ? (
+          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
+             <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 mr-2">Helpful?</span>
+             <button onClick={() => onFeedback('up')} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-gray-400 hover:text-white dark:hover:text-emerald-500 rounded-lg transition-all active:scale-95"><ThumbsUp className="w-4 h-4" /></button>
+             <button onClick={() => onFeedback('down')} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-white dark:hover:text-red-400 rounded-lg transition-all active:scale-95"><ThumbsDown className="w-4 h-4" /></button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 animate-in zoom-in"><CheckCircle className="w-3 h-3" /> Feedback Received</div>
+        )}
+     </div>
+  </div>
+);
 
 export default Dashboard;

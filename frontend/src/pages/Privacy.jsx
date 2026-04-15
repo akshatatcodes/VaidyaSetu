@@ -17,10 +17,10 @@ const Privacy = () => {
             </div>
             <div>
                <h1 className="text-5xl font-black text-gray-900 dark:text-white leading-none uppercase italic tracking-tighter">Privacy Protocol</h1>
-               <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">v1.2.0 • Last Audit: April 12, 2026</p>
+               <p className="text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest text-[10px] mt-2">v1.2.0 • Last Audit: April 12, 2026</p>
             </div>
          </div>
-         <p className="text-lg text-gray-500 dark:text-gray-400 font-medium leading-relaxed max-w-2xl">VaidyaSetu is engineered with **Privacy-First Intelligence**. Your health data is treated as a sovereign asset, protected by clinical-grade encryption and decentralized analysis.</p>
+         <p className="text-lg text-gray-600 dark:text-gray-300 font-medium leading-relaxed max-w-2xl">VaidyaSetu is engineered with **Privacy-First Intelligence**. Your health data is treated as a sovereign asset, protected by clinical-grade encryption and decentralized analysis.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -32,7 +32,7 @@ const Privacy = () => {
            <div key={item.title} className="p-10 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-[3rem] shadow-2xl space-y-4">
               <item.icon className="w-8 h-8 text-emerald-500 opacity-50" />
               <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">{item.title}</h3>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed">{item.desc}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{item.desc}</p>
            </div>
          ))}
       </div>

@@ -30,22 +30,23 @@ const VitalCard = ({ title, value, unit, type, status, trend, timestamp, icon: I
       case 'borderline': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
       case 'warning':
       case 'high': return 'bg-red-500/10 text-red-500 border-red-500/20';
-      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+      default: return 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20';
     }
   };
 
   const getTrendIcon = (t) => {
     if (t === 'up') return <ArrowUp className="w-3 h-3 text-red-500" />;
     if (t === 'down') return <ArrowDown className="w-3 h-3 text-emerald-500" />;
-    return <Minus className="w-3 h-3 text-gray-400" />;
+    return <Minus className="w-3 h-3 text-gray-600 dark:text-gray-300" />;
   };
 
   return (
     <div 
       onClick={onClick}
-      className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 rounded-[2.5rem] hover:border-emerald-500/30 transition-all cursor-pointer group hover:shadow-2xl hover:shadow-emerald-500/5 shadow-xl"
+      className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2.5rem] hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 cursor-pointer group shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] relative overflow-hidden"
     >
-      <div className="flex justify-between items-start mb-4">
+      <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-[60px] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150" />
+      <div className="flex justify-between items-start mb-4 relative z-10">
         <div className={`p-3 rounded-2xl ${getStatusColors(status)} transition-colors`}>
           <Icon className="w-6 h-6" />
         </div>
@@ -55,21 +56,21 @@ const VitalCard = ({ title, value, unit, type, status, trend, timestamp, icon: I
       </div>
       
       <div className="space-y-1 mb-4">
-        <h3 className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{title}</h3>
+        <h3 className="text-[10px] text-slate-700 dark:text-gray-300 font-black uppercase tracking-widest">{title}</h3>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
+          <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
             {value || '--'}
           </span>
-          <span className="text-xs font-bold text-gray-500">{unit}</span>
+          <span className="text-xs font-bold text-slate-700 dark:text-gray-300">{unit}</span>
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-gray-950">
         <div className="flex items-center gap-1">
           {getTrendIcon(trend)}
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">vs Last 7 days</span>
+          <span className="text-[9px] font-bold text-slate-600 dark:text-gray-300 uppercase tracking-tighter">vs Last 7 days</span>
         </div>
-        <div className="text-[9px] font-bold text-gray-400 uppercase tabular-nums">
+        <div className="text-[9px] font-bold text-slate-600 dark:text-gray-300 uppercase tabular-nums">
            {timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pending'}
         </div>
       </div>
@@ -390,13 +391,13 @@ const Vitals = () => {
       {/* Header & Export */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">Health Timeline</h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium">Monitoring biological constants and metabolic trends</p>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Health Timeline</h1>
+          <p className="text-slate-600 dark:text-gray-300 font-medium text-lg">Monitoring biological constants and metabolic trends</p>
         </div>
         <div className="flex gap-4">
            <button 
               onClick={handleExportJSON}
-              className="px-6 py-3 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-emerald-500/50 transition-all shadow-xl text-gray-400 hover:text-emerald-500"
+              className="px-6 py-3 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-emerald-500/50 transition-all shadow-xl text-gray-600 dark:text-gray-300 hover:text-emerald-500"
            >
               <Download className="w-5 h-5" /> Export JSON
            </button>
@@ -487,7 +488,7 @@ const Vitals = () => {
             <button
               key={item.id}
               onClick={() => setModal({ open: true, type: item.id })}
-              className="flex items-center gap-3 px-6 py-4 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-3xl hover:border-emerald-500/30 hover:scale-[1.02] transition-all shadow-lg group"
+              className="flex items-center gap-3 px-6 py-4 bg-white dark:bg-none dark:bg-gray-950/40 backdrop-blur-3xl border border-slate-100 dark:border-gray-800 rounded-3xl hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 hover:-translate-y-1 shadow-[0_8px_30px_rgba(35,60,111,0.05)] hover:shadow-[0_15px_40px_rgba(35,60,111,0.08)] dark:shadow-none group"
             >
               <item.icon className={`w-5 h-5 ${item.color} group-hover:scale-110 transition-transform`} />
               <span className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">Log {item.label}</span>
@@ -504,7 +505,7 @@ const Vitals = () => {
              <button
                key={t}
                onClick={() => setActiveTab(t)}
-               className={`px-8 py-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === t ? 'text-emerald-500' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+               className={`px-8 py-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === t ? 'text-emerald-500' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
              >
                {t}
                {activeTab === t && <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 rounded-full" />}
@@ -595,26 +596,26 @@ const Vitals = () => {
                 {/* Active Goals Section (Step 45) */}
                 <div className="space-y-6">
                    <div className="flex justify-between items-center px-4">
-                      <h3 className="text-xs font-black uppercase text-gray-500 tracking-widest flex items-center gap-2">
+                      <h3 className="text-xs font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest flex items-center gap-2">
                         <Trophy className="w-4 h-4 text-emerald-500" /> Active Milestones
                       </h3>
                       <button onClick={() => setGoalModalOpen(true)} className="text-[10px] font-black text-emerald-500 uppercase hover:underline">Customize Goals</button>
                    </div>
-                    <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-8 rounded-[2.5rem] shadow-xl space-y-6">
+                    <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] transition-all duration-500 dark:shadow-none space-y-6">
                       {goals.length > 0 ? goals.map(g => (
                         <div key={g._id} className="space-y-3">
-                           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-500">
+                           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
                               <span>{(g.goalType || 'Goal').replace('_', ' ')} Target</span>
                               <span className="text-emerald-500">{g.targetValue} {g.unit}</span>
                            </div>
                            <div className="w-full h-2 bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
                               <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${calculateGoalProgress(g)}%` }} />
                            </div>
-                           <div className="text-[8px] font-bold text-gray-400 text-right uppercase tracking-widest">{calculateGoalProgress(g).toFixed(0)}% Complete</div>
+                           <div className="text-[8px] font-bold text-gray-600 dark:text-gray-300 text-right uppercase tracking-widest">{calculateGoalProgress(g).toFixed(0)}% Complete</div>
                         </div>
                       )) : (
                         <div className="text-center py-4">
-                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">No active goals configured.</p>
+                           <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest">No active goals configured.</p>
                         </div>
                       )}
                    </div>
@@ -622,13 +623,13 @@ const Vitals = () => {
 
                 {/* Connected Devices (Step 47) */}
                 <div className="space-y-6">
-                   <h3 className="text-xs font-black uppercase text-gray-500 tracking-widest px-4 flex items-center gap-2">
+                   <h3 className="text-xs font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest px-4 flex items-center gap-2">
                      <RefreshCw className="w-4 h-4 text-emerald-500" /> Sync Intelligence
                    </h3>
-                   <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-8 rounded-[2.5rem] shadow-xl">
-                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
+                   <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] transition-all duration-500 dark:shadow-none">
+                      <div className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
                          <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white dark:bg-gray-950 rounded-xl shadow-lg">
+                            <div className="p-3 bg-white dark:bg-gray-950 rounded-xl shadow-sm">
                                <RefreshCw className="w-5 h-5 text-emerald-500" />
                             </div>
                             <div>
@@ -644,11 +645,11 @@ const Vitals = () => {
                       <div className="mt-4 flex items-center justify-between p-4 opacity-40 grayscale pointer-events-none">
                          <div className="flex items-center gap-4">
                             <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
-                               <Zap className="w-5 h-5 text-gray-400" />
+                               <Zap className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                             </div>
-                            <div className="text-xs font-black text-gray-400 uppercase tracking-tighter">Apple Health (Disabled)</div>
+                            <div className="text-xs font-black text-gray-600 dark:text-gray-300 uppercase tracking-tighter">Apple Health (Disabled)</div>
                          </div>
-                         <span className="text-[8px] font-bold text-gray-400 uppercase">Beta Testing</span>
+                         <span className="text-[8px] font-bold text-gray-600 dark:text-gray-300 uppercase">Beta Testing</span>
                       </div>
                    </div>
                 </div>
@@ -656,17 +657,15 @@ const Vitals = () => {
 
              {/* Precision Logs Table */}
              <div className="space-y-8">
-                <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+                <div className="bg-white dark:bg-none dark:bg-gray-950/40 backdrop-blur-2xl border border-slate-100 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_10px_40px_rgba(35,60,111,0.05)] dark:shadow-none relative">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-gray-900/50">
-                        <th className="px-6 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">Biological Metric</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">Precision Value</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest text-center">Unit</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">Status</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">Notes</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">Timestamp</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Ops</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Biological Metric</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Precision Value</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest text-center">Reference Unit</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Trace Timestamp</th>
+                        <th className="px-8 py-5 text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest text-right">Ops</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50 dark:divide-gray-900">
@@ -675,17 +674,12 @@ const Vitals = () => {
                         const statusColor = st === 'Normal' ? 'text-emerald-500' : st === 'Borderline' ? 'text-amber-500' : st === 'High' || st === 'Warning' ? 'text-red-500' : 'text-gray-400';
                         return (
                         <tr key={h._id} className="group hover:bg-emerald-500/[0.04]">
-                          <td className="px-6 py-5 text-sm font-bold text-gray-900 dark:text-white capitalize">{h.type.replace(/_/g, ' ')}</td>
-                          <td className="px-6 py-5 text-lg font-black text-emerald-500">{formatValue(h.type, h.value)}</td>
-                          <td className="px-6 py-5 text-center text-xs font-black text-gray-400">{h.unit}</td>
-                          <td className={`px-6 py-5 text-[10px] font-black uppercase tracking-widest ${statusColor}`}>{st}</td>
-                          <td className="px-6 py-5 text-xs text-gray-500">
-                            {h.notes && <span className="block">{h.notes}</span>}
-                            {h.mealContext && h.mealContext !== 'none' && <span className="text-[9px] text-emerald-500/60 uppercase font-black">({h.mealContext})</span>}
-                          </td>
-                          <td className="px-6 py-5 text-xs font-bold text-gray-500">{new Date(h.timestamp).toLocaleString()}</td>
-                          <td className="px-6 py-5 text-right">
-                            <button onClick={() => handleDeleteVital(h._id)} className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          <td className="px-8 py-6 text-sm font-bold text-slate-900 dark:text-white capitalize">{h.type.replace('_', ' ')}</td>
+                          <td className="px-8 py-6 text-lg font-black text-emerald-600 dark:text-emerald-500">{formatValue(h.type, h.value)}</td>
+                          <td className="px-8 py-6 text-center text-xs font-black text-slate-600 dark:text-gray-300">{h.unit}</td>
+                          <td className="px-8 py-6 text-xs font-bold text-slate-700 dark:text-gray-300">{new Date(h.timestamp).toLocaleString()}</td>
+                          <td className="px-8 py-6 text-right">
+                            <button onClick={() => handleDeleteVital(h._id)} className="text-slate-600 dark:text-gray-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                           </td>
                         </tr>
                       )})}
@@ -765,7 +759,7 @@ const Vitals = () => {
              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">
                 <div className="space-y-1">
                    <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-widest">Diagnostic Repository</h2>
-                   <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Comparative Analysis of Laboratory Metrics</p>
+                   <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest">Comparative Analysis of Laboratory Metrics</p>
                 </div>
                 <div className="flex gap-3">
                   {labResults.length > 0 && (
@@ -814,18 +808,20 @@ const Vitals = () => {
                           </div>
                        </div>
                        <div>
-                          <h4 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">{lab.testName}</h4>
+                          <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{lab.testName}</h4>
                           <div className="flex items-baseline gap-2 mt-2">
-                             <span className={`text-2xl font-black ${valueTxt}`}>{lab.resultValue}</span>
-                             <span className="text-[10px] font-bold text-gray-500 uppercase">{lab.unit}</span>
+                             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-500">{lab.resultValue}</span>
+                             <span className="text-[10px] font-bold text-slate-700 dark:text-gray-300 uppercase">{lab.unit}</span>
                           </div>
                           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-white/5">
                              <div className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Reference Range</div>
                              <div className="text-[11px] font-bold text-gray-600 dark:text-gray-300">{lab.referenceRange || 'Not specified'} {lab.referenceRange ? lab.unit : ''}</div>
+                             <div className="text-[8px] font-black text-slate-600 dark:text-gray-300 uppercase tracking-[0.2em] mb-1">Reference Alignment</div>
+                             <div className="text-[11px] font-bold text-slate-600 dark:text-gray-300">{lab.referenceRange} {lab.unit}</div>
                           </div>
                           <div className="mt-6 flex items-center justify-between">
-                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{new Date(lab.sampleDate).toLocaleDateString()}</span>
-                             <span className="text-[9px] font-black text-gray-400 uppercase">{lab.source || 'manual'}</span>
+                             <span className="text-[9px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest">{new Date(lab.sampleDate).toLocaleDateString()}</span>
+                             <button className="text-[9px] font-black text-emerald-500 uppercase hover:underline flex items-center gap-1">History <ChevronRight className="w-3 h-3" /></button>
                           </div>
                        </div>
                        
@@ -855,7 +851,7 @@ const Vitals = () => {
                      <FileText className="w-16 h-16 text-emerald-500/20" />
                   </div>
                   <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-widest">Biometric Intelligence Gap</h3>
-                  <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium leading-relaxed">System awaiting clinical report input for precision mapping.</p>
+                  <p className="text-gray-700 dark:text-gray-300 max-w-sm mx-auto mt-2 font-medium leading-relaxed">System awaiting clinical report input for precision mapping.</p>
                </div>
              )}
           </div>
@@ -986,15 +982,16 @@ const Vitals = () => {
 };
 
 const TrendAnalysisCard = ({ title, subtitle, icon: Icon, color, data, Chart, extra }) => (
-  <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-8 rounded-[3rem] shadow-2xl space-y-8 group transition-all hover:border-emerald-500/20">
-    <div className="flex justify-between items-start">
+  <div className={`bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-8 rounded-[3rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none space-y-8 group transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:border-${color}-100 dark:hover:border-${color}-500/30 relative overflow-hidden`}>
+    <div className={`absolute top-[-20%] right-[-10%] w-64 h-64 bg-${color}-500/5 dark:bg-${color}-500/5 blur-[80px] rounded-full group-hover:bg-${color}-500/10 transition-colors duration-700 pointer-events-none`} />
+    <div className="flex justify-between items-start relative z-10">
       <div className="flex items-center gap-4">
         <div className={`p-4 bg-${color}-500/10 rounded-3xl`}>
-          <Icon className={`w-8 h-8 text-${color}-500`} />
+          <Icon className={`w-8 h-8 text-${color}-600 dark:text-${color}-500`} />
         </div>
         <div>
-          <h3 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">{title}</h3>
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{subtitle}</p>
+          <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{title}</h3>
+          <p className="text-[10px] text-slate-600 dark:text-gray-300 font-bold uppercase tracking-widest">{subtitle}</p>
         </div>
       </div>
       {extra && <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/10 animate-pulse">{extra}</div>}
@@ -1004,19 +1001,19 @@ const TrendAnalysisCard = ({ title, subtitle, icon: Icon, color, data, Chart, ex
 
     <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-50 dark:border-gray-900">
        <div className="text-center">
-          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Average</div>
+          <div className="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest mb-1">Average</div>
           <div className="text-sm font-black text-gray-900 dark:text-white">
             {data.length ? (data.reduce((a, b) => a + (typeof b.value === 'object' ? b.value.systolic : b.value), 0) / data.length).toFixed(1) : '--'}
           </div>
        </div>
        <div className="text-center">
-          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Max</div>
+          <div className="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest mb-1">Max</div>
           <div className="text-sm font-black text-gray-900 dark:text-white">
             {data.length ? Math.max(...data.map(b => typeof b.value === 'object' ? b.value.systolic : b.value)) : '--'}
           </div>
        </div>
        <div className="text-center">
-          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Readings</div>
+          <div className="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest mb-1">Readings</div>
           <div className="text-sm font-black text-emerald-500">{data.length}</div>
        </div>
     </div>

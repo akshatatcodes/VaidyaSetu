@@ -461,7 +461,7 @@ const Prescriptions = () => {
     return (
       <div className="flex flex-wrap gap-2 mt-2">
         {sources.map((s, idx) => {
-          let badgeStyle = "bg-gray-800 text-gray-400";
+          let badgeStyle = "bg-gray-800 text-gray-600 dark:text-gray-300";
           let label = s;
 
           if (['RxNav', 'OpenFDA', 'FDA'].includes(s)) {
@@ -518,7 +518,7 @@ const Prescriptions = () => {
             <ShieldAlert className="w-4 h-4" /> Safety Protocol Active
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight">Signature Bridge</h1>
-          <p className="text-gray-400 font-medium">Multi-Drug Interaction Analysis System</p>
+          <p className="text-gray-600 dark:text-gray-300 font-medium">Multi-Drug Interaction Analysis System</p>
         </div>
         <div className="flex flex-wrap gap-4 w-full md:w-auto">
           {/* Hidden file input */}
@@ -585,23 +585,20 @@ const Prescriptions = () => {
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full h-40 bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 group-hover:border-emerald-500/30 rounded-3xl p-5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-700 resize-none font-medium mb-2"
+                className="w-full h-40 bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 group-hover:border-emerald-500/30 rounded-3xl p-5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all placeholder:text-gray-600 dark:text-gray-300 dark:placeholder:text-gray-700 resize-none font-medium"
                 placeholder="Type medicines or herbs separated by commas..."
               />
-              <div className="flex flex-col md:flex-row items-center justify-between px-2 gap-4">
-                <button
-                  onClick={handleVoiceInput}
-                  disabled={voicePlaying}
-                  className={`w-full md:w-auto p-2.5 rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-500 border border-gray-200 dark:border-gray-700'}`}
-                  title="Voice Command Mode"
-                >
-                  <Mic className="w-3.5 h-3.5" />
-                  {voicePlaying ? 'Listening...' : 'Voice Intake'}
-                </button>
-                <div className="text-[8px] text-gray-400 dark:text-gray-600 font-bold uppercase tracking-[0.2em] pointer-events-none text-center md:text-right">
-                  Manual Entry Protocol active
-                </div>
+              <div className="absolute bottom-4 right-4 text-[9px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-widest pointer-events-none">
+                Manual Overlay
               </div>
+              <button
+                onClick={handleVoiceInput}
+                disabled={voicePlaying}
+                className={`absolute bottom-4 left-4 p-2 rounded-full transition-all ${voicePlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-500'}`}
+                title="Start Voice Intake"
+              >
+                <Mic className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="mt-4 flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 rounded-2xl">
@@ -640,8 +637,8 @@ const Prescriptions = () => {
                           <span className="bg-amber-500/20 text-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded">COMBO</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-black text-gray-900 dark:text-white group-hover:text-emerald-500 transition-colors">
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300 line-through decoration-emerald-500/30">
                           {cand.original}
                         </span>
                       </div>
@@ -716,7 +713,7 @@ const Prescriptions = () => {
                   <RefreshCw className="w-16 h-16 text-emerald-500 animate-spin relative z-10" />
                 </div>
                 <p className="text-emerald-500/80 font-black uppercase tracking-[0.3em] text-xs mt-8">Synthesizing Safety Data</p>
-                <p className="text-gray-500 text-sm mt-2">Checking across 250+ Allopathic-AYUSH contraindications...</p>
+                <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">Checking across 250+ Allopathic-AYUSH contraindications...</p>
               </div>
             )}
 
@@ -733,7 +730,7 @@ const Prescriptions = () => {
                   </p>
                 </div>
                 {lastReportData.latency && (
-                  <div className="text-[9px] font-bold text-gray-500 uppercase tracking-tighter">
+                  <div className="text-[9px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tighter">
                     Retrieved in {lastReportData.latency}ms
                   </div>
                 )}
@@ -774,7 +771,7 @@ const Prescriptions = () => {
                   <ShieldAlert className="w-12 h-12 text-emerald-500" />
                 </div>
                 <h2 className="text-3xl font-black text-white mb-4 tracking-tight">Clinical Synergy Cleared</h2>
-                <p className="text-gray-400 max-w-lg mx-auto leading-relaxed font-medium">
+                <p className="text-gray-600 dark:text-gray-300 max-w-lg mx-auto leading-relaxed font-medium">
                   No immediate molecular conflicts detected for this specific combination.
                   <span className="block mt-2 text-emerald-400/60 text-xs italic font-bold uppercase tracking-widest">Molecular Safety Verified</span>
                 </p>
@@ -814,7 +811,7 @@ const Prescriptions = () => {
                             <div className="group/src relative">
                               <Info className="w-5 h-5 text-white/20 hover:text-emerald-500 cursor-help transition-colors" />
                               <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-4 w-64 p-4 bg-gray-900 border border-white/10 rounded-2xl shadow-2xl invisible group-hover/src:visible opacity-0 group-hover/src:opacity-100 transition-all z-50">
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2 border-b border-white/5 pb-2">Verification Sources</p>
+                                <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest mb-2 border-b border-white/5 pb-2">Verification Sources</p>
                                 <p className="text-[11px] text-white font-medium leading-relaxed mb-4">
                                   This interaction is verified against: <span className="text-emerald-400">{item.source || 'Standard Reference'}</span>.
                                 </p>
@@ -944,7 +941,7 @@ const Prescriptions = () => {
             {/* Step 58: Transparency Statement */}
             {interactions.length > 0 && (
               <div className="mt-12 p-8 border border-white/5 rounded-[3rem] bg-gray-950/20 text-center animate-in slide-in-from-bottom-4">
-                <p className="text-xs text-gray-500 font-medium mb-4 italic">
+                <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mb-4 italic">
                   "Our RAG system combines real-time pharmaceutical APIs with curated traditional knowledge research."
                 </p>
                 <button
@@ -1130,12 +1127,12 @@ const Prescriptions = () => {
                         <h2 className="text-2xl font-black text-white tracking-tight mb-2">Interaction Verification Protocol</h2>
                         <p className="text-xs text-emerald-500 font-bold uppercase tracking-[0.2em]">RAG Architecture v1.0</p>
                       </div>
-                      <button onClick={() => setShowTransparency(false)} className="p-2 hover:bg-white/5 rounded-full text-gray-500 transition-colors">
+                      <button onClick={() => setShowTransparency(false)} className="p-2 hover:bg-white/5 rounded-full text-gray-700 dark:text-gray-300 transition-colors">
                         <RefreshCw className="w-5 h-5" />
                       </button>
                     </div>
 
-                    <div className="space-y-6 text-sm text-gray-400 leading-relaxed font-medium">
+                    <div className="space-y-6 text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
                       <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
                         <h4 className="text-white font-bold mb-2 flex items-center gap-2 text-xs uppercase tracking-widest">
                           <Cpu className="w-4 h-4 text-emerald-500" /> Multi-Source Synthesis
@@ -1155,7 +1152,7 @@ const Prescriptions = () => {
                         </p>
                       </div>
 
-                      <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest text-center pt-4">
+                      <p className="text-[10px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest text-center pt-4">
                         Always consult a healthcare professional for definitive clinical guidance.
                       </p>
                     </div>
@@ -1178,11 +1175,11 @@ const Prescriptions = () => {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-2xl font-black text-white tracking-tight mb-1 flex items-center gap-3">
-                    <Clock className="w-6 h-6 text-gray-500" /> Archival Safety Logs
+                    <Clock className="w-6 h-6 text-gray-700 dark:text-gray-300" /> Archival Safety Logs
                   </h3>
-                  <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">Your last {history.length} cross-interaction scans</p>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 font-medium tracking-wide uppercase">Your last {history.length} cross-interaction scans</p>
                 </div>
-                <button onClick={fetchHistory} className="p-2 hover:bg-gray-800 rounded-lg text-gray-500 transition-all">
+                <button onClick={fetchHistory} className="p-2 hover:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 transition-all">
                   <RefreshCw className="w-4 h-4" />
                 </button>
               </div>
@@ -1192,7 +1189,7 @@ const Prescriptions = () => {
                     <div className="space-y-3">
                       <div className="flex flex-wrap gap-1.5">
                         {h.confirmedMedicines.slice(0, 2).map((m, j) => (
-                          <span key={j} className="text-[9px] font-black uppercase bg-gray-950 border border-gray-800 px-2 py-1 rounded-md text-gray-400">{m}</span>
+                          <span key={j} className="text-[9px] font-black uppercase bg-gray-950 border border-gray-800 px-2 py-1 rounded-md text-gray-600 dark:text-gray-300">{m}</span>
                         ))}
                         {h.confirmedMedicines.length > 2 && <span className="text-[9px] text-gray-600 font-bold">+{h.confirmedMedicines.length - 2} more</span>}
                       </div>
