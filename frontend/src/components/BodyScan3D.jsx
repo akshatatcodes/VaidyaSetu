@@ -86,20 +86,6 @@ const HologramMannequin = ({ riskLevel = 0 }) => {
   const ringRef = useRef();
   const { scene } = useGLTF('/Xbot.glb');
 
-  // Safe calculation to isolate memory without graph modification loops
-  const modelProps = useMemo(() => {
-    // Reset transforms to avoid Strict-Mode recursive shift bug
-    scene.position.set(0, 0, 0);
-    scene.scale.set(1, 1, 1);
-    scene.rotation.set(0, 0, 0);
-    scene.updateMatrixWorld(true);
-
-    const box = new THREE.Box3().setFromObject(scene);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    
-    const scale = 3.2 / (size.y || 1);
-
   // Shared material to avoid creating one per frame/render
   const holoMaterial = useMemo(() => new THREE.MeshPhysicalMaterial({
     color: "#86efac",      // Light Green base
