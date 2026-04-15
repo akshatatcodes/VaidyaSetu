@@ -19,12 +19,8 @@ router.post('/profile', async (req, res) => {
 
     // Convert flat data to nested structure for onboarding
     const nestedData = { clerkId, onboardingComplete: true };
-    const fields = [
-      'name', 'age', 'gender', 'height', 'weight', 'bmi', 'bmiCategory',
-      'activityLevel', 'sleepHours', 'stressLevel', 'isSmoker', 'alcoholConsumption',
-      'dietType', 'sugarIntake', 'saltIntake', 'eatsLeafyGreens', 'eatsFruits', 'junkFoodFrequency',
-      'allergies', 'medicalHistory', 'otherConditions'
-    ];
+    const excludedFields = new Set(['clerkId', 'firstName', 'lastName']);
+    const fields = Object.keys(profileData).filter((key) => !excludedFields.has(key));
 
     fields.forEach(f => {
       if (profileData[f] !== undefined) {

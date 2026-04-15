@@ -112,6 +112,8 @@ const Settings = () => {
          clerkId: user.id,
          updates: Object.fromEntries(Object.entries(profileFormData).filter(([_, v]) => v !== ''))
       });
+      await axios.post(`${API_URL}/reports/hybrid-assessment`, { clerkId: user.id, persist: true }).catch(() => null);
+      window.dispatchEvent(new CustomEvent('vaidya-profile-updated'));
       fetchData();
     } catch(err) {
       console.error(err);

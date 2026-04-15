@@ -193,8 +193,10 @@ const ProfileEditor = () => {
       });
 
       if (response.data.status === 'success') {
-         await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id });
-         navigate('/profile', { state: { toast: "Your health insights have been refreshed based on this update." } });
+         await axios.post(`${API_URL}/reports/hybrid-assessment`, { clerkId: user.id, persist: true }).catch(() => null);
+         await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id }).catch(() => null);
+         window.dispatchEvent(new CustomEvent('vaidya-profile-updated'));
+         navigate('/profile', { state: { toast: 'Your questionnaire-based risk scores and insights have been refreshed.' } });
       }
     } catch (err) {
       console.error('Save failed:', err);

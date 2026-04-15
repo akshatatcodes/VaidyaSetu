@@ -42,6 +42,9 @@ const Step7History = () => {
   const handleToggle = (field) => {
     updateFormData({ [field]: !formData[field] });
   };
+  const handleChoice = (field, value) => {
+    updateFormData({ [field]: value });
+  };
 
   const handleAllergyChange = (newValue) => {
     updateFormData({ allergies: newValue ? newValue.map(v => v.value) : [] });
@@ -69,6 +72,12 @@ const Step7History = () => {
       const response = await axios.post(`${API_URL}/user/profile`, payload);
 
       if (response.data.status === 'success') {
+        // Create/update risk scores immediately from questionnaire-based assessment.
+        await axios.post(`${API_URL}/reports/hybrid-assessment`, {
+          clerkId: user?.id,
+          persist: true
+        }).catch(() => null);
+
         setSuccess(true);
         setTimeout(() => {
           window.location.href = '/';
@@ -159,6 +168,123 @@ const Step7History = () => {
 
       {/* Advanced Screening Sections */}
       <div className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60">Diabetes Indicators</h3>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { id: 'familyHistoryDiabetes', label: 'Family history of diabetes' },
+              { id: 'frequentThirst', label: 'Frequent thirst' },
+              { id: 'frequentUrination', label: 'Frequent urination' },
+              { id: 'blurredVision', label: 'Blurred vision episodes' },
+              { id: 'slowHealingWounds', label: 'Slow-healing wounds' },
+              { id: 'tinglingExtremities', label: 'Tingling/numbness in hands or feet' }
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => handleToggle(item.id)}
+                className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
+                  formData?.[item.id] ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                }`}
+              >
+                {item.label}
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData?.[item.id] ? 'bg-emerald-500 border-none' : 'border-gray-700'}`}>
+                  {formData?.[item.id] && <Check className="w-3 h-3 text-white" />}
+                </div>
+              </button>
+            ))}
+            {String(formData?.gender || '').toLowerCase() === 'female' && (
+              <button
+                onClick={() => handleToggle('gestationalDiabetesHistory')}
+                className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
+                  formData?.gestationalDiabetesHistory ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                }`}
+              >
+                History of gestational diabetes
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData?.gestationalDiabetesHistory ? 'bg-emerald-500 border-none' : 'border-gray-700'}`}>
+                  {formData?.gestationalDiabetesHistory && <Check className="w-3 h-3 text-white" />}
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60">Hypertension Indicators</h3>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { id: 'familyHistoryHypertension', label: 'Family history of hypertension' },
+              { id: 'chestPainActivity', label: 'Chest pain during activity' },
+              { id: 'frequentSevereHeadaches', label: 'Frequent severe headaches' },
+              { id: 'nosebleedsHistory', label: 'History of recurrent nosebleeds' }
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => handleToggle(item.id)}
+                className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
+                  formData?.[item.id] ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                }`}
+              >
+                {item.label}
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData?.[item.id] ? 'bg-emerald-500 border-none' : 'border-gray-700'}`}>
+                  {formData?.[item.id] && <Check className="w-3 h-3 text-white" />}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {['0', '1-2', '3-4', '5+'].map((days) => (
+              <button
+                key={days}
+                onClick={() => handleChoice('weeklyExerciseDays', days)}
+                className={`px-3 py-2 rounded-lg text-[10px] font-bold border transition-all ${
+                  formData?.weeklyExerciseDays === days ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-gray-950 border-gray-800 text-gray-500'
+                }`}
+              >
+                Exercise days/week: {days}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60">Anemia Indicators</h3>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { id: 'paleSkinObservation', label: 'Noticed pale skin' },
+              { id: 'brittleNails', label: 'Brittle nails' },
+              { id: 'dizzinessOnStanding', label: 'Dizziness on standing up' },
+              { id: 'vegetarianVeganDiet', label: 'Strict vegetarian/vegan diet' },
+              { id: 'recentBloodDonation', label: 'Recent blood donation' }
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => handleToggle(item.id)}
+                className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
+                  formData?.[item.id] ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                }`}
+              >
+                {item.label}
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData?.[item.id] ? 'bg-emerald-500 border-none' : 'border-gray-700'}`}>
+                  {formData?.[item.id] && <Check className="w-3 h-3 text-white" />}
+                </div>
+              </button>
+            ))}
+            {String(formData?.gender || '').toLowerCase() === 'female' && (
+              <button
+                onClick={() => handleToggle('heavyMenstrualFlow')}
+                className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
+                  formData?.heavyMenstrualFlow ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                }`}
+              >
+                Heavy menstrual flow
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData?.heavyMenstrualFlow ? 'bg-emerald-500 border-none' : 'border-gray-700'}`}>
+                  {formData?.heavyMenstrualFlow && <Check className="w-3 h-3 text-white" />}
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="space-y-4">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60">Thyroid & Metabolic Indicators</h3>
           <div className="grid grid-cols-1 gap-2">

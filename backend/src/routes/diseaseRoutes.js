@@ -212,10 +212,10 @@ router.get('/:diseaseId/details', async (req, res) => {
 router.post('/:diseaseId/add-data', async (req, res) => {
   try {
     const { diseaseId } = req.params;
-    const { clerkId, field, value, unit } = req.body;
+    const { clerkId, field, value, unit, data } = req.body;
 
-    if (!clerkId || !field || value === undefined) {
-      return res.status(400).json({ status: 'error', message: 'clerkId, field, and value are required' });
+    if (!clerkId) {
+      return res.status(400).json({ status: 'error', message: 'clerkId is required' });
     }
 
     // 1. Update User Profile
@@ -224,19 +224,36 @@ router.post('/:diseaseId/add-data', async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Profile not found' });
     }
 
-    // Update the specific field (following the FieldSchema pattern)
-    profile[field] = {
-      value,
-      lastUpdated: new Date(),
-      updateType: 'real_change',
-      unit: unit || profile[field]?.unit
-    };
+    // Handle both single field and multiple fields
+    const fieldsToUpdate = data || (field && value ? { [field]: value } : {});
+    
+    if (Object.keys(fieldsToUpdate).length === 0) {
+      return res.status(400).json({ status: 'error', message: 'No data provided to update' });
+    }
+
+    console.log(`[AddData] Updating ${Object.keys(fieldsToUpdate).length} field(s) for ${diseaseId}:`, Object.keys(fieldsToUpdate));
+
+    // Update each field in the profile
+    for (const [fieldName, fieldValue] of Object.entries(fieldsToUpdate)) {
+      // Skip date fields (they're stored separately)
+      if (fieldName.endsWith('_date')) continue;
+      
+      // Update the specific field (following the FieldSchema pattern)
+      profile[fieldName] = {
+        value: fieldValue,
+        lastUpdated: new Date(),
+        updateType: 'real_change',
+        unit: profile[fieldName]?.unit
+      };
+    }
     
     // Save profile changes
     await profile.save();
+    console.log('[AddData] ✅ Profile updated successfully');
 
     // 2. Recalculate Insight
     const newInsightData = calculateDetailedInsights(profile, diseaseId);
+    console.log(`[AddData] Recalculated riskScore: ${newInsightData.riskScore}`);
     
     // 3. Update or Create Insight record
     const updatedInsight = await DiseaseInsight.findOneAndUpdate(
@@ -244,6 +261,33 @@ router.post('/:diseaseId/add-data', async (req, res) => {
       { $set: newInsightData },
       { new: true, upsert: true }
     );
+
+    // CRITICAL: Also update the Report's risk_scores to ensure dashboard reflects changes
+    try {
+      const report = await Report.findOne({ clerkId }).sort({ createdAt: -1 });
+      if (report) {
+        console.log(`[AddData] Before update - Report risk_scores[${diseaseId}]:`, report.risk_scores?.[diseaseId]);
+        
+        // Direct update using MongoDB updateOne
+        const updateResult = await Report.updateOne(
+          { _id: report._id },
+          { $set: { [`risk_scores.${diseaseId}`]: newInsightData.riskScore } }
+        );
+        
+        console.log(`[AddData] Update result:`, updateResult);
+        
+        // Verify the update
+        const verifyReport = await Report.findById(report._id).lean();
+        console.log(`[AddData] ✅ Verified - Report now has:`, verifyReport.risk_scores?.[diseaseId]);
+        console.log(`[AddData] ✅ Updated Report risk_scores[${diseaseId}] = ${newInsightData.riskScore}`);
+      } else {
+        console.log('[AddData] ⚠️ No report found for this user');
+      }
+    } catch (err) {
+      console.error('[AddData] ❌ Failed to update Report:', err.message);
+      console.error('[AddData] Error stack:', err.stack);
+      // Don't fail the request if Report update fails
+    }
 
     res.json({
       status: 'success',
@@ -402,40 +446,73 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
     }
     
     // Analyze allergy considerations
-    const allergyConsiderations = comprehensiveProfile.allergies
-      .filter(a => a.name || a.substance)
-      .map(a => ({
-        allergy: a.name || a.substance,
-        severity: a.severity || 'unknown',
-        precaution: `Avoid medications/treatments containing ${a.name || a.substance}`
-      }));
+    const allergies = comprehensiveProfile.allergies || [];
+    const allergyConsiderations = Array.isArray(allergies) 
+      ? allergies.filter(a => a).map(a => {
+          // Handle both string arrays and object arrays
+          const allergyName = typeof a === 'string' ? a : (a.name || a.substance || 'Unknown');
+          return {
+            allergy: allergyName,
+            severity: typeof a === 'object' ? (a.severity || 'unknown') : 'unknown',
+            precaution: `Avoid medications/treatments containing ${allergyName}`
+          };
+        })
+      : [];
     
     // Analyze medication interactions
-    const medicationConsiderations = comprehensiveProfile.activeMedications
-      .filter(m => m.name)
-      .map(m => ({
-        medication: m.name,
-        dosage: m.dosage || 'unknown',
-        note: 'Consider drug interactions when prescribing'
-      }));
+    const medications = comprehensiveProfile.activeMedications || [];
+    const medicationConsiderations = Array.isArray(medications)
+      ? medications.filter(m => m && (typeof m === 'string' || m.name)).map(m => {
+          // Handle both string arrays and object arrays
+          const medName = typeof m === 'string' ? m : (m.name || 'Unknown');
+          return {
+            medication: medName,
+            dosage: typeof m === 'object' ? (m.dosage || 'unknown') : 'unknown',
+            note: 'Consider drug interactions when prescribing'
+          };
+        })
+      : [];
     
     // CRITICAL: Update the Report's risk_scores BEFORE sending response
     try {
       const report = await Report.findOne({ clerkId }).sort({ createdAt: -1 });
-      if (report && report.risk_scores) {
-        // Use direct update to ensure it saves
-        report.risk_scores[diseaseId] = insights.riskScore;
-        await report.save();
-        console.log(`[Questionnaire] ✅ Updated Report risk_scores[${diseaseId}] = ${insights.riskScore}`);
+      if (report) {
+        // Initialize risk_scores if not present
+        if (!report.risk_scores) {
+          report.risk_scores = {};
+        }
+        
+        console.log(`[Questionnaire] Before update - Report.risk_scores[${diseaseId}]:`, report.risk_scores[diseaseId]);
+        
+        // Direct update using MongoDB updateOne
+        const updateResult = await Report.updateOne(
+          { _id: report._id },
+          { $set: { [`risk_scores.${diseaseId}`]: insights.riskScore } }
+        );
+        
+        console.log(`[Questionnaire] Update result:`, updateResult);
         
         // Verify the update
         const verifyReport = await Report.findById(report._id).lean();
         console.log(`[Questionnaire] ✅ Verified: Report.risk_scores[${diseaseId}] = ${verifyReport.risk_scores[diseaseId]}`);
+        console.log(`[Questionnaire] ✅ Updated Report risk_scores[${diseaseId}] = ${insights.riskScore}`);
       } else {
-        console.log(`[Questionnaire] ⚠️ No Report found to update for ${clerkId}`);
+        // Create new report if none exists
+        const newReport = await Report.create({
+          clerkId,
+          summary: 'Risk assessment initiated via questionnaire.',
+          advice: {},
+          general_tips: 'Complete additional screenings for comprehensive health insights.',
+          disclaimer: 'This is a screening support tool, not a diagnosis.',
+          risk_scores: { [diseaseId]: insights.riskScore },
+          category_insights: {},
+          mitigations: {}
+        });
+        console.log(`[Questionnaire] ✅ Created new Report for ${clerkId} with risk_scores[${diseaseId}] = ${insights.riskScore}`);
       }
     } catch (err) {
       console.error('[Questionnaire] ❌ Failed to update Report:', err.message);
+      console.error('[Questionnaire] Error stack:', err.stack);
       // Don't fail the request if Report update fails
     }
     

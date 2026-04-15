@@ -7,7 +7,7 @@ import {
   AlertCircle, CheckCircle2, RefreshCw, Calendar,
   ChevronRight, Download, Trash2, Filter, Trash, FileText,
   FlaskConical, Trophy, Zap, Thermometer, Wind, Stethoscope,
-  TrendingUp, Eye, X
+  TrendingUp, X
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -470,7 +470,7 @@ const Vitals = () => {
         </div>
       )}
 
-      {/* Quick Entry Bar (Step 16) */}
+      {/* Quick Entry Bar — manual vitals only; disease risk comes from your questionnaire on the Dashboard */}
       <div className="p-2 overflow-x-auto scrollbar-hide">
         <div className="flex gap-4 min-w-max pb-4">
           {[

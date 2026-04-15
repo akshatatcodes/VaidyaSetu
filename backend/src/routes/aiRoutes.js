@@ -7,6 +7,7 @@ const Vital = require('../models/Vital');
 const { calculatePreliminaryRisk } = require('../utils/riskScorer');
 
 const Medication = require('../models/Medication');
+const aiService = require('../services/aiService');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -291,6 +292,44 @@ Prioritize Indian foods, Ayurvedic herbs, and locally available alternatives. Be
     res.json({ status: 'success', data: aiData });
   } catch (error) {
     console.error('Medicine insight error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+// Phase 3: Generate personalized mitigation plan for elevated risks
+router.post('/mitigation-plan', async (req, res) => {
+  try {
+    const { clerkId, riskScores } = req.body;
+    if (!clerkId) {
+      return res.status(400).json({ status: 'error', message: 'clerkId is required' });
+    }
+
+    const profile = await UserProfile.findOne({ clerkId }).lean();
+    if (!profile) {
+      return res.status(404).json({ status: 'error', message: 'User profile not found' });
+    }
+
+    const scores = riskScores || (await Report.findOne({ clerkId }).sort({ createdAt: -1 }).lean())?.risk_scores || {};
+    const elevatedDiseases = Object.entries(scores)
+      .filter(([, score]) => Number(score) >= 40)
+      .sort((a, b) => Number(b[1]) - Number(a[1]))
+      .slice(0, 6);
+
+    const mitigationByDisease = {};
+    for (const [diseaseId, score] of elevatedDiseases) {
+      mitigationByDisease[diseaseId] = await aiService.generateMitigationSteps(profile, diseaseId, Number(score));
+    }
+
+    res.json({
+      status: 'success',
+      data: {
+        elevatedDiseases: elevatedDiseases.map(([diseaseId, score]) => ({ diseaseId, score: Number(score) })),
+        mitigationByDisease,
+        disclaimer: 'Recommendations are supportive and not a substitute for medical advice.'
+      }
+    });
+  } catch (error) {
+    console.error('Mitigation plan generation error:', error);
     res.status(500).json({ status: 'error', message: error.message });
   }
 });

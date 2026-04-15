@@ -33,7 +33,6 @@ const DiseaseCard = ({ diseaseId, initialScore, isExpanded, onToggle, clerkId, p
 
   // Update local score when prop changes from Dashboard
   useEffect(() => {
-    console.log('[DiseaseCard]', diseaseId, '- Score updated from Dashboard:', currentScore, '->', initialScore);
     setCurrentScore(initialScore);
   }, [initialScore]);
 
@@ -138,10 +137,39 @@ const DiseaseCard = ({ diseaseId, initialScore, isExpanded, onToggle, clerkId, p
         setIsPulsing(true);
         setTimeout(() => setIsPulsing(false), 2000); // Pulse for 2s
         
+        console.log('[DiseaseCard] Data submitted successfully, new riskScore:', newData.riskScore);
+        
         // Notify parent with Undo capability
         if (window.onHealthDataUpdate) {
           window.onHealthDataUpdate(diseaseId, () => handleUndo(snapshot));
         }
+        
+        // CRITICAL: Force refresh the dashboard MULTIPLE times to ensure update
+        console.log('[DiseaseCard] Scheduling dashboard refreshes...');
+        
+        // Immediate refresh after 300ms
+        setTimeout(() => {
+          if (window.refreshDashboard) {
+            console.log('[DiseaseCard] Triggering immediate dashboard refresh...');
+            window.refreshDashboard();
+          }
+        }, 300);
+        
+        // Second refresh after 1 second to catch any delayed updates
+        setTimeout(() => {
+          if (window.refreshDashboard) {
+            console.log('[DiseaseCard] Triggering delayed dashboard refresh...');
+            window.refreshDashboard();
+          }
+        }, 1000);
+        
+        // Third refresh after 2 seconds as final catch
+        setTimeout(() => {
+          if (window.refreshDashboard) {
+            console.log('[DiseaseCard] Triggering final dashboard refresh...');
+            window.refreshDashboard();
+          }
+        }, 2000);
       }
     } catch (err) {
       console.error('Data submission failed:', err);
@@ -174,19 +202,23 @@ const DiseaseCard = ({ diseaseId, initialScore, isExpanded, onToggle, clerkId, p
 
   const getRiskColor = (score) => {
     if (score === -1) return '#6b7280';
-    if (score >= 76) return '#ef4444'; // Very High
-    if (score >= 51) return '#f59e0b'; // High
-    if (score >= 26) return '#f59e0b'; // Moderate (Using amber)
-    return '#10b981'; // Low/Very Low
+    if (score > 70) return '#ef4444';
+    if (score >= 40) return '#f59e0b';
+    return '#10b981';
   };
 
   const getRiskLabel = (score) => {
     if (score === -1) return 'N/A';
-    if (score >= 76) return 'Very High';
-    if (score >= 51) return 'High';
-    if (score >= 26) return 'Moderate';
-    if (score >= 5) return 'Low';
-    return 'Very Low';
+    if (score > 70) return 'Elevated';
+    if (score >= 40) return 'Moderate';
+    return 'Low';
+  };
+
+  const getRiskGuidance = (score) => {
+    if (score === -1) return 'Add more data for assessment';
+    if (score > 70) return 'Recommend assessment';
+    if (score >= 40) return 'Consider screening';
+    return 'Current profile stable';
   };
 
   const handleQuestionnaireComplete = async (diseaseId, newScore, breakdown) => {
@@ -256,6 +288,9 @@ const DiseaseCard = ({ diseaseId, initialScore, isExpanded, onToggle, clerkId, p
               {getRiskLabel(currentScore)} Risk
               {isReviewed && <CheckCircle2 className="w-3.5 h-3.5 ml-2 text-emerald-500" />}
             </h4>
+            <p className="text-[10px] text-gray-500 font-semibold mt-0.5">
+              {getRiskGuidance(currentScore)}
+            </p>
           </div>
         </div>
 
@@ -271,6 +306,16 @@ const DiseaseCard = ({ diseaseId, initialScore, isExpanded, onToggle, clerkId, p
           <div className="text-[9px] text-gray-400 font-bold mt-0.5">Click card for details</div>
         </div>
       </div>
+
+      {details?.missingDataFactors?.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowRiskDetailModal(true)}
+          className="mt-3 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:text-amber-500 transition-colors"
+        >
+          Missing data ({details.missingDataFactors.length}) - improve accuracy
+        </button>
+      )}
 
       {/* Removed inline expanded content - using popup modal only */}
 

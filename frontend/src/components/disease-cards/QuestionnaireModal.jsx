@@ -239,9 +239,33 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
     }
   };
 
-  const handleUpdateRisk = () => {
+  const handleUpdateRisk = async () => {
     if (onScoreUpdate && calculatedScore !== null) {
-      onScoreUpdate(diseaseId, calculatedScore, scoreBreakdown);
+      console.log('[QuestionnaireModal] Updating risk score:', calculatedScore, 'for disease:', diseaseId);
+
+      // First update the local DiseaseCard state immediately
+      await onScoreUpdate(diseaseId, calculatedScore, scoreBreakdown);
+
+      // Small delay to ensure backend update is processed
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Force refresh the entire dashboard data to ensure Report is updated
+      try {
+        console.log('[QuestionnaireModal] Triggering full dashboard refresh...');
+        // Trigger the global refresh function if available
+        if (window.refreshDashboard) {
+          // Call with fullRecompute=true to ensure all data is refreshed
+          window.refreshDashboard();
+          console.log('[QuestionnaireModal] ✅ Dashboard refresh triggered');
+        } else {
+          console.warn('[QuestionnaireModal] No global refresh function available');
+          // Fallback: manually trigger a window event that Dashboard listens to
+          window.dispatchEvent(new CustomEvent('vaidya-profile-updated'));
+        }
+      } catch (err) {
+        console.warn('[QuestionnaireModal] Dashboard refresh failed:', err);
+      }
+
       onClose();
     }
   };

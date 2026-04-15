@@ -25,19 +25,23 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
 
   const getRiskColor = (score) => {
     if (score === -1) return '#6b7280';
-    if (score >= 76) return '#ef4444';
-    if (score >= 51) return '#f59e0b';
-    if (score >= 26) return '#f59e0b';
+    if (score > 70) return '#ef4444';
+    if (score >= 40) return '#f59e0b';
     return '#10b981';
   };
 
   const getRiskLabel = (score) => {
     if (score === -1) return 'N/A';
-    if (score >= 76) return 'Very High';
-    if (score >= 51) return 'High';
-    if (score >= 26) return 'Moderate';
-    if (score >= 5) return 'Low';
-    return 'Very Low';
+    if (score > 70) return 'Elevated';
+    if (score >= 40) return 'Moderate';
+    return 'Low';
+  };
+
+  const getRiskGuidance = (score) => {
+    if (score === -1) return 'Missing baseline inputs';
+    if (score > 70) return 'Recommend assessment';
+    if (score >= 40) return 'Consider screening';
+    return 'Low risk';
   };
 
   const getPriorityColor = (priority) => {
@@ -182,7 +186,7 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                       {score}%
                     </span>
                     <span className="text-sm font-bold text-gray-500">
-                      • {getRiskLabel(score)} Risk
+                      • {getRiskLabel(score)} Risk - {getRiskGuidance(score)}
                     </span>
                   </div>
                 </div>
@@ -340,6 +344,35 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                       </div>
                     )}
                   </div>
+
+                  {/* Missing Data Prompts */}
+                  {details?.missingDataFactors?.length > 0 && (
+                    <div className="p-5 bg-amber-50/60 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="text-sm font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-2">
+                            Missing Data ({details.missingDataFactors.length})
+                          </h3>
+                          <p className="text-xs text-amber-700/90 dark:text-amber-300 mb-3">
+                            Add these fields to improve prediction quality:
+                          </p>
+                          <div className="space-y-2">
+                            {details.missingDataFactors.slice(0, 5).map((factor, idx) => (
+                              <div key={factor.id || idx} className="text-xs text-gray-700 dark:text-gray-300">
+                                • {factor.name}: {factor.prompt}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <button
+                          onClick={onOpenQuestionnaire}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          Fill Missing Data
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Protective Factors */}
                   {details.protectiveFactors?.length > 0 && (

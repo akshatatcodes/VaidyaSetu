@@ -28,7 +28,7 @@ const MitigationSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['medical', 'lifestyle', 'dietary', 'monitoring']
+    enum: ['medical', 'lifestyle', 'dietary', 'monitoring', 'precaution']
   },
   timeframe: String,
   applicabilityRules: mongoose.Schema.Types.Mixed,

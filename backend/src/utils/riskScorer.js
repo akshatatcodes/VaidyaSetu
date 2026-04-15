@@ -1,4 +1,12 @@
 const { PREVALENCE_DATA, SCREENING_TOOLS } = require('./prevalenceData');
+
+/** Full questionnaire-hybrid disease set (order: priority conditions first). */
+const HYBRID_DISEASE_IDS = [
+  'diabetes', 'pre_diabetes', 'obesity', 'thyroid', 'pcos', 'hypertension',
+  'heart_disease', 'stroke', 'asthma', 'copd', 'ckd', 'fatty_liver',
+  'anemia', 'vitamin_d', 'vitamin_b12', 'depression', 'anxiety',
+  'sleep_disorders', 'osteoporosis', 'osteoarthritis'
+];
 const { MITIGATION_LIBRARY } = require('./mitigationLibrary');
 const { SPECIALIST_MAPPING } = require('./specialistMapping');
 const { calculateEmergencyAlerts } = require('./emergencyScorer');
@@ -144,6 +152,28 @@ function calculateDetailedInsights(profile, diseaseId) {
             idrs += famPts;
             factors.push({ id: 'idrs_family', name: 'Genetics', displayValue: famHist || 'None', impact: famPts, category: 'demographic', explanation: 'Family history indicates genetic predisposition.' });
 
+            // Questionnaire symptom enrichments (Phase 1 expanded onboarding)
+            if (profile.frequentThirst?.value || profile.frequentThirst === true) {
+                idrs += 8;
+                factors.push({ id: 'dm_thirst', name: 'Frequent Thirst', displayValue: 'Yes', impact: 8, direction: 'increase', category: 'symptom', explanation: 'Polydipsia can indicate elevated glucose levels.' });
+            }
+            if (profile.frequentUrination?.value || profile.frequentUrination === true) {
+                idrs += 8;
+                factors.push({ id: 'dm_urination', name: 'Frequent Urination', displayValue: 'Yes', impact: 8, direction: 'increase', category: 'symptom', explanation: 'Polyuria is a common metabolic warning sign.' });
+            }
+            if (profile.blurredVision?.value || profile.blurredVision === true) {
+                idrs += 6;
+                factors.push({ id: 'dm_vision', name: 'Blurred Vision', displayValue: 'Yes', impact: 6, direction: 'increase', category: 'symptom', explanation: 'Fluctuating glucose can affect visual acuity.' });
+            }
+            if (profile.slowHealingWounds?.value || profile.slowHealingWounds === true) {
+                idrs += 6;
+                factors.push({ id: 'dm_wounds', name: 'Slow Healing Wounds', displayValue: 'Yes', impact: 6, direction: 'increase', category: 'symptom', explanation: 'Delayed healing may occur with poor glucose control.' });
+            }
+            if (profile.tinglingExtremities?.value || profile.tinglingExtremities === true) {
+                idrs += 5;
+                factors.push({ id: 'dm_tingling', name: 'Tingling/Numbness', displayValue: 'Yes', impact: 5, direction: 'increase', category: 'symptom', explanation: 'Neuropathic symptoms may indicate glycemic stress.' });
+            }
+
             score = idrs; // Overwrite baseline with validated score
             
             // Allergy & Medication Impact (Applied to all diseases)
@@ -191,6 +221,115 @@ function calculateDetailedInsights(profile, diseaseId) {
                 }
             }
             break;
+
+        case 'pre_diabetes': {
+            // Impaired glucose regulation: IDRS-aligned drivers, scaled below diabetes case
+            let pre = 0;
+            pre += age < 35 ? 0 : age < 50 ? 14 : 22;
+            const waistPre = profile.waistCircumference?.value;
+            if (waistPre) {
+                let wPts = 0;
+                if (gender === 'male') wPts = waistPre < 90 ? 0 : waistPre < 100 ? 8 : 16;
+                else wPts = waistPre < 80 ? 0 : waistPre < 90 ? 8 : 16;
+                pre += wPts;
+                factors.push({
+                    id: 'pre_waist',
+                    name: 'Waist circumference',
+                    displayValue: `${waistPre} cm`,
+                    impact: wPts,
+                    category: 'demographic',
+                    explanation: 'Central adiposity contributes to insulin resistance.'
+                });
+            } else {
+                missingFactors.push({
+                    id: 'waistCircumference',
+                    name: 'Waist circumference',
+                    prompt: 'Measure your waist at the navel line.',
+                    impact: 12,
+                    type: 'number'
+                });
+            }
+            const actPre = profile.activityLevel?.value;
+            const actPts = actPre === 'Regular' ? 0 : actPre === 'Occasional' ? 8 : 16;
+            pre += actPts;
+            factors.push({
+                id: 'pre_activity',
+                name: 'Physical activity',
+                displayValue: actPre || 'Sedentary',
+                impact: actPts,
+                category: 'lifestyle',
+                explanation: 'Low activity worsens insulin sensitivity.'
+            });
+            const famPre = profile.familyHistoryDiabetes?.value;
+            if (famPre) {
+                const fPts = famPre === 'Both' ? 14 : famPre === 'One' ? 7 : 0;
+                pre += fPts;
+                factors.push({
+                    id: 'pre_family_dm',
+                    name: 'Family history of diabetes',
+                    displayValue: famPre,
+                    impact: fPts,
+                    category: 'demographic',
+                    explanation: 'Genetic predisposition to dysglycemia.'
+                });
+            }
+            if (profile.frequentThirst?.value || profile.frequentThirst === true) {
+                pre += 6;
+                factors.push({ id: 'pre_thirst', name: 'Frequent thirst', displayValue: 'Yes', impact: 6, category: 'symptom', explanation: 'May indicate glucose dysregulation.' });
+            }
+            if (profile.frequentUrination?.value || profile.frequentUrination === true) {
+                pre += 6;
+                factors.push({ id: 'pre_uria', name: 'Frequent urination', displayValue: 'Yes', impact: 6, category: 'symptom', explanation: 'Possible hyperglycemia signal.' });
+            }
+            if (profile.blurredVision?.value || profile.blurredVision === true) {
+                pre += 4;
+                factors.push({ id: 'pre_vision', name: 'Blurred vision', displayValue: 'Yes', impact: 4, category: 'symptom', explanation: 'Fluctuating glucose can affect vision.' });
+            }
+            score = Math.min(90, Math.round(pre));
+            break;
+        }
+
+        case 'obesity': {
+            let ob = 12;
+            if (bmi >= 35) {
+                ob += 42;
+                factors.push({ id: 'ob_bmi3', name: 'BMI (severe obesity)', displayValue: bmi.toFixed(1), impact: 42, direction: 'increase', category: 'demographic', explanation: 'Class II/III obesity range.' });
+            } else if (bmi >= 30) {
+                ob += 35;
+                factors.push({ id: 'ob_bmi2', name: 'BMI (obesity)', displayValue: bmi.toFixed(1), impact: 35, direction: 'increase', category: 'demographic', explanation: 'BMI in obesity range.' });
+            } else if (bmi >= 27.5) {
+                ob += 22;
+                factors.push({ id: 'ob_bmi_high', name: 'BMI (high overweight)', displayValue: bmi.toFixed(1), impact: 22, direction: 'increase', category: 'demographic', explanation: 'Approaching obesity.' });
+            } else if (bmi >= 25) {
+                ob += 12;
+                factors.push({ id: 'ob_bmi_over', name: 'Overweight BMI', displayValue: bmi.toFixed(1), impact: 12, direction: 'increase', category: 'demographic', explanation: 'Overweight increases weight-related comorbidity risk.' });
+            } else if (bmi > 0 && bmi < 18.5) {
+                ob += 8;
+                factors.push({ id: 'ob_under', name: 'Low BMI', displayValue: bmi.toFixed(1), impact: 8, direction: 'increase', category: 'demographic', explanation: 'Underweight has distinct clinical considerations.' });
+            }
+            const waistOb = profile.waistCircumference?.value;
+            if (waistOb) {
+                const highW = gender === 'male' ? waistOb >= 102 : waistOb >= 88;
+                const modW = gender === 'male' ? waistOb >= 90 : waistOb >= 80;
+                if (highW) {
+                    ob += 18;
+                    factors.push({ id: 'ob_waist_high', name: 'Abdominal obesity (waist)', displayValue: `${waistOb} cm`, impact: 18, direction: 'increase', category: 'demographic', explanation: 'Waist thresholds for metabolic risk.' });
+                } else if (modW) {
+                    ob += 10;
+                    factors.push({ id: 'ob_waist_mod', name: 'Elevated waist', displayValue: `${waistOb} cm`, impact: 10, direction: 'increase', category: 'demographic', explanation: 'Central adiposity.' });
+                }
+            }
+            if (profile.activityLevel?.value === 'Sedentary') {
+                ob += 12;
+                factors.push({ id: 'ob_sed', name: 'Sedentary lifestyle', displayValue: 'Yes', impact: 12, direction: 'increase', category: 'lifestyle', explanation: 'Low energy expenditure.' });
+            }
+            if (profile.dietQuality?.value === 'Poor') {
+                ob += 10;
+                factors.push({ id: 'ob_diet', name: 'Diet quality', displayValue: 'Poor', impact: 10, direction: 'increase', category: 'lifestyle', explanation: 'Poor diet quality supports weight gain.' });
+            }
+            score = ob;
+            break;
+        }
 
         case 'hypertension':
             // STEP 14: HYPERTENSION RISK ASSESSMENT (Based on ICMR-INDIAB & WHO guidelines)
@@ -284,6 +423,32 @@ function calculateDetailedInsights(profile, diseaseId) {
                 });
             }
 
+            // Symptom enrichments from expanded onboarding
+            if (profile.chestPainActivity?.value || profile.chestPainActivity === true) {
+                htnScore += 12;
+                factors.push({ id: 'htn_chest_pain', name: 'Chest Pain on Activity', displayValue: 'Yes', impact: 12, direction: 'increase', category: 'symptom', explanation: 'Exertional chest symptoms can be associated with elevated cardiovascular risk.' });
+            }
+            if (profile.frequentSevereHeadaches?.value || profile.frequentSevereHeadaches === true) {
+                htnScore += 8;
+                factors.push({ id: 'htn_headache', name: 'Frequent Severe Headaches', displayValue: 'Yes', impact: 8, direction: 'increase', category: 'symptom', explanation: 'Headaches can be associated with uncontrolled blood pressure.' });
+            }
+            if (profile.nosebleedsHistory?.value || profile.nosebleedsHistory === true) {
+                htnScore += 5;
+                factors.push({ id: 'htn_nosebleed', name: 'Nosebleed History', displayValue: 'Yes', impact: 5, direction: 'increase', category: 'symptom', explanation: 'Frequent nosebleeds can occur in uncontrolled hypertension.' });
+            }
+            const weeklyExerciseDays = profile.weeklyExerciseDays?.value || profile.weeklyExerciseDays;
+            if (weeklyExerciseDays !== undefined && weeklyExerciseDays !== '') {
+                const sedentaryExercise = weeklyExerciseDays === '0' || weeklyExerciseDays === 0;
+                const activeExercise = weeklyExerciseDays === '5+' || Number(weeklyExerciseDays) >= 5;
+                if (sedentaryExercise) {
+                    htnScore += 8;
+                    factors.push({ id: 'htn_low_exercise', name: 'Low Weekly Exercise', displayValue: String(weeklyExerciseDays), impact: 8, direction: 'increase', category: 'lifestyle', explanation: 'Physical inactivity contributes to blood pressure elevation.' });
+                } else if (activeExercise) {
+                    htnScore -= 5;
+                    factors.push({ id: 'htn_high_exercise', name: 'Regular Weekly Exercise', displayValue: String(weeklyExerciseDays), impact: 5, direction: 'decrease', category: 'lifestyle', explanation: 'Regular activity supports blood pressure control.' });
+                }
+            }
+
             // Stress Level
             const stressLevel = profile.stressLevel?.value;
             if (stressLevel) {
@@ -317,17 +482,19 @@ function calculateDetailedInsights(profile, diseaseId) {
             // Alcohol Consumption
             const alcohol = profile.alcoholConsumption?.value;
             if (alcohol) {
-                let alcPts = alcohol === 'None' ? -5 : (alcohol === 'Moderate' ? 5 : 15);
+                let alcPts = alcohol === 'Never' ? 0 : (alcohol === 'Moderate' ? 5 : 15);
                 htnScore += alcPts;
-                factors.push({ 
-                    id: 'htn_alcohol', 
-                    name: 'Alcohol Consumption', 
-                    displayValue: alcohol, 
-                    impact: Math.abs(alcPts), 
-                    direction: alcPts > 0 ? 'increase' : 'decrease',
-                    category: 'lifestyle', 
-                    explanation: 'Excessive alcohol intake raises blood pressure significantly.' 
-                });
+                if (alcPts !== 0) {
+                    factors.push({
+                        id: 'htn_alcohol',
+                        name: 'Alcohol Consumption',
+                        displayValue: alcohol,
+                        impact: Math.abs(alcPts),
+                        direction: alcPts > 0 ? 'increase' : 'decrease',
+                        category: 'lifestyle',
+                        explanation: 'Excessive alcohol intake raises blood pressure significantly.'
+                    });
+                }
             }
 
             // Existing Blood Pressure Readings
@@ -446,6 +613,12 @@ function calculateDetailedInsights(profile, diseaseId) {
 
         case 'anemia':
             if (profile.dietType?.value === 'Veg') addFactor('diet_veg', 'Vegetarian Diet', 'Veg', 15, 'increase', 'Lower absorption of non-heme iron.', 'lifestyle');
+            if (profile.vegetarianVeganDiet?.value || profile.vegetarianVeganDiet === true) addFactor('diet_vegan', 'Vegetarian/Vegan Diet', 'Yes', 10, 'increase', 'Higher chance of iron and B12 inadequacy if not planned well.', 'lifestyle');
+            if (profile.paleSkinObservation?.value || profile.paleSkinObservation === true) addFactor('anemia_pallor', 'Pale Skin Observation', 'Yes', 12, 'increase', 'Pallor can be associated with reduced hemoglobin.', 'symptom');
+            if (profile.brittleNails?.value || profile.brittleNails === true) addFactor('anemia_nails', 'Brittle Nails', 'Yes', 7, 'increase', 'Brittle nails may occur with nutritional deficiency anemia.', 'symptom');
+            if (profile.dizzinessOnStanding?.value || profile.dizzinessOnStanding === true) addFactor('anemia_dizziness', 'Dizziness on Standing', 'Yes', 8, 'increase', 'Orthostatic dizziness can be associated with anemia.', 'symptom');
+            if (profile.recentBloodDonation?.value || profile.recentBloodDonation === true) addFactor('anemia_blood_donation', 'Recent Blood Donation', 'Yes', 6, 'increase', 'Recent blood donation can transiently reduce hemoglobin.', 'clinical');
+            if (profile.heavyMenstrualFlow?.value || profile.heavyMenstrualFlow === true) addFactor('anemia_menstrual', 'Heavy Menstrual Flow', 'Yes', 12, 'increase', 'Excess menstrual blood loss is a common cause of iron deficiency anemia.', 'clinical');
             if (profile.ironSupplementation?.value) addProtective('iron_supp', 'Iron Supplementation', 'Yes', 20, 'Reduces risk of nutritional deficiency.');
             break;
 
@@ -638,24 +811,17 @@ function calculateDetailedInsights(profile, diseaseId) {
 }
 
 function calculatePreliminaryRisk(profile) {
-    const diseases = [
-        'diabetes', 'pre_diabetes', 'obesity', 'thyroid', 'pcos', 'hypertension', 
-        'heart_disease', 'stroke', 'asthma', 'copd', 'ckd', 'fatty_liver', 
-        'anemia', 'vitamin_d', 'vitamin_b12', 'depression', 'anxiety', 
-        'sleep_disorders', 'osteoporosis', 'osteoarthritis'
-    ];
-    
     const scores = {};
-    diseases.forEach(d => {
+    HYBRID_DISEASE_IDS.forEach((d) => {
         const insight = calculateDetailedInsights(profile, d);
         scores[d] = insight.riskScore;
     });
-    
     return scores;
 }
 
-module.exports = { 
+module.exports = {
     calculatePreliminaryRisk,
     calculateDetailedInsights,
-    getScoreCategory
+    getScoreCategory,
+    HYBRID_DISEASE_IDS
 };
