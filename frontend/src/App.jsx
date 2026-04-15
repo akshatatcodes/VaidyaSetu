@@ -44,8 +44,10 @@ const ProtectedRoute = ({ children }) => {
 };
 
 // Main app shell
-const AppLayout = () => {
-  const { user, isLoaded } = useUser();
+const AppLayout = ({ mockUser }) => {
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+  const user = mockUser || clerkUser;
+  const isLoaded = mockUser ? true : clerkLoaded;
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
@@ -148,6 +150,23 @@ const AuthPage = ({ children }) => (
 );
 
 function App() {
+  const [mockId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('mockId');
+    if (id) {
+      localStorage.setItem('clerk_mock_id', id);
+      return id;
+    }
+    return localStorage.getItem('clerk_mock_id');
+  });
+
+  const mockUser = mockId ? {
+    id: mockId,
+    fullName: 'Mock Dev User',
+    primaryEmailAddress: { emailAddress: 'mock@vaidyasetu.dev' },
+    imageUrl: 'https://img.clerk.com/static/user.png'
+  } : null;
+
   return (
     <ThemeProvider>
       <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER">
@@ -160,8 +179,8 @@ function App() {
             <Route path="/sign-up/*" element={<AuthPage><SignUp routing="path" path="/sign-up" /></AuthPage>} />
 
             {/* Application Routes */}
-            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-            <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+            <Route path="/onboarding" element={mockUser ? <Onboarding /> : <ProtectedRoute><Onboarding /></ProtectedRoute>} />
+            <Route path="/*" element={mockUser ? <AppLayout mockUser={mockUser} /> : <ProtectedRoute><AppLayout /></ProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </GoogleOAuthProvider>
