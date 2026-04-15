@@ -137,7 +137,15 @@ const HealthProfile = () => {
   const [dataQuality, setDataQuality] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toastMessage, setToastMessa  const bmi = profile.bmi?.value ? Number(profile.bmi.value).toFixed(1) : null;
+  const [toastMessage, setToastMessage] = useState(location.state?.toast || null);
+
+  if (loading || !profile) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <RefreshCw className="w-10 h-10 text-emerald-500 animate-spin" />
+    </div>
+  );
+
+  const bmi = profile.bmi?.value ? Number(profile.bmi.value).toFixed(1) : null;
   const bmiCat = profile.bmiCategory?.value || '';
   const qualityScore = dataQuality?.score || 0;
   const isFemale = profile.gender?.value?.toLowerCase() === 'female';
