@@ -125,12 +125,17 @@ const PREVALENCE_DATA = {
     sources: ['ICMR', 'WHO']
   },
   ckd: {
-    overall: 17.2, // ICMR-INDIAB kidney disease
-    sources: ['ICMR-INDIAB 2023']
+    overall: 17.2, // ICMR-INDIAB (2023) kidney disease
+    sources: ['ICMR-INDIAB 2023', 'National Kidney Foundation India']
   },
   stroke: {
     overall: 1.8, // ICMR-NCDIR
-    sources: ['ICMR-NCDIR', 'WHO GHO']
+    sources: ['ICMR-NCDIR Stroke Registry', 'WHO GHO']
+  },
+  cancer: {
+    overall: 1.5, // General Indian baseline (ICMR-NCDIR 2023)
+    sources: ['ICMR-NCDIR National Cancer Registry Programme', 'WHO GHO 2024'],
+    riskGroups: ['High tobacco users', 'Family history', 'Age >50']
   }
 };
 

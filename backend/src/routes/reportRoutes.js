@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserProfile = require('../models/UserProfile');
 const Report = require('../models/Report');
+const DiseaseInsight = require('../models/DiseaseInsight');
 const Medication = require('../models/Medication');
 const InteractionHistory = require('../models/InteractionHistory');
 const Feedback = require('../models/Feedback');
@@ -11,9 +12,10 @@ const { calculateHybridRiskFromProfile } = require('../utils/hybridRiskAssessmen
 router.get('/:clerkId', async (req, res) => {
   try {
     const clerkId = req.params.clerkId;
-    const [report, profile] = await Promise.all([
+    const [report, profile, insights] = await Promise.all([
       Report.findOne({ clerkId }).sort({ createdAt: -1 }).lean(),
-      UserProfile.findOne({ clerkId }).lean()
+      UserProfile.findOne({ clerkId }).lean(),
+      DiseaseInsight.find({ clerkId }).lean()
     ]);
 
     if (!report) {
@@ -21,13 +23,33 @@ router.get('/:clerkId', async (req, res) => {
       return res.status(404).json({ status: 'not_found', message: 'Report not found' });
     }
 
+    // UNIFIED SYNC: Merge clinical scores from DiseaseInsight into the Report
+    const mergedRiskScores = { ...(report.risk_scores || {}) };
+    const mergedDetails = {};
+    
+    if (insights && insights.length > 0) {
+      insights.forEach(insight => {
+        // Only override if the insight is newer or specifically marked as questionnaire-based
+        // For simplicity now, we assume DiseaseInsight is the more accurate source
+        mergedRiskScores[insight.diseaseId] = insight.riskScore;
+        mergedDetails[insight.diseaseId] = {
+          riskScore: insight.riskScore,
+          riskCategory: insight.riskCategory,
+          factorBreakdown: insight.factorBreakdown,
+          lastCalculated: insight.lastCalculated
+        };
+      });
+    }
+
     // Explicit Serialization to prevent data loss in transfer
     const serializedData = JSON.parse(JSON.stringify({
       ...report,
+      risk_scores: mergedRiskScores,
+      clinical_details: mergedDetails,
       userProfile: profile || {}
     }));
 
-    console.log(`[ReportPoll] Found report for ${clerkId}. RiskScores: ${Object.keys(serializedData.risk_scores || {}).length}, Advice: ${Object.keys(serializedData.advice || {}).length}`);
+    console.log(`[ReportPoll] Found report for ${clerkId}. Synced with ${insights.length} insights.`);
 
     res.json({ 
       status: 'success', 

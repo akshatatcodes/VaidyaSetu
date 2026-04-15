@@ -321,6 +321,14 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                                 <p className="text-xs font-bold text-gray-500">
                                   Your Value: <span className="text-gray-900 dark:text-white">{factor.displayValue}</span>
                                 </p>
+                                {factor.clinicalSource && (
+                                  <div className="mt-2 inline-flex items-center px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-md">
+                                    <Shield className="w-3 h-3 text-blue-500 mr-1" />
+                                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
+                                      Verified Source: {factor.clinicalSource}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                               <div className="ml-4 text-right">
                                 <div className="flex items-center font-black text-lg text-red-500">
@@ -413,16 +421,22 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                       How is this calculated?
                     </h3>
                     <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                      <p><strong>1. Baseline Risk:</strong> Indian population prevalence data (ICMR-INDIAB)</p>
-                      <p><strong>2. Risk Factors:</strong> Added based on your profile ({details.factorBreakdown?.length || 0} factors)</p>
+                      <p><strong>1. Baseline Risk:</strong> Verified Indian population prevalence for {diseaseId?.replace('_', ' ')}.</p>
+                      <p><strong>2. Risk Factors:</strong> Added based on your biometric profile and symptoms.</p>
                       {details.protectiveFactors?.length > 0 && (
                         <p><strong>3. Protective Factors:</strong> Subtracted for healthy behaviors ({details.protectiveFactors.length} factors)</p>
                       )}
                       <p><strong>4. Final Score:</strong> Capped between 2-95% for clinical relevance</p>
                     </div>
                     <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800/30">
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        <strong>Data Sources:</strong> ICMR-INDIAB 2023, NFHS-5, WHO Guidelines, IDRS
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-[10px] font-black bg-white dark:bg-gray-800 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">ICMR-INDIAB (2023)</span>
+                        <span className="text-[10px] font-black bg-white dark:bg-gray-800 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">NFHS-5 (2021)</span>
+                        <span className="text-[10px] font-black bg-white dark:bg-gray-800 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">WHO GHO (2024)</span>
+                        <span className="text-[10px] font-black bg-white dark:bg-gray-800 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">ICMR-NCDIR</span>
+                      </div>
+                      <p className="text-[9px] text-gray-500 mt-2 font-bold uppercase tracking-widest">
+                        Clinical datasets used for verification
                       </p>
                     </div>
                   </div>

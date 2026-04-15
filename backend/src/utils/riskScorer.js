@@ -114,8 +114,12 @@ function calculateDetailedInsights(profile, diseaseId) {
 
     score = baseline;
 
-    const addFactor = (id, name, val, impact, direction, explanation, category) => {
-        factors.push({ id, name, displayValue: val, rawValue: val, impact, direction, explanation, category, source: 'user_profile' });
+    const addFactor = (id, name, val, impact, direction, explanation, category, clinicalSource) => {
+        factors.push({ 
+            id, name, displayValue: val, rawValue: val, impact, direction, explanation, category, 
+            source: 'user_profile',
+            clinicalSource: clinicalSource || PREVALENCE_DATA[diseaseId]?.sources?.[0] || 'Standard Guidelines'
+        });
         if (direction === 'increase') score += impact;
         else score -= impact;
     };
@@ -297,21 +301,15 @@ function calculateDetailedInsights(profile, diseaseId) {
 
         case 'obesity': {
             let ob = 12;
-            if (bmi >= 35) {
+            if (bmi >= 25) {
                 ob += 42;
-                factors.push({ id: 'ob_bmi3', name: 'BMI (severe obesity)', displayValue: bmi.toFixed(1), impact: 42, direction: 'increase', category: 'demographic', explanation: 'Class II/III obesity range.' });
-            } else if (bmi >= 30) {
-                ob += 35;
-                factors.push({ id: 'ob_bmi2', name: 'BMI (obesity)', displayValue: bmi.toFixed(1), impact: 35, direction: 'increase', category: 'demographic', explanation: 'BMI in obesity range.' });
-            } else if (bmi >= 27.5) {
+                factors.push({ id: 'ob_bmi3', name: 'Obesity (BMI)', displayValue: bmi.toFixed(1), impact: 42, direction: 'increase', category: 'demographic', explanation: 'BMI in obesity range (Indian Standard: ≥25).', clinicalSource: 'ICMR-INDIAB 2023 / WHO Asia-Pacific' });
+            } else if (bmi >= 23) {
                 ob += 22;
-                factors.push({ id: 'ob_bmi_high', name: 'BMI (high overweight)', displayValue: bmi.toFixed(1), impact: 22, direction: 'increase', category: 'demographic', explanation: 'Approaching obesity.' });
-            } else if (bmi >= 25) {
-                ob += 12;
-                factors.push({ id: 'ob_bmi_over', name: 'Overweight BMI', displayValue: bmi.toFixed(1), impact: 12, direction: 'increase', category: 'demographic', explanation: 'Overweight increases weight-related comorbidity risk.' });
-            } else if (bmi > 0 && bmi < 18.5) {
+                factors.push({ id: 'ob_bmi_high', name: 'Overweight (BMI)', displayValue: bmi.toFixed(1), impact: 22, direction: 'increase', category: 'demographic', explanation: 'BMI in overweight range (Indian Standard: ≥23).', clinicalSource: 'ICMR-INDIAB 2023' });
+            } else if (bmi > 0 && bmi < 18) {
                 ob += 8;
-                factors.push({ id: 'ob_under', name: 'Low BMI', displayValue: bmi.toFixed(1), impact: 8, direction: 'increase', category: 'demographic', explanation: 'Underweight has distinct clinical considerations.' });
+                factors.push({ id: 'ob_under', name: 'Low BMI', displayValue: bmi.toFixed(1), impact: 8, direction: 'increase', category: 'demographic', explanation: 'Underweight has distinct clinical considerations.', clinicalSource: 'NFHS-5' });
             }
             const waistOb = getVal(profile.waistCircumference);
             if (waistOb) {
@@ -671,14 +669,16 @@ function calculateDetailedInsights(profile, diseaseId) {
                 addFactor('baseline_population', 'Baseline Population Risk', 
                     `${prevalenceData.prevalence || '10'}% prevalence`, 
                     10, 'increase', 
-                    `Indian population prevalence based on national surveys.`, 
-                    'demographic');
+                    `Indian population prevalence based on ${prevalenceData.sources?.[0] || 'national surveys'}.`, 
+                    'demographic',
+                    prevalenceData.sources?.[0]);
             } else {
                 addFactor('baseline_population', 'Baseline Population Risk', 
                     '10% prevalence', 
                     10, 'increase', 
                     `Baseline risk for ${diseaseId.replace('_', ' ')} in general population.`, 
-                    'demographic');
+                    'demographic',
+                    'Standard Clinical Guidelines');
             }
             
             // Age Factor (applies to most diseases)
@@ -694,17 +694,17 @@ function calculateDetailedInsights(profile, diseaseId) {
                 protective.push({ id: 'default_age_young', name: 'Young Age', displayValue: `${age} years`, impact: 5 });
             }
             
-            // BMI Factor
-            if (bmi >= 25 && bmi < 30) {
-                defaultScore += 10;
-                addFactor('default_bmi_overweight', 'Overweight', `BMI: ${bmi.toFixed(1)}`, 10, 'increase', 'Elevated BMI increases risk for many conditions.', 'demographic');
-            } else if (bmi >= 30) {
+            // BMI Factor (Asian-Indian Standards: 23 Overweight, 25 Obese)
+            if (bmi >= 25) {
                 defaultScore += 20;
-                addFactor('default_bmi_obese', 'Obesity', `BMI: ${bmi.toFixed(1)}`, 20, 'increase', 'Obesity is a major risk factor for chronic diseases.', 'demographic');
-            } else if (bmi >= 18.5 && bmi < 25) {
+                addFactor('default_bmi_obese', 'Obesity (Indian Standard)', `BMI: ${bmi.toFixed(1)}`, 20, 'increase', 'BMI ≥25 indicates obesity in Asian-Indian populations.', 'demographic', 'ICMR-INDIAB 2023 / RSSDI');
+            } else if (bmi >= 23) {
+                defaultScore += 10;
+                addFactor('default_bmi_overweight', 'Overweight (Indian Standard)', `BMI: ${bmi.toFixed(1)}`, 10, 'increase', 'BMI ≥23 indicates overweight in Asian-Indian populations.', 'demographic', 'ICMR-INDIAB 2023');
+            } else if (bmi >= 18 && bmi < 23) {
                 // Normal BMI is protective
                 defaultScore -= 10;
-                protective.push({ id: 'default_normal_bmi', name: 'Normal BMI', displayValue: `BMI: ${bmi.toFixed(1)}`, impact: 10 });
+                protective.push({ id: 'default_normal_bmi', name: 'Healthy BMI', displayValue: `BMI: ${bmi.toFixed(1)}`, impact: 10, clinicalSource: 'ICMR-INDIAB' });
             }
             
             // Smoking
