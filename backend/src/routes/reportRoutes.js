@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserProfile = require('../models/UserProfile');
 const Report = require('../models/Report');
+const Medication = require('../models/Medication');
 const InteractionHistory = require('../models/InteractionHistory');
 const Feedback = require('../models/Feedback');
 const { calculateHybridRiskFromProfile } = require('../utils/hybridRiskAssessment');
@@ -58,6 +59,14 @@ router.post('/hybrid-assessment', async (req, res) => {
         flatProfile[key] = profile[key];
       }
     });
+
+    // Fetch active medications for hybrid assessment
+    try {
+      const activeMeds = await Medication.find({ clerkId, active: true }).lean();
+      flatProfile.activeMedications = activeMeds;
+    } catch (medErr) {
+      console.warn('[HybridAssessment] Could not fetch medications:', medErr.message);
+    }
 
     const hybrid = calculateHybridRiskFromProfile(flatProfile);
 

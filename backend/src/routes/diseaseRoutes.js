@@ -4,6 +4,7 @@ const DiseaseMetadata = require('../models/DiseaseMetadata');
 const DiseaseInsight = require('../models/DiseaseInsight');
 const UserProfile = require('../models/UserProfile');
 const Report = require('../models/Report');
+const Medication = require('../models/Medication');
 const { calculateDetailedInsights } = require('../utils/riskScorer');
 const aiService = require('../services/aiService');
 const { DISEASE_QUESTIONNAIRES, generateGenericQuestionnaire } = require('../utils/diseaseQuestionnaires');
@@ -368,6 +369,14 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'User profile not found' });
     }
     
+    // Get active medications
+    let activeMeds = [];
+    try {
+      activeMeds = await Medication.find({ clerkId, active: true }).lean();
+    } catch (medErr) {
+      console.warn('[Questionnaire] Could not fetch medications:', medErr.message);
+    }
+    
     // Merge database profile with frontend profile data (use most complete data)
     const comprehensiveProfile = {
       // Database data
@@ -379,9 +388,9 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       // Questionnaire answers
       questionnaireAnswers: answers,
       
-      // Ensure arrays exist
+      // Ensure arrays exist and are populated
       allergies: userProfile?.allergies || dbProfile?.allergies || [],
-      activeMedications: userProfile?.activeMedications || dbProfile?.activeMedications || []
+      activeMedications: activeMeds.length > 0 ? activeMeds : (userProfile?.activeMedications || dbProfile?.activeMedications || [])
     };
     
     console.log(`[Questionnaire] Considering:`);
