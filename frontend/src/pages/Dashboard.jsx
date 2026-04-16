@@ -3,6 +3,7 @@ import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText, HeartPulse, Scan, ThumbsUp, ThumbsDown } from 'lucide-react';
 import BodyScan3D from '../components/BodyScan3D';
+import InlineErrorBoundary from '../components/InlineErrorBoundary';
 import DiseaseCard from '../components/disease-cards/DiseaseCard';
 import { useGoogleLogin } from '@react-oauth/google';
 import SavedDoctorsWidget from '../components/dashboard/SavedDoctorsWidget';
@@ -508,9 +509,36 @@ const Dashboard = () => {
                </h3>
                
                <div className="w-full h-[400px] md:h-[520px] relative z-10 flex items-center justify-center">
-                  <BodyScan3D 
-                    riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map(v => Number(v) || 0))} 
-                  />
+                  <InlineErrorBoundary
+                    title="3D Bio-Matrix unavailable"
+                    fallback={({ message }) => (
+                      <div className="w-full h-full flex items-center justify-center p-8">
+                        <div className="max-w-md w-full rounded-[2rem] border border-emerald-500/15 bg-black/30 backdrop-blur-xl p-8 text-center shadow-[0_0_60px_rgba(16,185,129,0.12)]">
+                          <div className="text-[11px] font-black uppercase tracking-[0.35em] text-emerald-300/70">
+                            3D Scan disabled
+                          </div>
+                          <div className="mt-3 text-sm text-white/80">
+                            Your dashboard is working, but the 3D renderer crashed on this device/browser.
+                          </div>
+                          <div className="mt-4 text-[11px] text-emerald-200/60 font-bold break-words">
+                            {message}
+                          </div>
+                          <div className="mt-6 flex items-center justify-center gap-3">
+                            <button
+                              className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs"
+                              onClick={() => window.location.reload()}
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  >
+                    <BodyScan3D
+                      riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map((v) => Number(v) || 0))}
+                    />
+                  </InlineErrorBoundary>
                </div>
            </div>
 

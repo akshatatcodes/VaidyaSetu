@@ -14,6 +14,7 @@ import Sidebar from './components/Sidebar';
 import Chatbot from './components/Chatbot';
 import DisclaimerBanner from './components/DisclaimerBanner';
 import ThemeToggle from './components/ThemeToggle';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -71,7 +72,8 @@ const AppLayout = () => {
       .then((res) => {
         if (res.data?.status === 'success') {
           const profile = res.data.data;
-          if (!profile.onboardingComplete) {
+          const onboardingDone = Boolean(profile?.onboardingCompleted ?? profile?.onboardingComplete);
+          if (!onboardingDone) {
             navigate('/onboarding', { replace: true });
           }
         }
@@ -109,21 +111,23 @@ const AppLayout = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 md:ml-72 h-full md:h-screen overflow-y-auto scrollbar-hide">
         <main className="flex-1 p-4 sm:p-6 md:p-12 w-full vs-main-content bg-transparent dark:bg-transparent pb-12 text-slate-900 dark:text-white">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/profile" element={<HealthProfile />} />
-            <Route path="/profile/edit" element={<ProfileEditor />} />
-            <Route path="/history" element={<ChangeHistory />} />
-            <Route path="/prescriptions" element={<Prescriptions />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/vitals" element={<Vitals />} />
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/alerts/settings" element={<AlertSettings />} />
-            <Route path="/medications" element={<MedicationSchedule />} />
-            <Route path="/medicines" element={<MyMedicines />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/profile" element={<HealthProfile />} />
+              <Route path="/profile/edit" element={<ProfileEditor />} />
+              <Route path="/history" element={<ChangeHistory />} />
+              <Route path="/prescriptions" element={<Prescriptions />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/vitals" element={<Vitals />} />
+              <Route path="/alerts" element={<Alerts />} />
+              <Route path="/alerts/settings" element={<AlertSettings />} />
+              <Route path="/medications" element={<MedicationSchedule />} />
+              <Route path="/medicines" element={<MyMedicines />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </ErrorBoundary>
           
           <DisclaimerBanner />
         </main>
