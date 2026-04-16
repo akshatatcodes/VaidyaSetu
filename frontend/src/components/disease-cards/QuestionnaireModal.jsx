@@ -7,7 +7,7 @@ import {
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 
-import { API_URL } from '../config/api';
+import { API_URL } from '../../config/api';
 
 const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile, onScoreUpdate }) => {
   const { t } = useTranslation();
