@@ -20,19 +20,26 @@ html {
   box-sizing: border-box;
 }
 
-/* Mobile font scaling */
-@media (max-width: 640px) {
+/* Mobile font scaling & Layout resets */
+@media (max-width: 768px) {
   html { font-size: 14px; }
 
   /* Scale down large headings on mobile */
-  h1 { font-size: clamp(1.6rem, 6vw, 3rem) !important; line-height: 1.1 !important; }
-  h2 { font-size: clamp(1.3rem, 5vw, 2rem) !important; }
-  h3 { font-size: clamp(1rem, 4vw, 1.4rem) !important; }
+  h1 { font-size: clamp(2rem, 8vw, 2.5rem) !important; line-height: 1.1 !important; }
+  h2 { font-size: clamp(1.5rem, 6vw, 2rem) !important; }
+  h3 { font-size: clamp(1.2rem, 5vw, 1.5rem) !important; }
 
-  /* Ensure all modals fill the screen on mobile */
+  /* Tighter containers on mobile */
+  .p-12, .p-8 { padding: 1.5rem !important; }
+  .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .gap-8 { gap: 1.5rem !important; }
+
+  /* Ensure all modals fill the screen more efficiently on mobile */
   .fixed.inset-0 > div {
-    max-height: 95vh;
-    overflow-y: auto;
+    max-height: 100vh;
+    border-radius: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
   }
 }
 
@@ -177,7 +184,7 @@ html:not(.dark) .text-slate-700 { color: #1e293b !important; }
 html:not(.dark) .text-slate-600 { color: #334155 !important; }
 
 html:not(.dark) .text-white {
-  color: #020617 !important;
+  color: #ffffff;
 }
 
 /* Keep white text ON colored backgrounds */

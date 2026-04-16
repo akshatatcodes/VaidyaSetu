@@ -97,20 +97,20 @@ const Sidebar = () => {
           {/* Desktop user profile */}
           <div className="pt-6 border-t border-gray-200/50 dark:border-white/5">
             <SignedIn>
-              <div className="flex items-center justify-between px-4 py-3 bg-white/40 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5 backdrop-blur-md hover:border-emerald-500/30 transition-all">
-                <UserButton
-                  showName
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox: 'w-8 h-8',
-                      userButtonBox: 'flex-row-reverse',
-                      userButtonOuterIdentifier: 'text-slate-900 dark:!text-white font-bold'
-                    }
-                  }}
-                />
-                <Link to="/profile" className="text-slate-600 dark:text-gray-400 hover:text-emerald-600 transition-colors" title="My Health Profile">
-                  <UserCircle className="w-5 h-5" />
-                </Link>
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-white/40 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5 backdrop-blur-md hover:border-emerald-500/30 transition-all group">
+                <div className="flex-1 overflow-hidden">
+                  <UserButton
+                    showName
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox: 'w-8 h-8 order-1',
+                        userButtonBox: 'flex-row items-center gap-3',
+                        userButtonOuterIdentifier: 'text-slate-900 dark:!text-white font-bold text-sm truncate order-2',
+                        userButtonTrigger: 'focus:shadow-none'
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </SignedIn>
             <SignedOut>
@@ -177,7 +177,7 @@ const Sidebar = () => {
               `flex-1 flex flex-col items-center justify-center py-2 relative transition-all duration-200 ${
                 isActive
                   ? 'text-emerald-500'
-                  : 'text-slate-400 dark:text-gray-500 hover:text-emerald-500'
+                  : 'text-slate-400 dark:text-gray-400 hover:text-emerald-500'
               }`
             }
           >
@@ -187,8 +187,8 @@ const Sidebar = () => {
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-emerald-500 rounded-full" />
                 )}
                 <item.icon className={`w-5 h-5 mb-0.5 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                <span className="text-[9px] font-black uppercase tracking-wider leading-none">
-                  {item.label.length > 6 ? item.label.slice(0, 6) : item.label}
+                <span className="text-[8px] font-black uppercase tracking-tight leading-none text-center px-0.5">
+                  {item.label}
                 </span>
                 {item.to === '/alerts' && unreadCount > 0 && (
                   <span className="absolute top-1.5 right-[calc(50%-18px)] w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">

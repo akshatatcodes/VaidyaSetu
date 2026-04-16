@@ -82,10 +82,10 @@ const Pill = ({ label, active, color = 'emerald' }) => {
 };
 
 const StatRow = ({ label, value, unit = '', highlight = false }) => (
-  <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-    <span className="text-xs font-semibold text-gray-400">{label}</span>
-    <span className={`text-xs font-black px-2.5 py-0.5 rounded-lg ${
-      highlight ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-gray-100'
+  <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-white/5 last:border-0">
+    <span className="text-xs font-bold text-slate-400 dark:text-gray-500">{label}</span>
+    <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-lg ${
+      highlight ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-gray-100'
     }`}>
       {value !== null && value !== undefined && value !== '' ? `${value}${unit ? ' ' + unit : ''}` : '—'}
     </span>
@@ -94,9 +94,8 @@ const StatRow = ({ label, value, unit = '', highlight = false }) => (
 
 const Card = ({ children, accent = '#10b981', className = '' }) => (
   <div
-    className={`relative rounded-3xl border border-white/8 bg-white/4 backdrop-blur-xl overflow-hidden
-      hover:-translate-y-1 hover:border-white/15 hover:shadow-2xl transition-all duration-500 group ${className}`}
-    style={{ boxShadow: `0 0 0 0 ${accent}00` }}
+    className={`relative rounded-3xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/4 backdrop-blur-xl overflow-hidden
+      hover:-translate-y-1 hover:border-emerald-500/30 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-500 group ${className}`}
   >
     <div
       className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-3xl"
@@ -107,16 +106,16 @@ const Card = ({ children, accent = '#10b981', className = '' }) => (
 );
 
 const CardHeader = ({ icon: Icon, title, iconColor, lastUpdated }) => (
-  <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/6">
+  <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 dark:border-white/6">
     <div className="flex items-center gap-3">
-      <div className="p-2 rounded-xl" style={{ background: `${iconColor}20` }}>
+      <div className="p-2 rounded-xl" style={{ background: `${iconColor}15` }}>
         <Icon size={16} style={{ color: iconColor }} />
       </div>
-      <h3 className="text-sm font-black text-white uppercase tracking-widest">{title}</h3>
+      <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none">{title}</h3>
     </div>
     {lastUpdated && (
-      <div className="flex items-center gap-1 text-[9px] font-bold text-gray-500 uppercase tracking-wider">
-        <Clock size={9} /> {getRelativeTime(lastUpdated) || '—'}
+      <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider">
+        <Clock size={10} /> {getRelativeTime(lastUpdated) || '—'}
       </div>
     )}
   </div>
@@ -194,61 +193,60 @@ const HealthProfile = () => {
       )}
 
       {/* ── HERO BANNER ── */}
-      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-white/8"
-        style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1a12 50%, #0a0f1e 100%)' }}>
+      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-slate-200 dark:border-white/10 shadow-2xl shadow-slate-200/50 dark:shadow-none bg-white dark:bg-white/5 backdrop-blur-3xl group transition-all duration-500">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-20"
+          <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-10 dark:opacity-20 transition-transform duration-700 group-hover:scale-150"
             style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }} />
-          <div className="absolute -bottom-10 -left-10 w-60 h-60 rounded-full opacity-10"
+          <div className="absolute -bottom-10 -left-10 w-60 h-60 rounded-full opacity-5 dark:opacity-10"
             style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }} />
         </div>
 
         <div className="relative z-10 p-8 lg:p-12 flex flex-col md:flex-row md:items-center gap-8">
-          <div className="relative flex-shrink-0">
+          <div className="relative flex-shrink-0 group-hover:scale-105 transition-transform duration-500">
             {user?.imageUrl ? (
               <img
                 src={user.imageUrl}
                 alt={profile?.name?.value || user?.fullName || 'User'}
-                className="w-24 h-24 rounded-3xl object-cover border-2 border-emerald-500/40 shadow-xl"
+                className="w-24 h-24 rounded-3xl object-cover border-4 border-white dark:border-white/10 shadow-2xl"
               />
             ) : (
-              <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-3xl font-black text-white border border-emerald-500/30"
-                style={{ background: 'linear-gradient(135deg, #059669, #0d9488)' }}>
+              <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-3xl font-black text-white border-4 border-white dark:border-white/10 shadow-2xl"
+                style={{ background: 'linear-gradient(135deg, #10b981, #3b82f6)' }}>
                 {initials}
               </div>
             )}
           </div>
 
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded-full">
                 {t('profile.title', { defaultValue: 'Bio-Ledger' })}
               </span>
               {dataQuality?.label && (
-                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                  dataQuality.label === 'Excellent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : dataQuality.label === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border ${
+                  dataQuality.label === 'Excellent' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                  : dataQuality.label === 'Good' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                 }`}>
                   {t(`profile.quality_${dqLabel}`, { defaultValue: dataQuality.label })} {t('profile.profile_label', { defaultValue: 'Profile' })}
                 </span>
               )}
             </div>
-            <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
+            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter mb-2 italic uppercase leading-none">
               {profile?.name?.value || user?.fullName || t('profile.errors.no_profile', { defaultValue: 'Legacy Entity' })}
             </h1>
-            <p className="text-gray-400 text-sm max-w-lg leading-relaxed font-medium">
+            <p className="text-slate-500 dark:text-gray-400 text-sm max-w-lg leading-relaxed font-semibold">
               {t('profile.health_overview_subtitle', { defaultValue: 'Real-time overview of your foundational health metrics.' })}
             </p>
           </div>
 
           <div className="flex flex-col gap-3 flex-shrink-0 w-full md:w-auto">
-            <button onClick={() => window.print()} className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-300 text-sm font-bold hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest text-[10px]">
-              <Download size={15} /> {t('profile.export_profile', { defaultValue: 'Export Data' })}
+            <button onClick={() => window.print()} className="flex justify-center items-center gap-2 px-6 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all uppercase tracking-widest text-[10px] shadow-sm">
+              <Download size={16} className="text-emerald-500" /> {t('profile.export_profile', { defaultValue: 'Export Data' })}
             </button>
             <Link to="/profile/edit"
-              className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95 uppercase tracking-widest text-[10px]">
-              <Edit3 size={15} /> {t('profile.edit_profile', { defaultValue: 'Edit Ledger' })}
+              className="flex justify-center items-center gap-2 px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-[0_10px_30px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.4)] transition-all active:scale-95 uppercase tracking-widest text-[10px]">
+              <Edit3 size={16} /> {t('profile.edit_profile', { defaultValue: 'Edit Ledger' })}
             </Link>
           </div>
         </div>
@@ -263,14 +261,14 @@ const HealthProfile = () => {
             <div className="flex-1">
                <div className="flex items-center space-x-2 mb-2">
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
-                  dataQuality?.label === 'Excellent' ? 'bg-emerald-500/20 text-emerald-400' : 
-                  dataQuality?.label === 'Good' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-400'
+                  dataQuality?.label === 'Excellent' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 
+                  dataQuality?.label === 'Good' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                 }`}>
                   {t(`profile.quality_${dqLabel}`, { defaultValue: dataQuality.label })} {t('profile.profile_label', { defaultValue: 'Profile' })}
                 </span>
               </div>
-              <h2 className="text-2xl font-black text-white mb-2">{t('profile.data_quality', { defaultValue: 'Bio-Data Quality' })}</h2>
-              <p className="text-gray-400 text-sm md:text-base max-w-2xl leading-relaxed font-medium">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t('profile.data_quality', { defaultValue: 'Bio-Data Quality' })}</h2>
+              <p className="text-slate-500 dark:text-gray-400 text-sm md:text-base max-w-2xl leading-relaxed font-semibold">
                 {dataQuality?.message || t('profile.action.update_stats', { defaultValue: 'Complete your bio-matrix for deeper AI assessment.' })}
               </p>
             </div>

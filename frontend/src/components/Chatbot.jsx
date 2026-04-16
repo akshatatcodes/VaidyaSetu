@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2, Mic, Volume2, Sparkles, Activity, Heart, Shield } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
+import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
@@ -26,6 +28,8 @@ const TypingDots = () => (
 
 const Chatbot = () => {
   const { user } = useUser();
+  const theme = 'dark'; // Forced dark for 'same to same' Matrix look
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Namaste! 🙏 I am **VaidyaSetu AI**, your personal health companion. I can help with symptom checking, health insights, and wellness guidance.\n\nHow can I assist you today?' }
@@ -129,7 +133,8 @@ const Chatbot = () => {
         // scroll handled by useEffect
       }
     } catch (err) {
-      const reply = err.response?.data?.reply || 'Sorry, I am having trouble connecting. Please try again.';
+      console.error('Chat error:', err);
+      const reply = err.response?.data?.reply || 'Namaste! 🙏 I am having trouble connecting to the VaidyaSetu medical brain right now. Please check if the backend server is running or try again in a moment.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
       // scroll handled by useEffect
     } finally {
@@ -205,21 +210,19 @@ const Chatbot = () => {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-2xl hover:scale-105 active:scale-95 transition-all z-50 chat-pulse ${isOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}
+        className={`fixed bottom-24 right-6 md:bottom-8 md:right-8 p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-[0_20px_50px_rgba(16,185,129,0.3)] hover:scale-110 active:scale-95 transition-all z-[100] chat-pulse ${isOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}
       >
         <div className="relative">
           <MessageCircle className="w-6 h-6" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-300 rounded-full border-2 border-white animate-pulse" />
+          <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-300 rounded-full border-2 border-emerald-600 animate-pulse" />
         </div>
       </button>
 
-      {/* Chat Window */}
       <div
-        className={`fixed bottom-6 right-6 w-[360px] sm:w-[420px] max-h-[88vh] flex flex-col rounded-[2rem] shadow-[0_32px_80px_rgba(0,0,0,0.5)] transition-all duration-500 z-[200] origin-bottom-right overflow-hidden border border-white/10 backdrop-blur-2xl ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}
-        style={{ background: 'linear-gradient(145deg, rgba(3,7,18,0.98) 0%, rgba(6,18,29,0.98) 100%)' }}
+        className={`fixed bottom-24 right-6 md:bottom-8 md:right-8 w-[360px] sm:w-[420px] max-h-[75vh] md:max-h-[80vh] flex flex-col rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] transition-all duration-500 z-[200] origin-bottom-right overflow-hidden border ${theme === 'dark' ? 'border-white/10' : 'border-slate-300'} backdrop-blur-3xl ${isOpen ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'}`}
+        style={{ background: theme === 'dark' ? 'rgba(3,7,18,0.98)' : '#ffffff' }}
       >
-        {/* Header */}
-        <div className="relative flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
+        <div className={`relative flex items-center justify-between px-6 py-5 border-b ${theme === 'dark' ? 'border-white/5' : 'border-slate-100'} shrink-0`}>
           {/* Ambient glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-teal-500/5 pointer-events-none" />
           <div className="flex items-center gap-3 relative z-10">
@@ -227,16 +230,16 @@ const Chatbot = () => {
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-gray-950 animate-pulse" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white dark:border-gray-950 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-white font-black text-sm tracking-tight">VaidyaSetu AI</h3>
-              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Health Intelligence Engine</p>
+              <h3 className="text-slate-900 dark:text-white font-black text-sm tracking-tight uppercase italic flex items-center gap-2">Vaidya<span className="text-emerald-500 not-italic">Setu</span> AI</h3>
+              <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.2em]">{t('chat.ai_engine', { defaultValue: 'Bio-Matrix Core' })}</p>
             </div>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="relative z-10 p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+            className="relative z-10 p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 dark:text-gray-500 hover:text-emerald-600 transition-all shadow-sm"
           >
             <X className="w-4 h-4" />
           </button>
@@ -264,9 +267,9 @@ const Chatbot = () => {
               </div>
 
               {/* Bubble */}
-              <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg ${msg.role === 'user'
-                ? 'bg-gradient-to-br from-blue-600/90 to-indigo-700/90 text-white rounded-tr-sm border border-blue-500/30'
-                : 'bg-white/5 text-gray-200 rounded-tl-sm border border-white/10 backdrop-blur-sm'
+              <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-md ${msg.role === 'user'
+                ? 'bg-gradient-to-br from-blue-600 to-emerald-600 text-white rounded-tr-sm border border-emerald-500/20 shadow-emerald-500/10'
+                : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-gray-200 rounded-tl-sm border border-slate-200 dark:border-white/10 backdrop-blur-sm'
               }`}>
                 {renderMessage(msg.content)}
               </div>
@@ -294,10 +297,10 @@ const Chatbot = () => {
                 <button
                   key={text}
                   onClick={() => handleSend(text)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/40 hover:bg-white/10 transition-all text-left group"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all text-left group"
                 >
                   <Icon className={`w-4 h-4 ${color} shrink-0`} />
-                  <span className="text-xs text-gray-300 group-hover:text-white transition-colors font-medium">{text}</span>
+                  <span className="text-xs text-slate-600 dark:text-gray-300 group-hover:text-emerald-600 dark:group-hover:text-white transition-colors font-bold uppercase tracking-tight">{text}</span>
                 </button>
               ))}
             </div>
@@ -312,36 +315,36 @@ const Chatbot = () => {
         </div>
 
         {/* Input Area */}
-        <div className="px-4 pb-4 pt-3 bg-black/20 border-t border-white/5 shrink-0">
-          <div className={`flex items-end gap-2 bg-white/5 border rounded-2xl px-4 py-2 transition-all ${isListening ? 'border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'border-white/10 hover:border-white/20'}`}>
+        <div className="px-4 pb-4 pt-3 bg-slate-50/50 dark:bg-black/20 border-t border-slate-100 dark:border-white/5 shrink-0">
+          <div className={`flex items-end gap-2 bg-white dark:bg-white/5 border rounded-2xl px-4 py-2.5 transition-all shadow-sm ${isListening ? 'border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'border-slate-200 dark:border-white/10 hover:border-emerald-500/30 dark:hover:border-white/20'}`}>
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isListening ? '🎤 Listening...' : 'Describe your symptoms…'}
+              placeholder={isListening ? '🎤 Listening...' : t('chat.placeholder', { defaultValue: 'Describe your symptoms…' })}
               rows={1}
-              className="flex-1 bg-transparent text-white text-sm placeholder:text-gray-500 resize-none outline-none leading-relaxed py-1 max-h-[100px]"
+              className="flex-1 bg-transparent text-slate-900 dark:text-white text-sm placeholder:text-slate-400 dark:placeholder:text-gray-600 resize-none outline-none leading-relaxed py-1 max-h-[100px] font-bold"
             />
             <div className="flex items-center gap-1 shrink-0 pb-1">
               <button
                 onClick={handleVoiceInput}
                 disabled={loading}
-                className={`p-2 rounded-xl transition-all ${isListening ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse' : 'text-gray-500 hover:text-emerald-400 hover:bg-white/10'}`}
+                className={`p-2.5 rounded-xl transition-all ${isListening ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse' : 'text-slate-400 dark:text-gray-500 hover:text-emerald-500 hover:bg-emerald-500/10'}`}
                 title="Voice input"
               >
-                {isListening ? <Volume2 className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isListening ? <Volume2 className="w-4 h-4" /> : <Mic className="w-5 h-5" />}
               </button>
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim() || loading || isListening}
-                className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all"
+                className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all flex items-center justify-center"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
-          <p className="text-[9px] text-gray-600 text-center mt-2 font-medium">Press Enter to send · Shift+Enter for newline</p>
+          <p className="text-[9px] text-slate-400 dark:text-gray-600 text-center mt-2 font-black uppercase tracking-widest">{t('chat.instruction', { defaultValue: 'Press Enter · Secure Matrix Channel' })}</p>
         </div>
       </div>
     </>

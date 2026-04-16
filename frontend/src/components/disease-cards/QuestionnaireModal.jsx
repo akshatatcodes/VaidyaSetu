@@ -18,6 +18,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
   const [answers, setAnswers] = useState({});
   const [calculatedScore, setCalculatedScore] = useState(null);
   const [scoreBreakdown, setScoreBreakdown] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen && diseaseId) {
@@ -27,6 +28,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
       setCurrentStep(0);
       setCalculatedScore(null);
       setScoreBreakdown(null);
+      setIsSubmitting(false);
     }
   }, [isOpen, diseaseId]);
 
@@ -139,95 +141,65 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
     
     const finalScore = Math.min(95, Math.max(2, onboardingImpact + questionnaireImpact));
 
-    setCalculatedScore(finalScore);
-    setScoreBreakdown({
-      baseline: onboardingImpact,
-      questionnaire: questionnaireImpact,
-      totalPoints,
-      details: breakdown
-    });
+    return {
+      finalScore,
+      scoreBreakdown: {
+        baseline: onboardingImpact,
+        questionnaire: questionnaireImpact,
+        totalPoints,
+        details: breakdown
+      }
+    };
   };
 
   const handleSubmit = async () => {
     const previousScore = currentScore;
-    calculateRisk();
+    setIsSubmitting(true);
+    
+    // Generate an initial estimate but don't show it yet to avoid flicker
+    const estimate = calculateRisk();
     
     // Prepare comprehensive user data for backend recalculation
     const comprehensiveUserData = {
       clerkId: profile?.clerkId,
       answers,
-      
-      // Include ALL user profile data for accurate recalculation
       userProfile: {
-        // Onboarding data
+        // Core profile
         age: profile?.age,
         gender: profile?.gender,
         height: profile?.height,
         weight: profile?.weight,
         bmi: profile?.bmi,
         
-        // Lifestyle factors
+        // Lifestyle/Medical
         activityLevel: profile?.activityLevel,
-        dietType: profile?.dietType,
         isSmoker: profile?.isSmoker,
         alcoholUse: profile?.alcoholUse,
-        stressLevel: profile?.stressLevel,
-        sleepQuality: profile?.sleepQuality,
-        
-        // Medical history
         familyHistory: profile?.familyHistory,
-        knownAllergies: profile?.knownAllergies,
         existingConditions: profile?.existingConditions,
-        previousSurgeries: profile?.previousSurgeries,
         
-        // Allergies (detailed)
+        // Detailed collections
         allergies: profile?.allergies || [],
-        
-        // Current medications
         activeMedications: profile?.activeMedications || [],
         
-        // Vital signs
-        bloodPressure: profile?.bloodPressure,
-        heartRate: profile?.heartRate,
-        temperature: profile?.temperature,
-        oxygenSaturation: profile?.oxygenSaturation,
-        
-        // Lab results
-        fastingBloodSugar: profile?.fastingBloodSugar,
-        hba1c: profile?.hba1c,
-        cholesterol: profile?.cholesterol,
-        triglycerides: profile?.triglycerides,
-        
-        // Additional health data
-        waistCircumference: profile?.waistCircumference,
-        menstrualCycleIrregular: profile?.menstrualCycleIrregular,
-        facialBodyHairExcess: profile?.facialBodyHairExcess
+        // Other metrics
+        ...profile // Spread remaining profile fields
       },
-      
-      // Questionnaire answers
       questionnaireAnswers: answers,
-      
-      // Request full recalculation
       recalculateFullRisk: true
     };
     
-    console.log('[QuestionnaireModal] Submitting comprehensive data for recalculation...');
-    
-    // Save to backend and get full recalculation
     try {
+      console.log('[QuestionnaireModal] Submitting for deep recalculation...');
       const res = await axios.post(
         `${API_URL}/diseases/${diseaseId}/questionnaire`, 
         comprehensiveUserData
       );
       
-      console.log('[QuestionnaireModal] Recalculation response:', res.data);
-      
       if (res.data.status === 'success') {
-        // Update with backend-calculated score
         const backendData = res.data.data;
         const newScore = backendData.riskScore;
         
-        setCalculatedScore(newScore);
         setScoreBreakdown({
           baseline: backendData.baselineScore,
           questionnaire: backendData.questionnaireScore,
@@ -241,10 +213,23 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
           newScore: newScore,
           scoreChange: newScore - previousScore
         });
+        setCalculatedScore(newScore);
+      } else {
+        throw new Error(res.data.message || 'Backend failed');
       }
     } catch (err) {
-      console.error('[QuestionnaireModal] Failed to save and recalculate:', err.response?.data || err.message);
-      // Still show frontend calculation if backend fails
+      console.error('[QuestionnaireModal] Backend error, falling back to estimate:', err);
+      if (estimate) {
+        setCalculatedScore(estimate.finalScore);
+        setScoreBreakdown({
+          ...estimate.scoreBreakdown,
+          previousScore: previousScore,
+          newScore: estimate.finalScore,
+          scoreChange: estimate.finalScore - previousScore
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -419,7 +404,42 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 md:p-8">
-              {calculatedScore === null ? (
+              {isSubmitting ? (
+                /* Deep Analysis Loading State */
+                <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-500">
+                  <div className="relative w-32 h-32">
+                    <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" />
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="w-full h-full rounded-full border-t-4 border-r-4 border-emerald-500 border-b-4 border-l-4 border-b-transparent border-l-transparent"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Activity className="w-12 h-12 text-emerald-500 animate-bounce" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                      {t('questionnaire.analyzing', { defaultValue: 'Deep Analysis in Progress' })}
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium max-w-sm mx-auto">
+                      {t('questionnaire.analyzing_desc', { defaultValue: 'Our RAG engine is correlating your answers with clinical guidelines and your longitudinal profile data...' })}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
+                    <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">Profile Sync</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping [animation-delay:0.2s]" />
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">Context Map</span>
+                    </div>
+                  </div>
+                </div>
+              ) : calculatedScore === null ? (
                 /* Question View */
                 <div className="max-w-lg mx-auto">
                   {!currentQuestion && (
@@ -773,7 +793,13 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
 
             {/* Footer */}
             <div className="border-t border-gray-200 dark:border-gray-800 p-6">
-              {calculatedScore === null ? (
+              {isSubmitting ? (
+                <div className="text-center py-2">
+                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 animate-pulse">
+                     Finalizing Recalculation...
+                   </p>
+                </div>
+              ) : calculatedScore === null ? (
                 <div className="flex items-center justify-between">
                   <button
                     onClick={prevStep}

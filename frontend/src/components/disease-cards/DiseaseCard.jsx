@@ -211,7 +211,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
       layout
       transition={{ layout: { duration: 0.4, type: 'spring', damping: 25, stiffness: 120 } }}
       whileHover={{ y: -6, transition: { duration: 0.2 } }}
-      className="bg-white dark:bg-gray-950/40 backdrop-blur-3xl border-2 border-slate-100 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none p-6 rounded-3xl transition-all hover:border-emerald-500/40 hover:shadow-2xl hover:shadow-emerald-500/10 w-full relative overflow-hidden group"
+      className="bg-white dark:bg-gray-950/40 backdrop-blur-3xl border-2 border-slate-100 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none p-4 sm:p-6 rounded-3xl transition-all hover:border-emerald-500/40 hover:shadow-2xl hover:shadow-emerald-500/10 w-full relative overflow-hidden group"
     >
       {/* Ambient Background Glow */}
       <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 ${
@@ -295,7 +295,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
           <motion.div 
             animate={isPulsing ? { scale: [1, 1.15, 1] } : {}}
             transition={{ duration: 0.5 }}
-            className={`text-3xl font-black ${currentScore === -1 ? 'text-gray-500' : ''}`} 
+            className={`text-2xl sm:text-3xl font-black ${currentScore === -1 ? 'text-gray-500' : ''}`} 
             style={{ color: currentScore !== -1 ? getRiskColor(currentScore) : undefined }}
           >
             {currentScore === -1 ? 'N/A' : `${currentScore}`}
