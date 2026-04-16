@@ -7,6 +7,22 @@
 const axios = require('axios');
 
 const RXNAV_BASE = 'https://rxnav.nlm.nih.gov/REST';
+const RXNAV_TIMEOUT_MS = Number(process.env.RXNAV_TIMEOUT_MS || 20000);
+
+async function axiosGetWithRetry(url, config, retries = 1) {
+  try {
+    return await axios.get(url, config);
+  } catch (err) {
+    if (retries <= 0) throw err;
+    const isTimeout = err.code === 'ECONNABORTED' || String(err.message || '').toLowerCase().includes('timeout');
+    const status = err.response?.status;
+    // Retry on timeouts and transient 5xx.
+    if (isTimeout || (typeof status === 'number' && status >= 500)) {
+      return axiosGetWithRetry(url, config, retries - 1);
+    }
+    throw err;
+  }
+}
 
 /**
  * Step 35: Drug Name Normalization
@@ -16,10 +32,10 @@ async function getRxCui(drugName) {
   if (!drugName || typeof drugName !== 'string') return null;
 
   try {
-    const response = await axios.get(`${RXNAV_BASE}/rxcui.json`, {
+    const response = await axiosGetWithRetry(`${RXNAV_BASE}/rxcui.json`, {
       params: { name: drugName.trim(), search: 1 },
-      timeout: 8000
-    });
+      timeout: RXNAV_TIMEOUT_MS
+    }, 1);
 
     const idGroup = response.data?.idGroup;
     if (idGroup?.rxnormId?.length > 0) {
@@ -30,10 +46,10 @@ async function getRxCui(drugName) {
     }
 
     // Fuzzy fallback: try approximateTerm endpoint
-    const approxResponse = await axios.get(`${RXNAV_BASE}/approximateTerm.json`, {
+    const approxResponse = await axiosGetWithRetry(`${RXNAV_BASE}/approximateTerm.json`, {
       params: { term: drugName.trim(), maxEntries: 5 },
-      timeout: 8000
-    });
+      timeout: RXNAV_TIMEOUT_MS
+    }, 1);
 
     const candidates = approxResponse.data?.approximateGroup?.candidate;
     if (candidates?.length > 0) {
@@ -61,10 +77,10 @@ async function getInteractionsBetween(rxcuis = []) {
   if (rxcuis.length < 2) return [];
 
   try {
-    const response = await axios.get(`${RXNAV_BASE}/interaction/list.json`, {
+    const response = await axiosGetWithRetry(`${RXNAV_BASE}/interaction/list.json`, {
       params: { rxcuis: rxcuis.join(' ') },
-      timeout: 8000
-    });
+      timeout: RXNAV_TIMEOUT_MS
+    }, 1);
 
     const groups = response.data?.fullInteractionTypeGroup;
     if (!groups) return [];
@@ -103,10 +119,10 @@ async function getRxNavInteractions(rxcui) {
   if (!rxcui) return [];
 
   try {
-    const response = await axios.get(`${RXNAV_BASE}/interaction/interaction.json`, {
+    const response = await axiosGetWithRetry(`${RXNAV_BASE}/interaction/interaction.json`, {
       params: { rxcui },
-      timeout: 8000
-    });
+      timeout: RXNAV_TIMEOUT_MS
+    }, 1);
 
     const groups = response.data?.interactionTypeGroup;
     if (!groups || groups.length === 0) return [];
@@ -152,10 +168,10 @@ async function getDrugComposition(drugName) {
     }
 
     // Step 2: Get drug properties including active ingredients
-    const propsResponse = await axios.get(`${RXNAV_BASE}/rxcui/${rxCuiData.rxcui}/allProperties.json`, {
+    const propsResponse = await axiosGetWithRetry(`${RXNAV_BASE}/rxcui/${rxCuiData.rxcui}/allProperties.json`, {
       params: { prop: 'ATTRIBUTES' },
-      timeout: 8000
-    });
+      timeout: RXNAV_TIMEOUT_MS
+    }, 1);
 
     const props = propsResponse.data?.propConceptGroup?.propConcept || [];
     

@@ -14,10 +14,20 @@ async function generateMedicineBreakdown(medicines, language = 'English') {
   try {
     // Step 1: Fetch real data from RxNav and OpenFDA for each medicine
     const medicineDataPromises = medicines.map(async (med) => {
-      const [compositionData, warningsData] = await Promise.all([
-        getDrugComposition(med),
-        getDrugWarnings(med)
-      ]);
+      // OpenFDA often gives a cleaner generic name. If RxNav times out or can't resolve,
+      // retry RxNav using the FDA generic name.
+      const warningsData = await getDrugWarnings(med);
+      let compositionData = await getDrugComposition(med);
+      if (
+        (!compositionData?.rxcui || String(compositionData?.composition || '').includes('Not found')) &&
+        warningsData?.genericName &&
+        typeof warningsData.genericName === 'string' &&
+        warningsData.genericName.toLowerCase() !== med.toLowerCase()
+      ) {
+        compositionData = await getDrugComposition(warningsData.genericName);
+        // Preserve the original display name while using improved normalization.
+        compositionData = { ...compositionData, name: med };
+      }
       
       return {
         name: med,
@@ -170,14 +180,26 @@ function generateFallbackBreakdown(medicines, medicineDataArray = []) {
     return {
       medicines: medicineDataArray.map(data => ({
         name: data.name,
-        correctedName: data.compositionData.normalizedName || null,
-        composition: data.compositionData.composition || 'Information not available',
+        correctedName: data.compositionData.normalizedName || data.warningsData?.genericName || null,
+        // If RxNav is unreachable, use OpenFDA generic name as best-effort composition label.
+        composition: (data.compositionData?.composition &&
+          !String(data.compositionData.composition).includes('Not found') &&
+          !String(data.compositionData.composition).includes('Error') &&
+          !String(data.compositionData.composition).toLowerCase().includes('not specified'))
+          ? data.compositionData.composition
+          : (data.warningsData?.genericName || 'Information not available'),
         dosage: takeAsDirected,
         warnings: [
-          data.warningsData.warnings || noWarnings,
+          (data.warningsData?.warnings && !String(data.warningsData.warnings).includes('No warnings found'))
+            ? data.warningsData.warnings
+            : (data.warningsData?.interactions || noWarnings),
           'Do not self-medicate'
         ],
-        sideEffects: ['Consult your physician'],
+        sideEffects: [
+          (data.warningsData?.sideEffects && !String(data.warningsData.sideEffects).includes('No side effects'))
+            ? data.warningsData.sideEffects
+            : 'Consult your physician'
+        ],
         category: 'Unknown',
         usedFor: 'As prescribed by physician'
       })),
