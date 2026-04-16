@@ -1,0 +1,19 @@
+Ministry of AYUSH - Standardized Nomenclature for High-Risk Ayurvedic Herbs
+========================================================================
+
+Common Name   | Sanskrit/Scientific Name             | High Risk Interaction Category
+--------------|--------------------------------------|------------------------------
+Guggul        | Commiphora mukul                     | Anticoagulants / Statins
+Giloy         | Tinospora cordifolia                 | Anti-diabetics
+Tulsi         | Ocimum sanctum                       | Anti-hypertensives
+Ashwagandha   | Withania somnifera                   | Immunosuppressants / Thyroid
+Garlic        | Allium sativum                       | Antiplatelets
+Turmeric      | Curcuma longa                        | P-glycoprotein substrates
+Amla          | Phyllanthus emblica                  | Iron coordination / Anti-diabetics
+Brahmi        | Bacopa monnieri                      | Cholinesterase inhibitors
+Shankhpushpi  | Convolvulus pluricaulis              | Anti-epileptics (Phenytoin)
+Neem          | Azadirachta indica                   | Hypoglycemics
+Arjuna        | Terminalia arjuna                    | Cardiac glycosides / Diuretics
+Kanchanar     | Bauhinia variegata                   | Thyroid hormone replacements
+
+Note: All names verified against AYUSH Pharmacopoeia of India (API).

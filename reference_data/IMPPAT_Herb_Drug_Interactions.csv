@@ -1,0 +1,6 @@
+Herb,Phytochemical,CYP_Enzyme_Interaction,Clinical_Effect
+Guggul,Guggulsterone,CYP2C9 Inhibition,Increases Warfarin concentration (Bleeding risk)
+Giloy,Tinosporide,Hypoglycemic pathway,Potentiates Metformin effects (Hypoglycemia)
+Tulsi,Eugenol,CYP2C19 Inhibition,Slows metabolism of Omeprazole
+Garlic,Allicin,Antiplatelet,Additive effect with Aspirin
+Turmeric,Curcumin,P-glycoprotein,Alters absorption of Digoxin/SSRIs

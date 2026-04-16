@@ -1,0 +1,10 @@
+{
+    "chunk_id": "4ba1c46e-ba54-4aa0-9f52-63d233ab3507",
+    "source_database": "PubMed",
+    "document_title": "PMC13062221.xml",
+    "publication_version": "Latest",
+    "chunk_sequence_number": 2,
+    "content_type": "Research Paper",
+    "language": "English",
+    "text": "quality, and clinical applicability of ML-based prediction models for AD have not been comprehensively evaluated.ObjectiveThis systematic review and meta-analysis followed PRISMA, CHARMS, and TRIPOD guidelines and was registered with PROSPERO (CRD420251154262). Six major databases (PubMed, Web of Science, Cochrane Library, Embase, CNKI, Wanfang) were searched from inception to September 30, 2025. Studies developing or validating ML models for predicting adverse outcomes in AD were included. Data extraction adhered to CHARMS, and risk of bias was assessed using PROBAST. Meta-analysis synthesized C-statistics (AUC) using fixed- or random-effects models depending on heterogeneity. Subgroup, sensitivity, and publication bias analyses were performed.ResultsForty studies were included, covering"
+}

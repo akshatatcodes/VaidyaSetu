@@ -1,0 +1,10 @@
+{
+    "chunk_id": "288c3704-abfe-474e-8d0c-da0de38b656b",
+    "source_database": "PubMed",
+    "document_title": "PMC13057478.xml",
+    "publication_version": "Latest",
+    "chunk_sequence_number": 2,
+    "content_type": "Research Paper",
+    "language": "English",
+    "text": "of health. Artificial intelligence (AI) offers opportunities to integrate molecular, pharmacokinetic, and pharmacodynamic knowledge with real-world observations, enabling more proactive and patient-centered approaches to DDI risk assessment. This perspective proposes a conceptual framework for transitioning from static, rule-based DDI tools toward human-augmented AI systems in which clinician feedback is embedded as an integral component of model learning and interpretation, rather than serving solely as post hoc validation. Through structured incorporation of clinical expertise, experimental pharmacology is continuously contextualized against real-world decision-making. The manuscript outlines an AI ecosystem that is ethically grounded, mechanistically informed, and enriched through"
+}

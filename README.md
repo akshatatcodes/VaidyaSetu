@@ -1,0 +1,30 @@
+# 🌉 VaidyaSetu
+
+Bridge between Allopathy, Ayurveda, and Homeopathy.
+
+## 🚀 Status: Phase 0 Complete
+All foundation and environment setup tasks are finished.
+
+### 🛠️ Manual Configuration Steps Required
+To fully enable Step **6.5 (Google Fit / Vision)**, please perform the following in your Google Cloud Console:
+1.  **Enable APIs:** Fitness API and Cloud Vision API.
+2.  **OAuth Credentials:** Create an OAuth 2.0 Web Application client.
+3.  **Authorized Origins:** Add `http://localhost:5173`.
+4.  **Authorized Redirects:** Add `http://localhost:5173`.
+5.  **Update `.env`**: Copy the Client ID and Secret to `backend/.env`.
+
+### 🚦 Running the Project
+**Backend:**
+```bash
+cd backend
+node server.js
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+---
+*Created for the VaidyaSetu 10-Day Implementation Sprint.*

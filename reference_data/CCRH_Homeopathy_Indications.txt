@@ -1,0 +1,25 @@
+Central Council for Research in Homoeopathy (CCRH)
+-----------------------------------------------
+Common Homeopathic Remedies & Interactions with Allopathy
+
+1. ARNICA MONTANA
+   - Indications: Bruising, muscle soreness, post-operative recovery.
+   - Interaction: Potentiates Antiplatelet/Anticoagulant drugs (Aspirin, Warfarin).
+   - Risk: Increased bleeding tendency.
+
+2. BELLADONNA
+   - Indications: Acute inflammation, sudden high fever.
+   - Interaction: Anticholinergic drugs (Atropine).
+   - Risk: Additive side effects (dry mouth, blurred vision).
+
+3. HYPERICUM PERFORATUM
+   - Indications: Nerve injuries, shooting pains.
+   - Interaction: SSRIs (Fluoxetine, Sertraline).
+   - Risk: Serotonin syndrome (mild additive effect).
+
+4. GELSEMIUM
+   - Indications: Weakness, dizziness, anxiety.
+   - Interaction: CNS Depressants.
+   - Risk: Increased drowsiness.
+
+Note: Homeopathic remedies are highly diluted, but "mother tinctures" or low potencies (3C, 6C) can have significant physiological interactions.

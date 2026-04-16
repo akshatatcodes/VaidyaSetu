@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<drugbank xmlns="http://www.drugbank.ca" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.drugbank.ca http://www.drugbank.ca/docs/drugbank.xsd" version="5.1">
+  <drug type="small molecule" created="2005-06-13" updated="2021-09-02">
+    <drugbank-id primary="true">DB00682</drugbank-id>
+    <name>Warfarin</name>
+    <description>An anticoagulant drug used in the prevention of thrombosis.</description>
+    <mechanism-of-action>Warfarin competitively inhibits the vitamin K epoxide reductase complex 1 (VKORC1), an essential enzyme for activating the vitamin K available in the body.</mechanism-of-action>
+    <drug-interactions>
+      <drug-interaction>
+        <drugbank-id>DB00316</drugbank-id>
+        <name>Acetaminophen</name>
+        <description>Acetaminophen may increase the anticoagulant activities of Warfarin.</description>
+      </drug-interaction>
+    </drug-interactions>
+    <enzymes>
+      <enzyme>
+        <id>P05177</id>
+        <name>Cytochrome P450 1A2</name>
+        <actions>
+          <action>inducer</action>
+        </actions>
+      </enzyme>
+    </enzymes>
+  </drug>
+  <drug type="small molecule" created="2005-06-13" updated="2021-09-02">
+    <drugbank-id primary="true">DB00316</drugbank-id>
+    <name>Acetaminophen</name>
+    <description>An analgesic and antipyretic drug.</description>
+    <mechanism-of-action>Acetaminophen exerts its effects through inhibition of the cyclooxygenase (COX) pathways.</mechanism-of-action>
+    <drug-interactions>
+      <drug-interaction>
+        <drugbank-id>DB00682</drugbank-id>
+        <name>Warfarin</name>
+        <description>The risk or severity of bleeding can be increased when Acetaminophen is combined with Warfarin.</description>
+      </drug-interaction>
+    </drug-interactions>
+    <enzymes>
+      <enzyme>
+        <id>P05177</id>
+        <name>Cytochrome P450 1A2</name>
+        <actions>
+          <action>substrate</action>
+        </actions>
+      </enzyme>
+    </enzymes>
+  </drug>
+</drugbank>

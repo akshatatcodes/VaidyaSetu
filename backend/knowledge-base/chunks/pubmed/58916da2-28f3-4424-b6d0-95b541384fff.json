@@ -1,0 +1,10 @@
+{
+    "chunk_id": "58916da2-28f3-4424-b6d0-95b541384fff",
+    "source_database": "PubMed",
+    "document_title": "PMC13062221.xml",
+    "publication_version": "Latest",
+    "chunk_sequence_number": 1,
+    "content_type": "Research Paper",
+    "language": "English",
+    "text": "Research Paper: Machine learning approaches for risk prediction in aortic dissection: a systematic review and meta-analysis\nAbstract:\nBackgroundAortic dissection (AD) is a life-threatening cardiovascular emergency with high morbidity and mortality. Accurate risk prediction is essential for timely intervention, yet traditional statistical models often fail to capture the complex, nonlinear interactions inherent in AD pathophysiology. In recent years, machine learning (ML) has emerged as a promising approach to improve prognostic accuracy. However, the overall performance, methodological quality, and clinical applicability of ML-based prediction models for AD have not been comprehensively evaluated.ObjectiveThis systematic review and meta-analysis followed PRISMA, CHARMS, and TRIPOD"
+}

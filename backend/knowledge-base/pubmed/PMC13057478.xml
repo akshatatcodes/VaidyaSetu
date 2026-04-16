@@ -1,0 +1,1150 @@
+<?xml version="1.0"  ?><!DOCTYPE pmc-articleset PUBLIC "-//NLM//DTD ARTICLE SET 2.0//EN" "https://dtd.nlm.nih.gov/ncbi/pmc/articleset/nlm-articleset-2.0.dtd"><pmc-articleset><article xml:lang="en" article-type="brief-report" dtd-version="1.4"><processing-meta base-tagset="archiving" mathml-version="3.0" table-model="xhtml" tagset-family="jats"><restricted-by>pmc</restricted-by></processing-meta><front><journal-meta><journal-id journal-id-type="nlm-ta">Front Pharmacol</journal-id><journal-id journal-id-type="iso-abbrev">Front Pharmacol</journal-id><journal-id journal-id-type="pmc-domain-id">1524</journal-id><journal-id journal-id-type="pmc-domain">frontpharmacol</journal-id><journal-id journal-id-type="publisher-id">Front. Pharmacol.</journal-id><journal-title-group><journal-title>Frontiers in Pharmacology</journal-title></journal-title-group><issn pub-type="epub">1663-9812</issn><publisher><publisher-name>Frontiers Media SA</publisher-name></publisher></journal-meta><article-meta><article-id pub-id-type="pmcid">PMC13057478</article-id><article-id pub-id-type="pmcid-ver">PMC13057478.1</article-id><article-id pub-id-type="pmcaid">13057478</article-id><article-id pub-id-type="pmcaiid">13057478</article-id><article-id pub-id-type="pmid">41958940</article-id><article-id pub-id-type="doi">10.3389/fphar.2026.1767646</article-id><article-id pub-id-type="publisher-id">1767646</article-id><article-version-alternatives><article-version article-version-type="pmc-version">1</article-version><article-version article-version-type="Version of Record" vocab="NISO-RP-8-2008"/></article-version-alternatives><article-categories><subj-group subj-group-type="heading"><subject>Perspective</subject></subj-group></article-categories><title-group><article-title>Closing the loop: human-augmented, mechanistically enhanced AI for proactive management of drug–drug interactions</article-title><alt-title alt-title-type="left-running-head">Spanakis et al.</alt-title><alt-title alt-title-type="right-running-head">
+<ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://doi.org/10.3389/fphar.2026.1767646" ext-link-type="uri">10.3389/fphar.2026.1767646</ext-link>
+</alt-title></title-group><contrib-group><contrib contrib-type="author" corresp="yes"><name name-style="western"><surname>Spanakis</surname><given-names initials="M">Marios</given-names></name><xref rid="aff1" ref-type="aff">
+<sup>1</sup>
+</xref><xref rid="aff2" ref-type="aff">
+<sup>2</sup>
+</xref><xref rid="c001" ref-type="corresp">*</xref><uri xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/859686"/><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Conceptualization" vocab-term-identifier="https://credit.niso.org/contributor-roles/conceptualization/">Conceptualization</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Data curation" vocab-term-identifier="https://credit.niso.org/contributor-roles/data-curation/">Data curation</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Formal analysis" vocab-term-identifier="https://credit.niso.org/contributor-roles/formal-analysis/">Formal Analysis</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Investigation" vocab-term-identifier="https://credit.niso.org/contributor-roles/investigation/">Investigation</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Methodology" vocab-term-identifier="https://credit.niso.org/contributor-roles/methodology/">Methodology</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Resources" vocab-term-identifier="https://credit.niso.org/contributor-roles/resources/">Resources</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Supervision" vocab-term-identifier="https://credit.niso.org/contributor-roles/supervision/">Supervision</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Validation" vocab-term-identifier="https://credit.niso.org/contributor-roles/validation/">Validation</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Visualization" vocab-term-identifier="https://credit.niso.org/contributor-roles/visualization/">Visualization</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – original draft" vocab-term-identifier="https://credit.niso.org/contributor-roles/writing-original-draft/">Writing - original draft</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – review &amp; editing" vocab-term-identifier="https://credit.niso.org/contributor-roles/Writing - review &amp; editing/">Writing - review and editing</role></contrib><contrib contrib-type="author"><name name-style="western"><surname>De Pauw</surname><given-names initials="A">Anthe</given-names></name><xref rid="aff3" ref-type="aff">
+<sup>3</sup>
+</xref><xref rid="aff4" ref-type="aff">
+<sup>4</sup>
+</xref><uri xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/3432284"/><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Data curation" vocab-term-identifier="https://credit.niso.org/contributor-roles/data-curation/">Data curation</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Investigation" vocab-term-identifier="https://credit.niso.org/contributor-roles/investigation/">Investigation</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – original draft" vocab-term-identifier="https://credit.niso.org/contributor-roles/writing-original-draft/">Writing - original draft</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – review &amp; editing" vocab-term-identifier="https://credit.niso.org/contributor-roles/Writing - review &amp; editing/">Writing - review and editing</role></contrib><contrib contrib-type="author"><name name-style="western"><surname>Brumer</surname><given-names initials="M">Maja</given-names></name><xref rid="aff3" ref-type="aff">
+<sup>3</sup>
+</xref><uri xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/3432255"/><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Data curation" vocab-term-identifier="https://credit.niso.org/contributor-roles/data-curation/">Data curation</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Investigation" vocab-term-identifier="https://credit.niso.org/contributor-roles/investigation/">Investigation</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – original draft" vocab-term-identifier="https://credit.niso.org/contributor-roles/writing-original-draft/">Writing - original draft</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – review &amp; editing" vocab-term-identifier="https://credit.niso.org/contributor-roles/Writing - review &amp; editing/">Writing - review and editing</role></contrib><contrib contrib-type="author"><name name-style="western"><surname>Symvoulakis</surname><given-names initials="EK">Emmanouil K.</given-names></name><xref rid="aff1" ref-type="aff">
+<sup>1</sup>
+</xref><uri xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/1563563"/><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Resources" vocab-term-identifier="https://credit.niso.org/contributor-roles/resources/">Resources</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Supervision" vocab-term-identifier="https://credit.niso.org/contributor-roles/supervision/">Supervision</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – original draft" vocab-term-identifier="https://credit.niso.org/contributor-roles/writing-original-draft/">Writing - original draft</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – review &amp; editing" vocab-term-identifier="https://credit.niso.org/contributor-roles/Writing - review &amp; editing/">Writing - review and editing</role></contrib><contrib contrib-type="author" corresp="yes"><name name-style="western"><surname>De Loof</surname><given-names initials="H">Hans</given-names></name><xref rid="aff3" ref-type="aff">
+<sup>3</sup>
+</xref><xref rid="aff5" ref-type="aff">
+<sup>5</sup>
+</xref><xref rid="c001" ref-type="corresp">*</xref><uri xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/2246601"/><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Conceptualization" vocab-term-identifier="https://credit.niso.org/contributor-roles/conceptualization/">Conceptualization</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Supervision" vocab-term-identifier="https://credit.niso.org/contributor-roles/supervision/">Supervision</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Visualization" vocab-term-identifier="https://credit.niso.org/contributor-roles/visualization/">Visualization</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – original draft" vocab-term-identifier="https://credit.niso.org/contributor-roles/writing-original-draft/">Writing - original draft</role><role vocab="credit" vocab-identifier="https://credit.niso.org/" vocab-term="Writing – review &amp; editing" vocab-term-identifier="https://credit.niso.org/contributor-roles/Writing - review &amp; editing/">Writing - review and editing</role></contrib></contrib-group><aff id="aff1">
+<label>1</label>
+<institution>Department of Social Medicine, School of Medicine, University of Crete</institution>, <city>Heraklion</city>, <country country="GR">Greece</country>
+</aff><aff id="aff2">
+<label>2</label>
+<institution>Community Pharmacists Association of Heraklion</institution>, <city>Crete</city>, <country country="GR">Greece</country>
+</aff><aff id="aff3">
+<label>3</label>
+<institution>Laboratory of Physiopharmacology, University of Antwerp (UA)</institution>, <city>Antwerp</city>, <country country="BE">Belgium</country>
+</aff><aff id="aff4">
+<label>4</label>
+<institution>Clinical pharmacy, Antwerp University hospital</institution>, <city>Edegem</city>, <country country="BE">Belgium</country>
+</aff><aff id="aff5">
+<label>5</label>
+<institution>Infla-Med Research Center of Excellence, University of Antwerp</institution>, <city>Antwerp</city>, <country country="BE">Belgium</country>
+</aff><author-notes><corresp id="c001">
+<label>*</label>Correspondence: Marios Spanakis, <email xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="mailto:mspanakis@uoc.gr">mspanakis@uoc.gr</email>; Hans De Loof, <email xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="mailto:hans.deloof@uantwerpen.be">hans.deloof@uantwerpen.be</email>
+</corresp></author-notes><pub-date publication-format="electronic" date-type="pub" iso-8601-date="2026-03-25"><day>25</day><month>3</month><year>2026</year></pub-date><pub-date publication-format="electronic" date-type="collection"><year>2026</year></pub-date><volume>17</volume><issue-id pub-id-type="pmc-issue-id">506021</issue-id><elocation-id>1767646</elocation-id><history><date date-type="received"><day>14</day><month>12</month><year>2025</year></date><date date-type="rev-recd"><day>06</day><month>2</month><year>2026</year></date><date date-type="accepted"><day>12</day><month>3</month><year>2026</year></date></history><pub-history><event event-type="pmc-release"><date><day>25</day><month>03</month><year>2026</year></date></event><event event-type="pmc-live"><date><day>09</day><month>04</month><year>2026</year></date></event><event event-type="pmc-last-change"><date iso-8601-date="2026-04-10 09:25:14.357"><day>10</day><month>04</month><year>2026</year></date></event></pub-history><permissions><copyright-statement>Copyright © 2026 Spanakis, De Pauw, Brumer, Symvoulakis and De Loof.</copyright-statement><copyright-year>2026</copyright-year><copyright-holder>Spanakis, De Pauw, Brumer, Symvoulakis and De Loof</copyright-holder><license><ali:license_ref xmlns:ali="http://www.niso.org/schemas/ali/1.0/" specific-use="textmining" content-type="ccbylicense" start_date="2026-03-25">https://creativecommons.org/licenses/by/4.0/</ali:license_ref><license-p>This is an open-access article distributed under the terms of the <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" ext-link-type="uri" xlink:href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution License (CC BY)</ext-link>. The use, distribution or reproduction in other forums is permitted, provided the original author(s) and the copyright owner(s) are credited and that the original publication in this journal is cited, in accordance with accepted academic practice. No use, distribution or reproduction is permitted which does not comply with these terms.</license-p></license></permissions><self-uri xmlns:xlink="http://www.w3.org/1999/xlink" content-type="pmc-pdf" xlink:href="fphar-17-1767646.pdf"/><abstract><p>Drug–drug interactions (DDIs) represent a major challenge in pharmaceutical research for ensuring safe and effective medication use in clinical practice. Pharmacological DDI assays generate data that underpin clinical guidelines, drug interaction checkers, and decision support systems. Although these approaches remain indispensable, contemporary clinical practice is far more complex, shaped by polypharmacy, multimorbidity, diverse phenotypes, and social determinants of health. Artificial intelligence (AI) offers opportunities to integrate molecular, pharmacokinetic, and pharmacodynamic knowledge with real-world observations, enabling more proactive and patient-centered approaches to DDI risk assessment. This perspective proposes a conceptual framework for transitioning from static, rule-based DDI tools toward human-augmented AI systems in which clinician feedback is embedded as an integral component of model learning and interpretation, rather than serving solely as <italic toggle="yes">post hoc</italic> validation. Through structured incorporation of clinical expertise, experimental pharmacology is continuously contextualized against real-world decision-making. The manuscript outlines an AI ecosystem that is ethically grounded, mechanistically informed, and enriched through pharmacovigilance data and systematic clinician input. By operationalizing human-in-the-loop learning as a core design principle, this framework establishes human-augmented AI as a foundational paradigm for future DDI research, drug development, and personalized medication safety.</p></abstract><kwd-group><kwd>adverse drug reactions</kwd><kwd>artificial intelligence</kwd><kwd>Drug–drug interactions</kwd><kwd>explainable AI</kwd><kwd>human-in-the-loop AI</kwd><kwd>modeling and simulation</kwd><kwd>pharmacovigilance</kwd><kwd>real-world data</kwd></kwd-group><funding-group><funding-statement>The author(s) declared that financial support was not received for this work and/or its publication.</funding-statement></funding-group><counts><fig-count count="1"/><table-count count="1"/><equation-count count="0"/><ref-count count="118"/><page-count count="9"/></counts><custom-meta-group><custom-meta><meta-name>pmc-status-qastatus</meta-name><meta-value>0</meta-value></custom-meta><custom-meta><meta-name>pmc-status-live</meta-name><meta-value>yes</meta-value></custom-meta><custom-meta><meta-name>pmc-status-embargo</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-status-released</meta-name><meta-value>yes</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-open-access</meta-name><meta-value>yes</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-olf</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-manuscript</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-legally-suppressed</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-has-pdf</meta-name><meta-value>yes</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-has-supplement</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-pdf-only</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-suppress-copyright</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-is-real-version</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-is-scanned-article</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-preprint</meta-name><meta-value>no</meta-value></custom-meta><custom-meta><meta-name>pmc-prop-in-epmc</meta-name><meta-value>yes</meta-value></custom-meta><custom-meta><meta-name>pmc-license-ref</meta-name><meta-value>CC BY</meta-value></custom-meta><custom-meta><meta-name>section-at-acceptance</meta-name><meta-value>Drug Metabolism and Transport</meta-value></custom-meta></custom-meta-group></article-meta></front><body><sec sec-type="intro" id="s1"><title>Introduction</title><p>Drug safety in healthcare has become increasingly complex, driven by the prevalence of polypharmacy, multimorbidity, as well as social and behavioral determinants on medication use (<xref rid="B68" ref-type="bibr">Mehta and Alexander, 2024</xref>; <xref rid="B66" ref-type="bibr">Marengoni and Onder, 2015</xref>). One of the major challenges is the mitigation of drug-drug interactions (DDIs) within therapeutic regimens to avoid complications and adverse drug reactions (ADRs). Drug research and development (R&amp;D) has long relied on a continuum of experimental pharmacology and advanced modeling and simulation (M&amp;S) approaches, including sophisticated physiologically based pharmacokinetic (PBPK) models, to quantitatively predict drug exposure and interaction risk in relation to safety, efficacy, biomarkers, and off-target toxicities (<xref rid="B79" ref-type="bibr">Pognan et al., 2023</xref>). These predictions are subsequently assessed through targeted <italic toggle="yes">in vivo</italic> studies and small-scale clinical trials (<xref rid="B63" ref-type="bibr">Lohy Das et al., 2025</xref>). Collectively, these methods remain indispensable, shaping regulatory decisions, informing the formulation of summaries of product characteristics (SmPCs), and supporting observational studies and clinical decision-support systems (CDSS) (<xref rid="B42" ref-type="bibr">Jamei, 2016</xref>; <xref rid="B25" ref-type="bibr">Dimakos and Douros, 2024</xref>; <xref rid="B91" ref-type="bibr">Scheife et al., 2015</xref>; <xref rid="B36" ref-type="bibr">Horn et al., 2011</xref>; <xref rid="B57" ref-type="bibr">Li et al., 2022</xref>). Yet, despite their value, they are inherently performed under controlled conditions and therefore do not always capture the multidimensional complexity encountered in everyday clinical practice (<xref rid="B107" ref-type="bibr">Weaver and Valentin, 2019</xref>). Real-world pharmacotherapy is embedded within complex exposure networks, where prescribed medications coexist with over-the-counter (OTC) products, dietary and herbal supplements, diet habits and lifestyle-associated factors, collectively influencing pharmacological effects through multiple biological and behavioral mechanisms (<xref rid="B83" ref-type="bibr">Qato et al., 2008</xref>; <xref rid="B3" ref-type="bibr">Agbabiaka et al., 2017</xref>; <xref rid="B72" ref-type="bibr">Moschny et al., 2021</xref>; <xref rid="B96" ref-type="bibr">Spanakis et al., 2022</xref>). Conventual pharmacological frameworks, however, tend to reduce this complexity to a binary assessment of whether two compounds interact and whether it is clinically significant. This simplification creates an evidence gap between mechanistic predictions and the actual risk landscape that unfolds in daily clinical practice. For example, a combination classified as “moderate” or “of caution” may become clinically important when present in a regimen involving several additional moderate-risk DDIs, frailty, phenotypic variation in drug clearance, or reduced adherence shaped by socioeconomic determinants (<xref rid="B38" ref-type="bibr">Hwang et al., 2023</xref>; <xref rid="B65" ref-type="bibr">Mallet et al., 2007</xref>; <xref rid="B15" ref-type="bibr">Bories et al., 2021</xref>; <xref rid="B89" ref-type="bibr">Rojas et al., 2023</xref>). Existing DDI checkers and CDSS often fail to account for cumulative risk, patient-specific vulnerabilities (e.g., organ dysfunction, age, comorbidities), issues related with fragmented care or social determinants of health (SDoH) that influence adherence, exposure patterns, and ADR susceptibility (<xref rid="B10" ref-type="bibr">Andersson et al.,2018</xref>; <xref rid="B77" ref-type="bibr">Pestka et al., 2020</xref>; <xref rid="B49" ref-type="bibr">Kontsioti et al., 2022</xref>; <xref rid="B24" ref-type="bibr">Van De Sijpe et al., 2022</xref>; <xref rid="B12" ref-type="bibr">Barankay, 2025</xref>; <xref rid="B14" ref-type="bibr">Bellanca et al., 2025</xref>).</p><p>In parallel, the last decade we witness a fruitful expansion of artificial intelligence (AI) applications aimed at predicting drug, disease, and nutrient interactions using databases such as DrugBank, PubChem, ClinPGx (former PharmGKB), NAR, <italic toggle="yes">etc.</italic> (<xref rid="B13" ref-type="bibr">Barbarino et al., 2018</xref>; <xref rid="B48" ref-type="bibr">Knox et al., 2024</xref>; <xref rid="B97" ref-type="bibr">Spanakis et al., 2025a</xref>; <xref rid="B87" ref-type="bibr">Rigden and Fernández, 2024</xref>). Machine learning (ML), deep learning (DL), graph neural networks (GNN), and knowledge graph-based models are used to infer DDI risks across mechanistic and phenotypic domains (<xref rid="B103" ref-type="bibr">Vo et al., 2022</xref>; <xref rid="B67" ref-type="bibr">Marzouk et al., 2025</xref>; <xref rid="B115" ref-type="bibr">Zhang et al., 2024</xref>). These methods integrate heterogeneous data such as molecular structures, networks, PK/PD features, and ADRs in order to find patterns that extend beyond traditional statistical approaches. Despite progress, key limitations persist. Many AI systems prioritize prediction performance over clinical transparency, depend on datasets that may lack balance or representativeness, and offer minimal explanation of their decision-making processes (<xref rid="B28" ref-type="bibr">Ennab and Mcheick, 2024</xref>). Their black-box nature raises concerns for risk-sensitive pharmacotherapy, underscoring the importance of explainable AI (XAI) to clarify which molecular, PK/PD, pharmacogenetic, or behavioral features drive patient-specific risk (<xref rid="B8" ref-type="bibr">Alizadehsani et al., 2024</xref>; <xref rid="B101" ref-type="bibr">Thalpage, 2023</xref>). Moreover, many AI-DDI systems remain partially validated in real-world settings, restricting their clinical utility, mirroring challenges observed when current large language models (LLMs) are used to answer general medication-related queries (<xref rid="B85" ref-type="bibr">Radha Krishnan et al., 2024</xref>; <xref rid="B71" ref-type="bibr">Mondal et al., 2025</xref>). Concurrently, the impending link of experimental pharmacology, mechanistic modeling (i.e., PBPK), and real-world evidence through AI offers an opportunity to develop more adaptive, patient-centered approaches to DDI assessment (<xref rid="B37" ref-type="bibr">Huang et al., 2025</xref>).</p><p>Achieving this transition requires a conceptual shift from static prediction tools toward dynamic systems that integrate mechanistic understanding with the realities of clinical care. In this Perspective, we outline a framework for AI-enabled DDI assessment, conceptualized as a human-augmented, mechanistically enhanced ecosystem that learns bidirectionally from experimental pharmacology and real-world clinical experience. Rather than optimizing isolated predictions, this approach emphasizes co-evolution between AI systems, clinical reasoning, pharmacovigilance signals, and patient-specific modifiers.</p><p>Human-in-the-loop AI, reinforcement learning from human feedback (RLHF), and reinforcement learning–based dynamic treatment regimens are increasingly applied in healthcare, particularly in precision medicine, critical care, and NLP-driven clinical decision support (<xref rid="B90" ref-type="bibr">Sassi et al., 2025</xref>; <xref rid="B41" ref-type="bibr">Israni et al., 2025</xref>; <xref rid="B31" ref-type="bibr">Frommeyer et al., 2025</xref>; <xref rid="B22" ref-type="bibr">Chen et al., 2024</xref>). Yet these approaches are often domain-agnostic or optimized for sequential treatment selection rather than for interpreting DDI-related clinical risk, where identical mechanistic premises may yield divergent outcomes across patients. In addition, current human-in-the-loop AI approaches require further clinical research to determine how effectively human oversight addresses uncertainty and error in complex clinical contexts (<xref rid="B104" ref-type="bibr">Wang et al., 2026</xref>). In either case, expert human input remains essential for resolving such complexity, particularly when model confidence, interpretability, and clinical relevance diverge (<xref rid="B40" ref-type="bibr">Idan et al., 2025</xref>; <xref rid="B31" ref-type="bibr">Frommeyer et al., 2025</xref>; <xref rid="B20" ref-type="bibr">Carone and Rotnitzky, 2026</xref>; <xref rid="B62" ref-type="bibr">Liu et al., 2024</xref>).</p><p>In this context, we position AI-enabled DDI assessment at the intersection of mechanistic pharmacology, PBPK modeling, multi-omics biomarkers, and social and behavioral determinants—domains that remain insufficiently integrated within current computational frameworks. This Perspective proposes a conceptual transition across three dimensions (<xref rid="F1" ref-type="fig">Figure 1</xref>): (i) bridging the evidence gap between experimental knowledge and real-world clinical complexity; (ii) enabling bidirectional learning through structured clinician feedback; and (iii) advancing transparent, patient-centered, and mechanistically grounded AI systems.</p><fig position="float" id="F1" orientation="portrait"><label>FIGURE 1</label><caption><p>Conceptual framework for a human-augmented, mechanistically-enhanced AI (HAMEAI) ecosystem for advancing DDI prediction and management.</p></caption><graphic xmlns:xlink="http://www.w3.org/1999/xlink" position="float" orientation="portrait" xlink:href="fphar-17-1767646-g001.jpg"><alt-text content-type="machine-generated">Infographic illustrating the integration of R&amp;D experimental assays, clinical evidence, and real-world data within a human-augmented, mechanistically informed AI framework for drug–drug interaction (DDI) recognition, evaluation, and clinical personalization. The healthcare provider reviews outputs and closes the loop by approving, modifying, or rejecting recommendations, providing structured feedback linked to mechanistic and real-world outcomes.</alt-text></graphic></fig></sec><sec id="s2"><title>Reframing the evidence gap: from experimental knowledge to real-world complexity</title><p>The scientific foundations of DDIs research, both in drug R&amp;D and post-marketing surveillance, are rooted in experimental pharmacology. Molecular targets, enzyme kinetics, transporter modulation, receptor affinities, and PK/PD profiles provide early evidence of interaction potential (<xref rid="B99" ref-type="bibr">Sudsakorn et al., 2020</xref>; <xref rid="B82" ref-type="bibr">Prueksaritanont et al., 2013</xref>). <italic toggle="yes">In vitro</italic> and <italic toggle="yes">in silico</italic> approaches enable the analysis of metabolic pathways and the prediction of modulating effects on enzymes such as Cytochrome P450 isoforms (e.g., CYP3A4, CYP2D6, CYP2C, <italic toggle="yes">etc.</italic>) or key transport systems (e.g., P-gp, OATP1B1/3, BCRP, <italic toggle="yes">etc.</italic>) with simulations of potential clinical outcomes (<xref rid="B29" ref-type="bibr">Foti, 2025</xref>). Integration of multiomics data (e.g., genomics, transcriptomics, proteomics, metabolomics) provide a systems-level perspective on complex biological network effects that are subsequently validated through <italic toggle="yes">in vivo</italic> and clinical studies (<xref rid="B113" ref-type="bibr">Zack et al., 2025</xref>; <xref rid="B6" ref-type="bibr">Alemu et al., 2025</xref>). These experimental layers are indispensable, forming the basis for interaction hypotheses, clinical trial simulations, and labeling recommendations in SmPCs. Nevertheless, translating mechanistic plausibility into real-world clinical significance remains challenging (<xref rid="B44" ref-type="bibr">Kadambi et al., 2025</xref>; <xref rid="B39" ref-type="bibr">ICH, 2025</xref>). Patients often use prescription medications along with OTC products or dietary supplements while lifestyle habits, environmental exposures, psychosocial stressors, and broader SDoH shape overall treatment outcome (<xref rid="B108" ref-type="bibr">Wilder et al., 2021</xref>; <xref rid="B27" ref-type="bibr">Emeny et al., 2022</xref>). Such factors can modify treatment-related behaviors, including adherence, systemic inflammation, metabolic capacity, and age-related organ dysfunction substantially modifying both the probability and impact of DDIs beyond what is captured in preclinical evaluation. As a result, DDI risk emerges not as a discrete pharmacological event but as a cumulative, context-dependent phenomenon shaped by interacting biological, behavioral, and social layers—analogous to other multidimensional biological processes that resist reductionist interpretation (<xref rid="B110" ref-type="bibr">Wright, 2022</xref>). A mechanistically predicted DDI may be clinically irrelevant in one patient yet highly significant in another (i.e., due to CYP polymorphisms). Similarly, polypharmacy patterns involving multiple moderate-risk DDIs may generate additive or synergistic PK or PD burdens capable of precipitating ADRs (<xref rid="B116" ref-type="bibr">Zhao et al., 2024</xref>; <xref rid="B64" ref-type="bibr">Malki and Pearson, 2019</xref>).</p><p>Traditional expert systems, DDI checkers and CDSS systems, representing forms of Good Old-Fashioned AI (GOFAI), remain constrained by static, rule-based architectures and that cannot accommodate this evolving complexity in pharmacotherapy (<xref rid="B49" ref-type="bibr">Kontsioti et al., 2022</xref>; <xref rid="B24" ref-type="bibr">Van De Sijpe et al., 2022</xref>; <xref rid="B76" ref-type="bibr">Papadopoulos et al., 2022</xref>; <xref rid="B98" ref-type="bibr">Spanakis et al., 2025b</xref>). These systems neither co-evolve with expanding scientific knowledge nor account for contextual modifiers such as pharmacogenetic variability, psychosocial stressors, exposome-related exposures, or dynamic phenotype shifts in hepatic or renal function. Furthermore, despite their contribution to computational pharmacology and biomedical research, many computational models focus on detecting or classifying DDIs rather than the evaluation of their clinical significance (<xref rid="B118" ref-type="bibr">Zirkle et al., 2023</xref>; <xref rid="B112" ref-type="bibr">Yin et al., 2023</xref>; <xref rid="B92" ref-type="bibr">Schwarz et al., 2021</xref>; <xref rid="B54" ref-type="bibr">Lee et al., 2019</xref>; <xref rid="B111" ref-type="bibr">Yang et al., 2023</xref>). Although pharmacological databases are rich in curated mechanistic data, they provide limited insight into how DDIs unfold under conditions (<xref rid="B1" ref-type="bibr">Abbas et al., 2025</xref>; <xref rid="B60" ref-type="bibr">Li et al., 2025</xref>; <xref rid="B61" ref-type="bibr">Lin et al., 2023</xref>; <xref rid="B58" ref-type="bibr">Li Z. et al., 2023</xref>). Similar concerns apply to the emerging use of LLMs in medication safety, where limitations in reliability and contextual understanding have been widely reported (<xref rid="B4" ref-type="bibr">Al Meslamani and Abou Hajal, 2025</xref>; <xref rid="B84" ref-type="bibr">Qi et al., 2025</xref>; <xref rid="B11" ref-type="bibr">Aydin et al., 2025</xref>; <xref rid="B16" ref-type="bibr">De Busser et al., 2024</xref>; <xref rid="B5" ref-type="bibr">Al-Ashwal et al., 2023</xref>; <xref rid="B88" ref-type="bibr">Del Rio-Bermudez et al., 2020</xref>).</p><p>These constraints contribute to a persistent mismatch between rapidly advancing mechanistic knowledge and its translation into actionable clinical guidance. Unlike pattern-recognition domains such as in medical image or electrocardiogram analysis, DDI assessment requires individualized interpretation, as the presence of a mechanistic interaction pathway does not guarantee clinical manifestation or relevance (<xref rid="B24" ref-type="bibr">Van De Sijpe et al., 2022</xref>; <xref rid="B102" ref-type="bibr">Villa Zapata et al., 2022</xref>). Bridging this gap requires reframing DDI evaluation as a multidimensional pharmacological process shaped by molecular, physiological, behavioral, environmental, and social determinants, each contributing distinct layers of DDI risk in everyday care (<xref rid="B39" ref-type="bibr">ICH, 2025</xref>; <xref rid="B23" ref-type="bibr">Dagenais et al., 2024</xref>; <xref rid="B109" ref-type="bibr">Woosley et al., 2021</xref>; <xref rid="B106" ref-type="bibr">Watch List: Artificial Intelligence in Health Care, 2025</xref>). To address these limitations, we advocate for a Human-Augmented, Mechanistically-Enhanced AI (HAMEAI) framework that integrates experimental pharmacology with real-world data and continuous clinician feedback. HAMEAI conceptualizes a DDI-specific learning ecosystem capable of informing drug development, regulatory risk assessment, pharmacovigilance, and individualized clinical decision-making (<xref rid="F1" ref-type="fig">Figure 1</xref>), without introducing a new algorithmic class. Instead, clinician feedback is explicitly anchored to mechanistic pharmacology and real-world outcomes, enabling contextual interpretation of cumulative and patient-specific DDI risk.</p></sec><sec id="s3"><title>Building a bidirectional AI-Learning system: from top-down feedback to adaptive clinical systems</title><p>Bridging experimental evidence and clinical reality requires integration of bottom-up mechanistic data with top-down information reflecting real-world therapeutic experience. While recent frameworks have combined AI knowledge graphs and CDSS to enhance DDI prediction, clinician feedback is often treated as external validation or alert override (<xref rid="B37" ref-type="bibr">Huang et al., 2025</xref>). In contrast, HAMEAI conceptualizes clinician feedback as structured learning input, where confirmation, dismissal, or annotation of DDI alerts reflects context-aware interpretation of clinical significance rather than system error. This distinction enables adaptive recalibration of DDI risk in relation to mechanistic plausibility, cumulative exposure, and patient-specific modifiers.</p><p>Pharmacovigilance databases, electronic health records, clinical registries, pharmacoepidemiological studies, and medication review processes capture DDI patterns not anticipated by preclinical models (<xref rid="B53" ref-type="bibr">Ventola, 2018</xref>; <xref rid="B73" ref-type="bibr">Nagar et al., 2025</xref>; <xref rid="B81" ref-type="bibr">Price, 2023</xref>; <xref rid="B34" ref-type="bibr">Hauben, 2023</xref>). Pharmacogenetic and pharmacogenomic data further link genetic variation to enzyme activity, transporter function, receptor sensitivity, and phenotype expression, offering critical modifiers of individual susceptibility to DDIs (<xref rid="B113" ref-type="bibr">Zack et al., 2025</xref>). Together, these data sources reflect population heterogeneity, longitudinal physiological change, and comorbidity-related effects that are largely absent from controlled experimental conditions (<xref rid="B44" ref-type="bibr">Kadambi et al., 2025</xref>; <xref rid="B9" ref-type="bibr">Anagnostopoulos et al., 2025</xref>; <xref rid="B21" ref-type="bibr">Chen et al., 2021</xref>). Clinician and pharmacist feedback constitutes a central component of this bidirectional system. When healthcare providers interpret and respond to DDI alerts, they apply mechanistic understanding alongside patient-specific priorities, comorbidity burden, and therapeutic goals. Their decisions represent context-specific clinical reasoning that cannot be inferred from experimental data or mechanistic models alone representing valuable signals within a continuous validation and learning process (<xref rid="B33" ref-type="bibr">Haefner et al., 2021</xref>). These responses therefore constitute valuable input that can improve interpretive accuracy and strengthen alignment with clinical relevance. Comparable human-in-the-loop approaches have been applied in medical image analysis, where AI systems are iteratively developed, evaluated, and refined based on expert feedback and discussed considering pharmacovigilance tools (<xref rid="B51" ref-type="bibr">Lang et al., 2024</xref>; <xref rid="B86" ref-type="bibr">Raumviboonsuk et al., 2019</xref>; <xref rid="B93" ref-type="bibr">Shamim et al., 2024</xref>).</p><p>Methodological paradigms such as distributed and federated learning architectures provide feasible foundations for such adaptive systems while preserving data privacy (<xref rid="B74" ref-type="bibr">Nasajpour et al., 2025</xref>; <xref rid="B47" ref-type="bibr">Kim et al., 2025</xref>). Within such architectures, clinician feedback can function as weakly structured learning signals consistent with real-world CDSS workflows (<xref rid="B50" ref-type="bibr">Lampe et al., 2024</xref>). Heterogeneity or disagreement among clinicians reflects the inherent variability of biomedical evidence and can be addressed through reputation-aware aggregation strategies (<xref rid="B50" ref-type="bibr">Lampe et al., 2024</xref>; <xref rid="B17" ref-type="bibr">Cai et al., 2025</xref>). Validation of HAMEAI-aligned systems would therefore rely on established CDSS evaluation frameworks, prioritizing complementary outcomes, process, and harm-related metrics over single performance indicators. Considering operational parameters such as update frequency and relative services, they are left unspecified, as they depend on clinical context, regulatory constraints, and institutional capacity which fall beyond the scope of the current perspective.</p><p>In this paradigm, HAMEAI represents an approach in which AI does not operate autonomously but evolves in conjunction with human expertise (<xref rid="F1" ref-type="fig">Figure 1</xref>). Clinician overrides are no longer interpreted as failures but as informed, patient-specific decisions that recalibrate risk thresholds and prioritize clinically meaningful signals. This approach supports identification of cumulative or clustered moderate-risk DDIs, early ADR signals, and patterns that might otherwise lead to prescribing cascades (<xref rid="T1" ref-type="table">Table 1</xref>). Explainability is intrinsic rather than auxiliary, enabling progressive refinement of pharmacological reasoning and safer prescribing across diverse populations.</p><table-wrap position="float" id="T1" orientation="portrait"><label>TABLE 1</label><caption><p>Illustrative examples of moderate DDIs that escalate to high-risk, clinically significant DDIs under contextual modifiers, as framed within the perspective of the HAMEAI framework.</p></caption><table frame="hsides" rules="groups"><thead valign="top"><tr><th align="center" rowspan="1" colspan="1">Drug combination (moderate DDIs)</th><th align="center" rowspan="1" colspan="1">Mechanism (PK/PD)</th><th align="center" rowspan="1" colspan="1">Contextual risk factors</th><th align="center" rowspan="1" colspan="1">Potential<break/>Clinical impact</th><th align="center" rowspan="1" colspan="1">Risk of prescribing cascade</th><th align="center" rowspan="1" colspan="1">AI-prompt information (HAMEAI): HPR verification (validate and retain)</th></tr></thead><tbody valign="top"><tr><td align="center" rowspan="1" colspan="1">Atorvastatin + clarithromycin</td><td align="center" rowspan="1" colspan="1">PK: CYP3A4 inhibition</td><td align="center" rowspan="1" colspan="1">Age &gt;65, hepatic impairment</td><td align="center" rowspan="1" colspan="1">Myopathy, rhabdomyolysis</td><td align="center" rowspan="1" colspan="1">Myalgia → NSAIDs or statin stop</td><td align="center" rowspan="1" colspan="1">CYP3A4 block → HPR verify age/LFTs</td></tr><tr><td align="center" rowspan="1" colspan="1">Metoprolol + salbutamol</td><td align="center" rowspan="1" colspan="1">PD: β1/β2 antagonism</td><td align="center" rowspan="1" colspan="1">Smoking, COPD/asthma, air pollution</td><td align="center" rowspan="1" colspan="1">Bronchospasm, cough</td><td align="center" rowspan="1" colspan="1">Cough misdiagnosed as infection → antibiotics</td><td align="center" rowspan="1" colspan="1">β-blocker–β-agonist conflict → HPR verify COPD/asthma and environment</td></tr><tr><td align="center" rowspan="1" colspan="1">Salbutamol + erythromycin</td><td align="center" rowspan="1" colspan="1">PD: QT prolongation</td><td align="center" rowspan="1" colspan="1">Elderly, hypokalemia, polypharmacy</td><td align="center" rowspan="1" colspan="1">Arrhythmia, torsades</td><td align="center" rowspan="1" colspan="1">Syncope → antiarrhythmic added</td><td align="center" rowspan="1" colspan="1">QT risk ↑ → HPR verify ECG/K+</td></tr><tr><td align="center" rowspan="1" colspan="1">Tramadol + paroxetine</td><td align="center" rowspan="1" colspan="1">PK/PD: CYP2D6 dependence</td><td align="center" rowspan="1" colspan="1">CYP2D6 IM, multimorbidity</td><td align="center" rowspan="1" colspan="1">Poor analgesia, ADRs</td><td align="center" rowspan="1" colspan="1">Dose escalation or opioid switch</td><td align="center" rowspan="1" colspan="1">Pharmacogenomics CYP2D6 effect → HPR verify genotype/response</td></tr><tr><td align="center" rowspan="1" colspan="1">Metoprolol + paroxetine</td><td align="center" rowspan="1" colspan="1">PK: CYP2D6 inhibition</td><td align="center" rowspan="1" colspan="1">CYP2D6 IM, older age</td><td align="center" rowspan="1" colspan="1">Bradycardia, hypotension</td><td align="center" rowspan="1" colspan="1">Falls → antihypertensive changes</td><td align="center" rowspan="1" colspan="1">Pharmacogenomics CYP2D6 inhibition → HPR verify HR/BP trend</td></tr><tr><td align="center" rowspan="1" colspan="1">Simvastatin + grapefruit</td><td align="center" rowspan="1" colspan="1">PK: Intestinal CYP3A4 inhibition</td><td align="center" rowspan="1" colspan="1">Daily intake, high dose, obesity</td><td align="center" rowspan="1" colspan="1">Myopathy, rhabdomyolysis</td><td align="center" rowspan="1" colspan="1">Muscle pain → analgesics</td><td align="center" rowspan="1" colspan="1">Diet–drug interaction → HPR verify grapefruit intake; inform/about diet habits, and confirm avoidance</td></tr><tr><td align="center" rowspan="1" colspan="1">Atorvastatin + St John’s wort</td><td align="center" rowspan="1" colspan="1">PK: CYP3A4 induction</td><td align="center" rowspan="1" colspan="1">OTC supplement use</td><td align="center" rowspan="1" colspan="1">Treatment failure</td><td align="center" rowspan="1" colspan="1">Dose increase or statin switch</td><td align="center" rowspan="1" colspan="1">Supplement–drug interaction → HPR verify use; inform about supplements and confirm avoidance</td></tr><tr><td align="center" rowspan="1" colspan="1">Mirtazapine + pregabalin</td><td align="center" rowspan="1" colspan="1">PD: Additive CNS depression</td><td align="center" rowspan="1" colspan="1">Age &gt;65, frailty, renal impairment</td><td align="center" rowspan="1" colspan="1">Ataxia, cognitive decline, falls, bone fracture</td><td align="center" rowspan="1" colspan="1">Fracture → opioid added (codeine)<break/>Misdx dementia (donepezil) →Respiratory depression, delirium, confusion, bradycardia</td><td align="center" rowspan="1" colspan="1">CNS load ↑ → HPR verify gait/cognition/renal function. Re-assess and confirm</td></tr><tr><td align="center" rowspan="1" colspan="1">Apixaban + diltiazem + clarithromycin</td><td align="center" rowspan="1" colspan="1">PK: Additive inhibition</td><td align="center" rowspan="1" colspan="1">Polypharmacy, frailty</td><td align="center" rowspan="1" colspan="1">Toxic drug levels (apixaban) bleeding and need for hospitalization</td><td align="center" rowspan="1" colspan="1">Anemia meds (i.e., ferrous supplements)</td><td align="center" rowspan="1" colspan="1">Cumulative inhibition (CYP3A4; P-gp) → HPR confirm dose/renal function and follow-up</td></tr><tr><td align="center" rowspan="1" colspan="1">NSAID + ACE-I+ diuretic</td><td align="center" rowspan="1" colspan="1">PK/PD: Renal hypoperfusion</td><td align="center" rowspan="1" colspan="1">Age &gt;65, dehydration</td><td align="center" rowspan="1" colspan="1">AKI and HF worsening</td><td align="center" rowspan="1" colspan="1">CKD misdx → chronic medications; intensification of HF-medications</td><td align="center" rowspan="1" colspan="1">“Triple whammy” alert. HPR HPR verify hydration/renal function</td></tr><tr><td align="center" rowspan="1" colspan="1">SSRI + ASA</td><td align="center" rowspan="1" colspan="1">PD: Platelet inhibition</td><td align="center" rowspan="1" colspan="1">Elderly, anticoagulation<break/>OTC risk</td><td align="center" rowspan="1" colspan="1">GI bleeding</td><td align="center" rowspan="1" colspan="1">PPI added → new DDIs</td><td align="center" rowspan="1" colspan="1">Platelet inhibition ↑ → HPR verify GI bleeding risk/anticoagulation</td></tr></tbody></table><table-wrap-foot><fn><p>ACE-I: angiotensin converting enzyme inhibitors; AKI, acute kidney injury; ASA, acetylsalicylic acid; BP, blood pressure; CKD, chronic kidney disease; CL, clearance; COPD, chronic obstructive pulmonary disease; CYP, Cytochrome P450; GI, gastrointestinal; HPR, Healthcare Professional/Researcher; HR, heart rate; IM, intramuscular; LFT, liver function tests; misdx, Misdiagnosis; NSAIDs, Non-steroidal Anti-inflammatory Drugs; OTC, Over-the-counter; PD, pharmacodynamic; PK, pharmacokinetic; PPI, proton pump inhibitors; SSRI, selective serotonin reuptake inhibitors; ↑, Increase; →, Leads to).</p></fn></table-wrap-foot></table-wrap><p>But to do so, emerging frameworks of HAMEAIs should not only recognize vulnerabilities associated with pharmacological mechanisms but also incorporate individualized patterns of risk arising from SDoH and healthcare engagement including potential behavioral tendencies and psychosocial stressors, (i.e., due to an associated stigma with a treatment), nutritional influences, or environmental exposures (<xref rid="B18" ref-type="bibr">Campbell et al., 2023</xref>; <xref rid="B59" ref-type="bibr">Li H. et al., 2023</xref>; <xref rid="B45" ref-type="bibr">Kågström et al., 2025</xref>). The long-term goal is the development of a system that evolves in parallel with pharmacological science and clinical practice, supported by systematic data acquisition on high-risk DDIs and real-time clinical outcomes or scenarios (<xref rid="B7" ref-type="bibr">Ali et al., 2025</xref>). This evolution does not replace pharmacological reasoning; rather, it strengthens it by supplying healthcare providers (and in an extend researchers) with detailed, context-sensitive insights that anticipate potential DDIs before they manifest clinically and support individualized therapeutic adjustments based on risk stratification. Ultimately, integrating adaptive AI-DDI systems across both drug development and clinical practice could harmonize mechanistic predictions with the real-world behavior of medicinal products. Such systems hold promises for advancing regulatory science, informing early-stage compound screening, and elevating the precision and safety of everyday pharmacotherapy.</p><sec id="s3-1"><title>Towards a transparent, patient-centered, and mechanistically aware AI ecosystem</title><p>Integrating bidirectional learning within an ethical, transparent, and clinically trustworthy framework is essential for advancing DDI management. A modern AI ecosystem must make pharmacology-driven reasoning visible and interpretable, avoiding the opacity that often accompanies complex computational approaches (<xref rid="B101" ref-type="bibr">Thalpage, 2023</xref>). Transparency is not merely a technical preference but a professional and ethical necessity: clinicians must understand why an interaction is flagged, which mechanistic pathways or PK/PD factors dominate the inference, and how patient-specific characteristics such as pharmacogenetic variants, comorbidities, or SDoH modulate predicted risk (<xref rid="B46" ref-type="bibr">Kierner et al., 2023</xref>). Despite their promise, these approaches face significant ethical and practical challenges, including dataset bias, incomplete electronic health records, the need for explainability in high-stakes decisions, and emerging regulatory demands for transparency and ongoing model updates (<xref rid="B70" ref-type="bibr">Mohsin Khan et al., 2025</xref>; <xref rid="B100" ref-type="bibr">Taddese et al., 2025</xref>; <xref rid="B78" ref-type="bibr">Pham, 2025</xref>). Adaptive human-in-the-loop systems also raise questions regarding data privacy, accountability, informed consent, and performance drift under continuous learning. While a full ethical analysis lies beyond the scope of this Perspective, HAMEAI aligns with principles of responsible AI by emphasizing clinician oversight, interpretability, and transparency rather than autonomous decision-making (<xref rid="B2" ref-type="bibr">Abdalla et al., 2025</xref>). Existing regulatory frameworks at the FDA and EMA, largely designed for static algorithms, struggle to accommodate lifecycle-based updates and real-world monitoring (<xref rid="B75" ref-type="bibr">Onitiu et al., 2024</xref>; <xref rid="B30" ref-type="bibr">Freyer et al., 2025</xref>; <xref rid="B114" ref-type="bibr">Zaidan and Ibrahim, 2024</xref>). Emerging policy scholarship increasingly advocates adaptive governance models capable of reconciling clinician-centered learning loops with evolving oversight structures (<xref rid="B32" ref-type="bibr">Ganna et al., 2024</xref>). In this context, HAMEAI is positioned as a conceptual research framework designed to catalyze innovation, rather than a system prepared for operational deployment within today’s regulatory restrictions (<xref rid="B95" ref-type="bibr">Sokol et al., 2025</xref>; <xref rid="B52" ref-type="bibr">Laranjo et al., 2025</xref>). Addressing these challenges requires a collaborative, multidisciplinary effort among healthcare professionals, similar to the distributed data collection and analysis seen in some citizen science projects (<xref rid="B43" ref-type="bibr">Jiwani et al., 2020</xref>; <xref rid="B26" ref-type="bibr">Downe et al., 2019</xref>).</p><p>Embedding mechanistic explainability in this context allows the identification of false positives, de-emphasis of DDIs that are clinically irrelevant, and prioritization of those risks that truly affect patient safety (<xref rid="B103" ref-type="bibr">Vo et al., 2022</xref>; <xref rid="B101" ref-type="bibr">Thalpage, 2023</xref>; <xref rid="B117" ref-type="bibr">Zhong et al., 2023</xref>; <xref rid="B105" ref-type="bibr">Wani et al., 2024</xref>; <xref rid="B19" ref-type="bibr">Carloni et al., 2025</xref>). Such clarity ensures that the clinician’s judgment remains central while data-driven insights augment decision-making. Ethical principles require that data integration respect patient privacy, prevent misuse, and maintain autonomy while enabling clinicians to provide evidence-based reasoning for DDI risk mitigation and preventive strategies (<xref rid="B78" ref-type="bibr">Pham, 2025</xref>; <xref rid="B35" ref-type="bibr">Hey and Kulkarni, 2025</xref>; <xref rid="B94" ref-type="bibr">Singh et al., 2025</xref>). A patient-centered orientation situates the AI system within the broader goal of improving therapeutic outcomes rather than solely optimizing computational performance. By integrating real-world observations with mechanistic and research data, adaptive AI-DDI systems can reveal previously unrecognized interaction pathways, clarify when presumed high-risk DDIs are unlikely to be clinically significant, reduce alert fatigue, and support proactive pharmacovigilance (<xref rid="B56" ref-type="bibr">Létinier et al., 2021</xref>; <xref rid="B80" ref-type="bibr">Praveen et al., 2023</xref>; <xref rid="B55" ref-type="bibr">Lee et al., 2023</xref>; <xref rid="B93" ref-type="bibr">Shamim et al., 2024</xref>; <xref rid="B69" ref-type="bibr">Mishra and Gupta, 2025</xref>).</p><p>In this envisioned ecosystem, AI strengthens rather than replaces clinical expertise, enhancing mechanistic understanding, patient-specific risk assessment, and the safety and precision of therapeutic decision-making. The resulting insights can also inform updates to product labeling, guide drug development, and anticipate interaction risks early in the R&amp;D pipeline.</p></sec></sec><sec sec-type="conclusion" id="s4"><title>Conclusion</title><p>Identifying DDIs in drug research and successful management in clinical practice requires integrating mechanistic pharmacology with the dynamic complexity of real-world patient care. Looking ahead, AI-DDI systems that integrate mechanistic clarity with patient-centered contextual awareness may fundamentally reshape how we interpret and prevent DDIs. They may lay the foundation for next-generation HAMEAI systems capable of integrating mechanistic clarity with real-world clinical data. Such systems promise not only better predictions but a deeper, continuously updated understanding of pharmacological behavior across heterogeneous patient populations.</p></sec></body><back><fn-group><fn fn-type="edited-by"><p>
+<bold>Edited by:</bold>
+<ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/1094924/overview" ext-link-type="uri">Allen W. Tsang</ext-link>, Wake Forest University, United States</p></fn><fn fn-type="reviewed-by"><p>
+<bold>Reviewed by:</bold>
+<ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/1838023/overview" ext-link-type="uri">Hamed Gilzad Kohan</ext-link>, Western New England University, United States</p><p>
+<ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://loop.frontiersin.org/people/3374476/overview" ext-link-type="uri">Yukta Patel</ext-link>, Gujarat Technological University, India</p></fn></fn-group><sec sec-type="data-availability" id="s5"><title>Data availability statement</title><p>The original contributions presented in the study are included in the article/supplementary material, further inquiries can be directed to the corresponding authors.</p></sec><sec sec-type="author-contributions" id="s6"><title>Author contributions</title><p>MS: Conceptualization, Data curation, Formal Analysis, Investigation, Methodology, Resources, Supervision, Validation, Visualization, Writing – original draft, Writing – review and editing. AD: Data curation, Investigation, Writing – original draft, Writing – review and editing. MB: Data curation, Investigation, Writing – original draft, Writing – review and editing. ES: Resources, Supervision, Writing – original draft, Writing – review and editing. HD: Conceptualization, Supervision, Visualization, Writing – original draft, Writing – review and editing.</p></sec><sec sec-type="COI-statement" id="s8"><title>Conflict of interest</title><p>The author(s) declared that this work was conducted in the absence of any commercial or financial relationships that could be construed as a potential conflict of interest.</p></sec><sec sec-type="ai-statement" id="s9"><title>Generative AI statement</title><p>The author(s) declared that generative AI was not used in the creation of this manuscript.</p><p>Any alternative text (alt text) provided alongside figures in this article has been generated by Frontiers with the support of artificial intelligence and reasonable efforts have been made to ensure accuracy, including review by the authors wherever possible. If you identify any issues, please contact us.</p></sec><sec sec-type="disclaimer" id="s10"><title>Publisher’s note</title><p>All claims expressed in this article are solely those of the authors and do not necessarily represent those of their affiliated organizations, or those of the publisher, the editors and the reviewers. Any product that may be evaluated in this article, or claim that may be made by its manufacturer, is not guaranteed or endorsed by the publisher.</p></sec><ref-list><title>References</title><ref id="B1"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Abbas</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Hao</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Yong</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Hasan</surname><given-names>M. K.</given-names></name>
+<name name-style="western"><surname>Islam</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Rahman</surname><given-names>A. H. A.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Graph neural network-based drug-drug interaction prediction</article-title>. <source>Sci. Rep.</source>
+<volume>15</volume> (<issue>1</issue>), <fpage>30340</fpage>. <pub-id pub-id-type="doi">10.1038/s41598-025-12936-1</pub-id>
+<pub-id pub-id-type="pmid">40830547</pub-id>
+<pub-id pub-id-type="pmcid">PMC12365209</pub-id></mixed-citation></ref><ref id="B2"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Abdalla</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Saad</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Abazia</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Advani</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Alhammad</surname><given-names>A. M.</given-names></name>
+<name name-style="western"><surname>Bernknopf</surname><given-names>A.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Responsible use of artificial intelligence in health care: evidence, challenges, and best practices: an opinion of the drug information practice and research network of the American college of clinical pharmacy</article-title>. <source>JACCP J. Am. Coll. Clin. Pharm.</source>
+<volume>8</volume> (<issue>12</issue>), <fpage>1333</fpage>–<lpage>1361</lpage>. <pub-id pub-id-type="doi">10.1002/jac5.70131</pub-id>
+</mixed-citation></ref><ref id="B3"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Agbabiaka</surname><given-names>T. B.</given-names></name>
+<name name-style="western"><surname>Wider</surname><given-names>B.</given-names></name>
+<name name-style="western"><surname>Watson</surname><given-names>L. K.</given-names></name>
+<name name-style="western"><surname>Goodman</surname><given-names>C.</given-names></name>
+</person-group> (<year>2017</year>). <article-title>Concurrent use of prescription drugs and herbal medicinal products in older adults: a systematic review</article-title>. <source>Drugs Aging</source>
+<volume>34</volume> (<issue>12</issue>), <fpage>891</fpage>–<lpage>905</lpage>. <pub-id pub-id-type="doi">10.1007/s40266-017-0501-7</pub-id>
+<pub-id pub-id-type="pmid">29196903</pub-id>
+<pub-id pub-id-type="pmcid">PMC5730633</pub-id></mixed-citation></ref><ref id="B4"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Al Meslamani</surname><given-names>A. Z.</given-names></name>
+<name name-style="western"><surname>Abou Hajal</surname><given-names>A.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Language models for drug–drug interactions: current applications, pitfalls, and future directions</article-title>. <source>Expert Opin. Drug Metab. Toxicol.</source>
+<volume>21</volume> (<issue>9</issue>), <fpage>1083</fpage>–<lpage>1102</lpage>. <pub-id pub-id-type="doi">10.1080/17425255.2025.2551724</pub-id>
+<pub-id pub-id-type="pmid">40842299</pub-id>
+</mixed-citation></ref><ref id="B5"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Al-Ashwal</surname><given-names>F. Y.</given-names></name>
+<name name-style="western"><surname>Zawiah</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Gharaibeh</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Abu-Farha</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Bitar</surname><given-names>A. N.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Evaluating the sensitivity, specificity, and accuracy of ChatGPT-3.5, ChatGPT-4, bing AI, and bard against conventional drug-drug interactions clinical tools</article-title>. <source>Drug Healthc. Patient Saf.</source>
+<volume>15</volume>, <fpage>137</fpage>–<lpage>147</lpage>. <pub-id pub-id-type="doi">10.2147/DHPS.S425858</pub-id>
+<pub-id pub-id-type="pmid">37750052</pub-id>
+<pub-id pub-id-type="pmcid">PMC10518176</pub-id></mixed-citation></ref><ref id="B6"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Alemu</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Sharew</surname><given-names>N. T.</given-names></name>
+<name name-style="western"><surname>Arsano</surname><given-names>Y. Y.</given-names></name>
+<name name-style="western"><surname>Ahmed</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Tekola-Ayele</surname><given-names>F.</given-names></name>
+<name name-style="western"><surname>Mersha</surname><given-names>T. B.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Multi-omics approaches for understanding gene-environment interactions in noncommunicable diseases: techniques, translation, and equity issues</article-title>. <source>Hum. Genomics</source>
+<volume>19</volume> (<issue>1</issue>), <fpage>8</fpage>. <pub-id pub-id-type="doi">10.1186/s40246-025-00718-9</pub-id>
+<pub-id pub-id-type="pmid">39891174</pub-id>
+<pub-id pub-id-type="pmcid">PMC11786457</pub-id></mixed-citation></ref><ref id="B7"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Ali</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Hanna</surname><given-names>M. M.</given-names></name>
+<name name-style="western"><surname>Alziny</surname><given-names>N.</given-names></name>
+<name name-style="western"><surname>Mahmoud</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Borham</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Mustafa</surname><given-names>A.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>The impact of the exposome on cytochrome P450-mediated drug metabolism</article-title>. <source>Front. Pharmacol.</source>
+<volume>16</volume>, <fpage>1639646</fpage>. <pub-id pub-id-type="doi">10.3389/fphar.2025.1639646</pub-id>
+<pub-id pub-id-type="pmid">41158125</pub-id>
+<pub-id pub-id-type="pmcid">PMC12554611</pub-id></mixed-citation></ref><ref id="B8"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Alizadehsani</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Oyelere</surname><given-names>S. S.</given-names></name>
+<name name-style="western"><surname>Hussain</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Jagatheesaperumal</surname><given-names>S. K.</given-names></name>
+<name name-style="western"><surname>Calixto</surname><given-names>R. R.</given-names></name>
+<name name-style="western"><surname>Rahouti</surname><given-names>M.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>Explainable artificial intelligence for drug discovery and development: a comprehensive survey</article-title>. <source>IEEE Access</source>
+<volume>12</volume>, <fpage>35796</fpage>–<lpage>35812</lpage>. <pub-id pub-id-type="doi">10.1109/access.2024.3373195</pub-id>
+</mixed-citation></ref><ref id="B9"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Anagnostopoulos</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Van Der Schaar</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Collet</surname><given-names>J. P.</given-names></name>
+<name name-style="western"><surname>Vecino</surname><given-names>R. H.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Real-world data and causal machine learning to enhance drug development</article-title>. <source>Ther. Innovation and Regul. Sci.</source>
+<volume>59</volume>, <fpage>6</fpage>–<lpage>1335</lpage>. <pub-id pub-id-type="doi">10.1007/s43441-025-00849-0</pub-id>
+<pub-id pub-id-type="pmid">40753359</pub-id>
+<pub-id pub-id-type="pmcid">PMC12579681</pub-id></mixed-citation></ref><ref id="B10"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Andersson</surname><given-names>M. L.</given-names></name>
+<name name-style="western"><surname>Böttiger</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Kockum</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Eiermann</surname><given-names>B.</given-names></name>
+</person-group> (<year>2018</year>). <article-title>High prevalence of drug–drug interactions in primary health care is caused by prescriptions from other healthcare units</article-title>. <source>Basic Clin. Pharmacol. Toxicol.</source>
+<volume>122</volume> (<issue>5</issue>), <fpage>512</fpage>–<lpage>516</lpage>. <pub-id pub-id-type="doi">10.1111/bcpt.12939</pub-id>
+<pub-id pub-id-type="pmid">29143454</pub-id>
+</mixed-citation></ref><ref id="B11"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Aydin</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Karabacak</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Vlachos</surname><given-names>V.</given-names></name>
+<name name-style="western"><surname>Margetis</surname><given-names>K.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Navigating the potential and pitfalls of large language models in patient-centered medication guidance and self-decision support</article-title>. <source>Front. Med. (Lausanne)</source>
+<volume>12</volume>, <fpage>1527864</fpage>. <pub-id pub-id-type="doi">10.3389/fmed.2025.1527864</pub-id>
+<pub-id pub-id-type="pmid">39917061</pub-id>
+<pub-id pub-id-type="pmcid">PMC11798948</pub-id></mixed-citation></ref><ref id="B12"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Barankay</surname><given-names>I.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>The missing link in behavioral interventions to raise medication adherence</article-title>. <source>JAMA Netw. Open</source>
+<volume>8</volume> (<issue>5</issue>), <fpage>e2510170</fpage>. <pub-id pub-id-type="doi">10.1001/jamanetworkopen.2025.10170</pub-id>
+<pub-id pub-id-type="pmid">40366664</pub-id>
+</mixed-citation></ref><ref id="B13"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Barbarino</surname><given-names>J. M.</given-names></name>
+<name name-style="western"><surname>Whirl-Carrillo</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Altman</surname><given-names>R. B.</given-names></name>
+<name name-style="western"><surname>Klein</surname><given-names>T. E.</given-names></name>
+</person-group> (<year>2018</year>). <article-title>PharmGKB: a worldwide resource for pharmacogenomic information</article-title>. <source>Wiley Interdiscip. Rev. Syst. Biol. Med.</source>
+<volume>10</volume>, <fpage>e1417</fpage>. <pub-id pub-id-type="doi">10.1002/wsbm.1417</pub-id>
+<pub-id pub-id-type="pmid">29474005</pub-id>
+<pub-id pub-id-type="pmcid">PMC6002921</pub-id></mixed-citation></ref><ref id="B14"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Bellanca</surname><given-names>C. M.</given-names></name>
+<name name-style="western"><surname>Polosa</surname><given-names>S. P.</given-names></name>
+<name name-style="western"><surname>Augello</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Di Benedetto</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Burgaletto</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Cantone</surname><given-names>A. F.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>A scoping review about smoking, smoking cessation and their effects on anti-tuberculosis agents: insights into drug metabolisms, safety, and effectiveness</article-title>. <source>Front. Pharmacol.</source>
+<volume>16</volume>, <fpage>1606150</fpage>. <pub-id pub-id-type="doi">10.3389/fphar.2025.1606150</pub-id>
+<pub-id pub-id-type="pmid">40741006</pub-id>
+<pub-id pub-id-type="pmcid">PMC12308143</pub-id></mixed-citation></ref><ref id="B15"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Bories</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Bouzillé</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Cuggia</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Corre</surname><given-names>P. L.</given-names></name>
+</person-group> (<year>2021</year>). <article-title>Drug–drug interactions in elderly patients with potentially inappropriate medications in primary care, nursing home and hospital settings: a systematic review and a preliminary study</article-title>. <source>Pharmaceutics</source>
+<volume>13</volume> (<issue>2</issue>), <fpage>266</fpage>. <pub-id pub-id-type="doi">10.3390/pharmaceutics13020266</pub-id>
+<pub-id pub-id-type="pmid">33669162</pub-id>
+<pub-id pub-id-type="pmcid">PMC7919637</pub-id></mixed-citation></ref><ref id="B17"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Cai</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Xu</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Lian</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Brian</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Li</surname><given-names>K. C. W.</given-names></name>
+<name name-style="western"><surname>Cai</surname><given-names>Y.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>A reputation-aware defense framework for strategic behaviors in federated learning</article-title>. <source>Telecom</source>
+<volume>6</volume> (<issue>3</issue>), <fpage>60</fpage>. <pub-id pub-id-type="doi">10.3390/telecom6030060</pub-id>
+</mixed-citation></ref><ref id="B18"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Campbell</surname><given-names>C. J.</given-names></name>
+<name name-style="western"><surname>Barve</surname><given-names>V.</given-names></name>
+<name name-style="western"><surname>Belitz</surname><given-names>M. W.</given-names></name>
+<name name-style="western"><surname>Doby</surname><given-names>J. R.</given-names></name>
+<name name-style="western"><surname>White</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Seltzer</surname><given-names>C.</given-names></name>
+<etal/>
+</person-group> (<year>2023</year>). <article-title>Identifying the identifiers: how iNaturalist facilitates collaborative, research-relevant data generation and why it matters for biodiversity science</article-title>. <source>Bioscience</source>
+<volume>73</volume> (<issue>7</issue>), <fpage>533</fpage>–<lpage>541</lpage>. <pub-id pub-id-type="doi">10.1093/biosci/biad051</pub-id>
+</mixed-citation></ref><ref id="B19"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Carloni</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Berti</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Colantonio</surname><given-names>S.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>The role of causality in explainable artificial intelligence</article-title>. <source>Wiley Interdiscip. Rev. Data Min. Knowl. Discov.</source>
+<volume>15</volume> (<issue>2</issue>), <fpage>e70015</fpage>. <pub-id pub-id-type="doi">10.1002/widm.70015</pub-id>
+</mixed-citation></ref><ref id="B20"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Carone</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Rotnitzky</surname><given-names>A.</given-names></name>
+</person-group> (<year>2026</year>). <article-title>Reinforcement learning for finding optimal dynamic treatment regimes using observational data</article-title>. <source>JAMA</source>
+<volume>335</volume> (<issue>3</issue>), <fpage>267</fpage>–<lpage>268</lpage>. <pub-id pub-id-type="doi">10.1001/jama.2025.20541</pub-id>
+<pub-id pub-id-type="pmid">41405908</pub-id>
+</mixed-citation></ref><ref id="B21"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Chen</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Liu</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Hogan</surname><given-names>W.</given-names></name>
+<name name-style="western"><surname>Shenkman</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Bian</surname><given-names>J.</given-names></name>
+</person-group> (<year>2021</year>). <article-title>Applications of artificial intelligence in drug development using real-world data</article-title>. <source>Drug Discov. Today</source>
+<volume>26</volume>, <fpage>1256</fpage>–<lpage>1264</lpage>. <pub-id pub-id-type="doi">10.1016/j.drudis.2020.12.013</pub-id>
+<pub-id pub-id-type="pmid">33358699</pub-id>
+<pub-id pub-id-type="pmcid">PMC8626864</pub-id></mixed-citation></ref><ref id="B22"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Chen</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>Q.</given-names></name>
+<name name-style="western"><surname>Shi</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Ye</surname><given-names>Z.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>Impact of human and artificial intelligence collaboration on workload reduction in medical image interpretation</article-title>. <source>Npj Digit. Med.</source>
+<volume>7</volume> (<issue>1</issue>), <fpage>349</fpage>. <pub-id pub-id-type="doi">10.1038/s41746-024-01328-w</pub-id>
+<pub-id pub-id-type="pmid">39616244</pub-id>
+<pub-id pub-id-type="pmcid">PMC11608314</pub-id></mixed-citation></ref><ref id="B23"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Dagenais</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Lee</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Cronenberger</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Sahasrabudhe</surname><given-names>V.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Proposing a framework to quantify the potential impact of pharmacokinetic drug–drug interactions caused by a new drug candidate by using real world data about the target patient population</article-title>. <source>Clin. Transl. Sci.</source>
+<volume>17</volume> (<issue>3</issue>), <fpage>e13741</fpage>. <pub-id pub-id-type="doi">10.1111/cts.13741</pub-id>
+<pub-id pub-id-type="pmid">38445532</pub-id>
+<pub-id pub-id-type="pmcid">PMC10915735</pub-id></mixed-citation></ref><ref id="B16"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>De Busser</surname><given-names>B.</given-names></name>
+<name name-style="western"><surname>Roth</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>De Loof</surname><given-names>H.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>The role of large language models in self-care: a study and benchmark on medicines and supplement guidance accuracy</article-title>. <source>Int. J. Clin. Pharm.</source>
+<volume>47</volume>, <fpage>4</fpage>–<lpage>1010</lpage>. <pub-id pub-id-type="doi">10.1007/s11096-024-01839-2</pub-id>
+<pub-id pub-id-type="pmid">39644377</pub-id>
+<pub-id pub-id-type="pmcid">PMC12335388</pub-id></mixed-citation></ref><ref id="B88"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Del Rio-Bermudez</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Medrano</surname><given-names>I. H.</given-names></name>
+<name name-style="western"><surname>Yebes</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Poveda</surname><given-names>J. L.</given-names></name>
+</person-group> (<year>2020</year>). <article-title>Towards a symbiotic relationship between big data, artificial intelligence, and hospital pharmacy</article-title>. <source>J. Pharm. Policy Pract.</source>
+<volume>13</volume> (<issue>1</issue>), <fpage>75</fpage>. <pub-id pub-id-type="doi">10.1186/s40545-020-00276-6</pub-id>
+<pub-id pub-id-type="pmid">33292570</pub-id>
+<pub-id pub-id-type="pmcid">PMC7650184</pub-id></mixed-citation></ref><ref id="B25"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Dimakos</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Douros</surname><given-names>A.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Methodological considerations on the use of cohort designs in drug-drug interaction studies in pharmacoepidemiology</article-title>. <source>Curr. Epidemiol. Rep.</source>
+<volume>11</volume>, <fpage>3</fpage>–<lpage>183</lpage>. <pub-id pub-id-type="doi">10.1007/s40471-024-00347-1</pub-id>
+</mixed-citation></ref><ref id="B26"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Downe</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Finlayson</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Tunçalp</surname><given-names>Ö.</given-names></name>
+<name name-style="western"><surname>Gülmezoglu</surname><given-names>A. M.</given-names></name>
+</person-group> (<year>2019</year>). <article-title>Provision and uptake of routine antenatal services: a qualitative evidence synthesis</article-title>. <source>Cochrane Database Syst. Rev.</source>
+<volume>6</volume> (<issue>6</issue>), <fpage>CD012392</fpage>. <pub-id pub-id-type="doi">10.1002/14651858.cd012392.pub2</pub-id>
+<pub-id pub-id-type="pmid">31194903</pub-id>
+<pub-id pub-id-type="pmcid">PMC6564082</pub-id></mixed-citation></ref><ref id="B27"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Emeny</surname><given-names>R. T.</given-names></name>
+<name name-style="western"><surname>Zhang</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Goodman</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Dev</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Lewinson</surname><given-names>T.</given-names></name>
+<name name-style="western"><surname>Wolff</surname><given-names>K.</given-names></name>
+<etal/>
+</person-group> (<year>2022</year>). <article-title>Inclusion of social and structural determinants of health to advance understanding of their influence on the biology of chronic disease</article-title>. <source>Curr. Protoc.</source>
+<volume>2</volume> (<issue>10</issue>), <fpage>e556</fpage>. <pub-id pub-id-type="doi">10.1002/cpz1.556</pub-id>
+<pub-id pub-id-type="pmid">36200800</pub-id>
+</mixed-citation></ref><ref id="B28"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Ennab</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Mcheick</surname><given-names>H.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Enhancing interpretability and accuracy of AI models in healthcare: a comprehensive review on challenges and future directions</article-title>. <source>Front. Robot. AI</source>
+<volume>11</volume>, <fpage>1444763</fpage>. <pub-id pub-id-type="doi">10.3389/frobt.2024.1444763</pub-id>
+<pub-id pub-id-type="pmid">39677978</pub-id>
+<pub-id pub-id-type="pmcid">PMC11638409</pub-id></mixed-citation></ref><ref id="B29"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Foti</surname><given-names>R. S.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Utility of physiologically based pharmacokinetic modeling in predicting and characterizing clinical drug interactions</article-title>. <source>Drug Metabolism Dispos.</source>
+<volume>53</volume> (<issue>1</issue>), <fpage>100021</fpage>. <pub-id pub-id-type="doi">10.1124/dmd.123.001384</pub-id>
+<pub-id pub-id-type="pmid">39884811</pub-id>
+</mixed-citation></ref><ref id="B30"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Freyer</surname><given-names>O.</given-names></name>
+<name name-style="western"><surname>Jayabalan</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Kather</surname><given-names>J. N.</given-names></name>
+<name name-style="western"><surname>Gilbert</surname><given-names>S.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Overcoming regulatory barriers to the implementation of AI agents in healthcare</article-title>. <source>Nat. Med.</source>
+<volume>31</volume> (<issue>10</issue>), <fpage>10</fpage>–<lpage>3243</lpage>. <pub-id pub-id-type="doi">10.1038/s41591-025-03841-1</pub-id>
+<pub-id pub-id-type="pmid">40681675</pub-id>
+</mixed-citation></ref><ref id="B31"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Frommeyer</surname><given-names>T. C.</given-names></name>
+<name name-style="western"><surname>Gilbert</surname><given-names>M. M.</given-names></name>
+<name name-style="western"><surname>Fursmidt</surname><given-names>R. M.</given-names></name>
+<name name-style="western"><surname>Park</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Khouzam</surname><given-names>J. P.</given-names></name>
+<name name-style="western"><surname>Brittain</surname><given-names>G. V.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Reinforcement learning and its clinical applications within healthcare: a systematic review of precision medicine and dynamic treatment regimes</article-title>. <source>Healthc. Switz.</source>
+<volume>13</volume> (<issue>14</issue>), <fpage>1752</fpage>. <pub-id pub-id-type="doi">10.3390/healthcare13141752</pub-id>
+<pub-id pub-id-type="pmid">40724777</pub-id>
+<pub-id pub-id-type="pmcid">PMC12295150</pub-id></mixed-citation></ref><ref id="B32"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Ganna</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Carracedo</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Christiansen</surname><given-names>C. F.</given-names></name>
+<name name-style="western"><surname>Di Angelantonio</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Dykstra</surname><given-names>P. A.</given-names></name>
+<name name-style="western"><surname>Dzhambov</surname><given-names>A. M.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>The european health data space can be a boost for research beyond borders</article-title>. <source>Nat. Med.</source>
+<volume>30</volume> (<issue>11</issue>), <fpage>11</fpage>–<lpage>3056</lpage>. <pub-id pub-id-type="doi">10.1038/s41591-024-03246-6</pub-id>
+<pub-id pub-id-type="pmid">39266746</pub-id>
+</mixed-citation></ref><ref id="B33"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Haefner</surname><given-names>N.</given-names></name>
+<name name-style="western"><surname>Wincent</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Parida</surname><given-names>V.</given-names></name>
+<name name-style="western"><surname>Gassmann</surname><given-names>O.</given-names></name>
+</person-group> (<year>2021</year>). <article-title>Artificial intelligence and innovation management: a review, framework, and research agenda</article-title>. <source>Technol. Forecast Soc. Change</source>. <volume>162</volume>, <fpage>120392</fpage>. <pub-id pub-id-type="doi">10.1016/j.techfore.2020.120392</pub-id>
+</mixed-citation></ref><ref id="B34"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Hauben</surname><given-names>M.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Artificial intelligence and data mining for the pharmacovigilance of drug–drug interactions</article-title>. <source>Clin. Ther.</source>
+<volume>45</volume> (<issue>2</issue>), <fpage>117</fpage>–<lpage>133</lpage>. <pub-id pub-id-type="doi">10.1016/j.clinthera.2023.01.002</pub-id>
+<pub-id pub-id-type="pmid">36732152</pub-id>
+</mixed-citation></ref><ref id="B35"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Hey</surname><given-names>C. Y.</given-names></name>
+<name name-style="western"><surname>Kulkarni</surname><given-names>S.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Artificial intelligence in healthcare research: research ethics perspective</article-title>. <source>Br. J. Clin. Pharmacol.</source>
+<volume>92</volume>, <fpage>1003</fpage>–<lpage>1007</lpage>. <pub-id pub-id-type="doi">10.1002/bcp.70395</pub-id>
+<pub-id pub-id-type="pmid">41355172</pub-id>
+</mixed-citation></ref><ref id="B36"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Horn</surname><given-names>J. R.</given-names></name>
+<name name-style="western"><surname>Hansten</surname><given-names>P. D.</given-names></name>
+<name name-style="western"><surname>Osborn</surname><given-names>J. D.</given-names></name>
+<name name-style="western"><surname>Wareham</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Somani</surname><given-names>S.</given-names></name>
+</person-group> (<year>2011</year>). <article-title>Customizing clinical decision support to prevent excessive drug–drug interaction alerts</article-title>. <source>Am. J. Health-System Pharm.</source>
+<volume>68</volume> (<issue>8</issue>), <fpage>662</fpage>–<lpage>664</lpage>. <pub-id pub-id-type="doi">10.2146/ajhp100465</pub-id>
+<pub-id pub-id-type="pmid">21460171</pub-id>
+</mixed-citation></ref><ref id="B37"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Huang</surname><given-names>W.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Chen</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Yu</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Zhang</surname><given-names>S.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Advancing drug-drug interactions research: integrating AI-powered prediction, vulnerable populations, and regulatory insights</article-title>. <source>Front. Pharmacol.</source>
+<volume>16</volume>, <fpage>1618701</fpage>. <pub-id pub-id-type="doi">10.3389/fphar.2025.1618701</pub-id>
+<pub-id pub-id-type="pmid">40880653</pub-id>
+<pub-id pub-id-type="pmcid">PMC12380558</pub-id></mixed-citation></ref><ref id="B38"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Hwang</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Lyu</surname><given-names>B.</given-names></name>
+<name name-style="western"><surname>Ballew</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Coresh</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Grams</surname><given-names>M. E.</given-names></name>
+<name name-style="western"><surname>Couper</surname><given-names>D.</given-names></name>
+<etal/>
+</person-group> (<year>2023</year>). <article-title>The association between socioeconomic status and use of potentially inappropriate medications in older adults</article-title>. <source>J. Am. Geriatr. Soc.</source>
+<volume>71</volume> (<issue>4</issue>), <fpage>1156</fpage>–<lpage>1166</lpage>. <pub-id pub-id-type="doi">10.1111/jgs.18165</pub-id>
+<pub-id pub-id-type="pmid">36511705</pub-id>
+<pub-id pub-id-type="pmcid">PMC10089965</pub-id></mixed-citation></ref><ref id="B39"><mixed-citation publication-type="webpage">
+<collab>ICH</collab> (<year>2025</year>). <article-title>General principles on planning, designing, analysing, and reporting of non-interventional studies that utilise real-world data for safety assessment of medicines M14 final version</article-title>. <comment>Available online at: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.ema.europa.eu/en/ich-m14-guideline-general-principles-plan-design-analysis-pharmacoepidemiological-studies-utilize-real-world-data-safety-assessment-medicines-scientific-guideline" ext-link-type="uri">https://www.ema.europa.eu/en/ich-m14-guideline-general-principles-plan-design-analysis-pharmacoepidemiological-studies-utilize-real-world-data-safety-assessment-medicines-scientific-guideline</ext-link> (Accessed December 5, 2026).</comment>
+</mixed-citation></ref><ref id="B40"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Idan</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Ben-Shitrit</surname><given-names>I.</given-names></name>
+<name name-style="western"><surname>Volevich</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Binyamin</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Nassar</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Nassar</surname><given-names>M.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Evaluating the performance of large language models <italic toggle="yes">versus</italic> human researchers on real world complex medical queries</article-title>. <source>Sci. Rep.</source>
+<volume>15</volume> (<issue>1</issue>), <fpage>37824</fpage>. <pub-id pub-id-type="doi">10.1038/s41598-025-21689-w</pub-id>
+<pub-id pub-id-type="pmid">41162483</pub-id>
+<pub-id pub-id-type="pmcid">PMC12572390</pub-id></mixed-citation></ref><ref id="B41"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Israni</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Bader</surname><given-names>G. D.</given-names></name>
+<name name-style="western"><surname>Baranzini</surname><given-names>S. E.</given-names></name>
+<name name-style="western"><surname>Capra</surname><given-names>J. A.</given-names></name>
+<name name-style="western"><surname>Sirota</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Theodoris</surname><given-names>C. V.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Precision medicine: crossing the biomedical scales with AI</article-title>. <source>J. Precis. Med. Health Dis.</source>
+<volume>3</volume>, <fpage>100010</fpage>. <pub-id pub-id-type="doi">10.1016/j.premed.2025.100010</pub-id>
+</mixed-citation></ref><ref id="B42"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Jamei</surname><given-names>M.</given-names></name>
+</person-group> (<year>2016</year>). <article-title>Recent advances in development and application of physiologically-based pharmacokinetic (PBPK) models: a transition from academic curiosity to regulatory acceptance</article-title>. <source>Curr. Pharmacol. Rep.</source>
+<volume>2</volume> (<issue>3</issue>), <fpage>161</fpage>–<lpage>169</lpage>. <pub-id pub-id-type="doi">10.1007/s40495-016-0059-9</pub-id>
+<pub-id pub-id-type="pmid">27226953</pub-id>
+<pub-id pub-id-type="pmcid">PMC4856711</pub-id></mixed-citation></ref><ref id="B43"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Jiwani</surname><given-names>S. S.</given-names></name>
+<name name-style="western"><surname>Amouzou</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Carvajal-Aguirre</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Chou</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Keita</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Moran</surname><given-names>A. C.</given-names></name>
+<etal/>
+</person-group> (<year>2020</year>). <article-title>Timing and number of antenatal care contacts in low and middle-income countries: analysis in the countdown to 2030 priority countries</article-title>. <source>J. Glob. Health</source>
+<volume>10</volume> (<issue>1</issue>), <fpage>010502</fpage>. <pub-id pub-id-type="doi">10.7189/jogh.10.010502</pub-id>
+<pub-id pub-id-type="pmid">32257157</pub-id>
+<pub-id pub-id-type="pmcid">PMC7101027</pub-id></mixed-citation></ref><ref id="B44"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Kadambi</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Krekels</surname><given-names>E. H. J.</given-names></name>
+<name name-style="western"><surname>Martinecz</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Fatzinger</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Jones</surname><given-names>H. M.</given-names></name>
+<name name-style="western"><surname>Khachatryan</surname><given-names>A.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Critical roles for modeling and simulation and real-world evidence to inform challenges in clinical trial diversity planning</article-title>. <source>Clin. Transl. Sci.</source>
+<volume>18</volume> (<issue>6</issue>), <fpage>e70276</fpage>. <pub-id pub-id-type="doi">10.1111/cts.70276</pub-id>
+<pub-id pub-id-type="pmid">40525392</pub-id>
+<pub-id pub-id-type="pmcid">PMC12171783</pub-id></mixed-citation></ref><ref id="B45"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Kågström</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Guerrero</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Aliev</surname><given-names>A. A.</given-names></name>
+<name name-style="western"><surname>Tomášková</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Rüsch</surname><given-names>N.</given-names></name>
+<name name-style="western"><surname>Ouali</surname><given-names>U.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Mental health stigma and its consequences: a systematic scoping review of pathways to discrimination and adverse outcomes</article-title>. <source>EClinicalMedicine</source>
+<volume>89</volume>, <fpage>103588</fpage>. <pub-id pub-id-type="doi">10.1016/j.eclinm.2025.103588</pub-id>
+<pub-id pub-id-type="pmid">41210382</pub-id>
+<pub-id pub-id-type="pmcid">PMC12593596</pub-id></mixed-citation></ref><ref id="B46"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Kierner</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Kucharski</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Kierner</surname><given-names>Z.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Taxonomy of hybrid architectures involving rule-based reasoning and machine learning in clinical decision systems: a scoping review</article-title>. <source>J. Biomed. Inf.</source>
+<volume>144</volume>, <fpage>104428</fpage>. <pub-id pub-id-type="doi">10.1016/j.jbi.2023.104428</pub-id>
+<pub-id pub-id-type="pmid">37355025</pub-id>
+</mixed-citation></ref><ref id="B47"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Kim</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Yu</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Bae</surname><given-names>S. H.</given-names></name>
+<name name-style="western"><surname>Lee</surname><given-names>J.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>SF-Rx: a multioutput deep neural network-based framework predicting drug-drug interaction under realistic conditions for safe prescription</article-title>. <source>J. Chem. Inf. Model.</source>
+<volume>65</volume> (<issue>9</issue>), <fpage>4442</fpage>–<lpage>4457</lpage>. <pub-id pub-id-type="doi">10.1021/acs.jcim.5c00075</pub-id>
+<pub-id pub-id-type="pmid">40310752</pub-id>
+</mixed-citation></ref><ref id="B48"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Knox</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Wilson</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Klinger</surname><given-names>C. M.</given-names></name>
+<name name-style="western"><surname>Franklin</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Oler</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Wilson</surname><given-names>A.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>DrugBank 6.0: the DrugBank knowledgebase for 2024</article-title>. <source>Nucleic Acids Res.</source>
+<volume>52</volume> (<issue>D1</issue>), <fpage>D1265</fpage>–<lpage>D1275</lpage>. <pub-id pub-id-type="doi">10.1093/nar/gkad976</pub-id>
+<pub-id pub-id-type="pmid">37953279</pub-id>
+<pub-id pub-id-type="pmcid">PMC10767804</pub-id></mixed-citation></ref><ref id="B49"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Kontsioti</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Maskell</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Bensalem</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Dutta</surname><given-names>B.</given-names></name>
+<name name-style="western"><surname>Pirmohamed</surname><given-names>M.</given-names></name>
+</person-group> (<year>2022</year>). <article-title>Similarity and consistency assessment of three major online drug–drug interaction resources</article-title>. <source>Br. J. Clin. Pharmacol.</source>
+<volume>88</volume> (<issue>9</issue>), <fpage>4067</fpage>–<lpage>4079</lpage>. <pub-id pub-id-type="doi">10.1111/bcp.15341</pub-id>
+<pub-id pub-id-type="pmid">35362214</pub-id>
+<pub-id pub-id-type="pmcid">PMC9545693</pub-id></mixed-citation></ref><ref id="B50"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Lampe</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Grosser</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Grothe</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Aufenberg</surname><given-names>B.</given-names></name>
+<name name-style="western"><surname>Gensorowsky</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Witte</surname><given-names>J.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>How intervention studies measure the effectiveness of medication safety-related clinical decision support systems in primary and long-term care: a systematic review</article-title>. <source>BMC Med. Inf. Decis. Mak.</source>
+<volume>24</volume> (<issue>1</issue>), <fpage>188</fpage>. <pub-id pub-id-type="doi">10.1186/s12911-024-02596-y</pub-id>
+<pub-id pub-id-type="pmid">38965569</pub-id>
+<pub-id pub-id-type="pmcid">PMC11225126</pub-id></mixed-citation></ref><ref id="B51"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Lang</surname><given-names>O.</given-names></name>
+<name name-style="western"><surname>Yaya-Stupp</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Traynis</surname><given-names>I.</given-names></name>
+<name name-style="western"><surname>Cole-Lewis</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Bennett</surname><given-names>C. R.</given-names></name>
+<name name-style="western"><surname>Lyles</surname><given-names>C. R.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>Using generative AI to investigate medical imagery models and datasets</article-title>. <source>EBioMedicine</source>
+<volume>102</volume>, <fpage>105075</fpage>. <pub-id pub-id-type="doi">10.1016/j.ebiom.2024.105075</pub-id>
+<pub-id pub-id-type="pmid">38565004</pub-id>
+<pub-id pub-id-type="pmcid">PMC10993140</pub-id></mixed-citation></ref><ref id="B52"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Laranjo</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Tudor Car</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Payne</surname><given-names>R. E.</given-names></name>
+<name name-style="western"><surname>Neves</surname><given-names>A. L.</given-names></name>
+<name name-style="western"><surname>Kidd</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Jaime Miranda</surname><given-names>J.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Artificial intelligence in primary care: innovation at a crossroads</article-title>. <source>Lancet Prim. Care</source>, <volume>2025</volume>. <comment>Available online at: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://linkinghub.elsevier.com/retrieve/pii/S3050514325000780" ext-link-type="uri">https://linkinghub.elsevier.com/retrieve/pii/S3050514325000780</ext-link>.</comment>
+</mixed-citation></ref><ref id="B54"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Lee</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Park</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Ahn</surname><given-names>J.</given-names></name>
+</person-group> (<year>2019</year>). <article-title>Novel deep learning model for more accurate prediction of drug-drug interaction effects</article-title>. <source>BMC Bioinforma.</source>
+<volume>20</volume> (<issue>1</issue>), <fpage>415</fpage>. <pub-id pub-id-type="doi">10.1186/s12859-019-3013-0</pub-id>
+<pub-id pub-id-type="pmid">31387547</pub-id>
+<pub-id pub-id-type="pmcid">PMC6685287</pub-id></mixed-citation></ref><ref id="B55"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Lee</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Kim</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Lee</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Kim</surname><given-names>J. Y.</given-names></name>
+<name name-style="western"><surname>Song</surname><given-names>M. H.</given-names></name>
+<name name-style="western"><surname>Lee</surname><given-names>S.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Explainable artificial intelligence for patient safety: a review of application in pharmacovigilance</article-title>. <source>IEEE Access</source>
+<volume>11</volume>, <fpage>50830</fpage>–<lpage>50840</lpage>. <pub-id pub-id-type="doi">10.1109/access.2023.3271635</pub-id>
+</mixed-citation></ref><ref id="B56"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Létinier</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Ferreira</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Marceron</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Babin</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Micallef</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Miremont-Salamé</surname><given-names>G.</given-names></name>
+<etal/>
+</person-group> (<year>2021</year>). <article-title>Spontaneous reports of serious adverse drug reactions resulting from drug–drug interactions: an analysis from the French pharmacovigilance database</article-title>. <source>Front. Pharmacol.</source>, <volume>11</volume>, <fpage>624562</fpage>. <pub-id pub-id-type="doi">10.3389/fphar.2020.624562</pub-id>
+<pub-id pub-id-type="pmid">33841134</pub-id>
+<pub-id pub-id-type="pmcid">PMC8024557</pub-id></mixed-citation></ref><ref id="B57"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Lin</surname><given-names>W.</given-names></name>
+<name name-style="western"><surname>Chen</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Unadkat</surname><given-names>J. D.</given-names></name>
+<name name-style="western"><surname>Zhang</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Wu</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Heimbach</surname><given-names>T.</given-names></name>
+</person-group> (<year>2022</year>). <article-title>Applications, challenges, and outlook for PBPK modeling and simulation: a regulatory, industrial and academic perspective</article-title>. <source>Pharm. Res.</source>
+<volume>39</volume> (<issue>8</issue>), <fpage>8</fpage>–<lpage>1731</lpage>. <pub-id pub-id-type="doi">10.1007/s11095-022-03274-2</pub-id>
+<pub-id pub-id-type="pmid">35552967</pub-id>
+</mixed-citation></ref><ref id="B58"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Li</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Zhu</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Shao</surname><given-names>B.</given-names></name>
+<name name-style="western"><surname>Zeng</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>T.</given-names></name>
+<name name-style="western"><surname>Liu</surname><given-names>T. Y.</given-names></name>
+</person-group> (<year>2023a</year>). <article-title>DSN-DDI: an accurate and generalized framework for drug-drug interaction prediction by dual-view representation learning</article-title>. <source>Brief. Bioinform</source>
+<volume>24</volume> (<issue>1</issue>), <fpage>bbac597</fpage>. <pub-id pub-id-type="doi">10.1093/bib/bbac597</pub-id>
+<pub-id pub-id-type="pmid">36592061</pub-id>
+</mixed-citation></ref><ref id="B59"><mixed-citation publication-type="confproc">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Li</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Hu</surname><given-names>T.</given-names></name>
+<name name-style="western"><surname>Xiong</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Zheng</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Feng</surname><given-names>F.</given-names></name>
+<name name-style="western"><surname>He</surname><given-names>X.</given-names></name>
+<etal/>
+</person-group> (<year>2023b</year>). “<article-title>ADRNet: a generalized collaborative filtering framework combining clinical and non-clinical data for adverse drug reaction prediction</article-title>,” in <conf-name>RecSys ’23: Seventeenth ACM Conference on Recommender Systems Singapore Singapore September 18 - 22, 2023</conf-name>. <conf-loc>New York, NY: Association for Computing Machinery</conf-loc>. <comment>Available online at: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://dl.acm.org/doi/proceedings/10.1145/3604915" ext-link-type="uri">https://dl.acm.org/doi/proceedings/10.1145/3604915</ext-link>
+</comment>.</mixed-citation></ref><ref id="B60"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Li</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Zhao</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Lei</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Wu</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Zhang</surname><given-names>Y.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Identify drug-drug interactions <italic toggle="yes">via</italic> deep learning: a real world study</article-title>. <source>J. Pharm. Anal.</source>
+<volume>15</volume> (<issue>6</issue>), <fpage>101194</fpage>. <pub-id pub-id-type="doi">10.1016/j.jpha.2025.101194</pub-id>
+<pub-id pub-id-type="pmid">40678481</pub-id>
+<pub-id pub-id-type="pmcid">PMC12268060</pub-id></mixed-citation></ref><ref id="B61"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Lin</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Wu</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Zhu</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Liang</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Xia</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Xie</surname><given-names>S.</given-names></name>
+<etal/>
+</person-group> (<year>2023</year>). <article-title>R2-DDI: relation-aware feature refinement for drug-drug interaction prediction</article-title>. <source>Brief. Bioinform</source>
+<volume>24</volume> (<issue>1</issue>), <fpage>bbac576</fpage>. <pub-id pub-id-type="doi">10.1093/bib/bbac576</pub-id>
+<pub-id pub-id-type="pmid">36573491</pub-id>
+</mixed-citation></ref><ref id="B62"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Liu</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Zhou</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Li</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Hou</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Zhou</surname><given-names>S.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>A review of reinforcement learning for natural language processing and applications in healthcare</article-title>. <source>J. Am. Med. Inf. Assoc.</source>
+<volume>31</volume> (<issue>10</issue>), <fpage>2379</fpage>–<lpage>2393</lpage>. <pub-id pub-id-type="doi">10.1093/jamia/ocae215</pub-id>
+<pub-id pub-id-type="pmid">39208319</pub-id>
+<pub-id pub-id-type="pmcid">PMC11413430</pub-id></mixed-citation></ref><ref id="B63"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Lohy Das</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Ajavon-Hartmann</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Schmith</surname><given-names>V.</given-names></name>
+<name name-style="western"><surname>Ginny</surname><given-names>D.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Navigating drug–drug interactions in clinical drug development: a tutorial</article-title>. <source>Clin. Transl. Sci.</source>
+<volume>18</volume> (<issue>9</issue>), <fpage>e70342</fpage>. <pub-id pub-id-type="doi">10.1111/cts.70342</pub-id>
+<pub-id pub-id-type="pmid">40984681</pub-id>
+<pub-id pub-id-type="pmcid">PMC12454681</pub-id></mixed-citation></ref><ref id="B64"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Malki</surname><given-names>M. A.</given-names></name>
+<name name-style="western"><surname>Pearson</surname><given-names>E. R.</given-names></name>
+</person-group> (<year>2019</year>). <article-title>Drug–drug–gene interactions and adverse drug reactions</article-title>. <source>Pharmacogenomics J.</source>
+<volume>20</volume> (<issue>3</issue>), <fpage>355</fpage>–<lpage>366</lpage>. <pub-id pub-id-type="doi">10.1038/s41397-019-0122-0</pub-id>
+<pub-id pub-id-type="pmid">31792369</pub-id>
+<pub-id pub-id-type="pmcid">PMC7253354</pub-id></mixed-citation></ref><ref id="B65"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Mallet</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Spinewine</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Huang</surname><given-names>A.</given-names></name>
+</person-group> (<year>2007</year>). <article-title>The challenge of managing drug interactions in elderly people</article-title>. <source>Lancet</source>
+<volume>370</volume> (<issue>9582</issue>), <fpage>185</fpage>–<lpage>191</lpage>. <pub-id pub-id-type="doi">10.1016/S0140-6736(07)61092-7</pub-id>
+<pub-id pub-id-type="pmid">17630042</pub-id>
+</mixed-citation></ref><ref id="B66"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Marengoni</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Onder</surname><given-names>G.</given-names></name>
+</person-group> (<year>2015</year>). <article-title>Guidelines, polypharmacy, and drug-drug interactions in patients with multimorbidity</article-title>. <comment>BMJ (Clinical research ed.)</comment>, <volume>350</volume>, <fpage>h1059</fpage>. <pub-id pub-id-type="doi">10.1136/bmj.h1059</pub-id>
+<pub-id pub-id-type="pmid">25761379</pub-id>
+</mixed-citation></ref><ref id="B67"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Marzouk</surname><given-names>N. H.</given-names></name>
+<name name-style="western"><surname>Selim</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Elattar</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Mabrouk</surname><given-names>M. S.</given-names></name>
+<name name-style="western"><surname>Mysara</surname><given-names>M.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>A comprehensive landscape of AI applications in broad-spectrum drug interaction prediction: a systematic review</article-title>. <source>J. Cheminform</source>
+<volume>17</volume> (<issue>1</issue>), <fpage>141</fpage>. <pub-id pub-id-type="doi">10.1186/s13321-025-01093-2</pub-id>
+<pub-id pub-id-type="pmid">40973960</pub-id>
+<pub-id pub-id-type="pmcid">PMC12447627</pub-id></mixed-citation></ref><ref id="B68"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Mehta</surname><given-names>H. B.</given-names></name>
+<name name-style="western"><surname>Alexander</surname><given-names>G. C.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Managing drug-drug interactions—so many drugs, So little evidence</article-title>. <source>JAMA Netw. Open</source>
+<volume>7</volume> (<issue>9</issue>), <fpage>e2432649</fpage>. <pub-id pub-id-type="doi">10.1001/jamanetworkopen.2024.32649</pub-id>
+<pub-id pub-id-type="pmid">39240569</pub-id>
+</mixed-citation></ref><ref id="B69"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Mishra</surname><given-names>H. P.</given-names></name>
+<name name-style="western"><surname>Gupta</surname><given-names>R.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Leveraging generative AI for drug safety and pharmacovigilance</article-title>. <source>Curr. Reviews Clinical Experimental Pharmacology</source>
+<volume>20</volume> (<issue>2</issue>), <fpage>89</fpage>–<lpage>97</lpage>. <pub-id pub-id-type="doi">10.2174/0127724328311400240823062829</pub-id>
+<pub-id pub-id-type="pmid">39238375</pub-id>
+</mixed-citation></ref><ref id="B70"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Mohsin Khan</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Shah</surname><given-names>N.</given-names></name>
+<name name-style="western"><surname>Shaikh</surname><given-names>N.</given-names></name>
+<name name-style="western"><surname>Thabet</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Alrabayah</surname><given-names>T.</given-names></name>
+<name name-style="western"><surname>Belkhair</surname><given-names>S.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Towards secure and trusted AI in healthcare: a systematic review of emerging innovations and ethical challenges</article-title>. <source>Int. J. Med. Inf.</source>
+<volume>195</volume>, <fpage>105780</fpage>. <pub-id pub-id-type="doi">10.1016/j.ijmedinf.2024.105780</pub-id>
+<pub-id pub-id-type="pmid">39753062</pub-id>
+</mixed-citation></ref><ref id="B71"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Mondal</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Dash</surname><given-names>I.</given-names></name>
+<name name-style="western"><surname>Mondal</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Varikasuvu</surname><given-names>S. R.</given-names></name>
+<name name-style="western"><surname>Gayen</surname><given-names>R. K.</given-names></name>
+<name name-style="western"><surname>Sharma</surname><given-names>S.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>A systematic mapping review on the capability of large language models in drug-drug interaction analysis</article-title>. <source>Expert Rev. Clin. Pharmacol.</source>
+<volume>18</volume> (<issue>9</issue>), <fpage>683</fpage>–<lpage>690</lpage>. <pub-id pub-id-type="doi">10.1080/17512433.2025.2568090</pub-id>
+<pub-id pub-id-type="pmid">40999995</pub-id>
+</mixed-citation></ref><ref id="B72"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Moschny</surname><given-names>N.</given-names></name>
+<name name-style="western"><surname>Hefner</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Grohmann</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Eckermann</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Maier</surname><given-names>H. B.</given-names></name>
+<name name-style="western"><surname>Seifert</surname><given-names>J.</given-names></name>
+<etal/>
+</person-group> (<year>2021</year>). <article-title>Therapeutic drug monitoring of Second- and third-generation antipsychotic drugs-influence of smoking behavior and inflammation on pharmacokinetics</article-title>. <source>Pharm. (Basel)</source>
+<volume>14</volume> (<issue>6</issue>), <fpage>514</fpage>. <pub-id pub-id-type="doi">10.3390/ph14060514</pub-id>
+<pub-id pub-id-type="pmid">34071813</pub-id>
+<pub-id pub-id-type="pmcid">PMC8230242</pub-id></mixed-citation></ref><ref id="B73"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Nagar</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Gobburu</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Chakravarty</surname><given-names>A.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Artificial intelligence in pharmacovigilance: advancing drug safety monitoring and regulatory integration</article-title>. <source>Ther. Adv. Drug Saf.</source>
+<volume>16</volume>, <fpage>20420986251361436</fpage>. <pub-id pub-id-type="doi">10.1177/20420986251361435</pub-id>
+<pub-id pub-id-type="pmid">40756610</pub-id>
+<pub-id pub-id-type="pmcid">PMC12317250</pub-id></mixed-citation></ref><ref id="B74"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Nasajpour</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Pouriyeh</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Parizi</surname><given-names>R. M.</given-names></name>
+<name name-style="western"><surname>Han</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Mosaiyebzadeh</surname><given-names>F.</given-names></name>
+<name name-style="western"><surname>Liu</surname><given-names>L.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Federated learning in smart healthcare: a survey of applications, challenges, and future directions</article-title>. <source>Electronics</source>
+<volume>14</volume> (<issue>9</issue>), <fpage>1750</fpage>. <pub-id pub-id-type="doi">10.3390/electronics14091750</pub-id>
+</mixed-citation></ref><ref id="B75"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Onitiu</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Wachter</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Mittelstadt</surname><given-names>B.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>How AI challenges the medical device regulation: patient safety, benefits, and intended uses</article-title>. <source>J. Law Biosci.</source>, <fpage>lsae007</fpage>. <pub-id pub-id-type="doi">10.1093/jlb/lsae007</pub-id>
+</mixed-citation></ref><ref id="B76"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Papadopoulos</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Soflano</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Chaudy</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Adejo</surname><given-names>W.</given-names></name>
+<name name-style="western"><surname>Connolly</surname><given-names>T. M.</given-names></name>
+</person-group> (<year>2022</year>). <article-title>A systematic review of technologies and standards used in the development of rule-based clinical decision support systems</article-title>. <source>Health Technol.</source>
+<volume>12</volume> (<issue>4</issue>), <fpage>713</fpage>–<lpage>727</lpage>. <pub-id pub-id-type="doi">10.1007/s12553-022-00672-9</pub-id>
+</mixed-citation></ref><ref id="B77"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Pestka</surname><given-names>D. L.</given-names></name>
+<name name-style="western"><surname>Espersen</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Sorge</surname><given-names>L. A.</given-names></name>
+<name name-style="western"><surname>Funk</surname><given-names>K. A.</given-names></name>
+</person-group> (<year>2020</year>). <article-title>Incorporating social determinants of health into comprehensive medication management: insights from the field</article-title>. <source>JACCP J. Am. Coll. Clin. Pharm.</source>
+<volume>3</volume> (<issue>6</issue>), <fpage>1038</fpage>–<lpage>1047</lpage>. <pub-id pub-id-type="doi">10.1002/jac5.1254</pub-id>
+</mixed-citation></ref><ref id="B78"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Pham</surname><given-names>T.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Ethical and legal considerations in healthcare AI: innovation and policy for safe and fair use</article-title>. <source>R. Soc. Open Sci.</source>
+<volume>12</volume> (<issue>5</issue>), <fpage>241873</fpage>. <pub-id pub-id-type="doi">10.1098/rsos.241873</pub-id>
+<pub-id pub-id-type="pmid">40370601</pub-id>
+<pub-id pub-id-type="pmcid">PMC12076083</pub-id></mixed-citation></ref><ref id="B79"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Pognan</surname><given-names>F.</given-names></name>
+<name name-style="western"><surname>Beilmann</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Boonen</surname><given-names>H. C. M.</given-names></name>
+<name name-style="western"><surname>Czich</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Dear</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Hewitt</surname><given-names>P.</given-names></name>
+<etal/>
+</person-group> (<year>2023</year>). <article-title>The evolving role of investigative toxicology in the pharmaceutical industry</article-title>. <source>Nat. Rev. Drug Discov.</source>
+<volume>22</volume> (<issue>4</issue>), <fpage>317</fpage>–<lpage>335</lpage>. <pub-id pub-id-type="doi">10.1038/s41573-022-00633-x</pub-id>
+<pub-id pub-id-type="pmid">36781957</pub-id>
+<pub-id pub-id-type="pmcid">PMC9924869</pub-id></mixed-citation></ref><ref id="B80"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Praveen</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Kumar</surname><given-names>C. M. K.</given-names></name>
+<name name-style="western"><surname>Channappa</surname><given-names>A. H.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Transforming pharmacovigilance using gen AI: innovations in aggregate reporting, signal detection, and safety surveillance</article-title>. <source>J. Multidiscip. Res</source>. <volume>3</volume> (<issue>3</issue>), <fpage>9</fpage>–<lpage>16</lpage>. <pub-id pub-id-type="doi">10.37022/tjmdr.v3i3.484</pub-id>
+</mixed-citation></ref><ref id="B81"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Price</surname><given-names>J.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Drug–drug interactions: a pharmacovigilance road less traveled</article-title>. <source>Clin. Ther.</source>
+<volume>45</volume> (<issue>2</issue>), <fpage>94</fpage>–<lpage>98</lpage>. <pub-id pub-id-type="doi">10.1016/j.clinthera.2022.12.005</pub-id>
+<pub-id pub-id-type="pmid">36641261</pub-id>
+</mixed-citation></ref><ref id="B82"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Prueksaritanont</surname><given-names>T.</given-names></name>
+<name name-style="western"><surname>Chu</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Gibson</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Cui</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Yee</surname><given-names>K. L.</given-names></name>
+<name name-style="western"><surname>Ballard</surname><given-names>J.</given-names></name>
+<etal/>
+</person-group> (<year>2013</year>). <article-title>Drug-drug interaction studies: regulatory guidance and an industry perspective</article-title>. <source>AAPS J.</source>
+<volume>15</volume> (<issue>3</issue>), <fpage>629</fpage>–<lpage>645</lpage>. <pub-id pub-id-type="doi">10.1208/s12248-013-9470-x</pub-id>
+<pub-id pub-id-type="pmid">23543602</pub-id>
+<pub-id pub-id-type="pmcid">PMC3691435</pub-id></mixed-citation></ref><ref id="B83"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Qato</surname><given-names>D. M.</given-names></name>
+<name name-style="western"><surname>Alexander</surname><given-names>G. C.</given-names></name>
+<name name-style="western"><surname>Conti</surname><given-names>R. M.</given-names></name>
+<name name-style="western"><surname>Johnson</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Schumm</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Lindau</surname><given-names>S. T.</given-names></name>
+</person-group> (<year>2008</year>). <article-title>Use of prescription and over-the-counter medications and dietary supplements among older adults in the United States</article-title>. <source>JAMA</source>
+<volume>300</volume> (<issue>24</issue>), <fpage>2867</fpage>–<lpage>2878</lpage>. <pub-id pub-id-type="doi">10.1001/jama.2008.892</pub-id>
+<pub-id pub-id-type="pmid">19109115</pub-id>
+<pub-id pub-id-type="pmcid">PMC2702513</pub-id></mixed-citation></ref><ref id="B84"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Qi</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Li</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Zhang</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Zhao</surname><given-names>T.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Improving drug-drug interaction prediction <italic toggle="yes">via</italic> in-context learning and judging with large language models</article-title>. <source>Front. Pharmacol.</source>
+<volume>16</volume>, <fpage>1589788</fpage>. <pub-id pub-id-type="doi">10.3389/fphar.2025.1589788</pub-id>
+<pub-id pub-id-type="pmid">40529494</pub-id>
+<pub-id pub-id-type="pmcid">PMC12171303</pub-id></mixed-citation></ref><ref id="B85"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Radha Krishnan</surname><given-names>R. P.</given-names></name>
+<name name-style="western"><surname>Hung</surname><given-names>E. H.</given-names></name>
+<name name-style="western"><surname>Ashford</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Edillo</surname><given-names>C. E.</given-names></name>
+<name name-style="western"><surname>Gardner</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Hatrick</surname><given-names>H. B.</given-names></name>
+<etal/>
+</person-group> (<year>2024</year>). <article-title>Evaluating the capability of ChatGPT in predicting drug–drug interactions: real-world evidence using hospitalized patient data</article-title>. <source>Br. J. Clin. Pharmacol.</source>
+<volume>90</volume> (<issue>12</issue>), <fpage>3361</fpage>–<lpage>3366</lpage>. <pub-id pub-id-type="doi">10.1111/bcp.16275</pub-id>
+<pub-id pub-id-type="pmid">39359001</pub-id>
+<pub-id pub-id-type="pmcid">PMC11602951</pub-id></mixed-citation></ref><ref id="B86"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Raumviboonsuk</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Krause</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Chotcomwongse</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Sayres</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Raman</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Widner</surname><given-names>K.</given-names></name>
+<etal/>
+</person-group> (<year>2019</year>). <article-title>Deep learning <italic toggle="yes">versus</italic> human graders for classifying diabetic retinopathy severity in a nationwide screening program</article-title>. <source>Npj Digit. Med.</source>
+<volume>2</volume> (<issue>1</issue>), <fpage>25</fpage>. <pub-id pub-id-type="doi">10.1038/s41746-019-0099-8</pub-id>
+<pub-id pub-id-type="pmid">31304372</pub-id>
+<pub-id pub-id-type="pmcid">PMC6550283</pub-id></mixed-citation></ref><ref id="B87"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Rigden</surname><given-names>D. J.</given-names></name>
+<name name-style="western"><surname>Fernández</surname><given-names>X. M.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>The 2024 nucleic acids research database issue and the online molecular biology database collection</article-title>. <source>Nucleic Acids Res.</source>
+<volume>52</volume> (<issue>D1</issue>), <fpage>D1</fpage>–<lpage>D9</lpage>. <pub-id pub-id-type="doi">10.1093/nar/gkad1173</pub-id>
+<pub-id pub-id-type="pmid">38035367</pub-id>
+<pub-id pub-id-type="pmcid">PMC10767945</pub-id></mixed-citation></ref><ref id="B89"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Rojas</surname><given-names>E. I.</given-names></name>
+<name name-style="western"><surname>Dupotey</surname><given-names>N. M.</given-names></name>
+<name name-style="western"><surname>Loof</surname><given-names>H. De</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Comprehensive medication management services with a holistic point of view, a scoping review</article-title>. <source>Pharmacy</source>
+<volume>11</volume> (<issue>1</issue>), <fpage>37</fpage>. <pub-id pub-id-type="doi">10.3390/pharmacy11010037</pub-id>
+<pub-id pub-id-type="pmid">36827675</pub-id>
+<pub-id pub-id-type="pmcid">PMC9964776</pub-id></mixed-citation></ref><ref id="B90"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Sassi</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Eickmann</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Roller</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Osmanodja</surname><given-names>B.</given-names></name>
+<name name-style="western"><surname>Burchardt</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Tretter</surname><given-names>M.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Human-centered AI in healthcare: empowering patients and support persons in clinical decision-making</article-title>. <source>BMC Med. Inf. Decis. Mak.</source>
+<volume>25</volume> (<issue>1</issue>), <fpage>431</fpage>. <pub-id pub-id-type="doi">10.1186/s12911-025-03298-9</pub-id>
+<pub-id pub-id-type="pmid">41299433</pub-id>
+<pub-id pub-id-type="pmcid">PMC12659101</pub-id></mixed-citation></ref><ref id="B91"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Scheife</surname><given-names>R. T.</given-names></name>
+<name name-style="western"><surname>Hines</surname><given-names>L. E.</given-names></name>
+<name name-style="western"><surname>Boyce</surname><given-names>R. D.</given-names></name>
+<name name-style="western"><surname>Chung</surname><given-names>S. P.</given-names></name>
+<name name-style="western"><surname>Momper</surname><given-names>J. D.</given-names></name>
+<name name-style="western"><surname>Sommer</surname><given-names>C. D.</given-names></name>
+<etal/>
+</person-group> (<year>2015</year>). <article-title>Consensus recommendations for systematic evaluation of drug-drug interaction evidence for clinical decision support</article-title>. <source>Drug Saf.</source>
+<volume>38</volume> (<issue>2</issue>), <fpage>197</fpage>–<lpage>206</lpage>. <pub-id pub-id-type="doi">10.1007/s40264-014-0262-8</pub-id>
+<pub-id pub-id-type="pmid">25556085</pub-id>
+<pub-id pub-id-type="pmcid">PMC4624322</pub-id></mixed-citation></ref><ref id="B92"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Schwarz</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Allam</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Perez Gonzalez</surname><given-names>N. A.</given-names></name>
+<name name-style="western"><surname>Krauthammer</surname><given-names>M.</given-names></name>
+</person-group> (<year>2021</year>). <article-title>AttentionDDI: siamese attention-based deep learning method for drug–drug interaction predictions</article-title>. <source>BMC Bioinforma.</source>
+<volume>22</volume> (<issue>1</issue>), <fpage>412</fpage>. <pub-id pub-id-type="doi">10.1186/s12859-021-04325-y</pub-id>
+<pub-id pub-id-type="pmid">34418954</pub-id>
+<pub-id pub-id-type="pmcid">PMC8379737</pub-id></mixed-citation></ref><ref id="B93"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Shamim</surname><given-names>M. A.</given-names></name>
+<name name-style="western"><surname>Shamim</surname><given-names>M. A.</given-names></name>
+<name name-style="western"><surname>Arora</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Dwivedi</surname><given-names>P.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Artificial intelligence and big data for pharmacovigilance and patient safety</article-title>. <source>J. Med. Surg. Public Health</source>
+<volume>3</volume>, <fpage>100139</fpage>. <pub-id pub-id-type="doi">10.1016/j.glmedi.2024.100139</pub-id>
+</mixed-citation></ref><ref id="B94"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Singh</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Paxton</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Auclair</surname><given-names>J.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Regulating the AI-enabled ecosystem for human therapeutics</article-title>. <source>Commun. Med.</source>
+<volume>5</volume> (<issue>1</issue>), <fpage>181</fpage>. <pub-id pub-id-type="doi">10.1038/s43856-025-00910-x</pub-id>
+<pub-id pub-id-type="pmid">40382515</pub-id>
+<pub-id pub-id-type="pmcid">PMC12085592</pub-id></mixed-citation></ref><ref id="B95"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Sokol</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Fackler</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Vogt</surname><given-names>J. E.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Artificial intelligence should genuinely support clinical reasoning and decision making to bridge the translational gap</article-title>. <source>Npj Digit. Med.</source>
+<volume>8</volume> (<issue>1</issue>), <fpage>345</fpage>. <pub-id pub-id-type="doi">10.1038/s41746-025-01725-9</pub-id>
+<pub-id pub-id-type="pmid">40494886</pub-id>
+<pub-id pub-id-type="pmcid">PMC12152152</pub-id></mixed-citation></ref><ref id="B96"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Spanakis</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Patelarou</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Patelarou</surname><given-names>A.</given-names></name>
+</person-group> (<year>2022</year>). <article-title>Drug-food interactions with a focus on mediterranean diet</article-title>. <source>Appl. Sci. (Basel).</source>
+<volume>12</volume>, <fpage>10207</fpage>. <pub-id pub-id-type="doi">10.3390/app122010207</pub-id>
+</mixed-citation></ref><ref id="B97"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Spanakis</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Tzamali</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Tzedakis</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Koumpouzi</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Pediaditis</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Tsatsakis</surname><given-names>A.</given-names></name>
+<etal/>
+</person-group> (<year>2025a</year>). <article-title>Artificial intelligence models and tools for the assessment of drug–herb interactions</article-title>. <source>Pharmaceuticals</source>
+<volume>18</volume> (<issue>3</issue>), <fpage>282</fpage>. <pub-id pub-id-type="doi">10.3390/ph18030282</pub-id>
+<pub-id pub-id-type="pmid">40143062</pub-id>
+<pub-id pub-id-type="pmcid">PMC11944892</pub-id></mixed-citation></ref><ref id="B98"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Spanakis</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Alexakis</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Ioannou</surname><given-names>P.</given-names></name>
+</person-group> (<year>2025b</year>). <article-title>Antiretroviral therapy and associated drug interactions with cardiovascular drugs: a critical review</article-title>. <source>Front. Pharmacol.</source>
+<volume>16</volume>, <fpage>1685710</fpage>. <pub-id pub-id-type="doi">10.3389/fphar.2025.1685710</pub-id>
+<pub-id pub-id-type="pmid">41357888</pub-id>
+<pub-id pub-id-type="pmcid">PMC12678287</pub-id></mixed-citation></ref><ref id="B99"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Sudsakorn</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Bahadduri</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Fretland</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Lu</surname><given-names>C.</given-names></name>
+</person-group> (<year>2020</year>). <article-title>FDA drug-drug interaction guidance: a comparison analysis and action plan by pharmaceutical industrial scientists</article-title>. <source>Curr. Drug Metab.</source>
+<volume>21</volume> (<issue>6</issue>), <fpage>403</fpage>–<lpage>426</lpage>. <pub-id pub-id-type="doi">10.2174/1389200221666200620210522</pub-id>
+<pub-id pub-id-type="pmid">32562522</pub-id>
+</mixed-citation></ref><ref id="B100"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Taddese</surname><given-names>A. A.</given-names></name>
+<name name-style="western"><surname>Addis</surname><given-names>A. C.</given-names></name>
+<name name-style="western"><surname>Tam</surname><given-names>B. T.</given-names></name>
+</person-group> (<year>2025</year>). <article-title>Data stewardship and curation practices in AI-based genomics and automated microscopy image analysis for high-throughput screening studies: promoting robust and ethical AI applications</article-title>. <source>Hum. Genomics</source>
+<volume>19</volume> (<issue>1</issue>), <fpage>16</fpage>. <pub-id pub-id-type="doi">10.1186/s40246-025-00716-x</pub-id>
+<pub-id pub-id-type="pmid">39988670</pub-id>
+<pub-id pub-id-type="pmcid">PMC11849233</pub-id></mixed-citation></ref><ref id="B101"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Thalpage</surname><given-names>N.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>Unlocking the black box: explainable artificial intelligence (XAI) for trust and transparency in AI systems</article-title>. <source>J. Digital Art and Humanit.</source>
+<volume>4</volume> (<issue>1</issue>), <fpage>31</fpage>–<lpage>36</lpage>. <pub-id pub-id-type="doi">10.33847/2712-8148.4.1_4</pub-id>
+</mixed-citation></ref><ref id="B24"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Van De Sijpe</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Quintens</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Walgraeve</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Van Laer</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Penny</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>De Vlieger</surname><given-names>G.</given-names></name>
+<etal/>
+</person-group> (<year>2022</year>). <article-title>Overall performance of a drug–drug interaction clinical decision support system: quantitative evaluation and end-user survey</article-title>. <source>BMC Med. Inf. Decis. Mak.</source>
+<volume>22</volume> (<issue>1</issue>), <fpage>48</fpage>. <pub-id pub-id-type="doi">10.1186/s12911-022-01783-z</pub-id>
+<pub-id pub-id-type="pmid">35193547</pub-id>
+<pub-id pub-id-type="pmcid">PMC8864797</pub-id></mixed-citation></ref><ref id="B53"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Ventola</surname><given-names>C. L.</given-names></name>
+</person-group> (<year>2018</year>). <article-title>Big data and pharmacovigilance: data mining for adverse drug events and interactions</article-title>. <source>P &amp; T: a peer-reviewed journal for formulary management</source>, <volume>43</volume> (<issue>6</issue>), <fpage>340</fpage>–<lpage>351</lpage>.
+<pub-id pub-id-type="pmid">29896033</pub-id>
+<pub-id pub-id-type="pmcid">PMC5969211</pub-id></mixed-citation></ref><ref id="B102"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Villa Zapata</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>Subbian</surname><given-names>V.</given-names></name>
+<name name-style="western"><surname>Boyce</surname><given-names>R. D.</given-names></name>
+<name name-style="western"><surname>Hansten</surname><given-names>P. D.</given-names></name>
+<name name-style="western"><surname>Horn</surname><given-names>J. R.</given-names></name>
+<name name-style="western"><surname>Gephart</surname><given-names>S. M.</given-names></name>
+<etal/>
+</person-group> (<year>2022</year>). <article-title>Overriding drug-drug interaction alerts in clinical decision support systems: a scoping review</article-title>. <source>Stud. Health Technol. Inf.</source>
+<volume>290</volume>, <fpage>380</fpage>–<lpage>384</lpage>. <pub-id pub-id-type="doi">10.3233/SHTI220101</pub-id>
+<pub-id pub-id-type="pmid">35673040</pub-id>
+</mixed-citation></ref><ref id="B103"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Vo</surname><given-names>T. H.</given-names></name>
+<name name-style="western"><surname>Nguyen</surname><given-names>N. T. K.</given-names></name>
+<name name-style="western"><surname>Kha</surname><given-names>Q. H.</given-names></name>
+<name name-style="western"><surname>Le</surname><given-names>N. Q. K.</given-names></name>
+</person-group> (<year>2022</year>). <article-title>On the road to explainable AI in drug-drug interactions prediction: a systematic review</article-title>. <source>Comput. Struct. Biotechnol. J.</source>
+<volume>20</volume>, <fpage>2112</fpage>–<lpage>2123</lpage>. <pub-id pub-id-type="doi">10.1016/j.csbj.2022.04.021</pub-id>
+<pub-id pub-id-type="pmid">35832629</pub-id>
+<pub-id pub-id-type="pmcid">PMC9092071</pub-id></mixed-citation></ref><ref id="B104"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Wang</surname><given-names>G.</given-names></name>
+<name name-style="western"><surname>Zhang</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Jiang</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Bi</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Liang</surname><given-names>H.</given-names></name>
+<etal/>
+</person-group> (<year>2026</year>). <article-title>Human–large language model collaboration in clinical medicine: a systematic review and meta-analysis</article-title>. <source>Npj Digit. Med.</source>
+<volume>9</volume> (<issue>1</issue>), <fpage>195</fpage>. <pub-id pub-id-type="doi">10.1038/s41746-026-02382-2</pub-id>
+<pub-id pub-id-type="pmid">41606089</pub-id>
+<pub-id pub-id-type="pmcid">PMC12953916</pub-id></mixed-citation></ref><ref id="B105"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Wani</surname><given-names>N. A.</given-names></name>
+<name name-style="western"><surname>Kumar</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Mamta</surname><given-names>B. J.</given-names></name>
+<name name-style="western"><surname>Rida</surname><given-names>I.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Explainable AI-driven IoMT fusion: unravelling techniques, opportunities, and challenges with explainable AI in healthcare</article-title>. <source>Inf. Fusion</source>
+<volume>110</volume>, <fpage>102472</fpage>. <pub-id pub-id-type="doi">10.1016/j.inffus.2024.102472</pub-id>
+</mixed-citation></ref><ref id="B106"><mixed-citation publication-type="book">
+<collab>Watch List: Artificial Intelligence in Health Care</collab> (<year>2025</year>). <source>Watch list: artificial intelligence in health care: health technologies</source>. <comment>Available online at: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.ncbi.nlm.nih.gov/books/NBK613808/" ext-link-type="uri">https://www.ncbi.nlm.nih.gov/books/NBK613808/</ext-link>.</comment>
+<pub-id pub-id-type="pmid">40294189</pub-id></mixed-citation></ref><ref id="B107"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Weaver</surname><given-names>R. J.</given-names></name>
+<name name-style="western"><surname>Valentin</surname><given-names>J. P.</given-names></name>
+</person-group> (<year>2019</year>). <article-title>Today’s challenges to De-Risk and predict drug safety in human Mind-the-Gap</article-title>. <source>Toxicol. Sci.</source>
+<volume>167</volume> (<issue>2</issue>), <fpage>307</fpage>–<lpage>321</lpage>. <pub-id pub-id-type="doi">10.1093/toxsci/kfy270</pub-id>
+<pub-id pub-id-type="pmid">30371856</pub-id>
+</mixed-citation></ref><ref id="B108"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Wilder</surname><given-names>M. E.</given-names></name>
+<name name-style="western"><surname>Kulie</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Jensen</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Levett</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Blanchard</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Dominguez</surname><given-names>L. W.</given-names></name>
+<etal/>
+</person-group> (<year>2021</year>). <article-title>The impact of social determinants of health on medication adherence: a systematic review and meta-analysis</article-title>. <source>J. Gen. Intern Med.</source>
+<volume>36</volume> (<issue>5</issue>), <fpage>1359</fpage>–<lpage>1370</lpage>. <pub-id pub-id-type="doi">10.1007/s11606-020-06447-0</pub-id>
+<pub-id pub-id-type="pmid">33515188</pub-id>
+<pub-id pub-id-type="pmcid">PMC8131473</pub-id></mixed-citation></ref><ref id="B109"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Woosley</surname><given-names>R. L.</given-names></name>
+<name name-style="western"><surname>Simmons</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Sefilyan</surname><given-names>E. M.</given-names></name>
+<name name-style="western"><surname>Atkins</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Black</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Read</surname><given-names>W. A.</given-names></name>
+</person-group> (<year>2021</year>). <article-title>Linking technology to address the social and medical determinants of health for safe medicines use</article-title>. <source>J. Patient Saf.</source>
+<volume>18</volume> (<issue>2</issue>), <fpage>e596</fpage>–<lpage>e600</lpage>. <pub-id pub-id-type="doi">10.1097/PTS.0000000000000876</pub-id>
+<pub-id pub-id-type="pmid">34091492</pub-id>
+<pub-id pub-id-type="pmcid">PMC8855946</pub-id></mixed-citation></ref><ref id="B110"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Wright</surname><given-names>R. O.</given-names></name>
+</person-group> (<year>2022</year>). <article-title>Nature <italic toggle="yes">versus</italic> nurture—on the origins of a specious argument</article-title>. <source>Exposome</source>
+<volume>2</volume> (<issue>1</issue>), <fpage>osac005</fpage>. <pub-id pub-id-type="doi">10.1093/exposome/osac005</pub-id>
+<pub-id pub-id-type="pmid">35965946</pub-id>
+<pub-id pub-id-type="pmcid">PMC9366178</pub-id></mixed-citation></ref><ref id="B111"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Yang</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Tong</surname><given-names>K.</given-names></name>
+<name name-style="western"><surname>Jin</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Wang</surname><given-names>S.</given-names></name>
+<name name-style="western"><surname>Yang</surname><given-names>C.</given-names></name>
+<name name-style="western"><surname>Jiang</surname><given-names>F.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>CNN-Siam: Multimodal siamese CNN-based deep learning approach for drug‒drug interaction prediction</article-title>. <source>BMC Bioinforma.</source>
+<volume>24</volume> (<issue>1</issue>), <fpage>110</fpage>. <pub-id pub-id-type="doi">10.1186/s12859-023-05242-y</pub-id>
+<pub-id pub-id-type="pmid">36959539</pub-id>
+<pub-id pub-id-type="pmcid">PMC10037822</pub-id></mixed-citation></ref><ref id="B112"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Yin</surname><given-names>Q.</given-names></name>
+<name name-style="western"><surname>Fan</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Cao</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Liu</surname><given-names>Q.</given-names></name>
+<name name-style="western"><surname>Jiang</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Zeng</surname><given-names>W.</given-names></name>
+</person-group> (<year>2023</year>). <article-title>DeepDrug: a general graph-based deep learning framework for drug-drug interactions and drug-target interactions prediction</article-title>. <source>Quant. Biol.</source>
+<volume>11</volume> (<issue>3</issue>), <fpage>260</fpage>–<lpage>274</lpage>. <pub-id pub-id-type="doi">10.15302/J-QB-022-0320</pub-id>
+<pub-id pub-id-type="pmid">41675249</pub-id>
+<pub-id pub-id-type="pmcid">PMC12807282</pub-id></mixed-citation></ref><ref id="B113"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Zack</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Stupichev</surname><given-names>D. N.</given-names></name>
+<name name-style="western"><surname>Moore</surname><given-names>A. J.</given-names></name>
+<name name-style="western"><surname>Slobodchikov</surname><given-names>I. D.</given-names></name>
+<name name-style="western"><surname>Sokolov</surname><given-names>D. G.</given-names></name>
+<name name-style="western"><surname>Trifonov</surname><given-names>I. F.</given-names></name>
+<etal/>
+</person-group> (<year>2025</year>). <article-title>Artificial intelligence and multi-omics in pharmacogenomics: a new era of precision medicine</article-title>. <source>Mayo Clin. Proc. Digit. Health</source>
+<volume>3</volume> (<issue>3</issue>), <fpage>100246</fpage>. <pub-id pub-id-type="doi">10.1016/j.mcpdig.2025.100246</pub-id>
+<pub-id pub-id-type="pmid">40881104</pub-id>
+<pub-id pub-id-type="pmcid">PMC12381589</pub-id></mixed-citation></ref><ref id="B114"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Zaidan</surname><given-names>E.</given-names></name>
+<name name-style="western"><surname>Ibrahim</surname><given-names>I. A.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>AI governance in a complex and rapidly changing regulatory landscape: a global perspective</article-title>. <source>Humanit. Soc. Sci. Commun.</source>
+<volume>11</volume> (<issue>1</issue>), <fpage>1121</fpage>. <pub-id pub-id-type="doi">10.1057/s41599-024-03560-x</pub-id>
+</mixed-citation></ref><ref id="B115"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Zhang</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Deng</surname><given-names>Z.</given-names></name>
+<name name-style="western"><surname>Xu</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Feng</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Junliang</surname><given-names>S.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Application of artificial intelligence in drug-drug interactions prediction: a review</article-title>. <source>J. Chem. Inf. Model.</source>
+<volume>64</volume> (<issue>7</issue>), <fpage>2158</fpage>–<lpage>2173</lpage>. <pub-id pub-id-type="doi">10.1021/acs.jcim.3c00582</pub-id>
+<pub-id pub-id-type="pmid">37458400</pub-id>
+</mixed-citation></ref><ref id="B116"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Zhao</surname><given-names>D.</given-names></name>
+<name name-style="western"><surname>Huang</surname><given-names>P.</given-names></name>
+<name name-style="western"><surname>Yu</surname><given-names>L.</given-names></name>
+<name name-style="western"><surname>He</surname><given-names>Y.</given-names></name>
+</person-group> (<year>2024</year>). <article-title>Pharmacokinetics-pharmacodynamics modeling for evaluating drug-drug interactions in polypharmacy: development and challenges</article-title>. <source>Clin. Pharmacokinet.</source>
+<volume>63</volume> (<issue>7</issue>), <fpage>919</fpage>–<lpage>944</lpage>. <pub-id pub-id-type="doi">10.1007/s40262-024-01391-2</pub-id>
+<pub-id pub-id-type="pmid">38888813</pub-id>
+</mixed-citation></ref><ref id="B117"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Zhong</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Zheng</surname><given-names>H.</given-names></name>
+<name name-style="western"><surname>Chen</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Zhao</surname><given-names>Y.</given-names></name>
+<name name-style="western"><surname>Gao</surname><given-names>T.</given-names></name>
+<name name-style="western"><surname>Dong</surname><given-names>H.</given-names></name>
+<etal/>
+</person-group> (<year>2023</year>). <article-title>DDI-GCN: drug-drug interaction prediction <italic toggle="yes">via</italic> explainable graph convolutional networks</article-title>. <source>Artif. Intell. Med.</source>
+<volume>144</volume>, <fpage>102640</fpage>. <pub-id pub-id-type="doi">10.1016/j.artmed.2023.102640</pub-id>
+<pub-id pub-id-type="pmid">37783544</pub-id>
+</mixed-citation></ref><ref id="B118"><mixed-citation publication-type="journal">
+<person-group person-group-type="author">
+<name name-style="western"><surname>Zirkle</surname><given-names>J.</given-names></name>
+<name name-style="western"><surname>Han</surname><given-names>X.</given-names></name>
+<name name-style="western"><surname>Racz</surname><given-names>R.</given-names></name>
+<name name-style="western"><surname>Samieegohar</surname><given-names>M.</given-names></name>
+<name name-style="western"><surname>Chaturbedi</surname><given-names>A.</given-names></name>
+<name name-style="western"><surname>Mann</surname><given-names>J.</given-names></name>
+<etal/>
+</person-group> (<year>2023</year>). <article-title>Deep learning-enabled natural language processing to identify directional pharmacokinetic drug–drug interactions</article-title>. <source>BMC Bioinforma.</source>
+<volume>24</volume> (<issue>1</issue>), <fpage>413</fpage>. <pub-id pub-id-type="doi">10.1186/s12859-023-05520-9</pub-id>
+<pub-id pub-id-type="pmid">37914988</pub-id>
+<pub-id pub-id-type="pmcid">PMC10619324</pub-id></mixed-citation></ref></ref-list></back></article></pmc-articleset>

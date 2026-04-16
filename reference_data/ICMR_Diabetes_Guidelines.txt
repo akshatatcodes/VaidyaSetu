@@ -1,0 +1,29 @@
+ICMR Guidelines for Management of Type 2 Diabetes (Indian Context)
+================================================================
+
+1. SCREENING & DIAGNOSIS
+------------------------
+Screening should be done for all Indian adults with BMI > 23 kg/m² or waist circumference 
+> 90 cm (men) and > 80 cm (women) if they have one or more risk factors.
+
+Diagnostic Criteria:
+- HbA1c: >= 6.5%
+- Fasting Plasma Glucose: >= 126 mg/dL (7.0 mmol/l)
+- 2-h Plasma Glucose: >= 200 mg/dL (11.1 mmol/l) during OGTT
+
+2. ANTHROPOMETRIC CUT-POINTS FOR INDIANS (ICMR/WHO)
+--------------------------------------------------
+Category        | BMI (kg/m²)
+----------------|------------
+Underweight     | < 18.5
+Normal          | 18.5–22.9
+Overweight      | 23.0–24.9
+Pre-obesity     | 25.0–29.9
+Obesity Class I | 30.0–34.9
+Obesity Class II| >= 35.0
+
+3. LIFESTYLE TARGETS
+--------------------
+- Physical Activity: At least 150 min/week of moderate-intensity aerobic physical activity.
+- Diet: Low glycemic index foods, fiber intake > 25-40g/day.
+- Salt intake: < 5g per day.

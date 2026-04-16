@@ -1,0 +1,23 @@
+ICMR Anemia Prevention & Control - Indian Context
+================================================
+
+1. HEMOGLOBIN CUT-OFFS (g/dL)
+-----------------------------
+Group              | Mild Anemia | Moderate | Severe
+-------------------|-------------|----------|-------
+Children (6-59m)   | 10.0-10.9   | 7.0-9.9  | < 7.0
+Non-pregnant Women | 11.0-11.9   | 8.0-10.9 | < 8.0
+Pregnant Women     | 10.0-10.9   | 7.0-9.9  | < 7.0
+Men (>15y)         | 11.0-12.9   | 8.0-10.9 | < 8.0
+
+2. RISK FACTORS IN INDIAN DIET
+------------------------------
+- High phytate intake (unrefined cereals/millets) inhibiting iron absorption.
+- High tea/coffee consumption (polyphenols) near mealtimes.
+- Low intake of Vitamin C rich fruits (Citrus, Amla).
+- Vegetarian diet with low bioavailability of non-heme iron.
+
+3. AYUSH INTEGRATION (Amla)
+---------------------------
+Note: Amla (Vitamin C) potentially enhances absorption of ferrous salts in allopathic iron supplements.
+Caution: Excessive tannins in certain ayurvedic formulations may inhibit iron.
