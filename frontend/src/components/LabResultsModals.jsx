@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
+import { API_URL } from '../config/api';
 
 const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
   const [formData, setFormData] = useState({

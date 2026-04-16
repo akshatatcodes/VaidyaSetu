@@ -7,7 +7,7 @@ import { useUser } from '@clerk/clerk-react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
+import { API_URL } from '../config/api';
 
 const Sidebar = () => {
   const { signOut } = useClerk();

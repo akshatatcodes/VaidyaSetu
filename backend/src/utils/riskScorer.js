@@ -50,9 +50,17 @@ function isAffirmative(value) {
 function selectMitigations(profile, diseaseId, score) {
     const diet = profile.dietType?.value || 'Non-Veg';
     const age = parseInt(profile.age?.value || profile.age) || 30;
-    const gender = (profile.gender?.value || profile.gender || 'Other').toLowerCase();
+    const genderCandidate = profile.gender?.value ?? profile.gender;
+    const genderStr =
+        typeof genderCandidate === 'string'
+            ? genderCandidate
+            : (genderCandidate && typeof genderCandidate === 'object' && typeof genderCandidate.value === 'string'
+                ? genderCandidate.value
+                : 'Other');
+    const gender = genderStr.toLowerCase();
     const isFemale = gender === 'female';
-    const activity = profile.activityLevel?.value || 'Sedentary';
+    const activityCandidate = profile.activityLevel?.value ?? profile.activityLevel;
+    const activity = typeof activityCandidate === 'string' ? activityCandidate : 'Sedentary';
 
     return MITIGATION_LIBRARY
         .filter(m => m.diseaseId === diseaseId)

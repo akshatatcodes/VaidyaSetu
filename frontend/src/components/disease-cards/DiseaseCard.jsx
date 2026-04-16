@@ -5,7 +5,7 @@ import axios from 'axios';
 import RiskDetailModal from './RiskDetailModal';
 import QuestionnaireModal from './QuestionnaireModal';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
+import { API_URL } from '../../config/api';
 
 const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profile, onScoreUpdated }) => {
   const [details, setDetails] = useState(null);

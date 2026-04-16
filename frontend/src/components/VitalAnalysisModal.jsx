@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2, Activity, ArrowUp, ArrowDown, Heart, Utensils, Shield, Eye, Clock, FileText } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
+import { API_URL } from '../config/api';
 
 const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId }) => {
   const [analysis, setAnalysis] = useState(null);

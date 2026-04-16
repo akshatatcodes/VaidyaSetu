@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Bot, User, Loader2, Mic, Volume2, Sparkles, Act
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
+import { API_URL } from '../config/api';
 
 const SUGGESTIONS = [
   { icon: Activity, text: 'Analyze my vitals', color: 'text-emerald-500' },
