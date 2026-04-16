@@ -82,6 +82,51 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
     }
   };
 
+  // Normalize factor shape from multiple backends/versions.
+  // Some responses may include { question, answer, points } (questionnaire detail),
+  // while canonical factors use { name, displayValue, impact, direction }.
+  const normalizeFactor = (factor, idx) => {
+    if (!factor || typeof factor !== 'object') {
+      return {
+        id: `factor_${idx}`,
+        name: 'Risk factor',
+        displayValue: '—',
+        explanation: '',
+        category: 'profile',
+        impact: 0,
+        direction: 'increase'
+      };
+    }
+
+    const name = factor.name || factor.question || 'Risk factor';
+    const displayValue = factor.displayValue || factor.answer || '—';
+
+    const rawImpact =
+      typeof factor.impact === 'number'
+        ? factor.impact
+        : (typeof factor.impact === 'string'
+            ? Number(String(factor.impact).replace('%', '').replace('+', '').trim())
+            : undefined);
+    const points = typeof factor.points === 'number' ? factor.points : undefined;
+    const impactNum = Number.isFinite(rawImpact)
+      ? Math.abs(rawImpact)
+      : (Number.isFinite(points) ? Math.abs(points) : 0);
+
+    const direction =
+      factor.direction ||
+      (Number.isFinite(points) && points < 0 ? 'decrease' : 'increase');
+
+    return {
+      id: factor.id || `factor_${idx}`,
+      name,
+      displayValue,
+      explanation: factor.explanation || '',
+      category: factor.category || factor.meta || 'profile',
+      impact: impactNum,
+      direction
+    };
+  };
+
   const questionnaireLabel = details?.questionnaireLength
     ? `${details.questionnaireLength}`
     : '6-8';
@@ -329,9 +374,12 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                     
                     {details?.factorBreakdown && details.factorBreakdown.length > 0 ? (
                       <div className="space-y-3">
-                        {details.factorBreakdown.map((factor, idx) => (
+                        {details.factorBreakdown.map((factor, idx) => {
+                          const f = normalizeFactor(factor, idx);
+                          const sign = f.direction === 'decrease' ? '-' : '+';
+                          return (
                           <motion.div
-                            key={factor.id || idx}
+                            key={f.id || idx}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.05 }}
@@ -341,28 +389,30 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                               <div className="flex-1">
                                 <div className="flex items-center mb-2">
                                   <h4 className="font-bold text-gray-900 dark:text-white">
-                                    {factor.name}
+                                    {f.name}
                                   </h4>
                                   <span className="ml-2 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                                    {factor.category}
+                                    {String(f.category)}
                                   </span>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                  {factor.explanation}
-                                </p>
+                                {f.explanation ? (
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    {f.explanation}
+                                  </p>
+                                ) : null}
                                 <p className="text-xs font-bold text-gray-500">
-                                  Your Value: <span className="text-gray-900 dark:text-white">{factor.displayValue}</span>
+                                  Your Value: <span className="text-gray-900 dark:text-white">{f.displayValue}</span>
                                 </p>
                               </div>
                               <div className="ml-4 text-right">
                                 <div className="flex items-center font-black text-lg text-red-500">
                                   <TrendingUp className="w-4 h-4 mr-1" />
-                                  +{factor.impact}%
+                                  {sign}{f.impact}%
                                 </div>
                               </div>
                             </div>
                           </motion.div>
-                        ))}
+                        )})}
                       </div>
                     ) : (
                       <div className="p-6 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800">
