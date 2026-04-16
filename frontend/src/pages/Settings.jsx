@@ -16,6 +16,7 @@ import {
 import jsPDF from 'jspdf';
 import { generateArchivePDF } from '../utils/pdfGenerator';
 import { useTranslation } from 'react-i18next';
+import { useGoogleLogin } from '@react-oauth/google';
 
 import { API_URL } from '../config/api';
 
@@ -380,6 +381,31 @@ const Settings = () => {
     }
   };
 
+  const triggerGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setSyncingFit(true);
+      try {
+        await axios.post(`${API_URL}/fitness/sync-extended`, { 
+          clerkId: user.id, 
+          accessToken: tokenResponse.access_token 
+        });
+        setGoogleFitConnected(true);
+        localStorage.setItem('googleFitConnected', 'true');
+        alert('Google Fit connected & initial sync complete!');
+      } catch (err) {
+        console.error("Fitness sync failed:", err);
+        alert('Sync failed. Please try again.');
+      } finally {
+        setSyncingFit(false);
+      }
+    },
+    onError: (error) => {
+      console.error('Google Login Error:', error);
+      alert('Login failed. Ensure your Google Client ID is correct.');
+    },
+    scope: 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.sleep.read'
+  });
+
   const handleConnectGoogleFit = async () => {
     if (googleFitConnected) {
        setGoogleFitConnected(false);
@@ -387,16 +413,7 @@ const Settings = () => {
        return;
     }
     
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'PLACEHOLDER';
-    if (clientId === 'PLACEHOLDER') {
-       alert("Note: Initiating real Google Login, but since you are using a placeholder client ID, Google will show an 'invalid_client' error page. Add your real Google Cloud Client ID to .env.local as VITE_GOOGLE_CLIENT_ID to make it fully work.");
-    }
-
-    const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.sleep.read');
-    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=consent`;
-    
-    window.location.href = oauthUrl;
+    triggerGoogleLogin();
   };
 
   const handleInitializeReport = () => {
@@ -596,43 +613,7 @@ const Settings = () => {
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] space-y-6">
-                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-amber-500/10 rounded-2xl"><Settings2 className="w-6 h-6 text-amber-500" /></div>
-                            <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">{t('settings.security.safe_zones')}</h4>
-                         </div>
-                         <div className="space-y-4">
-                            <div className="p-5 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">{t('settings.security.high_systolic')}</span>
-                               <input type="number" value={alertSettings.highSystolicBP} onChange={e => setAlertSettings({...alertSettings, highSystolicBP: Number(e.target.value)})} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
-                            </div>
-                            <div className="p-5 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">{t('settings.security.low_spo2')}</span>
-                               <input type="number" value={alertSettings.lowSPO2} onChange={e => setAlertSettings({...alertSettings, lowSPO2: Number(e.target.value)})} className="w-16 bg-transparent text-sm font-bold text-right outline-none" />
-                            </div>
-                         </div>
-                      </div>
-
-                      <div className="p-8 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-white/5 rounded-[3rem] space-y-6">
-                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/10 rounded-2xl"><Clock className="w-6 h-6 text-blue-500" /></div>
-                            <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">{t('settings.security.medication_defaults')}</h4>
-                         </div>
-                         <div className="space-y-4">
-                            <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">{t('settings.security.default_time')}</span>
-                               <input type="time" value={alertSettings.defaultTime} onChange={e => setAlertSettings({...alertSettings, defaultTime: e.target.value})} className="bg-transparent text-sm font-bold text-right outline-none" />
-                            </div>
-                            <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">{t('settings.security.snooze')}</span>
-                               <select value={alertSettings.snoozeDuration} onChange={e => setAlertSettings({...alertSettings, snoozeDuration: Number(e.target.value)})} className="text-sm font-bold bg-transparent outline-none text-right"><option value={15}>{t('settings.security.mins', { val: 15 })}</option><option value={30}>{t('settings.security.mins', { val: 30 })}</option></select>
-                            </div>
-                            <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                               <span className="text-[10px] font-black uppercase text-gray-400">{t('settings.security.refill')}</span>
-                               <select value={alertSettings.refillAlertAt} onChange={e => setAlertSettings({...alertSettings, refillAlertAt: Number(e.target.value)})} className="text-sm font-bold bg-transparent outline-none text-right"><option value={7}>{t('settings.security.days', { val: 7 })}</option><option value={3}>{t('settings.security.days', { val: 3 })}</option></select>
-                            </div>
-                         </div>
-                      </div>
+                      {/* Biometric Safe Zones and Medication Defaults sections removed as per user request */}
                    </div>
                 </div>
                 <div className="pt-10 border-t border-gray-50 dark:border-gray-900 flex justify-end">
@@ -786,24 +767,7 @@ const Settings = () => {
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        <button onClick={toggleContrast} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${highContrast ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}>
-                           <Maximize className={`w-6 h-6 ${highContrast ? 'text-emerald-500' : ''}`} />
-                           <span className="text-[10px] font-black uppercase tracking-widest leading-tight">{t('settings.display.high_contrast')}</span>
-                        </button>
-                        <button onClick={() => setFontSize(prev => prev === 'base' ? 'large' : prev === 'large' ? 'x-large' : 'base')} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${fontSize !== 'base' ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl text-emerald-500' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-400'}`}>
-                           <Type className="w-6 h-6" />
-                           <span className="text-[10px] font-black uppercase tracking-widest leading-tight">{t('settings.display.font_scale')}: {fontSize}</span>
-                        </button>
-                        <button onClick={toggleMotion} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${reducedMotion ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}>
-                           <Zap className={`w-6 h-6 ${reducedMotion ? 'text-emerald-500' : 'opacity-20'}`} />
-                           <span className="text-[10px] font-black uppercase tracking-widest leading-tight">{t('settings.display.reduce_motion')}</span>
-                        </button>
-                        <button onClick={toggleVoiceGuidance} className={`p-6 rounded-[2.5rem] border transition-all flex flex-col items-center gap-4 text-center ${voiceGuidance ? 'bg-white dark:bg-gray-900 border-emerald-500 shadow-xl text-emerald-500' : 'bg-gray-50 dark:bg-gray-950 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300'}`}>
-                           {voiceGuidance ? <Volume2 className="w-6 h-6 text-emerald-500" /> : <Volume2 className="w-6 h-6" />}
-                           <span className="text-[10px] font-black uppercase tracking-widest leading-tight">{t('settings.display.voice_assist')}</span>
-                        </button>
-                     </div>
+                      {/* Accessibility buttons removed as per user request */}
                   </div>
                </div>
             )}
