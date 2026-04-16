@@ -2,23 +2,29 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2, Mic, Volume2, Sparkles, Activity, Heart, Shield } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
+import { useTheme } from '../context/ThemeContext';
 
 import { API_URL } from '../config/api';
 
 const SUGGESTIONS = [
-  { icon: Activity, text: 'Analyze my vitals', color: 'text-emerald-500' },
-  { icon: Heart, text: 'Heart health tips', color: 'text-rose-500' },
-  { icon: Shield, text: 'Preventive care advice', color: 'text-blue-500' },
+  { icon: Activity, text: 'Analyze my vitals', color: '#10b981' },
+  { icon: Heart, text: 'Heart health tips', color: '#f43f5e' },
+  { icon: Shield, text: 'Preventive care advice', color: '#3b82f6' },
 ];
 
-// Typing indicator dots
-const TypingDots = () => (
-  <div className="flex items-center gap-1 py-1 px-1">
+const TypingDots = ({ isDark }) => (
+  <div style={{ display: 'flex', gap: '0.25rem', padding: '0.25rem' }}>
     {[0, 1, 2].map(i => (
       <span
         key={i}
-        className="w-2 h-2 rounded-full bg-emerald-400"
-        style={{ animation: `typingBounce 1.2s ${i * 0.2}s ease-in-out infinite` }}
+        style={{
+          width: '0.5rem',
+          height: '0.5rem',
+          borderRadius: '50%',
+          background: '#10b981',
+          display: 'block',
+          animation: `typingBounce 1.2s ${i * 0.2}s ease-in-out infinite`,
+        }}
       />
     ))}
   </div>
@@ -26,6 +32,9 @@ const TypingDots = () => (
 
 const Chatbot = () => {
   const { user } = useUser();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Namaste! 🙏 I am **VaidyaSetu AI**, your personal health companion. I can help with symptom checking, health insights, and wellness guidance.\n\nHow can I assist you today?' }
@@ -34,72 +43,302 @@ const Chatbot = () => {
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  
   const messagesEndRef = useRef(null);
   const lastAiMessageRef = useRef(null);
   const lastUserMessageRef = useRef(null);
   const textareaRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  // Custom smooth scroll with easing — slower and gentler than scrollIntoView
-  const smoothScrollTo = (targetEl, duration = 700, topOffset = 16) => {
+  // Theme-aware styles
+  const S = {
+    chatWindow: {
+      position: 'fixed',
+      bottom: '1.5rem',
+      right: '1.5rem',
+      width: '380px',
+      maxWidth: 'calc(100vw - 2rem)',
+      maxHeight: '88vh',
+      display: 'flex',
+      flexDirection: 'column',
+      borderRadius: '2rem',
+      background: isDark 
+        ? 'linear-gradient(145deg, #030712 0%, #06121d 100%)'
+        : 'linear-gradient(145deg, #ffffff 0%, #f8faff 100%)',
+      boxShadow: isDark
+        ? '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)'
+        : '0 32px 80px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(16, 185, 129, 0.1)',
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.15)'}`,
+      zIndex: 200,
+      transformOrigin: 'bottom right',
+      overflow: 'hidden',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    },
+    header: {
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '1rem 1.5rem',
+      borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)'}`,
+      flexShrink: 0,
+      background: isDark
+        ? 'linear-gradient(90deg, rgba(16,185,129,0.08) 0%, transparent 60%, rgba(20,184,166,0.04) 100%)'
+        : 'linear-gradient(90deg, rgba(16,185,129,0.05) 0%, transparent 60%, rgba(16,185,129,0.02) 100%)',
+    },
+    aiTitle: {
+      color: isDark ? '#ffffff' : '#0f172a',
+      fontWeight: 900,
+      fontSize: '0.875rem',
+      letterSpacing: '-0.02em',
+      margin: 0,
+    },
+    aiSubtitle: {
+      color: '#10b981',
+      fontWeight: 700,
+      fontSize: '0.625rem',
+      textTransform: 'uppercase',
+      letterSpacing: '0.15em',
+      margin: 0,
+    },
+    closeBtn: {
+      padding: '0.5rem',
+      borderRadius: '0.75rem',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      color: isDark ? '#6b7280' : '#94a3b8',
+      transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    messagesContainer: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: '1.25rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem',
+      background: isDark ? 'transparent' : '#ffffff',
+    },
+    aiBubble: {
+      background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.05)',
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(16, 185, 129, 0.1)'}`,
+      borderRadius: '1rem 1rem 1rem 0',
+      padding: '0.75rem 1rem',
+      color: isDark ? '#e2e8f0' : '#334155',
+      fontSize: '0.875rem',
+      lineHeight: 1.6,
+      maxWidth: '78%',
+      boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(16, 185, 129, 0.05)',
+    },
+    userBubble: {
+      background: 'linear-gradient(135deg, #2563eb 0%, #4338ca 100%)',
+      border: '1px solid rgba(59,130,246,0.3)',
+      borderRadius: '1rem 1rem 0 1rem',
+      padding: '0.75rem 1rem',
+      color: '#ffffff',
+      fontSize: '0.875rem',
+      lineHeight: 1.6,
+      maxWidth: '78%',
+      boxShadow: '0 2px 12px rgba(37,99,235,0.3)',
+    },
+    aiAvatar: {
+      width: '2rem',
+      height: '2rem',
+      borderRadius: '0.75rem',
+      background: 'linear-gradient(135deg, #10b981, #14b8a6)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+    },
+    userAvatar: {
+      width: '2rem',
+      height: '2rem',
+      borderRadius: '0.75rem',
+      background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      boxShadow: '0 4px 12px rgba(59,130,246,0.3)',
+    },
+    disclaimer: {
+      padding: '0.5rem 1.25rem',
+      background: isDark ? 'rgba(245,158,11,0.05)' : 'rgba(245,158,11,0.03)',
+      borderTop: `1px solid ${isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.08)'}`,
+      color: isDark ? 'rgba(245,158,11,0.7)' : 'rgba(180, 83, 9, 0.8)',
+      fontSize: '0.5625rem',
+      fontWeight: 700,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: '0.1em',
+      flexShrink: 0,
+    },
+    inputArea: {
+      padding: '0.75rem 1rem 1rem',
+      background: isDark ? 'rgba(0,0,0,0.2)' : '#f8faff',
+      borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)'}`,
+      flexShrink: 0,
+    },
+    inputWrapper: {
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: '0.5rem',
+      background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)'}`,
+      borderRadius: '1rem',
+      padding: '0.5rem 0.75rem',
+    },
+    textarea: {
+      flex: 1,
+      background: 'transparent',
+      border: 'none',
+      outline: 'none',
+      color: isDark ? '#ffffff' : '#0f172a',
+      fontSize: '0.875rem',
+      lineHeight: 1.6,
+      resize: 'none',
+      maxHeight: '6rem',
+      fontFamily: 'inherit',
+      padding: '0.25rem 0',
+    },
+    sendBtn: {
+      padding: '0.5rem',
+      borderRadius: '0.75rem',
+      background: 'linear-gradient(135deg, #10b981, #14b8a6)',
+      border: 'none',
+      cursor: 'pointer',
+      color: '#ffffff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+      transition: 'all 0.2s',
+      flexShrink: 0,
+    },
+    sendBtnDisabled: {
+      opacity: 0.3,
+      cursor: 'not-allowed',
+    },
+    micBtn: {
+      padding: '0.5rem',
+      borderRadius: '0.75rem',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      color: isDark ? '#6b7280' : '#94a3b8',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.2s',
+      flexShrink: 0,
+    },
+    micBtnActive: {
+      background: '#10b981',
+      color: '#ffffff',
+      boxShadow: '0 4px 12px rgba(16,185,129,0.4)',
+    },
+    hintText: {
+      color: isDark ? '#4b5563' : '#94a3b8',
+      fontSize: '0.5625rem',
+      textAlign: 'center',
+      marginTop: '0.5rem',
+      fontWeight: 500,
+      margin: '0.5rem 0 0',
+    },
+    suggestionBtn: {
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      padding: '0.75rem 1rem',
+      borderRadius: '0.75rem',
+      background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(16, 185, 129, 0.15)'}`,
+      cursor: 'pointer',
+      textAlign: 'left',
+      transition: 'all 0.2s',
+      boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
+    },
+    suggestionText: {
+      color: isDark ? '#9ca3af' : '#475569',
+      fontSize: '0.75rem',
+      fontWeight: 500,
+    },
+    quickLabel: {
+      color: isDark ? '#6b7280' : '#94a3b8',
+      fontSize: '0.625rem',
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.15em',
+    },
+    floatBtn: {
+      position: 'fixed',
+      bottom: '1.5rem',
+      right: '1.5rem',
+      padding: '1rem',
+      borderRadius: '1rem',
+      background: 'linear-gradient(135deg, #10b981, #14b8a6)',
+      border: 'none',
+      cursor: 'pointer',
+      color: '#ffffff',
+      boxShadow: '0 8px 32px rgba(16,185,129,0.4)',
+      zIndex: 50,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.3s',
+    },
+  };
+
+  const smoothScrollToElement = (targetEl, topOffset = 16) => {
     const container = scrollContainerRef.current;
     if (!container || !targetEl) return;
     const containerTop = container.getBoundingClientRect().top;
     const targetTop = targetEl.getBoundingClientRect().top;
-    const start = container.scrollTop;
-    const distance = (targetTop - containerTop) - topOffset;
-    const startTime = performance.now();
-
-    const easeInOutCubic = (t) =>
-      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-    const step = (now) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      container.scrollTop = start + distance * easeInOutCubic(progress);
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
+    const targetScrollPos = container.scrollTop + (targetTop - containerTop) - topOffset;
+    
+    container.scrollTo({
+      top: targetScrollPos,
+      behavior: 'smooth'
+    });
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const scrollToLastUserMessage = () => {
-    if (lastUserMessageRef.current) {
-      smoothScrollTo(lastUserMessageRef.current, 700, 16);
-    } else {
-      scrollToBottom();
-    }
-  };
-
-  const scrollToLastAiMessage = () => {
-    if (lastAiMessageRef.current) {
-      smoothScrollTo(lastAiMessageRef.current, 700, 12);
-    } else {
-      scrollToBottom();
-    }
-  };
-
-  // Scroll after messages render — runs AFTER React attaches refs
   useEffect(() => {
     if (!isOpen || messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role === 'user') {
-      // Show user's message at top so they can read the exchange downward
-      smoothScrollTo(lastUserMessageRef.current, 700, 12);
-    } else if (lastMsg.role === 'assistant') {
-      // Show start of AI response
-      smoothScrollTo(lastAiMessageRef.current, 700, 12);
-    }
-  }, [messages]);
+    
+    // Use a small timeout to ensure DOM has updated
+    const timer = setTimeout(() => {
+      if (lastMsg.role === 'assistant') {
+        // Scroll to the START of the assistant's response as requested
+        if (lastAiMessageRef.current) {
+          smoothScrollToElement(lastAiMessageRef.current, 12);
+        }
+      } else {
+        // Scroll to the end for user messages
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({
+            top: scrollContainerRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages, isOpen]);
 
   useEffect(() => {
-    if (isOpen) scrollToBottom();
+    if (isOpen && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
   }, [isOpen]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -114,7 +353,6 @@ const Chatbot = () => {
     setShowSuggestions(false);
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
-    // scroll is handled by useEffect on messages
 
     try {
       const historyToSend = messages.length > 1 ? messages.slice(1) : [];
@@ -123,15 +361,12 @@ const Chatbot = () => {
         message: userMessage,
         conversationHistory: historyToSend
       });
-
       if (res.data.status === 'success') {
         setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }]);
-        // scroll handled by useEffect
       }
     } catch (err) {
       const reply = err.response?.data?.reply || 'Sorry, I am having trouble connecting. Please try again.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-      // scroll handled by useEffect
     } finally {
       setLoading(false);
     }
@@ -167,15 +402,15 @@ const Chatbot = () => {
     recognition.start();
   };
 
-  // Render message with basic markdown-like formatting
   const renderMessage = (content) => {
     return content.split('\n').map((line, i) => {
-      // Bold: **text**
       const parts = line.split(/\*\*(.*?)\*\*/g);
       return (
         <span key={i}>
           {parts.map((part, j) =>
-            j % 2 === 1 ? <strong key={j} className="font-bold">{part}</strong> : part
+            j % 2 === 1
+              ? <strong key={j} style={{ fontWeight: 700, color: 'inherit' }}>{part}</strong>
+              : part
           )}
           {i < content.split('\n').length - 1 && <br />}
         </span>
@@ -191,159 +426,204 @@ const Chatbot = () => {
           30% { transform: translateY(-6px); opacity: 1; }
         }
         @keyframes chatPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
-          50% { box-shadow: 0 0 0 12px rgba(16,185,129,0); }
+          0%, 100% { box-shadow: 0 8px 32px rgba(16,185,129,0.4); }
+          50% { box-shadow: 0 8px 32px rgba(16,185,129,0.4), 0 0 0 12px rgba(16,185,129,0); }
         }
-        .chat-pulse { animation: chatPulse 2.5s ease-in-out infinite; }
-        .msg-in { animation: msgIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes msgIn {
-          from { opacity: 0; transform: translateY(12px) scale(0.95); }
+          from { opacity: 0; transform: translateY(10px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
+        .chatbot-float-btn { animation: chatPulse 2.5s ease-in-out infinite; }
+        .chatbot-float-btn:hover { transform: scale(1.08) !important; }
+        .chatbot-float-btn:active { transform: scale(0.95) !important; }
+        .chatbot-msg { animation: msgIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .chatbot-send-btn:not(:disabled):hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(16,185,129,0.5) !important; }
+        .chatbot-close-btn:hover { transform: scale(1.1); color: #10b981 !important; }
+        .chatbot-suggestion:hover { background: ${isDark ? 'rgba(255,255,255,0.08)' : '#f0fdf4'} !important; border-color: rgba(16, 185, 129, 0.4) !important; }
+        .chatbot-mic-btn:hover { background: ${isDark ? 'rgba(255,255,255,0.1)' : '#f0fdf4'} !important; color: #10b981 !important; }
+        .chatbot-messages::-webkit-scrollbar { width: 4px; }
+        .chatbot-messages::-webkit-scrollbar-track { background: transparent; }
+        .chatbot-messages::-webkit-scrollbar-thumb { background: ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)'}; border-radius: 4px; }
       `}</style>
 
       {/* Floating Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-2xl hover:scale-105 active:scale-95 transition-all z-50 chat-pulse ${isOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}
-      >
-        <div className="relative">
-          <MessageCircle className="w-6 h-6" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-300 rounded-full border-2 border-white animate-pulse" />
-        </div>
-      </button>
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="chatbot-float-btn"
+          style={S.floatBtn}
+          title="Open AI Health Assistant"
+        >
+          <div style={{ position: 'relative' }}>
+            <MessageCircle style={{ width: '1.5rem', height: '1.5rem' }} />
+            <span style={{
+              position: 'absolute', top: '-0.25rem', right: '-0.25rem',
+              width: '0.75rem', height: '0.75rem',
+              background: '#6ee7b7', borderRadius: '50%',
+              border: `2px solid ${isDark ? '#030712' : '#ffffff'}`,
+              animation: 'pulse 2s infinite',
+            }} />
+          </div>
+        </button>
+      )}
 
       {/* Chat Window */}
-      <div
-        className={`fixed bottom-6 right-6 w-[360px] sm:w-[420px] max-h-[88vh] flex flex-col rounded-[2rem] shadow-[0_32px_80px_rgba(0,0,0,0.5)] transition-all duration-500 z-[200] origin-bottom-right overflow-hidden border border-white/10 backdrop-blur-2xl ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}
-        style={{ background: 'linear-gradient(145deg, rgba(3,7,18,0.98) 0%, rgba(6,18,29,0.98) 100%)' }}
-      >
-        {/* Header */}
-        <div className="relative flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
-          {/* Ambient glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-teal-500/5 pointer-events-none" />
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="relative">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <Sparkles className="w-5 h-5 text-white" />
+      {isOpen && (
+        <div style={S.chatWindow}>
+          {/* Header */}
+          <div style={S.header}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  width: '2.75rem', height: '2.75rem', borderRadius: '0.875rem',
+                  background: 'linear-gradient(135deg, #10b981, #14b8a6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+                }}>
+                  <Sparkles style={{ width: '1.25rem', height: '1.25rem', color: '#ffffff' }} />
+                </div>
+                <span style={{
+                  position: 'absolute', bottom: '-2px', right: '-2px',
+                  width: '0.875rem', height: '0.875rem',
+                  background: '#10b981', borderRadius: '50%',
+                  border: `2px solid ${isDark ? '#030712' : '#ffffff'}`,
+                  animation: 'pulse 2s infinite',
+                }} />
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-gray-950 animate-pulse" />
+              <div>
+                <h3 style={S.aiTitle}>VaidyaSetu AI</h3>
+                <p style={S.aiSubtitle}>Health Intelligence Engine</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-white font-black text-sm tracking-tight">VaidyaSetu AI</h3>
-              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Health Intelligence Engine</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="relative z-10 p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-5 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          {messages.map((msg, idx) => {
-            const isLastAiMsg = msg.role === 'assistant' && idx === messages.length - 1;
-            const isLastUserMsg = msg.role === 'user' && (
-              // last user message = highest index user message
-              !messages.slice(idx + 1).some(m => m.role === 'user')
-            );
-            return (
-            <div
-              key={idx}
-              ref={isLastAiMsg ? lastAiMessageRef : isLastUserMsg ? lastUserMessageRef : null}
-              className={`flex gap-3 msg-in ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+            <button
+              onClick={() => setIsOpen(false)}
+              className="chatbot-close-btn"
+              style={S.closeBtn}
+              title="Close"
             >
-              {/* Avatar */}
-              <div className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-lg ${msg.role === 'user' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'}`}>
-                {msg.role === 'user'
-                  ? <User className="w-4 h-4 text-white" />
-                  : <Bot className="w-4 h-4 text-white" />}
-              </div>
-
-              {/* Bubble */}
-              <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg ${msg.role === 'user'
-                ? 'bg-gradient-to-br from-blue-600/90 to-indigo-700/90 text-white rounded-tr-sm border border-blue-500/30'
-                : 'bg-white/5 text-gray-200 rounded-tl-sm border border-white/10 backdrop-blur-sm'
-              }`}>
-                {renderMessage(msg.content)}
-              </div>
-            </div>
-            );
-          })}
-
-          {/* Typing indicator */}
-          {loading && (
-            <div className="flex gap-3 msg-in">
-              <div className="shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                <Bot className="w-4 h-4 text-white" />
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 backdrop-blur-sm">
-                <TypingDots />
-              </div>
-            </div>
-          )}
-
-          {/* Suggestion chips — shown only at start */}
-          {showSuggestions && messages.length === 1 && !loading && (
-            <div className="space-y-2 pt-2">
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold px-1">Quick questions</p>
-              {SUGGESTIONS.map(({ icon: Icon, text, color }) => (
-                <button
-                  key={text}
-                  onClick={() => handleSend(text)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/40 hover:bg-white/10 transition-all text-left group"
-                >
-                  <Icon className={`w-4 h-4 ${color} shrink-0`} />
-                  <span className="text-xs text-gray-300 group-hover:text-white transition-colors font-medium">{text}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Disclaimer */}
-        <div className="px-5 py-2 bg-amber-500/5 border-t border-amber-500/10 text-[9px] text-amber-500/70 text-center font-bold uppercase tracking-widest shrink-0">
-          ⚠ Educational use only · Not a substitute for medical advice
-        </div>
-
-        {/* Input Area */}
-        <div className="px-4 pb-4 pt-3 bg-black/20 border-t border-white/5 shrink-0">
-          <div className={`flex items-end gap-2 bg-white/5 border rounded-2xl px-4 py-2 transition-all ${isListening ? 'border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'border-white/10 hover:border-white/20'}`}>
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={isListening ? '🎤 Listening...' : 'Describe your symptoms…'}
-              rows={1}
-              className="flex-1 bg-transparent text-white text-sm placeholder:text-gray-500 resize-none outline-none leading-relaxed py-1 max-h-[100px]"
-            />
-            <div className="flex items-center gap-1 shrink-0 pb-1">
-              <button
-                onClick={handleVoiceInput}
-                disabled={loading}
-                className={`p-2 rounded-xl transition-all ${isListening ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse' : 'text-gray-500 hover:text-emerald-400 hover:bg-white/10'}`}
-                title="Voice input"
-              >
-                {isListening ? <Volume2 className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={() => handleSend()}
-                disabled={!input.trim() || loading || isListening}
-                className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
+              <X style={{ width: '1rem', height: '1rem' }} />
+            </button>
           </div>
-          <p className="text-[9px] text-gray-600 text-center mt-2 font-medium">Press Enter to send · Shift+Enter for newline</p>
+
+          {/* Messages */}
+          <div
+            ref={scrollContainerRef}
+            className="chatbot-messages"
+            style={S.messagesContainer}
+          >
+            {messages.map((msg, idx) => {
+              const isUser = msg.role === 'user';
+              const isLastAi = !isUser && idx === messages.length - 1;
+              const isLastUser = isUser && (
+                !messages.slice(idx + 1).some(m => m.role === 'user')
+              );
+              
+              return (
+                <div
+                  key={idx}
+                  ref={isLastAi ? lastAiMessageRef : isLastUser ? lastUserMessageRef : null}
+                  className="chatbot-msg"
+                  style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    flexDirection: isUser ? 'row-reverse' : 'row',
+                    alignItems: 'flex-end',
+                  }}
+                >
+                  <div style={isUser ? S.userAvatar : S.aiAvatar}>
+                    {isUser
+                      ? <User style={{ width: '1rem', height: '1rem', color: '#ffffff' }} />
+                      : <Bot style={{ width: '1rem', height: '1rem', color: '#ffffff' }} />
+                    }
+                  </div>
+                  <div style={isUser ? S.userBubble : S.aiBubble}>
+                    {renderMessage(msg.content)}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Typing indicator */}
+            {loading && (
+              <div className="chatbot-msg" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
+                <div style={S.aiAvatar}>
+                  <Bot style={{ width: '1rem', height: '1rem', color: '#ffffff' }} />
+                </div>
+                <div style={{ ...S.aiBubble, padding: '0.5rem 0.75rem' }}>
+                  <TypingDots isDark={isDark} />
+                </div>
+              </div>
+            )}
+
+            {/* Suggestion chips */}
+            {showSuggestions && messages.length === 1 && !loading && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem' }}>
+                <p style={S.quickLabel}>Quick questions</p>
+                {SUGGESTIONS.map(({ icon: Icon, text, color }) => (
+                  <button
+                    key={text}
+                    onClick={() => handleSend(text)}
+                    className="chatbot-suggestion"
+                    style={S.suggestionBtn}
+                  >
+                    <Icon style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }} />
+                    <span style={S.suggestionText}>{text}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Disclaimer */}
+          <div style={S.disclaimer}>
+            ⚠ Educational use only · Not a substitute for medical advice
+          </div>
+
+          {/* Input Area */}
+          <div style={S.inputArea}>
+            <div style={{
+              ...S.inputWrapper,
+              borderColor: isListening ? 'rgba(16,185,129,0.6)' : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)',
+              boxShadow: isListening ? '0 0 20px rgba(16,185,129,0.2)' : 'none',
+            }}>
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={isListening ? '🎤 Listening...' : 'Describe your symptoms…'}
+                rows={1}
+                style={{
+                  ...S.textarea,
+                  caretColor: '#10b981',
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0, paddingBottom: '0.25rem' }}>
+                <button
+                  onClick={handleVoiceInput}
+                  disabled={loading}
+                  className="chatbot-mic-btn"
+                  style={isListening ? { ...S.micBtn, ...S.micBtnActive } : S.micBtn}
+                  title="Voice input"
+                >
+                  {isListening ? <Volume2 style={{ width: '1rem', height: '1rem' }} /> : <Mic style={{ width: '1rem', height: '1rem' }} />}
+                </button>
+                <button
+                  onClick={() => handleSend()}
+                  disabled={!input.trim() || loading || isListening}
+                  className="chatbot-send-btn"
+                  style={(!input.trim() || loading || isListening) ? { ...S.sendBtn, ...S.sendBtnDisabled } : S.sendBtn}
+                >
+                  <Send style={{ width: '1rem', height: '1rem' }} />
+                </button>
+              </div>
+            </div>
+            <p style={S.hintText}>Press Enter to send · Shift+Enter for newline</p>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
