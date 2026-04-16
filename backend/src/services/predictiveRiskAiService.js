@@ -9,6 +9,7 @@ const MitigationCompletion = require('../models/MitigationCompletion');
 const { HYBRID_DISEASE_IDS, calculateDetailedInsights, getRiskVerificationMeta, getScoreCategory } = require('../utils/riskScorer');
 const { PREVALENCE_DATA } = require('../utils/prevalenceData');
 const { getPrevalenceEvidenceBatch } = require('../utils/evidenceProviders');
+const { getVitalStatus } = require('../utils/vitalRanges');
 const { generateMitigationSteps } = require('./aiService');
 
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
@@ -78,86 +79,255 @@ function extractGlucose(vitalsLatest) {
   return { value, unit: vitalsLatest?.blood_glucose?.unit || 'mg/dL' };
 }
 
+function extractNumberVital(vitalsLatest, type, fallbackUnit) {
+  const v = vitalsLatest?.[type]?.value;
+  const value = Number(v);
+  if (!Number.isFinite(value)) return null;
+  return { value, unit: vitalsLatest?.[type]?.unit || fallbackUnit || '' };
+}
+
+function scoreAddForStatus(status, { borderline = 0, high = 0, critical = 0, low = 0 } = {}) {
+  switch (String(status || '').toLowerCase()) {
+    case 'borderline': return borderline;
+    case 'high': return high;
+    case 'critical': return critical;
+    case 'low': return low;
+    default: return 0;
+  }
+}
+
 function applyDeterministicVitalsAdjustment({ diseaseId, score, factorBreakdown = [], vitalsLatest }) {
   // If baseline is N/A, do not apply vitals deltas.
   if (score === -1) return { score, factorBreakdown };
 
   const factors = Array.isArray(factorBreakdown) ? [...factorBreakdown] : [];
 
-  const hasVitalsFactorAlready = factors.some((f) => {
+  const vitalsFactorCount = factors.filter((f) => {
     const id = String(f?.id || '');
     return f?.source === 'vitals' || id.startsWith('vitals_');
-  });
-  if (hasVitalsFactorAlready) return { score, factorBreakdown: factors };
+  }).length;
+  // Avoid repeatedly appending vitals factors when scores are recomputed often.
+  if (vitalsFactorCount >= 3) return { score, factorBreakdown: factors };
 
   let delta = 0;
-  let vitalsLabel = '';
-  let vitalsExplanation = '';
 
   const bp = extractBp(vitalsLatest);
   if (bp) {
-    const crisis = bp.systolic >= 180 || bp.diastolic >= 120;
-    const high = bp.systolic >= 140 || bp.diastolic >= 90;
+    const status = getVitalStatus('blood_pressure', { systolic: bp.systolic, diastolic: bp.diastolic });
+    const crisis = status === 'critical';
+    const high = status === 'high';
 
     const bpDisplay = `${bp.systolic}/${bp.diastolic} ${bp.unit}`;
     if (crisis) {
-      if (diseaseId === 'hypertension') delta += 25;
-      if (diseaseId === 'stroke') delta += 20;
-      if (diseaseId === 'heart_disease') delta += 15;
-      if (diseaseId === 'ckd') delta += 10;
-
-      vitalsLabel = `Blood pressure (hypertensive crisis)`;
-      vitalsExplanation = `Your latest BP (${bpDisplay}) is in the hypertensive crisis range. This significantly raises cardiovascular risk.`;
+      const add =
+        (diseaseId === 'hypertension' ? 25 : 0) +
+        (diseaseId === 'stroke' ? 20 : 0) +
+        (diseaseId === 'heart_disease' ? 15 : 0) +
+        (diseaseId === 'ckd' ? 10 : 0);
+      if (add > 0) {
+        delta += add;
+        factors.push({
+          id: `vitals_bp_${bp.systolic}_${bp.diastolic}`,
+          name: 'Blood pressure (critical)',
+          displayValue: bpDisplay,
+          rawValue: bp,
+          impact: add,
+          direction: 'increase',
+          explanation: `Your latest BP (${bpDisplay}) is in a critical range. This can sharply raise cardiovascular and kidney risk.`,
+          category: 'clinical',
+          source: 'vitals'
+        });
+      }
     } else if (high) {
-      if (diseaseId === 'hypertension') delta += 12;
-      if (diseaseId === 'stroke') delta += 10;
-      if (diseaseId === 'heart_disease') delta += 8;
-      if (diseaseId === 'ckd') delta += 5;
-
-      vitalsLabel = `Blood pressure (high)`;
-      vitalsExplanation = `Your latest BP (${bpDisplay}) is above normal. This increases cardiovascular risk.`;
+      const add =
+        (diseaseId === 'hypertension' ? 12 : 0) +
+        (diseaseId === 'stroke' ? 10 : 0) +
+        (diseaseId === 'heart_disease' ? 8 : 0) +
+        (diseaseId === 'ckd' ? 5 : 0);
+      if (add > 0) {
+        delta += add;
+        factors.push({
+          id: `vitals_bp_${bp.systolic}_${bp.diastolic}`,
+          name: 'Blood pressure (high)',
+          displayValue: bpDisplay,
+          rawValue: bp,
+          impact: add,
+          direction: 'increase',
+          explanation: `Your latest BP (${bpDisplay}) is above normal. This increases cardiovascular risk.`,
+          category: 'clinical',
+          source: 'vitals'
+        });
+      }
     }
-    if (delta > 0) {
+  }
+
+  const glucose = extractGlucose(vitalsLatest);
+  if (glucose) {
+    const status = getVitalStatus('blood_glucose', glucose.value);
+    const gAdd =
+      (diseaseId === 'diabetes'
+        ? scoreAddForStatus(status, { borderline: 4, high: 10, critical: 18, low: 6 })
+        : 0) +
+      (diseaseId === 'pre_diabetes'
+        ? scoreAddForStatus(status, { borderline: 3, high: 8, critical: 12, low: 4 })
+        : 0) +
+      (diseaseId === 'fatty_liver'
+        ? scoreAddForStatus(status, { borderline: 2, high: 4, critical: 6, low: 2 })
+        : 0);
+    if (gAdd > 0) {
+      delta += gAdd;
       factors.push({
-        id: `vitals_bp_${bp.systolic}_${bp.diastolic}`,
-        name: vitalsLabel,
-        displayValue: bpDisplay,
-        rawValue: bp,
-        impact: delta,
+        id: `vitals_glucose_${glucose.value}`,
+        name: `Blood glucose (${status})`,
+        displayValue: `${glucose.value} ${glucose.unit}`,
+        rawValue: glucose,
+        impact: gAdd,
         direction: 'increase',
-        explanation: vitalsExplanation,
+        explanation: 'Abnormal glucose readings increase metabolic risk and should be reviewed by a clinician.',
+        category: 'lab',
+        source: 'vitals'
+      });
+    }
+  }
+
+  // Oxygen saturation (SpO2) affects respiratory + cardiac risks
+  const spo2 = extractNumberVital(vitalsLatest, 'oxygen_saturation', '%');
+  if (spo2) {
+    const status = getVitalStatus('oxygen_saturation', spo2.value);
+    const add =
+      (diseaseId === 'copd' ? scoreAddForStatus(status, { borderline: 6, high: 0, critical: 18, low: 18 }) : 0) +
+      (diseaseId === 'asthma' ? scoreAddForStatus(status, { borderline: 4, high: 0, critical: 14, low: 14 }) : 0) +
+      (diseaseId === 'heart_disease' ? scoreAddForStatus(status, { borderline: 3, high: 0, critical: 10, low: 10 }) : 0);
+    if (add > 0) {
+      delta += add;
+      factors.push({
+        id: `vitals_spo2_${spo2.value}`,
+        name: `Oxygen saturation (${status})`,
+        displayValue: `${spo2.value}${spo2.unit}`,
+        rawValue: spo2,
+        impact: add,
+        direction: 'increase',
+        explanation: 'Low oxygen saturation can indicate respiratory stress and may raise cardiopulmonary risk.',
         category: 'clinical',
         source: 'vitals'
       });
     }
   }
 
-  const glucose = extractGlucose(vitalsLatest);
-  if (glucose) {
-    // Only apply if BP didn't already add a vitals factor (avoid spamming UI).
-    // If needed later, we can support multiple vitals factors.
-    const alreadyAdded = factors.some((f) => String(f?.id || '').startsWith('vitals_'));
-    if (!alreadyAdded) {
-      if (glucose.value >= 250) {
-        let gDelta = 0;
-        if (diseaseId === 'diabetes') gDelta = 18;
-        if (diseaseId === 'pre_diabetes') gDelta = 12;
-        if (diseaseId === 'fatty_liver') gDelta = 6;
-        if (gDelta > 0) {
-          factors.push({
-            id: `vitals_glucose_${glucose.value}`,
-            name: 'Blood glucose (very high)',
-            displayValue: `${glucose.value} ${glucose.unit}`,
-            rawValue: glucose,
-            impact: gDelta,
-            direction: 'increase',
-            explanation: 'Very high glucose readings increase metabolic risk and should be reviewed by a clinician.',
-            category: 'lab',
-            source: 'vitals'
-          });
-          delta += gDelta;
-        }
-      }
+  // Heart rate affects cardiac + anxiety risks
+  const hr = extractNumberVital(vitalsLatest, 'heart_rate', 'bpm');
+  if (hr) {
+    const status = getVitalStatus('heart_rate', hr.value);
+    const add =
+      (diseaseId === 'heart_disease' ? scoreAddForStatus(status, { borderline: 3, high: 8, critical: 12, low: 4 }) : 0) +
+      (diseaseId === 'hypertension' ? scoreAddForStatus(status, { borderline: 2, high: 5, critical: 8, low: 2 }) : 0) +
+      (diseaseId === 'anxiety' ? scoreAddForStatus(status, { borderline: 2, high: 6, critical: 8, low: 2 }) : 0);
+    if (add > 0) {
+      delta += add;
+      factors.push({
+        id: `vitals_hr_${hr.value}`,
+        name: `Heart rate (${status})`,
+        displayValue: `${hr.value} ${hr.unit}`,
+        rawValue: hr,
+        impact: add,
+        direction: 'increase',
+        explanation: 'An abnormal resting heart rate can reflect stress, dehydration, medication effects, or cardiac strain.',
+        category: 'clinical',
+        source: 'vitals'
+      });
+    }
+  }
+
+  // Temperature affects respiratory/asthma/copd (proxy for acute illness)
+  const temp = extractNumberVital(vitalsLatest, 'body_temperature', '°F');
+  if (temp) {
+    const status = getVitalStatus('body_temperature', temp.value);
+    const add =
+      (diseaseId === 'asthma' ? scoreAddForStatus(status, { borderline: 1, high: 3, critical: 5, low: 1 }) : 0) +
+      (diseaseId === 'copd' ? scoreAddForStatus(status, { borderline: 1, high: 3, critical: 5, low: 1 }) : 0);
+    if (add > 0) {
+      delta += add;
+      factors.push({
+        id: `vitals_temp_${temp.value}`,
+        name: `Body temperature (${status})`,
+        displayValue: `${temp.value} ${temp.unit}`,
+        rawValue: temp,
+        impact: add,
+        direction: 'increase',
+        explanation: 'Fever can indicate acute illness and may worsen breathing conditions temporarily.',
+        category: 'clinical',
+        source: 'vitals'
+      });
+    }
+  }
+
+  // Sleep and steps affect metabolic + mental health risks
+  const sleep = extractNumberVital(vitalsLatest, 'sleep_duration', 'hours');
+  if (sleep) {
+    const status = getVitalStatus('sleep_duration', sleep.value);
+    const add =
+      (diseaseId === 'depression' ? scoreAddForStatus(status, { borderline: 2, high: 2, critical: 6, low: 6 }) : 0) +
+      (diseaseId === 'anxiety' ? scoreAddForStatus(status, { borderline: 1, high: 1, critical: 5, low: 5 }) : 0) +
+      (diseaseId === 'diabetes' ? scoreAddForStatus(status, { borderline: 1, high: 1, critical: 3, low: 3 }) : 0) +
+      (diseaseId === 'hypertension' ? scoreAddForStatus(status, { borderline: 1, high: 1, critical: 3, low: 3 }) : 0);
+    if (add > 0) {
+      delta += add;
+      factors.push({
+        id: `vitals_sleep_${sleep.value}`,
+        name: `Sleep duration (${status})`,
+        displayValue: `${sleep.value} ${sleep.unit}`,
+        rawValue: sleep,
+        impact: add,
+        direction: 'increase',
+        explanation: 'Poor sleep is linked to worse metabolic regulation and higher stress load.',
+        category: 'lifestyle',
+        source: 'vitals'
+      });
+    }
+  }
+
+  const steps = extractNumberVital(vitalsLatest, 'steps', 'steps');
+  if (steps) {
+    const status = getVitalStatus('steps', steps.value);
+    const add =
+      (diseaseId === 'obesity' ? scoreAddForStatus(status, { borderline: 2, high: 0, critical: 0, low: 6 }) : 0) +
+      (diseaseId === 'diabetes' ? scoreAddForStatus(status, { borderline: 1, high: 0, critical: 0, low: 4 }) : 0) +
+      (diseaseId === 'pre_diabetes' ? scoreAddForStatus(status, { borderline: 1, high: 0, critical: 0, low: 3 }) : 0);
+    if (add > 0) {
+      delta += add;
+      factors.push({
+        id: `vitals_steps_${steps.value}`,
+        name: `Daily activity (${status})`,
+        displayValue: `${steps.value} ${steps.unit}`,
+        rawValue: steps,
+        impact: add,
+        direction: 'increase',
+        explanation: 'Low daily activity is associated with higher metabolic risk over time.',
+        category: 'lifestyle',
+        source: 'vitals'
+      });
+    }
+  }
+
+  const water = extractNumberVital(vitalsLatest, 'water_intake', 'glasses');
+  if (water) {
+    const status = getVitalStatus('water_intake', water.value);
+    const add =
+      (diseaseId === 'ckd' ? scoreAddForStatus(status, { borderline: 1, high: 0, critical: 0, low: 4 }) : 0) +
+      (diseaseId === 'kidney_stones' ? scoreAddForStatus(status, { borderline: 2, high: 0, critical: 0, low: 6 }) : 0);
+    if (add > 0) {
+      delta += add;
+      factors.push({
+        id: `vitals_water_${water.value}`,
+        name: `Hydration (${status})`,
+        displayValue: `${water.value} ${water.unit}`,
+        rawValue: water,
+        impact: add,
+        direction: 'increase',
+        explanation: 'Low hydration can worsen kidney stress and increase stone risk in susceptible individuals.',
+        category: 'lifestyle',
+        source: 'vitals'
+      });
     }
   }
 
