@@ -407,6 +407,7 @@
   },
   "disclaimer": {
     "title": "Medical Intelligence Disclaimer",
-    "body": "This AI assessment is provided for guidance only and is not a substitute for professional medical advice."
+    "main": "VaidyaSetu provides AI-driven clinical insights for educational and informational purposes only. This is not a substitute for professional medical advice, diagnosis, or treatment.",
+    "secondary": "Always seek the advice of your physician or other qualified health providers with any questions regarding a medical condition. Never disregard professional medical advice or delay in seeking it because of something you have read on this platform."
   }
 }

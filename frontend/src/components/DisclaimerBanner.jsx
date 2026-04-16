@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 const DisclaimerBanner = () => {
   const { t } = useTranslation();
   return (
-    <footer className="mt-20 border-t border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl py-12 px-6">
+    <footer className="mt-auto py-12 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-slate-200/50 dark:border-white/5 rounded-[3rem] p-10 md:p-16 flex flex-col items-center text-center gap-8 shadow-2xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group">
            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-500/0" />

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const Privacy = () => {
   return (
-    <div className="max-w-4xl mx-auto py-16 px-6 space-y-12 animate-in fade-in duration-700">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-12 animate-in fade-in duration-700">
       
       <Link to="/settings" className="flex items-center gap-2 text-emerald-500 font-black uppercase tracking-widest text-[10px] hover:translate-x-[-4px] transition-transform">
          <ChevronLeft className="w-4 h-4" /> Back to Protocol Hub

@@ -45,7 +45,7 @@ const VitalCard = ({ title, value, unit, type, status, trend, timestamp, icon: I
   return (
     <div 
       onClick={onClick}
-      className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-6 rounded-[2.5rem] hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 cursor-pointer group shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] relative overflow-hidden"
+      className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2.5rem] hover:border-emerald-500/30 transition-all duration-500 cursor-pointer group shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] relative overflow-hidden"
     >
       <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-[60px] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150" />
       <div className="flex justify-between items-start mb-4 relative z-10">
@@ -338,7 +338,7 @@ const Vitals = () => {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto space-y-12 animate-pulse p-4">
+      <div className="max-w-7xl mx-auto w-full pb-20 space-y-12 animate-pulse">
         <div className="flex justify-between items-end">
           <div className="space-y-4">
             <div className="h-10 w-64 bg-gray-200 dark:bg-gray-800 rounded-xl" />
@@ -389,7 +389,7 @@ const Vitals = () => {
   const risks = report?.risk_scores || { diabetes: 0, hypertension: 0, anemia: 0 };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-1000">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-12 animate-in fade-in duration-1000">
       
       {/* Header & Export */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -397,16 +397,16 @@ const Vitals = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{t('vitals.timeline')}</h1>
           <p className="text-slate-600 dark:text-gray-300 font-medium text-lg">{t('vitals.monitoring_desc')}</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 w-full md:w-auto mt-4 md:mt-0">
            <button 
               onClick={handleExportJSON}
-              className="px-6 py-3 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-emerald-500/50 transition-all shadow-xl text-gray-600 dark:text-gray-300 hover:text-emerald-500"
+              className="w-full sm:w-auto px-6 py-3 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:border-emerald-500/50 transition-all shadow-xl text-gray-600 dark:text-gray-300 hover:text-emerald-500"
            >
               <Download className="w-5 h-5" /> {t('vitals.export_json')}
            </button>
            <button 
               onClick={handleExportPDF}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-xl"
+              className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl"
            >
               <FileText className="w-5 h-5" /> {t('vitals.download_pdf')}
            </button>
@@ -415,14 +415,14 @@ const Vitals = () => {
 
       {/* HbA1c Insight (Step 28 Extra) */}
       {hba1c && (
-        <div className="bg-emerald-500 p-8 rounded-[2.5rem] flex items-center justify-between text-white shadow-2xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
-           <div className="relative z-10">
+        <div className="bg-emerald-500 p-6 md:p-8 rounded-[2.5rem] flex flex-col md:flex-row items-start md:items-center justify-between text-white shadow-2xl relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-white/40 dark:bg-white/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+           <div className="relative z-10 w-full">
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-2">Glycemic Stability Engine</h4>
-              <p className="text-3xl font-black tracking-tighter">Your estimated HbA1c is <span className="underline decoration-4 decoration-white/30 underline-offset-8">{hba1c}%</span></p>
-              <p className="text-xs font-bold mt-4 opacity-70 italic max-w-md">Estimated based on your recent 90-day glucose trends. Always consult a lab-verified A1c test for clinical diagnosis.</p>
+              <p className="text-2xl md:text-3xl font-black tracking-tighter">Your estimated HbA1c is <span className="underline decoration-4 decoration-white/30 underline-offset-8">{hba1c}%</span></p>
+              <p className="text-xs font-bold mt-4 opacity-70 italic max-w-md">Estimated based on your recent 90-day glucose trends.</p>
            </div>
-           <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 hidden md:block">
+           <div className="p-6 bg-white/40 dark:bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 hidden md:block">
               <Zap className="w-10 h-10 animate-pulse" />
            </div>
         </div>
@@ -430,17 +430,17 @@ const Vitals = () => {
 
       {/* Condition-Specific Tracker Cards (Step 30) */}
       {(risks.diabetes > 60 || risks.hypertension > 60) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-6 duration-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-in slide-in-from-top-6 duration-700">
            {risks.diabetes > 60 && (
-             <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 p-8 rounded-[2.5rem] relative overflow-hidden group">
+             <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 p-6 md:p-8 rounded-[2.5rem] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/5 blur-3xl rounded-full" />
                 <div className="flex items-center gap-4 mb-4 relative z-10">
-                   <div className="p-3 bg-fuchsia-500/20 rounded-2xl">
-                      <Activity className="w-6 h-6 text-fuchsia-500" />
+                   <div className="p-2 md:p-3 bg-fuchsia-500/20 rounded-2xl">
+                      <Activity className="w-5 h-5 md:w-6 md:h-6 text-fuchsia-500" />
                    </div>
                    <div>
-                      <h4 className="text-lg font-black text-white">{t('vitals.risk_protocols.diabetes')}</h4>
-                      <p className="text-xs text-fuchsia-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
+                      <h4 className="text-base md:text-lg font-black text-white">{t('vitals.risk_protocols.diabetes')}</h4>
+                      <p className="text-[10px] text-fuchsia-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
                    </div>
                 </div>
                 <button 
@@ -452,15 +452,15 @@ const Vitals = () => {
              </div>
            )}
            {risks.hypertension > 60 && (
-             <div className="bg-amber-500/10 border border-amber-500/20 p-8 rounded-[2.5rem] relative overflow-hidden group">
+             <div className="bg-amber-500/10 border border-amber-500/20 p-6 md:p-8 rounded-[2.5rem] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full" />
                 <div className="flex items-center gap-4 mb-4 relative z-10">
-                   <div className="p-3 bg-amber-500/20 rounded-2xl">
-                      <Heart className="w-6 h-6 text-amber-500" />
+                   <div className="p-2 md:p-3 bg-amber-500/20 rounded-2xl">
+                      <Heart className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
                    </div>
                    <div>
-                      <h4 className="text-lg font-black text-white">{t('vitals.risk_protocols.hypertension')}</h4>
-                      <p className="text-xs text-amber-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
+                      <h4 className="text-base md:text-lg font-black text-white">{t('vitals.risk_protocols.hypertension')}</h4>
+                      <p className="text-[10px] text-amber-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
                    </div>
                 </div>
                 <button 
@@ -474,28 +474,34 @@ const Vitals = () => {
         </div>
       )}
 
-      {/* Quick Entry Bar — manual vitals only; disease risk comes from your questionnaire on the Dashboard */}
-      <div className="p-2 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-4 min-w-max pb-4">
+      {/* Quick Entry Layout — manual vitals */}
+      <div className="py-2 animate-in slide-in-from-bottom-4 duration-700">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-4 pb-4">
           {[
-            { id: 'bp', icon: Heart, label: t('vitals.labels.blood_pressure'), color: 'text-rose-500' },
-            { id: 'glucose', icon: Activity, label: t('vitals.labels.blood_glucose'), color: 'text-amber-500' },
-            { id: 'heart_rate', icon: Stethoscope, label: t('vitals.labels.heart_rate'), color: 'text-pink-500' },
-            { id: 'weight', icon: Scale, label: t('vitals.labels.weight'), color: 'text-blue-500' },
-            { id: 'steps', icon: Footprints, label: t('vitals.labels.steps'), color: 'text-emerald-500' },
-            { id: 'sleep', icon: Moon, label: t('vitals.labels.sleep'), color: 'text-indigo-500' },
-            { id: 'water', icon: Droplets, label: t('vitals.labels.water'), color: 'text-cyan-500' },
-            { id: 'body_temperature', icon: Thermometer, label: t('vitals.labels.body_temperature'), color: 'text-orange-500' },
-            { id: 'oxygen_saturation', icon: Wind, label: t('vitals.labels.oxygen_saturation'), color: 'text-teal-500' },
+            { id: 'bp', icon: Heart, label: t('vitals.labels.blood_pressure'), textClass: 'text-rose-500', bgClass: 'bg-rose-500/10' },
+            { id: 'glucose', icon: Activity, label: t('vitals.labels.blood_glucose'), textClass: 'text-amber-500', bgClass: 'bg-amber-500/10' },
+            { id: 'heart_rate', icon: Stethoscope, label: t('vitals.labels.heart_rate'), textClass: 'text-pink-500', bgClass: 'bg-pink-500/10' },
+            { id: 'weight', icon: Scale, label: t('vitals.labels.weight'), textClass: 'text-blue-500', bgClass: 'bg-blue-500/10' },
+            { id: 'steps', icon: Footprints, label: t('vitals.labels.steps'), textClass: 'text-emerald-500', bgClass: 'bg-emerald-500/10' },
+            { id: 'sleep', icon: Moon, label: t('vitals.labels.sleep'), textClass: 'text-indigo-500', bgClass: 'bg-indigo-500/10' },
+            { id: 'water', icon: Droplets, label: t('vitals.labels.water'), textClass: 'text-cyan-500', bgClass: 'bg-cyan-500/10' },
+            { id: 'body_temperature', icon: Thermometer, label: t('vitals.labels.body_temperature'), textClass: 'text-orange-500', bgClass: 'bg-orange-500/10' },
+            { id: 'oxygen_saturation', icon: Wind, label: t('vitals.labels.oxygen_saturation'), textClass: 'text-teal-500', bgClass: 'bg-teal-500/10' },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setModal({ open: true, type: item.id })}
-              className="flex items-center gap-3 px-6 py-4 bg-white dark:bg-none dark:bg-gray-950/40 backdrop-blur-3xl border border-slate-100 dark:border-gray-800 rounded-3xl hover:border-blue-100 dark:hover:border-emerald-500/40 transition-all duration-500 hover:-translate-y-1 shadow-[0_8px_30px_rgba(35,60,111,0.05)] hover:shadow-[0_15px_40px_rgba(35,60,111,0.08)] dark:shadow-none group"
+              className="flex flex-col items-center justify-center p-4 bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] hover:border-emerald-500/40 transition-all duration-500 hover:-translate-y-1 shadow-lg group relative overflow-hidden"
             >
-              <item.icon className={`w-5 h-5 ${item.color} group-hover:scale-110 transition-transform`} />
-              <span className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">{t('vitals.log_prefix')} {item.label}</span>
-              <Plus className="w-4 h-4 text-emerald-500 ml-2" />
+              <div className={`p-4 ${item.bgClass} rounded-2xl mb-3 group-hover:scale-110 transition-transform`}>
+                <item.icon className={`w-6 h-6 ${item.textClass}`} />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300 text-center leading-relaxed">
+                {item.label}
+              </span>
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Plus className="w-4 h-4 text-emerald-500" />
+              </div>
             </button>
           ))}
         </div>
@@ -503,12 +509,12 @@ const Vitals = () => {
 
       {/* Tabs & Content */}
       <div className="space-y-12">
-        <div className="flex border-b border-gray-100 dark:border-gray-800">
+        <div className="flex border-b border-gray-100 dark:border-gray-800 overflow-x-auto scrollbar-hide">
            {['overview', 'trends', 'labs'].map(t_tab => (
              <button
                key={t_tab}
                onClick={() => setActiveTab(t_tab)}
-               className={`px-8 py-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === t_tab ? 'text-emerald-500' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+               className={`px-6 md:px-8 py-4 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all relative shrink-0 ${activeTab === t_tab ? 'text-emerald-500' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
              >
                {t(`vitals.tabs.${t_tab}`)}
                {activeTab === t_tab && <div className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 rounded-full" />}
@@ -604,7 +610,7 @@ const Vitals = () => {
                       </h3>
                       <button onClick={() => setGoalModalOpen(true)} className="text-[10px] font-black text-emerald-500 uppercase hover:underline">{t('vitals.customize_goals')}</button>
                    </div>
-                    <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] transition-all duration-500 dark:shadow-none space-y-6">
+                    <div className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.1)] transition-all duration-500 space-y-6">
                       {goals.length > 0 ? goals.map(g => (
                         <div key={g._id} className="space-y-3">
                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
@@ -629,7 +635,7 @@ const Vitals = () => {
                    <h3 className="text-xs font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest px-4 flex items-center gap-2">
                      <RefreshCw className="w-4 h-4 text-emerald-500" /> {t('vitals.sync_intelligence')}
                    </h3>
-                   <div className="bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] transition-all duration-500 dark:shadow-none">
+                   <div className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.1)] transition-all duration-500">
                       <div className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
                          <div className="flex items-center gap-4">
                             <div className="p-3 bg-white dark:bg-gray-950 rounded-xl shadow-sm">
@@ -660,7 +666,7 @@ const Vitals = () => {
 
              {/* Precision Logs Table */}
              <div className="space-y-8">
-                <div className="bg-white dark:bg-none dark:bg-gray-950/40 backdrop-blur-2xl border border-slate-100 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_10px_40px_rgba(35,60,111,0.05)] dark:shadow-none relative">
+                <div className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-gray-900/50">
@@ -789,18 +795,18 @@ const Vitals = () => {
                    <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-widest">{t('vitals.labs.repository')}</h2>
                    <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest">{t('vitals.labs.subtitle')}</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full md:w-auto mt-4 md:mt-0">
                   {labResults.length > 0 && (
                     <button 
                       onClick={() => setLabAnalysisModal({ open: true })}
-                      className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl flex items-center gap-3"
+                      className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3"
                     >
                        <Activity className="w-5 h-5" /> {t('vitals.labs.ai_analysis')}
                     </button>
                   )}
                   <button 
                     onClick={() => setLabModalOpen(true)}
-                    className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl flex items-center gap-3"
+                    className="w-full sm:w-auto px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3"
                   >
                      <Plus className="w-5 h-5" /> {t('vitals.labs.append')}
                   </button>
@@ -825,7 +831,7 @@ const Vitals = () => {
                     const rangeLabel = isInRange === true ? t('vitals.labs.in_range') : isInRange === false ? t('vitals.labs.out_of_range') : t('vitals.labs.pending');
                     const rangeLabelColor = isInRange === true ? 'text-emerald-500 bg-emerald-500/10' : isInRange === false ? 'text-red-500 bg-red-500/10' : 'text-gray-400 bg-gray-100 dark:bg-gray-800';
                     return (
-                    <div key={lab._id} className={`bg-white dark:bg-gray-950 border ${rangeColor} p-8 rounded-[3rem] shadow-2xl space-y-6 group hover:border-emerald-500/20 transition-all`}>
+                    <div key={lab._id} className={`bg-white/40 dark:bg-white/5 backdrop-blur-2xl border ${rangeColor} p-8 rounded-[3rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-6 group hover:border-emerald-500/30 transition-all`}>
                        <div className="flex justify-between items-start">
                           <div className="p-4 bg-emerald-500/10 rounded-2xl">
                              <FlaskConical className="w-6 h-6 text-emerald-500" />
@@ -1010,7 +1016,7 @@ const Vitals = () => {
 };
 
 const TrendAnalysisCard = ({ title, subtitle, icon: Icon, color, data, Chart, extra, labels = {} }) => (
-  <div className={`bg-white dark:bg-none dark:bg-white/5 backdrop-blur-3xl border border-slate-100 dark:border-white/10 p-8 rounded-[3rem] shadow-[0_10px_40px_rgba(35,60,111,0.06)] dark:shadow-none space-y-8 group transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(35,60,111,0.1)] hover:border-${color}-100 dark:hover:border-${color}-500/30 relative overflow-hidden`}>
+  <div className={`bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[3rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-8 group transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_15px_40px_rgba(16,185,129,0.15)] hover:border-${color}-500/30 relative overflow-hidden`}>
     <div className={`absolute top-[-20%] right-[-10%] w-64 h-64 bg-${color}-500/5 dark:bg-${color}-500/5 blur-[80px] rounded-full group-hover:bg-${color}-500/10 transition-colors duration-700 pointer-events-none`} />
     <div className="flex justify-between items-start relative z-10">
       <div className="flex items-center gap-4">

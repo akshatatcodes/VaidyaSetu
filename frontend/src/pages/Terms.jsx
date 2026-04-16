@@ -3,7 +3,7 @@ import { Shield, FileText, ChevronLeft, Zap, Database, AlertCircle, CheckCircle2
 
 const Terms = () => {
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-12 animate-in fade-in duration-700">
       
       {/* Header */}
       <div className="flex flex-col gap-6">

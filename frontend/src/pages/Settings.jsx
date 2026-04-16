@@ -442,7 +442,7 @@ const Settings = () => {
   </div>;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 p-4">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-10 animate-in fade-in duration-500">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">

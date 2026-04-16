@@ -4,8 +4,71 @@
 @custom-variant dark (&:is(.dark *));
 
 html {
-  font-size: 15px; /* Slightly larger for better readability */
+  font-size: 15px;
   scroll-behavior: smooth;
+  /* Prevent horizontal overflow on mobile */
+  overflow-x: hidden;
+}
+
+/* ================================================================
+   MOBILE RESPONSIVE FOUNDATION
+   ================================================================ */
+
+/* Prevent text from overflowing on mobile */
+* {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile font scaling */
+@media (max-width: 640px) {
+  html { font-size: 14px; }
+
+  /* Scale down large headings on mobile */
+  h1 { font-size: clamp(1.6rem, 6vw, 3rem) !important; line-height: 1.1 !important; }
+  h2 { font-size: clamp(1.3rem, 5vw, 2rem) !important; }
+  h3 { font-size: clamp(1rem, 4vw, 1.4rem) !important; }
+
+  /* Ensure all modals fill the screen on mobile */
+  .fixed.inset-0 > div {
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+}
+
+/* Touch target minimum size */
+button, a, [role="button"] {
+  min-height: 40px;
+  min-width: 40px;
+}
+
+/* Prevent long words from breaking layout */
+p, span, h1, h2, h3, h4, h5, h6, li {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Hide scrollbar on webkit but keep scrollability */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Mobile bottom safe area padding */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Smooth scrolling for containers */
+.overflow-y-auto, .overflow-y-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent fixed elements from causing overflow */
+body {
+  overflow-x: hidden;
+  position: relative;
 }
 
 :root {

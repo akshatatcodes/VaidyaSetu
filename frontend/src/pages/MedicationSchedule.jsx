@@ -70,7 +70,7 @@ const MedicationSchedule = () => {
   </div>;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 p-4">
+    <div className="max-w-7xl mx-auto w-full pb-20 space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
          <div>
