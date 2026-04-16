@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill } from 'lucide-react';
+import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill, Sun, Moon } from 'lucide-react';
 import { UserButton, useClerk, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '@clerk/clerk-react';
@@ -11,7 +11,7 @@ import { API_URL } from '../config/api';
 
 const Sidebar = () => {
   const { signOut } = useClerk();
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { user } = useUser();
   const { t } = useTranslation();
   const [unreadCount, setUnreadCount] = React.useState(0);
@@ -158,6 +158,13 @@ const Sidebar = () => {
 
         <SignedIn>
           <div className="flex items-center gap-4">
+            {/* Theme Toggle moved here for mobile */}
+            <button
+              onClick={toggleTheme}
+              className="text-slate-600 dark:text-gray-400 p-1 hover:text-emerald-500 transition-colors"
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
             {/* Alerts icon moved here for mobile */}
             <Link to="/alerts" className="relative text-slate-600 dark:text-gray-400 flex items-center justify-center">
               <AlertCircle className="w-5 h-5" />
