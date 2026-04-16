@@ -25,19 +25,20 @@ router.post('/generate-report', async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'User profile not found' });
     }
 
-    // Flatten profile for riskScorer if it expects flat data
-    // The current riskScorer likely expects profile.age, profile.weight etc.
-    // We need to pass the values.
+    // Keep FieldSchema `{ value: ... }` structure for scoring.
+    // Flattening breaks disease scorers that access `.field?.value` directly (e.g., anemia).
+    // We'll still build a flattened view for prompt text only.
+    const profileObj = profile.toObject();
     const flatProfile = {};
-    Object.keys(profile.toObject()).forEach(key => {
-      if (profile[key] && profile[key].value !== undefined) {
-          flatProfile[key] = profile[key].value;
+    Object.keys(profileObj).forEach((key) => {
+      if (profileObj[key] && profileObj[key].value !== undefined) {
+        flatProfile[key] = profileObj[key].value;
       } else {
-          flatProfile[key] = profile[key];
+        flatProfile[key] = profileObj[key];
       }
     });
 
-    const riskScores = calculatePreliminaryRisk(flatProfile);
+    const riskScores = calculatePreliminaryRisk(profileObj);
 
     // AI Prompt Modification (Phase E.1 & E.2)
     let changeInstruction = "";

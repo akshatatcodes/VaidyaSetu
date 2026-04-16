@@ -1,16 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 import { 
   X, TrendingUp, TrendingDown, Shield, AlertTriangle, Lightbulb, 
   Info, ChevronDown, ChevronUp, ChevronRight, Activity, Coffee, Star, Leaf,
   CheckCircle, ArrowRight, Heart
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { API_URL } from '../../config/api';
 
-const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfile, loading, onOpenQuestionnaire }) => {
+const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfile, loading, onOpenQuestionnaire, clerkId }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('calculation'); // 'calculation' or 'mitigation'
   const [expandedStep, setExpandedStep] = useState(null);
+  const [localCompletedMitigationStepIds, setLocalCompletedMitigationStepIds] = useState(() => details?.completedMitigationStepIds || []);
+
+  useEffect(() => {
+    setLocalCompletedMitigationStepIds(details?.completedMitigationStepIds || []);
+  }, [details?.completedMitigationStepIds]);
 
   if (!isOpen) return null;
 
@@ -72,6 +79,24 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
       case 'monitoring': return 'text-purple-500 bg-purple-50 dark:bg-purple-900/20';
       case 'precaution': return 'text-red-500 bg-red-50 dark:bg-red-900/20';
       default: return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20';
+    }
+  };
+
+  const questionnaireLabel = details?.questionnaireLength
+    ? `${details.questionnaireLength}`
+    : '6-8';
+
+  const handleMarkMitigationDone = async (stepId) => {
+    if (!clerkId || !stepId) return;
+    try {
+      await axios.post(`${API_URL}/mitigations/${diseaseId}/${stepId}/complete`, { clerkId });
+      setLocalCompletedMitigationStepIds((prev) => (prev.includes(stepId) ? prev : [...prev, stepId]));
+      // Let backend scheduler persist and update the report
+      if (window.refreshDashboard) {
+        setTimeout(() => window.refreshDashboard(false), 2500);
+      }
+    } catch (err) {
+      console.error('[RiskDetailModal] Mark mitigation done failed:', err.response?.data || err.message);
     }
   };
 
@@ -215,7 +240,7 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                     {t('risk.get_accurate_score', { defaultValue: 'Get More Accurate Risk Score' })}
                   </h4>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    {t('risk.questionnaire_cta', { defaultValue: 'Answer' })} {details?.questionnaireLength || '6-8'} {t('risk.questionnaire_cta_tail', { defaultValue: 'targeted questions about' })} {diseaseId?.replace('_', ' ')}. 
+                    {t('risk.questionnaire_cta', { defaultValue: 'Answer' })} {questionnaireLabel} {t('risk.questionnaire_cta_tail', { defaultValue: 'targeted questions about' })} {diseaseId?.replace('_', ' ')}. 
                     {t('risk.questionnaire_cta_note', { defaultValue: "We'll also consider your allergies, medications, and medical history." })}
                   </p>
                 </div>
@@ -420,12 +445,12 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                       How is this calculated?
                     </h3>
                     <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                      <p><strong>1. Baseline Risk:</strong> Indian population prevalence data (ICMR-INDIAB)</p>
-                      <p><strong>2. Risk Factors:</strong> Added based on your profile ({details.factorBreakdown?.length || 0} factors)</p>
+                      <p><strong>1. Baseline Risk:</strong> Calculated from verified population prevalence plus your saved profile inputs.</p>
+                      <p><strong>2. Risk Factors:</strong> Added based on your current profile ({details.factorBreakdown?.length || 0} factors)</p>
                       {details.protectiveFactors?.length > 0 && (
                         <p><strong>3. Protective Factors:</strong> Subtracted for healthy behaviors ({details.protectiveFactors.length} factors)</p>
                       )}
-                      <p><strong>4. Final Score:</strong> Capped between 2-95% for clinical relevance</p>
+                      <p><strong>4. Assessment Step:</strong> Use the targeted questionnaire to refine this disease score further.</p>
                     </div>
                     <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800/30">
                       <p className="text-xs text-blue-600 dark:text-blue-400">
@@ -563,6 +588,23 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
                                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                                   {step.description}
                                 </p>
+                                <div className="mt-3">
+                                  <button
+                                    type="button"
+                                    disabled={!step?.id || localCompletedMitigationStepIds.includes(step.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMarkMitigationDone(step.id);
+                                    }}
+                                    className={`w-full px-4 py-2 rounded-lg text-xs font-bold transition-colors border ${
+                                      !step?.id || localCompletedMitigationStepIds.includes(step.id)
+                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 cursor-not-allowed'
+                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600/30'
+                                    }`}
+                                  >
+                                    {step?.id && localCompletedMitigationStepIds.includes(step.id) ? 'Completed' : 'Mark done'}
+                                  </button>
+                                </div>
                                 {step.isRegional && (
                                   <div className="mt-3 inline-flex items-center text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
                                     🇮🇳 Indian Context Applied

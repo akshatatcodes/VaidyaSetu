@@ -190,6 +190,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
     console.log('[DiseaseCard] Questionnaire completed for:', diseaseId, 'New score:', newScore);
     
     // Update the score immediately with animation
+    setCurrentScore(newScore);
     setIsPulsing(true);
     setTimeout(() => setIsPulsing(false), 2000);
     
@@ -297,6 +298,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
         diseaseId={diseaseId}
         score={currentScore}
         details={details}
+        clerkId={clerkId}
         userProfile={details?.userProfile}
         loading={loading}
         onOpenQuestionnaire={() => {
@@ -310,7 +312,6 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
         isOpen={showQuestionnaireModal}
         onClose={() => setShowQuestionnaireModal(false)}
         diseaseId={diseaseId}
-        currentScore={currentScore}
         profile={{ ...profile, clerkId }}
         onScoreUpdate={handleQuestionnaireComplete}
       />

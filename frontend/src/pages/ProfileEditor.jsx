@@ -263,7 +263,7 @@ const ProfileEditor = () => {
         notes: intentData.notes, changeDate: intentData.changeDate
       });
       if (response.data.status === 'success') {
-         await axios.post(`${API_URL}/reports/hybrid-assessment`, { clerkId: user.id, persist: true }).catch(() => null);
+         await axios.post(`${API_URL}/reports/predictive-risk/recompute`, { clerkId: user.id, persist: true }).catch(() => null);
          await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id }).catch(() => null);
          window.dispatchEvent(new CustomEvent('vaidya-profile-updated'));
          navigate('/profile', { state: { toast: 'Your questionnaire-based risk scores and insights have been refreshed.' } });

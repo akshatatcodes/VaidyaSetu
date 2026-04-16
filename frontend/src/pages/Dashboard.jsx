@@ -3,6 +3,7 @@ import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText, HeartPulse, Scan, ThumbsUp, ThumbsDown } from 'lucide-react';
 import BodyScan3D from '../components/BodyScan3D';
+import InlineErrorBoundary from '../components/InlineErrorBoundary';
 import DiseaseCard from '../components/disease-cards/DiseaseCard';
 import { useGoogleLogin } from '@react-oauth/google';
 import SavedDoctorsWidget from '../components/dashboard/SavedDoctorsWidget';
@@ -53,8 +54,12 @@ const Dashboard = () => {
   };
 
   const needsHybridBootstrap = (scores) => {
+    // Only bootstrap when the report has no usable risk score object.
+    // If some disease keys are missing, we prefer not to re-run the
+    // global hybrid predictor because it can overwrite questionnaire-updated
+    // disease cards and cause score "jumping".
     if (!scores || typeof scores !== 'object') return true;
-    return FULL_HYBRID_DISEASE_IDS.some((k) => scores[k] === undefined || scores[k] === null);
+    return Object.keys(scores).length === 0;
   };
 
   /** fullRecompute: run questionnaire hybrid (all diseases) and persist — use after profile edits. */
@@ -88,16 +93,12 @@ const Dashboard = () => {
       const profileOk = profileRes?.data?.status === 'success';
       const needsBootstrap = needsHybridBootstrap(reportData?.risk_scores);
       
-      // CRITICAL: Only run hybrid-assessment on initial load or if scores are missing
-      // Do NOT run it on every refresh to avoid overwriting manual data updates
-      // Run hybrid only when bootstrap is needed or explicitly requested.
-      // Avoid overwriting questionnaire-calculated disease scores during normal refresh.
-      const shouldRunHybrid = profileOk && (needsBootstrap || fullRecompute);
-
-      if (shouldRunHybrid) {
-        console.log('[Dashboard] Running hybrid assessment...', { fullRecompute, needsBootstrap });
+      // CRITICAL: Predictive-risk init/recompute is the canonical flow.
+      // Do NOT run it on every refresh to avoid overwriting manual/questionnaire-updated data.
+      if (profileOk && needsBootstrap) {
+        console.log('[Dashboard] Initializing predictive risk...', { fullRecompute, needsBootstrap });
         try {
-          await axios.post(`${API_URL}/reports/hybrid-assessment`, {
+          await axios.post(`${API_URL}/reports/predictive-risk/init`, {
             clerkId: user.id,
             persist: true
           });
@@ -105,14 +106,29 @@ const Dashboard = () => {
           if (again.data?.status === 'success') {
             reportData = again.data.data;
             setScoresAsOf(new Date());
-            console.log('[Dashboard] ✅ Hybrid assessment complete, updated report');
+            console.log('[Dashboard] ✅ Predictive init complete, updated report');
             console.log('[Dashboard] New diabetes score:', reportData.risk_scores?.diabetes);
           }
-        } catch (hybridErr) {
-          console.warn('[Dashboard] hybrid-assessment failed:', hybridErr.response?.data || hybridErr.message);
+        } catch (initErr) {
+          console.warn('[Dashboard] predictive-risk/init failed:', initErr.response?.data || initErr.message);
         }
-      } else if (fullRecompute && !needsBootstrap) {
-        console.log('[Dashboard] Skipping hybrid-assessment due to missing profile data');
+      } else if (profileOk && fullRecompute && !needsBootstrap) {
+        console.log('[Dashboard] Recomputing predictive risk...', { fullRecompute });
+        try {
+          await axios.post(`${API_URL}/reports/predictive-risk/recompute`, {
+            clerkId: user.id,
+            persist: true
+          });
+          const again = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
+          if (again.data?.status === 'success') {
+            reportData = again.data.data;
+            setScoresAsOf(new Date());
+            console.log('[Dashboard] ✅ Predictive recompute complete, updated report');
+            console.log('[Dashboard] New diabetes score:', reportData.risk_scores?.diabetes);
+          }
+        } catch (reErr) {
+          console.warn('[Dashboard] predictive-risk/recompute failed:', reErr.response?.data || reErr.message);
+        }
       }
 
       if (reportData) {
@@ -400,7 +416,7 @@ const Dashboard = () => {
                             if (!user?.id) return;
                             setLoading(true);
                             try {
-                              await axios.post(`${API_URL}/reports/hybrid-assessment`, { clerkId: user.id, persist: true });
+                              await axios.post(`${API_URL}/reports/predictive-risk/init`, { clerkId: user.id, persist: true });
                               const r = await axios.get(`${API_URL}/reports/${user.id}`);
                               if (r.data?.status === 'success') setReport(r.data.data);
                             } catch (e) {
@@ -493,9 +509,36 @@ const Dashboard = () => {
                </h3>
                
                <div className="w-full h-[400px] md:h-[520px] relative z-10 flex items-center justify-center">
-                  <BodyScan3D 
-                    riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map(v => Number(v) || 0))} 
-                  />
+                  <InlineErrorBoundary
+                    title="3D Bio-Matrix unavailable"
+                    fallback={({ message }) => (
+                      <div className="w-full h-full flex items-center justify-center p-8">
+                        <div className="max-w-md w-full rounded-[2rem] border border-emerald-500/15 bg-black/30 backdrop-blur-xl p-8 text-center shadow-[0_0_60px_rgba(16,185,129,0.12)]">
+                          <div className="text-[11px] font-black uppercase tracking-[0.35em] text-emerald-300/70">
+                            3D Scan disabled
+                          </div>
+                          <div className="mt-3 text-sm text-white/80">
+                            Your dashboard is working, but the 3D renderer crashed on this device/browser.
+                          </div>
+                          <div className="mt-4 text-[11px] text-emerald-200/60 font-bold break-words">
+                            {message}
+                          </div>
+                          <div className="mt-6 flex items-center justify-center gap-3">
+                            <button
+                              className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs"
+                              onClick={() => window.location.reload()}
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  >
+                    <BodyScan3D
+                      riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map((v) => Number(v) || 0))}
+                    />
+                  </InlineErrorBoundary>
                </div>
            </div>
 

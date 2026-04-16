@@ -13,7 +13,9 @@ const FactorSchema = new mongoose.Schema({
   explanation: String,
   category: {
     type: String,
-    enum: ['symptom', 'demographic', 'lifestyle', 'lab']
+    // Keep broad to support deterministic scorer + questionnaire + AI outputs
+    // without failing validation on newer category tags.
+    enum: ['symptom', 'demographic', 'lifestyle', 'lab', 'clinical', 'critical', 'questionnaire']
   },
   source: String // e.g., 'user_profile', 'lab_report'
 }, { _id: false });

@@ -1,37 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, 
-  Activity, Heart, Brain, Scale, Moon, Stethoscope
+  X, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, Activity
 } from 'lucide-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 
 import { API_URL } from '../../config/api';
 
-const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile, onScoreUpdate }) => {
+const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate }) => {
   const { t } = useTranslation();
+  const MotionDiv = motion.div;
   const [questionnaire, setQuestionnaire] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [calculatedScore, setCalculatedScore] = useState(null);
   const [scoreBreakdown, setScoreBreakdown] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && diseaseId) {
-      setError(null);
-      fetchQuestionnaire();
-      setAnswers({});
-      setCurrentStep(0);
-      setCalculatedScore(null);
-      setScoreBreakdown(null);
+  const getCount = (value) => {
+    if (Array.isArray(value)) return value.length;
+    if (Array.isArray(value?.value)) return value.value.length;
+    return 0;
+  };
+
+  const normalizeBreakdownDetail = (detail) => {
+    if (!detail) return null;
+    if (detail.question || detail.answer || detail.points !== undefined) {
+      return {
+        title: detail.question || 'Questionnaire factor',
+        subtitle: detail.answer ? `Your answer: ${detail.answer}` : detail.explanation || 'Questionnaire response considered',
+        impact: detail.points ?? 0,
+        meta: detail.weight || detail.category || 'questionnaire'
+      };
     }
-  }, [isOpen, diseaseId]);
 
-  const fetchQuestionnaire = async () => {
-    setLoading(true);
+    return {
+      title: detail.name || 'Risk factor',
+      subtitle: detail.displayValue ? `Observed: ${detail.displayValue}` : detail.explanation || 'Profile factor considered',
+      impact: detail.direction === 'decrease' ? -(detail.impact ?? 0) : (detail.impact ?? 0),
+      meta: detail.category || detail.source || 'profile'
+    };
+  };
+
+  const normalizedDetails = (scoreBreakdown?.details || [])
+    .map(normalizeBreakdownDetail)
+    .filter(Boolean);
+
+  const fetchQuestionnaire = useCallback(async () => {
     setError(null);
     try {
       console.log('[QuestionnaireModal] Fetching questionnaire for:', diseaseId);
@@ -49,10 +66,19 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
       const msg = err.response?.data?.message || err.message || 'Network error occurred';
       console.error('[QuestionnaireModal] Failed to fetch questionnaire:', msg);
       setError(msg);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [diseaseId]);
+
+  useEffect(() => {
+    if (isOpen && diseaseId) {
+      setError(null);
+      fetchQuestionnaire();
+      setAnswers({});
+      setCurrentStep(0);
+      setCalculatedScore(null);
+      setScoreBreakdown(null);
+    }
+  }, [isOpen, diseaseId, fetchQuestionnaire]);
 
   const handleAnswer = (questionId, value) => {
     setAnswers(prev => ({
@@ -76,81 +102,14 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
     });
   };
 
-  const calculateRisk = () => {
-    if (!questionnaire || Object.keys(answers).length === 0) return;
-
-    let totalPoints = 0;
-    const breakdown = [];
-    const gender = profile?.gender?.value || profile?.gender;
-
-    questionnaire.questions.forEach(q => {
-      const answer = answers[q.id];
-      if (!answer) return;
-
-      if (q.type === 'choice') {
-        const selectedOption = q.options.find(opt => opt.value === answer);
-        if (selectedOption) {
-          let points = selectedOption.points || 0;
-          
-          // Apply special scoring if defined
-          if (q.scoring && typeof q.scoring === 'function') {
-            const result = q.scoring(parseInt(answer), gender);
-            points = result.points;
-          }
-
-          totalPoints += points;
-          breakdown.push({
-            question: q.question,
-            answer: selectedOption.label,
-            points,
-            weight: q.weight,
-            category: q.category
-          });
-        }
-      } else if (q.type === 'multi-select') {
-        let questionPoints = 0;
-        const selectedLabels = [];
-        
-        if (Array.isArray(answer)) {
-          answer.forEach(val => {
-            const option = q.options.find(opt => opt.value === val);
-            if (option) {
-              questionPoints += option.points || 0;
-              selectedLabels.push(option.label);
-            }
-          });
-        }
-
-        totalPoints += questionPoints;
-        breakdown.push({
-          question: q.question,
-          answer: selectedLabels.join(', ') || 'None',
-          points: questionPoints,
-          weight: q.weight,
-          category: q.category
-        });
-      }
-    });
-
-    // Combine with baseline risk from onboarding
-    const baselineRisk = currentScore || 10;
-    const questionnaireImpact = Math.round(totalPoints * 0.6); // 60% weight to questionnaire
-    const onboardingImpact = Math.round(baselineRisk * 0.4); // 40% weight to onboarding data
-    
-    const finalScore = Math.min(95, Math.max(2, onboardingImpact + questionnaireImpact));
-
-    setCalculatedScore(finalScore);
-    setScoreBreakdown({
-      baseline: onboardingImpact,
-      questionnaire: questionnaireImpact,
-      totalPoints,
-      details: breakdown
-    });
-  };
-
   const handleSubmit = async () => {
-    calculateRisk();
-    
+    setError(null);
+    if (!questionnaire || Object.keys(answers).length === 0) return;
+    if (!profile?.clerkId) {
+      setError('Missing user session (clerkId). Please refresh the dashboard and try again.');
+      return;
+    }
+
     // Prepare comprehensive user data for backend recalculation
     const comprehensiveUserData = {
       clerkId: profile?.clerkId,
@@ -214,6 +173,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
     
     // Save to backend and get full recalculation
     try {
+      setSubmitting(true);
       const res = await axios.post(
         `${API_URL}/diseases/${diseaseId}/questionnaire`, 
         comprehensiveUserData
@@ -222,22 +182,26 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
       console.log('[QuestionnaireModal] Recalculation response:', res.data);
       
       if (res.data.status === 'success') {
-        // Update with backend-calculated score
         const backendData = res.data.data;
-        setCalculatedScore(backendData.riskScore);
+        setCalculatedScore(backendData.finalScore ?? backendData.riskScore);
         setScoreBreakdown({
           baseline: backendData.baselineScore,
           questionnaire: backendData.questionnaireScore,
+          delta: backendData.assessmentDelta ?? backendData.questionnaireDelta ?? 0,
           totalPoints: backendData.totalPoints,
-          details: backendData.factorBreakdown || [],
+          details: backendData.assessmentFactors || backendData.factorBreakdown || backendData.questionnaireBreakdown || [],
+          baselineFactors: backendData.baselineFactors || [],
           mitigations: backendData.mitigationSteps || [],
           allergies: backendData.allergyConsiderations || [],
-          medications: backendData.medicationConsiderations || []
+          medications: backendData.medicationConsiderations || [],
+          questionnaireMeta: backendData.questionnaireMeta || null
         });
       }
     } catch (err) {
       console.error('[QuestionnaireModal] Failed to save and recalculate:', err.response?.data || err.message);
-      // Still show frontend calculation if backend fails
+      setError(err.response?.data?.message || 'Could not calculate assessment results.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -256,7 +220,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
         console.log('[QuestionnaireModal] Triggering full dashboard refresh...');
         // Trigger the global refresh function if available
         if (window.refreshDashboard) {
-          // Do NOT full-recompute after questionnaire; just pull canonical report scores
+          // Pull saved report scores only; avoid recomputing and overwriting questionnaire results.
           window.refreshDashboard(false);
           console.log('[QuestionnaireModal] ✅ Dashboard refresh triggered');
         } else {
@@ -296,13 +260,13 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
       <AnimatePresence>
         {isOpen && (
           <>
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
             />
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -351,7 +315,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                   </>
                 )}
               </div>
-            </motion.div>
+            </MotionDiv>
           </>
         )}
       </AnimatePresence>
@@ -363,7 +327,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -372,7 +336,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
           />
 
           {/* Modal */}
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -400,7 +364,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                   <span>{Math.round(progress)}% {t('questionnaire.complete', { defaultValue: 'Complete' })}</span>
                 </div>
                 <div className="w-full bg-white/30 rounded-full h-2">
-                  <motion.div
+                  <MotionDiv
                     className="bg-white rounded-full h-2"
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
@@ -415,6 +379,11 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
               {calculatedScore === null ? (
                 /* Question View */
                 <div className="max-w-2xl mx-auto">
+                  {submitting && (
+                    <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                      Calculating your updated risk score...
+                    </div>
+                  )}
                   {!currentQuestion && (
                     <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/30 text-sm text-amber-700 dark:text-amber-300">
                       No questionnaire questions available for this condition yet.
@@ -521,19 +490,19 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
-                        <div className="text-sm text-gray-500 mb-1">Baseline Risk (Onboarding)</div>
+                        <div className="text-sm text-gray-500 mb-1">Baseline Risk Score</div>
                         <div className="text-2xl font-black text-gray-900 dark:text-white">
                           {scoreBreakdown.baseline}%
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">40% weight</div>
+                        <div className="text-xs text-gray-400 mt-1">This is the original disease-card score.</div>
                       </div>
                       
                       <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
-                        <div className="text-sm text-emerald-600 dark:text-emerald-400 mb-1">Questionnaire Impact</div>
+                        <div className="text-sm text-emerald-600 dark:text-emerald-400 mb-1">Assessment Change</div>
                         <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                          +{scoreBreakdown.questionnaire}%
+                          {scoreBreakdown.delta > 0 ? '+' : ''}{scoreBreakdown.delta}%
                         </div>
-                        <div className="text-xs text-emerald-500 mt-1">60% weight</div>
+                        <div className="text-xs text-emerald-500 mt-1">Difference introduced by your assessment answers.</div>
                       </div>
                     </div>
                   </div>
@@ -541,11 +510,11 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                   {/* Detailed Factor Breakdown */}
                   <div className="space-y-3">
                     <h4 className="text-lg font-black text-gray-900 dark:text-white">
-                      Detailed Risk Factors ({scoreBreakdown.details.length})
+                      Detailed Risk Factors ({normalizedDetails.length})
                     </h4>
                     
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {scoreBreakdown.details.map((detail, idx) => (
+                      {normalizedDetails.map((detail, idx) => (
                         <div
                           key={idx}
                           className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl"
@@ -553,20 +522,20 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="font-bold text-gray-900 dark:text-white text-sm mb-1">
-                                {detail.question}
+                                {detail.title}
                               </div>
                               <div className="text-xs text-gray-500">
-                                Your answer: <span className="font-bold text-gray-700 dark:text-gray-300">{detail.answer}</span>
+                                <span className="font-bold text-gray-700 dark:text-gray-300">{detail.subtitle}</span>
                               </div>
                             </div>
                             <div className="ml-4 text-right">
                               <div className={`font-black text-lg ${
-                                detail.points > 0 ? 'text-red-500' : 'text-emerald-500'
+                                detail.impact > 0 ? 'text-red-500' : 'text-emerald-500'
                               }`}>
-                                {detail.points > 0 ? '+' : ''}{detail.points}%
+                                {detail.impact > 0 ? '+' : ''}{detail.impact}%
                               </div>
                               <div className="text-[10px] text-gray-400 uppercase">
-                                {detail.weight}
+                                {detail.meta}
                               </div>
                             </div>
                           </div>
@@ -583,8 +552,8 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                     </h5>
                     <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
                       <li>✓ Your age, gender, and BMI from onboarding</li>
-                      <li>✓ Known allergies: {profile?.allergies?.value?.length || 0} identified</li>
-                      <li>✓ Current medications: {profile?.activeMedications?.value?.length || 0} reviewed</li>
+                      <li>✓ Known allergies: {getCount(profile?.allergies)} identified</li>
+                      <li>✓ Current medications: {getCount(profile?.activeMedications)} reviewed</li>
                       <li>✓ Lifestyle factors: diet, exercise, smoking status</li>
                       <li>✓ Previous medical history and vital signs</li>
                     </ul>
@@ -595,6 +564,11 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
 
             {/* Footer */}
             <div className="border-t border-gray-200 dark:border-gray-800 p-6">
+              {error && (
+                <div className="mb-4 p-3 rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs font-bold">
+                  {error}
+                </div>
+              )}
               {calculatedScore === null ? (
                 <div className="flex items-center justify-between">
                   <button
@@ -629,10 +603,10 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                   ) : (
                     <button
                       onClick={handleSubmit}
-                      disabled={!currentQuestion || Object.keys(answers).length < Math.max(1, questionCount * 0.5)}
+                      disabled={submitting || !currentQuestion || Object.keys(answers).length === 0}
                       className="flex items-center px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-lg disabled:opacity-30 hover:from-emerald-600 hover:to-teal-600 transition-all"
                     >
-                      {t('questionnaire.calculate_risk', { defaultValue: 'Calculate Risk' })}
+                      {submitting ? 'Calculating...' : t('questionnaire.calculate_risk', { defaultValue: 'Calculate Risk' })}
                       <Activity className="w-4 h-4 ml-2" />
                     </button>
                   )}
@@ -654,7 +628,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, currentScore, profile,
                 </div>
               )}
             </div>
-          </motion.div>
+          </MotionDiv>
         </>
       )}
     </AnimatePresence>

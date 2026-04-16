@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Medication = require('../models/Medication');
+const { schedulePredictiveRecompute } = require('../services/predictiveRiskRecomputeScheduler');
 
 /**
  * @route GET /api/medications/:clerkId
@@ -23,6 +24,7 @@ router.post('/', async (req, res) => {
   try {
     const med = new Medication(req.body);
     await med.save();
+    schedulePredictiveRecompute({ clerkId: med.clerkId });
     res.status(201).json({ status: 'success', data: med });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
@@ -43,6 +45,8 @@ router.patch('/:id/take', async (req, res) => {
     med.adherence.totalDoses += 1;
     await med.save();
 
+    schedulePredictiveRecompute({ clerkId: med.clerkId });
+
     res.json({ status: 'success', data: med });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
@@ -55,7 +59,9 @@ router.patch('/:id/take', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
+    const med = await Medication.findById(req.params.id);
     await Medication.findByIdAndUpdate(req.params.id, { active: false });
+    if (med?.clerkId) schedulePredictiveRecompute({ clerkId: med.clerkId });
     res.json({ status: 'success', message: 'Medication deactivated' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
