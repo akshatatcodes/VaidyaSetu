@@ -2,6 +2,7 @@ const { HYBRID_DISEASE_IDS } = require('../utils/riskScorer');
 const { computePredictiveRiskForDiseases } = require('./predictiveRiskAiService');
 const Report = require('../models/Report');
 const DiseaseInsight = require('../models/DiseaseInsight');
+const Alert = require('../models/Alert');
 
 // Debounce recompute per user to avoid storms from multiple writes
 const timers = new Map(); // clerkId -> timeoutId
@@ -79,6 +80,51 @@ async function persistResults(clerkId, results) {
   });
 
   await Promise.all(upserts);
+
+  await upsertPredictiveRiskAlerts(clerkId, results);
+}
+
+async function upsertPredictiveRiskAlerts(clerkId, results = {}) {
+  const entries = Object.entries(results || {});
+  if (!entries.length) return;
+
+  const severe = entries
+    .map(([diseaseId, data]) => ({ diseaseId, score: Number(data?.riskScore || 0) }))
+    .filter((r) => Number.isFinite(r.score) && r.score >= 70)
+    .sort((a, b) => b.score - a.score);
+
+  if (severe.length === 0) return;
+
+  const top = severe[0];
+  const priority = top.score >= 85 ? 'critical' : 'high';
+  const diseaseLabel = String(top.diseaseId || 'condition').replace(/_/g, ' ');
+  const topTitle = `${priority === 'critical' ? 'Critical' : 'High'} Predictive Risk: ${diseaseLabel}`;
+  const topDescription = `Your latest predictive score for ${diseaseLabel} is ${top.score}%. Please review mitigation steps and consult a doctor if symptoms are present.`;
+
+  // Keep a single active predictive-risk alert per top disease instead of creating duplicates.
+  await Alert.findOneAndUpdate(
+    {
+      clerkId,
+      type: 'predictive_risk_high',
+      title: topTitle,
+      status: { $ne: 'dismissed' }
+    },
+    {
+      $set: {
+        priority,
+        description: topDescription,
+        actionUrl: '/dashboard',
+        actionText: 'View Full Protocol',
+        status: 'unread'
+      },
+      $setOnInsert: {
+        clerkId,
+        type: 'predictive_risk_high',
+        title: topTitle
+      }
+    },
+    { upsert: true, new: true }
+  );
 }
 
 async function recomputePredictiveRiskNow({ clerkId, diseaseIds, language = 'en' }) {
