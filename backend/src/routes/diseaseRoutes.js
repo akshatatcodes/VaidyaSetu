@@ -672,6 +672,33 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
 
     const baselineScore = baselineInsights.riskScore;
     const baselineFactors = baselineInsights.factorBreakdown || [];
+
+    // If mapped scorer fields produced no change but questionnaire point-model has
+    // non-zero impact, preserve questionnaire impact in final score.
+    // This handles cases where question option values don't perfectly align with
+    // deterministic scorer enums/booleans for that disease.
+    const scorerNoDelta =
+      baselineScore !== -1 &&
+      questionnaireScore !== -1 &&
+      questionnaireScore === baselineScore;
+    const shouldForceQuestionnairePointDelta =
+      questionnaireBreakdown.totalPoints > 0 &&
+      scorerNoDelta;
+
+    if (shouldForceQuestionnairePointDelta) {
+      questionnaireScore = Math.max(
+        2,
+        Math.min(95, Math.round(baselineScore + questionnaireBreakdown.totalPoints))
+      );
+      questionnaireInsights = {
+        ...questionnaireInsights,
+        riskScore: questionnaireScore,
+        factorBreakdown: questionnaireBreakdown.details
+      };
+    }
+
+    const usedQuestionnaireDeltaRecovery = shouldForceQuestionnairePointDelta;
+
     let finalRiskScore = questionnaireScore;
     if (baselineScore === -1 && questionnaireScore !== -1) {
       finalRiskScore = questionnaireScore;
@@ -847,7 +874,7 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       // If we relied on questionnaire-point fallback (no scorer field mapping),
       // keep this route deterministic for this response. AI recompute may not
       // fully reflect generic point-only answers and can appear as "score reset".
-      if (!usedQuestionnairePointFallback) {
+      if (!usedQuestionnairePointFallback && !usedQuestionnaireDeltaRecovery) {
         const aiResults = await computePredictiveRiskForDiseases({
           clerkId,
           diseaseIds: [diseaseId],
