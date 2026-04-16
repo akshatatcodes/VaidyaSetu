@@ -35,6 +35,7 @@ const Chatbot = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Namaste! 🙏 I am **VaidyaSetu AI**, your personal health companion. I can help with symptom checking, health insights, and wellness guidance.\n\nHow can I assist you today?' }
@@ -50,18 +51,25 @@ const Chatbot = () => {
   const textareaRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Theme-aware styles
   const S = {
     chatWindow: {
       position: 'fixed',
-      bottom: '1.5rem',
-      right: '1.5rem',
-      width: '380px',
-      maxWidth: 'calc(100vw - 2rem)',
-      maxHeight: '88vh',
+      bottom: isMobile ? '0' : '1.5rem',
+      right: isMobile ? '0' : '1.5rem',
+      width: isMobile ? '100%' : '380px',
+      maxWidth: isMobile ? '100%' : 'calc(100vw - 2rem)',
+      height: isMobile ? 'calc(100vh - 4rem)' : 'auto',
+      maxHeight: isMobile ? 'calc(100vh - 4rem)' : '88vh',
       display: 'flex',
       flexDirection: 'column',
-      borderRadius: '2rem',
+      borderRadius: isMobile ? '2rem 2rem 0 0' : '2rem',
       background: isDark 
         ? 'linear-gradient(145deg, #030712 0%, #06121d 100%)'
         : 'linear-gradient(145deg, #ffffff 0%, #f8faff 100%)',
@@ -80,7 +88,7 @@ const Chatbot = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '1rem 1.5rem',
+      padding: isMobile ? '1.25rem 1.5rem' : '1rem 1.5rem',
       borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)'}`,
       flexShrink: 0,
       background: isDark
@@ -126,23 +134,23 @@ const Chatbot = () => {
     aiBubble: {
       background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.05)',
       border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(16, 185, 129, 0.1)'}`,
-      borderRadius: '1rem 1rem 1rem 0',
-      padding: '0.75rem 1rem',
+      borderRadius: '1.25rem 1.25rem 1.25rem 0',
+      padding: '0.85rem 1.1rem',
       color: isDark ? '#e2e8f0' : '#334155',
-      fontSize: '0.875rem',
+      fontSize: isMobile ? '0.925rem' : '0.875rem',
       lineHeight: 1.6,
-      maxWidth: '78%',
+      maxWidth: '85%',
       boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(16, 185, 129, 0.05)',
     },
     userBubble: {
       background: 'linear-gradient(135deg, #2563eb 0%, #4338ca 100%)',
       border: '1px solid rgba(59,130,246,0.3)',
-      borderRadius: '1rem 1rem 0 1rem',
-      padding: '0.75rem 1rem',
+      borderRadius: '1.25rem 1.25rem 0 1.25rem',
+      padding: '0.85rem 1.1rem',
       color: '#ffffff',
-      fontSize: '0.875rem',
+      fontSize: isMobile ? '0.925rem' : '0.875rem',
       lineHeight: 1.6,
-      maxWidth: '78%',
+      maxWidth: '85%',
       boxShadow: '0 2px 12px rgba(37,99,235,0.3)',
     },
     aiAvatar: {
@@ -180,7 +188,7 @@ const Chatbot = () => {
       flexShrink: 0,
     },
     inputArea: {
-      padding: '0.75rem 1rem 1rem',
+      padding: isMobile ? '1rem 1rem 1.5rem' : '0.75rem 1rem 1rem',
       background: isDark ? 'rgba(0,0,0,0.2)' : '#f8faff',
       borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)'}`,
       flexShrink: 0,
@@ -191,8 +199,8 @@ const Chatbot = () => {
       gap: '0.5rem',
       background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
       border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)'}`,
-      borderRadius: '1rem',
-      padding: '0.5rem 0.75rem',
+      borderRadius: '1.25rem',
+      padding: '0.65rem 0.85rem',
     },
     textarea: {
       flex: 1,
@@ -200,16 +208,16 @@ const Chatbot = () => {
       border: 'none',
       outline: 'none',
       color: isDark ? '#ffffff' : '#0f172a',
-      fontSize: '0.875rem',
+      fontSize: '0.925rem',
       lineHeight: 1.6,
       resize: 'none',
-      maxHeight: '6rem',
+      maxHeight: '8rem',
       fontFamily: 'inherit',
       padding: '0.25rem 0',
     },
     sendBtn: {
-      padding: '0.5rem',
-      borderRadius: '0.75rem',
+      padding: '0.65rem',
+      borderRadius: '0.875rem',
       background: 'linear-gradient(135deg, #10b981, #14b8a6)',
       border: 'none',
       cursor: 'pointer',
@@ -226,8 +234,8 @@ const Chatbot = () => {
       cursor: 'not-allowed',
     },
     micBtn: {
-      padding: '0.5rem',
-      borderRadius: '0.75rem',
+      padding: '0.65rem',
+      borderRadius: '0.875rem',
       background: 'transparent',
       border: 'none',
       cursor: 'pointer',
@@ -256,8 +264,8 @@ const Chatbot = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '0.75rem',
-      padding: '0.75rem 1rem',
-      borderRadius: '0.75rem',
+      padding: '0.85rem 1.1rem',
+      borderRadius: '1rem',
       background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
       border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(16, 185, 129, 0.15)'}`,
       cursor: 'pointer',
@@ -267,7 +275,7 @@ const Chatbot = () => {
     },
     suggestionText: {
       color: isDark ? '#9ca3af' : '#475569',
-      fontSize: '0.75rem',
+      fontSize: '0.8125rem',
       fontWeight: 500,
     },
     quickLabel: {
@@ -279,10 +287,11 @@ const Chatbot = () => {
     },
     floatBtn: {
       position: 'fixed',
-      bottom: '1.5rem',
-      right: '1.5rem',
-      padding: '1rem',
-      borderRadius: '1rem',
+      bottom: isMobile ? '5.5rem' : '1.5rem',
+      right: isMobile ? '1.5rem' : '1.5rem',
+      width: '3.5rem',
+      height: '3.5rem',
+      borderRadius: '1.25rem',
       background: 'linear-gradient(135deg, #10b981, #14b8a6)',
       border: 'none',
       cursor: 'pointer',
@@ -342,7 +351,7 @@ const Chatbot = () => {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 140) + 'px';
     }
   }, [input]);
 
@@ -425,16 +434,21 @@ const Chatbot = () => {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30% { transform: translateY(-6px); opacity: 1; }
         }
-        @keyframes chatPulse {
-          0%, 100% { box-shadow: 0 8px 32px rgba(16,185,129,0.4); }
-          50% { box-shadow: 0 8px 32px rgba(16,185,129,0.4), 0 0 0 12px rgba(16,185,129,0); }
+        @keyframes chatGlow {
+          0%, 100% { box-shadow: 0 0 20px rgba(16,185,129,0.5), 0 0 0 0px rgba(16,185,129,0.4); }
+          50% { box-shadow: 0 0 40px rgba(16,185,129,0.8), 0 0 0 20px rgba(16,185,129,0); }
         }
-        @keyframes msgIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes blinkEffect {
+          0%, 100% { opacity: 1; transform: scale(1.2); filter: brightness(1.2); }
+          50% { opacity: 0.3; transform: scale(0.8); filter: brightness(1); }
         }
-        .chatbot-float-btn { animation: chatPulse 2.5s ease-in-out infinite; }
-        .chatbot-float-btn:hover { transform: scale(1.08) !important; }
+        @keyframes heartbeat {
+          0%, 100% { transform: scale(1); }
+          10%, 30% { transform: scale(1.1); }
+          20% { transform: scale(1.15); }
+        }
+        .chatbot-float-btn { animation: chatGlow 2s ease-in-out infinite, heartbeat 4s ease-in-out infinite; }
+        .chatbot-float-btn:hover { transform: scale(1.08) !important; animation: none; }
         .chatbot-float-btn:active { transform: scale(0.95) !important; }
         .chatbot-msg { animation: msgIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .chatbot-send-btn:not(:disabled):hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(16,185,129,0.5) !important; }
@@ -455,13 +469,14 @@ const Chatbot = () => {
           title="Open AI Health Assistant"
         >
           <div style={{ position: 'relative' }}>
-            <MessageCircle style={{ width: '1.5rem', height: '1.5rem' }} />
+            <MessageCircle style={{ width: '1.75rem', height: '1.75rem' }} />
             <span style={{
-              position: 'absolute', top: '-0.25rem', right: '-0.25rem',
-              width: '0.75rem', height: '0.75rem',
+              position: 'absolute', top: '-0.35rem', right: '-0.35rem',
+              width: '0.875rem', height: '0.875rem',
               background: '#6ee7b7', borderRadius: '50%',
               border: `2px solid ${isDark ? '#030712' : '#ffffff'}`,
-              animation: 'pulse 2s infinite',
+              animation: 'blinkEffect 1.5s infinite',
+              boxShadow: '0 0 10px #10b981',
             }} />
           </div>
         </button>
@@ -501,7 +516,7 @@ const Chatbot = () => {
               style={S.closeBtn}
               title="Close"
             >
-              <X style={{ width: '1rem', height: '1rem' }} />
+              <X style={{ width: '1.25rem', height: '1.25rem' }} />
             </button>
           </div>
 
@@ -525,7 +540,7 @@ const Chatbot = () => {
                   className="chatbot-msg"
                   style={{
                     display: 'flex',
-                    gap: '0.75rem',
+                    gap: isMobile ? '0.5rem' : '0.75rem',
                     flexDirection: isUser ? 'row-reverse' : 'row',
                     alignItems: 'flex-end',
                   }}
@@ -557,7 +572,7 @@ const Chatbot = () => {
 
             {/* Suggestion chips */}
             {showSuggestions && messages.length === 1 && !loading && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', paddingTop: '0.5rem' }}>
                 <p style={S.quickLabel}>Quick questions</p>
                 {SUGGESTIONS.map(({ icon: Icon, text, color }) => (
                   <button
@@ -566,7 +581,7 @@ const Chatbot = () => {
                     className="chatbot-suggestion"
                     style={S.suggestionBtn}
                   >
-                    <Icon style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }} />
+                    <Icon style={{ width: '1.15rem', height: '1.15rem', color, flexShrink: 0 }} />
                     <span style={S.suggestionText}>{text}</span>
                   </button>
                 ))}
@@ -585,8 +600,8 @@ const Chatbot = () => {
           <div style={S.inputArea}>
             <div style={{
               ...S.inputWrapper,
-              borderColor: isListening ? 'rgba(16,185,129,0.6)' : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)',
-              boxShadow: isListening ? '0 0 20px rgba(16,185,129,0.2)' : 'none',
+              borderColor: isListening ? 'rgba(16,185,129,0.8)' : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)',
+              boxShadow: isListening ? '0 0 25px rgba(16,185,129,0.3)' : 'none',
             }}>
               <textarea
                 ref={textareaRef}
@@ -600,7 +615,7 @@ const Chatbot = () => {
                   caretColor: '#10b981',
                 }}
               />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0, paddingBottom: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0, paddingBottom: isMobile ? '0.15rem' : '0.25rem' }}>
                 <button
                   onClick={handleVoiceInput}
                   disabled={loading}
@@ -608,7 +623,7 @@ const Chatbot = () => {
                   style={isListening ? { ...S.micBtn, ...S.micBtnActive } : S.micBtn}
                   title="Voice input"
                 >
-                  {isListening ? <Volume2 style={{ width: '1rem', height: '1rem' }} /> : <Mic style={{ width: '1rem', height: '1rem' }} />}
+                  {isListening ? <Volume2 style={{ width: '1.25rem', height: '1.25rem' }} /> : <Mic style={{ width: '1.25rem', height: '1.25rem' }} />}
                 </button>
                 <button
                   onClick={() => handleSend()}
@@ -616,11 +631,11 @@ const Chatbot = () => {
                   className="chatbot-send-btn"
                   style={(!input.trim() || loading || isListening) ? { ...S.sendBtn, ...S.sendBtnDisabled } : S.sendBtn}
                 >
-                  <Send style={{ width: '1rem', height: '1rem' }} />
+                  <Send style={{ width: '1.25rem', height: '1.25rem' }} />
                 </button>
               </div>
             </div>
-            <p style={S.hintText}>Press Enter to send · Shift+Enter for newline</p>
+            {!isMobile && <p style={S.hintText}>Press Enter to send · Shift+Enter for newline</p>}
           </div>
         </div>
       )}
