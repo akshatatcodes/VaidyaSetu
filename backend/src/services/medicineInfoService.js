@@ -1,8 +1,109 @@
 const { Groq } = require('groq-sdk');
+const { GoogleGenAI } = require('@google/genai');
 const { getDrugComposition } = require('../utils/rxnav');
 const { getDrugWarnings } = require('../utils/openfda');
 
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
+
+function isUsefulComposition(value) {
+  const v = String(value || '').toLowerCase();
+  if (!v) return false;
+  return !(
+    v.includes('information not available') ||
+    v.includes('not found') ||
+    v.includes('error') ||
+    v.includes('not specified')
+  );
+}
+
+function isUsefulWarning(value) {
+  const v = String(value || '').toLowerCase();
+  if (!v) return false;
+  return !(
+    v.includes('information not available') ||
+    v.includes('not found') ||
+    v.includes('error') ||
+    v.includes('no warnings found')
+  );
+}
+
+function buildMedicineCandidates(rawName) {
+  const src = String(rawName || '').trim();
+  if (!src) return [];
+
+  // Remove common dose/form fragments.
+  const cleaned = src
+    .replace(/[(),]/g, ' ')
+    .replace(/\b\d+(\.\d+)?\s?(mg|mcg|g|ml|iu|tablet|tab|capsule|cap|syrup|inj|injection)\b/gi, ' ')
+    .replace(/\b(od|bd|tid|qid|hs|prn)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const tokens = cleaned.split(' ').filter(Boolean);
+  const alphaTokens = tokens.filter((t) => /[a-z]/i.test(t) && !/\d/.test(t));
+  const longest = [...alphaTokens].sort((a, b) => b.length - a.length)[0];
+  const last = alphaTokens[alphaTokens.length - 1];
+
+  // Prefer generic-looking suffixes if present.
+  const genericLike = alphaTokens.find((t) =>
+    /(mycin|cillin|azole|pril|sartan|olol|formin|xetine|prazole|dine|pine|mide|ide)$/i.test(t)
+  );
+
+  const out = [];
+  [src, cleaned, genericLike, longest, last].forEach((c) => {
+    const candidate = String(c || '').trim();
+    if (!candidate) return;
+    if (!out.includes(candidate)) out.push(candidate);
+  });
+  return out;
+}
+
+async function fetchBestMedicineData(rawMedName) {
+  const candidates = buildMedicineCandidates(rawMedName);
+  let best = null;
+  let bestScore = -1;
+
+  for (const candidate of candidates) {
+    const warningsData = await getDrugWarnings(candidate);
+    let compositionData = await getDrugComposition(candidate);
+
+    if (
+      (!compositionData?.rxcui || !isUsefulComposition(compositionData?.composition)) &&
+      warningsData?.genericName &&
+      typeof warningsData.genericName === 'string'
+    ) {
+      const retryComp = await getDrugComposition(warningsData.genericName);
+      if (retryComp) compositionData = retryComp;
+    }
+
+    let score = 0;
+    if (compositionData?.rxcui) score += 3;
+    if (isUsefulComposition(compositionData?.composition)) score += 2;
+    if (warningsData?.genericName) score += 1;
+    if (isUsefulWarning(warningsData?.warnings)) score += 1;
+
+    const candidateResult = {
+      name: rawMedName,
+      queriedName: candidate,
+      compositionData: { ...(compositionData || {}), name: rawMedName },
+      warningsData: warningsData || {}
+    };
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = candidateResult;
+    }
+    if (score >= 5) break; // strong enough match
+  }
+
+  return best || {
+    name: rawMedName,
+    queriedName: rawMedName,
+    compositionData: { name: rawMedName, composition: 'Information not available', rxcui: null },
+    warningsData: { name: rawMedName, warnings: 'Information not available' }
+  };
+}
 
 /**
  * Generate detailed medicine breakdown with composition, dosage, warnings
@@ -13,28 +114,7 @@ const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_
 async function generateMedicineBreakdown(medicines, language = 'English') {
   try {
     // Step 1: Fetch real data from RxNav and OpenFDA for each medicine
-    const medicineDataPromises = medicines.map(async (med) => {
-      // OpenFDA often gives a cleaner generic name. If RxNav times out or can't resolve,
-      // retry RxNav using the FDA generic name.
-      const warningsData = await getDrugWarnings(med);
-      let compositionData = await getDrugComposition(med);
-      if (
-        (!compositionData?.rxcui || String(compositionData?.composition || '').includes('Not found')) &&
-        warningsData?.genericName &&
-        typeof warningsData.genericName === 'string' &&
-        warningsData.genericName.toLowerCase() !== med.toLowerCase()
-      ) {
-        compositionData = await getDrugComposition(warningsData.genericName);
-        // Preserve the original display name while using improved normalization.
-        compositionData = { ...compositionData, name: med };
-      }
-      
-      return {
-        name: med,
-        compositionData,
-        warningsData
-      };
-    });
+    const medicineDataPromises = medicines.map((med) => fetchBestMedicineData(med));
     
     const medicineDataArray = await Promise.all(medicineDataPromises);
     
@@ -59,12 +139,6 @@ async function generateMedicineBreakdown(medicines, language = 'English') {
       
       return cleanD;
     });
-    
-    // If Groq is not available, return fallback with real API data
-    if (!groq) {
-      console.warn('[MedicineInfo] Groq API key not configured, returning fallback with real API data');
-      return generateFallbackBreakdown(medicines, medicineDataArray);
-    }
     
     // Step 3: Use AI to enhance and format the data with additional insights
     const medicineNames = medicines.join(', ');
@@ -124,18 +198,47 @@ Return output STRICTLY as this JSON structure:
   "disclaimer": "Standard medical disclaimer"
 }`;
 
-    const response = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: 'You are a medical pharmacist assistant. Return ONLY valid JSON, no markdown formatting.' },
-        { role: 'user', content: prompt }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-      max_tokens: 3000
-    });
+    let responseContent = null;
 
-    const responseContent = response.choices[0]?.message?.content;
+    if (groq) {
+      try {
+        const response = await groq.chat.completions.create({
+          messages: [
+            { role: 'system', content: 'You are a medical pharmacist assistant. Return ONLY valid JSON, no markdown formatting.' },
+            { role: 'user', content: prompt }
+          ],
+          model: 'llama-3.3-70b-versatile',
+          response_format: { type: 'json_object' },
+          temperature: 0.3,
+          max_tokens: 3000
+        });
+        responseContent = response.choices[0]?.message?.content;
+      } catch (groqError) {
+        console.warn('[MedicineInfo] Groq failed, trying Gemini:', groqError.message);
+      }
+    }
+
+    // Gemini fallback when Groq is unavailable or failed.
+    if (!responseContent && gemini) {
+      try {
+        const response = await gemini.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            responseMimeType: 'application/json'
+          }
+        });
+        responseContent = response?.text || null;
+      } catch (geminiError) {
+        console.warn('[MedicineInfo] Gemini fallback failed:', geminiError.message);
+      }
+    }
+
+    if (!responseContent) {
+      console.warn('[MedicineInfo] AI unavailable (Groq/Gemini), returning data-backed fallback');
+      return generateFallbackBreakdown(medicines, medicineDataArray);
+    }
 
     // Try to parse JSON from the response
     let parsed;
