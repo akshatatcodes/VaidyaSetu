@@ -103,7 +103,12 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate
   };
 
   const handleSubmit = async () => {
+    setError(null);
     if (!questionnaire || Object.keys(answers).length === 0) return;
+    if (!profile?.clerkId) {
+      setError('Missing user session (clerkId). Please refresh the dashboard and try again.');
+      return;
+    }
 
     // Prepare comprehensive user data for backend recalculation
     const comprehensiveUserData = {
@@ -559,6 +564,11 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate
 
             {/* Footer */}
             <div className="border-t border-gray-200 dark:border-gray-800 p-6">
+              {error && (
+                <div className="mb-4 p-3 rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs font-bold">
+                  {error}
+                </div>
+              )}
               {calculatedScore === null ? (
                 <div className="flex items-center justify-between">
                   <button
