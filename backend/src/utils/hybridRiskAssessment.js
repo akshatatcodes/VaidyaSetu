@@ -14,21 +14,24 @@ function getRiskBand(score) {
 function calculateHybridRiskFromProfile(profile) {
   const normalizedProfile = { ...profile };
 
-  if (normalizedProfile.familyHistoryDiabetes === true) {
-    normalizedProfile.familyHistoryDiabetes = 'One';
-  } else if (normalizedProfile.familyHistoryDiabetes === false) {
-    normalizedProfile.familyHistoryDiabetes = 'None';
-  }
+  const extract = (v) => {
+    if (v && typeof v === 'object' && v.value !== undefined) return v.value;
+    return v;
+  };
 
-  if (normalizedProfile.familyHistoryHypertension === true) {
-    normalizedProfile.familyHistoryHypertension = 'One';
-  } else if (normalizedProfile.familyHistoryHypertension === false) {
-    normalizedProfile.familyHistoryHypertension = 'None';
-  }
+  // Many onboarding fields are stored as `{ value: ... }`. Risk scorer expects
+  // specific string encodings for family history; normalize booleans here.
+  const famDiab = extract(normalizedProfile.familyHistoryDiabetes);
+  if (famDiab === true) normalizedProfile.familyHistoryDiabetes = 'One';
+  else if (famDiab === false) normalizedProfile.familyHistoryDiabetes = 'None';
 
-  if (typeof normalizedProfile.frequentUrination === 'boolean') {
-    normalizedProfile.frequentUrination = boolToYesNo(normalizedProfile.frequentUrination);
-  }
+  const famHtn = extract(normalizedProfile.familyHistoryHypertension);
+  if (famHtn === true) normalizedProfile.familyHistoryHypertension = 'One';
+  else if (famHtn === false) normalizedProfile.familyHistoryHypertension = 'None';
+
+  // IMPORTANT: Do NOT convert frequentUrination into 'Yes/No' strings.
+  // The risk scorer checks for boolean `true` for diabetes symptom enrichment.
+  // So we leave it as-is (FieldSchema object or boolean).
 
   const risk_scores = {};
   const risk_score_meta = {};

@@ -120,6 +120,61 @@ const DISEASE_QUESTIONNAIRES = {
         ]
     },
 
+    pre_diabetes: {
+        title: "Pre-Diabetes Risk Assessment",
+        description: "Answer these questions to refine your early glucose-dysregulation risk using waist, activity, family history, and symptom signals.",
+        estimatedTime: "2 minutes",
+        questions: [
+            {
+                id: 'waist_circumference',
+                question: "What is your waist circumference?",
+                type: 'number',
+                unit: 'cm',
+                placeholder: 'e.g., 85',
+                weight: 'high',
+                category: 'demographic'
+            },
+            {
+                id: 'physical_activity',
+                question: "How physically active are you?",
+                type: 'choice',
+                options: [
+                    { value: 'sedentary', label: 'Sedentary (No exercise)', points: 16 },
+                    { value: 'moderate', label: 'Moderate (3-4 days/week)', points: 8 },
+                    { value: 'active', label: 'Active (5+ days/week)', points: 0 }
+                ],
+                weight: 'high',
+                category: 'lifestyle'
+            },
+            {
+                id: 'diabetes_family_history',
+                question: "Do you have a family history of diabetes?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'siblings', label: 'Yes - Siblings', points: 7 },
+                    { value: 'parents', label: 'Yes - Parents', points: 7 },
+                    { value: 'both', label: 'Yes - Both', points: 14 }
+                ],
+                weight: 'high',
+                category: 'demographic'
+            },
+            {
+                id: 'symptoms',
+                question: "Are you experiencing any of these symptoms?",
+                type: 'multi-select',
+                options: [
+                    { value: 'frequent_urination', label: 'Frequent urination', points: 6 },
+                    { value: 'excessive_thirst', label: 'Excessive thirst', points: 6 },
+                    { value: 'blurred_vision', label: 'Blurred vision', points: 4 },
+                    { value: 'none', label: 'None of these', points: 0 }
+                ],
+                weight: 'medium',
+                category: 'symptom'
+            }
+        ]
+    },
+
     hypertension: {
         title: "Hypertension Risk Assessment",
         description: "Complete this assessment based on ICMR-INDIAB and WHO guidelines for accurate blood pressure risk calculation.",
@@ -341,6 +396,254 @@ const DISEASE_QUESTIONNAIRES = {
                 ],
                 weight: 'medium',
                 category: 'clinical'
+            }
+        ]
+    },
+
+    anemia: {
+        title: "Anemia Risk Assessment",
+        description: "Complete this assessment for a more accurate anemia risk estimate based on symptoms, blood loss, and dietary risk factors.",
+        estimatedTime: "2 minutes",
+        questions: [
+            {
+                id: 'family_history_anemia',
+                question: "Do you have a family history of anemia?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 10 },
+                    { value: 'unsure', label: 'Unsure', points: 5 }
+                ],
+                weight: 'medium',
+                category: 'demographic'
+            },
+            {
+                id: 'anemia_symptoms',
+                question: "Are you experiencing any of these symptoms?",
+                type: 'multi-select',
+                options: [
+                    { value: 'pale_skin', label: 'Pale skin', points: 12 },
+                    { value: 'brittle_nails', label: 'Brittle nails', points: 7 },
+                    { value: 'dizziness', label: 'Dizziness on standing', points: 8 },
+                    { value: 'fatigue', label: 'Constant fatigue', points: 8 },
+                    { value: 'none', label: 'None of these', points: 0 }
+                ],
+                weight: 'high',
+                category: 'symptom'
+            },
+            {
+                id: 'recent_blood_donation',
+                question: "Have you donated blood recently?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 6 }
+                ],
+                weight: 'medium',
+                category: 'clinical'
+            },
+            {
+                id: 'heavy_menstrual_flow',
+                question: "For women: do you have heavy menstrual flow?",
+                type: 'choice',
+                conditional: { field: 'gender', value: 'Female' },
+                options: [
+                    { value: 'no', label: 'No / Not applicable', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 12 },
+                    { value: 'unsure', label: 'Unsure', points: 5 }
+                ],
+                weight: 'high',
+                category: 'clinical'
+            },
+            {
+                id: 'iron_supplementation',
+                question: "Are you currently taking iron supplements?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: -10 }
+                ],
+                weight: 'medium',
+                category: 'clinical'
+            }
+        ]
+    },
+
+    pcos: {
+        title: "PCOS Risk Assessment",
+        description: "Answer these questions to better estimate PCOS-related hormonal risk factors and symptoms.",
+        estimatedTime: "2 minutes",
+        questions: [
+            {
+                id: 'menstrual_cycle',
+                question: "Are your menstrual cycles irregular?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 30 },
+                    { value: 'sometimes', label: 'Sometimes', points: 15 }
+                ],
+                weight: 'critical',
+                category: 'symptom'
+            },
+            {
+                id: 'hirsutism',
+                question: "Have you noticed increased facial or body hair growth?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 20 },
+                    { value: 'mild', label: 'Mild increase', points: 10 }
+                ],
+                weight: 'high',
+                category: 'symptom'
+            },
+            {
+                id: 'weight_gain_pcos',
+                question: "Have you experienced recent unexplained weight gain?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 10 },
+                    { value: 'mild', label: 'Slight gain', points: 5 }
+                ],
+                weight: 'medium',
+                category: 'symptom'
+            }
+        ]
+    },
+
+    asthma: {
+        title: "Asthma Risk Assessment",
+        description: "Answer these questions to refine asthma-related airway risk using symptom and trigger information.",
+        estimatedTime: "2 minutes",
+        questions: [
+            {
+                id: 'wheezing',
+                question: "Do you experience wheezing or whistling while breathing?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 30 },
+                    { value: 'sometimes', label: 'Sometimes', points: 15 }
+                ],
+                weight: 'critical',
+                category: 'symptom'
+            },
+            {
+                id: 'high_pollution_area',
+                question: "Do you live or work in a high-pollution area?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 10 }
+                ],
+                weight: 'medium',
+                category: 'lifestyle'
+            }
+        ]
+    },
+
+    copd: {
+        title: "COPD Risk Assessment",
+        description: "This assessment refines COPD risk using smoking exposure and long-term respiratory irritants.",
+        estimatedTime: "2 minutes",
+        questions: [
+            {
+                id: 'pack_years',
+                question: "How many smoking pack-years do you estimate?",
+                type: 'choice',
+                options: [
+                    { value: '0', label: '0', points: 0 },
+                    { value: '8', label: '1-10 pack-years', points: 10 },
+                    { value: '15', label: '11-20 pack-years', points: 20 },
+                    { value: '25', label: 'More than 20 pack-years', points: 30 }
+                ],
+                weight: 'critical',
+                category: 'lifestyle'
+            },
+            {
+                id: 'biomass_fuel_use',
+                question: "Are you regularly exposed to biomass fuel smoke at home or work?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 20 }
+                ],
+                weight: 'high',
+                category: 'lifestyle'
+            },
+            {
+                id: 'occupational_dust_exposure',
+                question: "Do you have regular occupational dust or chemical exposure?",
+                type: 'choice',
+                options: [
+                    { value: 'no', label: 'No', points: 0 },
+                    { value: 'yes', label: 'Yes', points: 15 }
+                ],
+                weight: 'high',
+                category: 'lifestyle'
+            }
+        ]
+    },
+
+    anxiety: {
+        title: "Anxiety Risk Assessment",
+        description: "Answer these questions to refine anxiety risk using current symptoms and sleep deprivation signals.",
+        estimatedTime: "2 minutes",
+        questions: [
+            {
+                id: 'anxiety_screen',
+                question: "Have you been feeling persistently anxious or on edge?",
+                type: 'choice',
+                options: [
+                    { value: 'No', label: 'No', points: 0 },
+                    { value: 'Yes', label: 'Yes', points: 40 }
+                ],
+                weight: 'critical',
+                category: 'symptom'
+            },
+            {
+                id: 'sleep_hours',
+                question: "How many hours do you usually sleep?",
+                type: 'choice',
+                options: [
+                    { value: '8', label: '7 or more hours', points: 0 },
+                    { value: '6', label: '5-6 hours', points: 5 },
+                    { value: '4', label: 'Less than 5 hours', points: 15 }
+                ],
+                weight: 'medium',
+                category: 'lifestyle'
+            }
+        ]
+    },
+
+    depression: {
+        title: "Depression Risk Assessment",
+        description: "Answer these questions to refine depression risk using mood and interest-loss screening signals.",
+        estimatedTime: "2 minutes",
+        questions: [
+            {
+                id: 'depression_screen',
+                question: "Have you been feeling persistently low or depressed?",
+                type: 'choice',
+                options: [
+                    { value: 'No', label: 'No', points: 0 },
+                    { value: 'Yes', label: 'Yes', points: 45 }
+                ],
+                weight: 'critical',
+                category: 'symptom'
+            },
+            {
+                id: 'lost_interest',
+                question: "Have you lost interest in activities you usually enjoy?",
+                type: 'choice',
+                options: [
+                    { value: 'No', label: 'No', points: 0 },
+                    { value: 'Yes', label: 'Yes', points: 45 }
+                ],
+                weight: 'critical',
+                category: 'symptom'
             }
         ]
     },

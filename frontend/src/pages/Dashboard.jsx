@@ -53,8 +53,12 @@ const Dashboard = () => {
   };
 
   const needsHybridBootstrap = (scores) => {
+    // Only bootstrap when the report has no usable risk score object.
+    // If some disease keys are missing, we prefer not to re-run the
+    // global hybrid predictor because it can overwrite questionnaire-updated
+    // disease cards and cause score "jumping".
     if (!scores || typeof scores !== 'object') return true;
-    return FULL_HYBRID_DISEASE_IDS.some((k) => scores[k] === undefined || scores[k] === null);
+    return Object.keys(scores).length === 0;
   };
 
   /** fullRecompute: run questionnaire hybrid (all diseases) and persist — use after profile edits. */
@@ -88,16 +92,12 @@ const Dashboard = () => {
       const profileOk = profileRes?.data?.status === 'success';
       const needsBootstrap = needsHybridBootstrap(reportData?.risk_scores);
       
-      // CRITICAL: Only run hybrid-assessment on initial load or if scores are missing
-      // Do NOT run it on every refresh to avoid overwriting manual data updates
-      // Run hybrid only when bootstrap is needed or explicitly requested.
-      // Avoid overwriting questionnaire-calculated disease scores during normal refresh.
-      const shouldRunHybrid = profileOk && (needsBootstrap || fullRecompute);
-
-      if (shouldRunHybrid) {
-        console.log('[Dashboard] Running hybrid assessment...', { fullRecompute, needsBootstrap });
+      // CRITICAL: Predictive-risk init/recompute is the canonical flow.
+      // Do NOT run it on every refresh to avoid overwriting manual/questionnaire-updated data.
+      if (profileOk && needsBootstrap) {
+        console.log('[Dashboard] Initializing predictive risk...', { fullRecompute, needsBootstrap });
         try {
-          await axios.post(`${API_URL}/reports/hybrid-assessment`, {
+          await axios.post(`${API_URL}/reports/predictive-risk/init`, {
             clerkId: user.id,
             persist: true
           });
@@ -105,14 +105,29 @@ const Dashboard = () => {
           if (again.data?.status === 'success') {
             reportData = again.data.data;
             setScoresAsOf(new Date());
-            console.log('[Dashboard] ✅ Hybrid assessment complete, updated report');
+            console.log('[Dashboard] ✅ Predictive init complete, updated report');
             console.log('[Dashboard] New diabetes score:', reportData.risk_scores?.diabetes);
           }
-        } catch (hybridErr) {
-          console.warn('[Dashboard] hybrid-assessment failed:', hybridErr.response?.data || hybridErr.message);
+        } catch (initErr) {
+          console.warn('[Dashboard] predictive-risk/init failed:', initErr.response?.data || initErr.message);
         }
-      } else if (fullRecompute && !needsBootstrap) {
-        console.log('[Dashboard] Skipping hybrid-assessment due to missing profile data');
+      } else if (profileOk && fullRecompute && !needsBootstrap) {
+        console.log('[Dashboard] Recomputing predictive risk...', { fullRecompute });
+        try {
+          await axios.post(`${API_URL}/reports/predictive-risk/recompute`, {
+            clerkId: user.id,
+            persist: true
+          });
+          const again = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
+          if (again.data?.status === 'success') {
+            reportData = again.data.data;
+            setScoresAsOf(new Date());
+            console.log('[Dashboard] ✅ Predictive recompute complete, updated report');
+            console.log('[Dashboard] New diabetes score:', reportData.risk_scores?.diabetes);
+          }
+        } catch (reErr) {
+          console.warn('[Dashboard] predictive-risk/recompute failed:', reErr.response?.data || reErr.message);
+        }
       }
 
       if (reportData) {
@@ -400,7 +415,7 @@ const Dashboard = () => {
                             if (!user?.id) return;
                             setLoading(true);
                             try {
-                              await axios.post(`${API_URL}/reports/hybrid-assessment`, { clerkId: user.id, persist: true });
+                              await axios.post(`${API_URL}/reports/predictive-risk/init`, { clerkId: user.id, persist: true });
                               const r = await axios.get(`${API_URL}/reports/${user.id}`);
                               if (r.data?.status === 'success') setReport(r.data.data);
                             } catch (e) {

@@ -72,8 +72,8 @@ const Step7History = () => {
       const response = await axios.post(`${API_URL}/user/profile`, payload);
 
       if (response.data.status === 'success') {
-        // Create/update risk scores immediately from questionnaire-based assessment.
-        await axios.post(`${API_URL}/reports/hybrid-assessment`, {
+        // Create/update predictive baseline risk scores (onboarding-first).
+        await axios.post(`${API_URL}/reports/predictive-risk/init`, {
           clerkId: user?.id,
           persist: true
         }).catch(() => null);
