@@ -158,58 +158,7 @@ const AlertSettings = () => {
             </div>
          </div>
 
-         <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-8 rounded-[2.5rem] shadow-xl space-y-8">
-            <div className="flex items-center gap-4">
-               <div className="p-3 bg-amber-500/10 rounded-2xl">
-                  <Settings2 className="w-6 h-6 text-amber-500" />
-               </div>
-               <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-widest">Biometric Limits</h3>
-            </div>
-            <div className="space-y-4">
-               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
-                  <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest">High BP Systolic</span>
-                  <div className="flex items-center gap-3">
-                     <input
-                       type="number"
-                       value={prefs.customThresholds.systolicBP.high || 140}
-                       onChange={(e) => {
-                         const val = Number(e.target.value || 0);
-                         setPrefs({
-                           ...prefs,
-                           customThresholds: {
-                             ...prefs.customThresholds,
-                             systolicBP: { ...(prefs.customThresholds.systolicBP || {}), high: val }
-                           }
-                         });
-                       }}
-                       className="w-16 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-2 text-xs text-center font-bold"
-                     />
-                     <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300">mmHg</span>
-                  </div>
-               </div>
-               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
-                  <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest">Low SpO2 Critical</span>
-                  <div className="flex items-center gap-3">
-                     <input
-                       type="number"
-                       value={prefs.customThresholds.spo2.low || 90}
-                       onChange={(e) => {
-                         const val = Number(e.target.value || 0);
-                         setPrefs({
-                           ...prefs,
-                           customThresholds: {
-                             ...prefs.customThresholds,
-                             spo2: { ...(prefs.customThresholds.spo2 || {}), low: val }
-                           }
-                         });
-                       }}
-                       className="w-16 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-2 text-xs text-center font-bold"
-                     />
-                     <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300">%</span>
-                  </div>
-               </div>
-            </div>
-         </div>
+
       </div>
 
     </div>

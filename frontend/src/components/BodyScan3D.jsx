@@ -253,13 +253,13 @@ const BodyScan3D = ({ riskScore = 0 }) => {
       </Canvas>
 
       {/* HUD OVERLAY */}
-      <div className="absolute inset-0 pointer-events-none p-12">
-        <div className="absolute top-8 left-8 w-20 h-20 border-t border-l border-emerald-500/20 rounded-tl-[2rem]" />
-        <div className="absolute top-8 right-8 w-20 h-20 border-t border-r border-emerald-500/20 rounded-tr-[2rem]" />
-        <div className="absolute bottom-8 left-8 w-20 h-20 border-b border-l border-emerald-500/20 rounded-bl-[2rem]" />
-        <div className="absolute bottom-8 right-8 w-20 h-20 border-b border-r border-emerald-500/20 rounded-br-[2rem]" />
+      <div className="absolute inset-0 pointer-events-none p-6 md:p-12">
+        <div className="absolute top-4 left-4 md:top-8 md:left-8 w-12 h-12 md:w-20 md:h-20 border-t border-l border-emerald-500/20 rounded-tl-[1.5rem] md:rounded-tl-[2rem]" />
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 w-12 h-12 md:w-20 md:h-20 border-t border-r border-emerald-500/20 rounded-tr-[1.5rem] md:rounded-tr-[2rem]" />
+        <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 w-12 h-12 md:w-20 md:h-20 border-b border-l border-emerald-500/20 rounded-bl-[1.5rem] md:rounded-bl-[2rem]" />
+        <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 w-12 h-12 md:w-20 md:h-20 border-b border-r border-emerald-500/20 rounded-br-[1.5rem] md:rounded-br-[2rem]" />
         
-        <div className="absolute top-14 left-0 right-0 flex items-start justify-center space-x-24 w-full px-20">
+        <div className="absolute top-10 md:top-14 left-0 right-0 flex items-start justify-center space-x-12 md:space-x-24 w-full px-10 md:px-20">
            <div className="flex flex-col items-center">
               <span className="text-[8px] font-black text-emerald-500/30 uppercase tracking-[0.5em] mb-2">Bio-Feedback</span>
               <div className="flex items-center space-x-2">

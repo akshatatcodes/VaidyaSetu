@@ -20,6 +20,7 @@ import LabResultsModals from '../components/LabResultsModals';
 import GoalsModals from '../components/GoalsModals';
 import VitalAnalysisModal from '../components/VitalAnalysisModal';
 import LabAnalysisModal from '../components/LabAnalysisModal';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
 
 import { API_URL } from '../config/api';
@@ -89,7 +90,9 @@ const Vitals = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [history, setHistory] = useState([]);
+
   const [currentVitalsWithAnalysis, setCurrentVitalsWithAnalysis] = useState([]);
   const [labResults, setLabResults] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -294,8 +297,40 @@ const Vitals = () => {
     return val;
   }
 
+  const syncGoogleFit = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setSyncing(true);
+      try {
+        const res = await axios.post(`${API_URL}/fitness/steps`, { 
+          clerkId: activeUser.id, 
+          accessToken: tokenResponse.access_token 
+        });
+        if (res.data.status === 'success') fetchVitals();
+      } catch (err) {
+        console.error("Fitness sync failed:", err);
+      } finally {
+        setSyncing(false);
+      }
+    },
+    scope: 'https://www.googleapis.com/auth/fitness.activity.read'
+  });
+
+  const handleSync = () => {
+    syncGoogleFit();
+  };
+
   const handleVitalCardClick = (vitalType, value) => {
-    setAnalysisModal({ open: true, vitalType, currentValue: value });
+    // If no value, open add modal. If has value, show analysis.
+    if (!value || (typeof value === 'object' && !value.systolic)) {
+        let modalType = vitalType;
+        if (vitalType === 'blood_pressure') modalType = 'bp';
+        if (vitalType === 'blood_glucose') modalType = 'glucose';
+        if (vitalType === 'sleep_duration') modalType = 'sleep';
+        if (vitalType === 'water_intake') modalType = 'water';
+        setModal({ open: true, type: modalType });
+    } else {
+        setAnalysisModal({ open: true, vitalType, currentValue: value });
+    }
   };
 
   const handleExportJSON = async () => {
@@ -630,7 +665,7 @@ const Vitals = () => {
                    </div>
                 </div>
 
-                {/* Connected Devices (Step 47) */}
+                {/* Connected Devices (Sync Intelligence) */}
                 <div className="space-y-6">
                    <h3 className="text-xs font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest px-4 flex items-center gap-2">
                      <RefreshCw className="w-4 h-4 text-emerald-500" /> {t('vitals.sync_intelligence')}
@@ -639,17 +674,23 @@ const Vitals = () => {
                       <div className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-white/5">
                          <div className="flex items-center gap-4">
                             <div className="p-3 bg-white dark:bg-gray-950 rounded-xl shadow-sm">
-                               <RefreshCw className="w-5 h-5 text-emerald-500" />
+                               <RefreshCw className={`w-5 h-5 text-emerald-500 ${syncing ? 'animate-spin' : ''}`} />
                             </div>
                             <div>
                                <div className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tighter">{t('vitals.google_fit_hub')}</div>
                                <div className="text-[9px] text-emerald-500 font-bold flex items-center gap-1">
-                                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> 
-                                  {t('vitals.connected_status')}
+                                  <div className={`w-1.5 h-1.5 bg-emerald-500 rounded-full ${syncing ? 'animate-ping' : 'animate-pulse'}`} /> 
+                                  {syncing ? 'Synchronizing...' : t('vitals.connected_status')}
                                </div>
                             </div>
                          </div>
-                         <button className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-[9px] font-black uppercase tracking-widest hover:text-emerald-500 transition-colors">{t('vitals.resync')}</button>
+                         <button 
+                            onClick={handleSync}
+                            disabled={syncing}
+                            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-[9px] font-black uppercase tracking-widest hover:text-emerald-500 transition-colors disabled:opacity-50"
+                         >
+                            {syncing ? 'Syncing...' : t('vitals.resync')}
+                         </button>
                       </div>
                       <div className="mt-4 flex items-center justify-between p-4 opacity-40 grayscale pointer-events-none">
                          <div className="flex items-center gap-4">

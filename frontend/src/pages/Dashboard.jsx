@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [medications, setMedications] = useState([]);
   const [profile, setProfile] = useState(null);
   const [showAllRiskCards, setShowAllRiskCards] = useState(false);
+  const [showAllAdvice, setShowAllAdvice] = useState(false);
   const [scoresAsOf, setScoresAsOf] = useState(null);
 
   // STEP 62: Global Disease Refresh Mechanism
@@ -377,11 +378,30 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-gray-900 dark:text-white font-black text-xl tracking-tight">{t('dashboard.predictive_risks')}</h3>
-            <p className="text-xs text-gray-400 font-medium">{t('dashboard.risk_instructions')}</p>
+            {/* Enhanced Section Header */}
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-gray-900 dark:text-white font-black text-2xl tracking-tight flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                    <Activity className="w-5 h-5 text-white" />
+                  </div>
+                  {t('dashboard.predictive_risks')}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{
+                    Object.entries(report?.risk_scores || {}).filter(([_, score]) => score >= 70).length
+                  } High Risk</span>
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium pl-[52px]">
+                {t('dashboard.risk_instructions')}
+              </p>
+              <div className="absolute -bottom-4 left-0 right-0 h-px bg-gradient-to-r from-emerald-500/50 via-teal-500/30 to-transparent" />
+            </div>
             
-            {/* Disease Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Disease Cards Grid - Enhanced Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
               {(() => {
                 const riskEntries = Object.entries(report?.risk_scores || {});
                 const normalizeDiseaseId = (diseaseId = '') => diseaseId.toLowerCase().replace(/[_-\s]/g, '');
@@ -405,9 +425,12 @@ const Dashboard = () => {
 
                 if (visibleEntries.length === 0) {
                   return (
-                    <div className="md:col-span-2 rounded-[2rem] border border-amber-500/25 bg-amber-500/5 p-8 text-center text-sm text-amber-100">
-                      <p className="font-bold text-amber-400 mb-2 uppercase tracking-widest text-[10px]">{t('dashboard.no_risk_vectors')}</p>
-                        <p className="text-gray-400 mb-4">
+                    <div className="md:col-span-2 rounded-3xl border-2 border-dashed border-emerald-300 dark:border-emerald-700/50 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10 p-10 text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                        <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <p className="font-bold text-emerald-700 dark:text-emerald-300 mb-2 text-lg">{t('dashboard.no_risk_vectors')}</p>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
                           {t('dashboard.report_empty')}
                         </p>
                         <button
@@ -427,7 +450,7 @@ const Dashboard = () => {
                               setLoading(false);
                             }
                           }}
-                          className="px-6 py-3 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-wider"
+                          className="px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-emerald-500/30 transition-all hover:-translate-y-0.5 active:scale-95"
                         >
                           {t('dashboard.refresh_risks')}
                         </button>
@@ -457,44 +480,74 @@ const Dashboard = () => {
               if (remainingCount === 0) return null;
 
               return (
-                <button
-                  type="button"
-                  onClick={() => setShowAllRiskCards(prev => !prev)}
-                  className="px-5 py-2 rounded-xl border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-wider hover:bg-emerald-500/10 transition-colors"
-                >
-                  {showAllRiskCards ? t('dashboard.show_less') : `${t('dashboard.show_more')} (${remainingCount})`}
-                </button>
+                <div className="flex justify-center pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllRiskCards(prev => !prev)}
+                    className="px-6 py-3 rounded-2xl border-2 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-sm font-bold uppercase tracking-wider hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all hover:-translate-y-0.5 active:scale-95 shadow-sm hover:shadow-md"
+                  >
+                    {showAllRiskCards ? t('dashboard.show_less') : `${t('dashboard.show_more')} (${remainingCount})`}
+                  </button>
+                </div>
               );
             })()}
           </div>
 
           {/* Targeted AI Insights (Dynamic Map) */}
-          <div className="space-y-4">
-            <h3 className="text-slate-900 dark:text-white font-black text-lg flex items-center">
-              <Cpu className="w-5 h-5 mr-3 text-emerald-600 dark:text-emerald-500" /> {t('dashboard.clinical_action_plan')}
+          <div className="space-y-6">
+            <h3 className="text-slate-900 dark:text-white font-black text-xl flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Cpu className="w-5 h-5 text-white" />
+              </div>
+              {t('dashboard.clinical_action_plan')}
             </h3>
-            <div className="grid gap-4">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Support both new dynamic 'advice' map and legacy hardcoded advice fields */}
-              {Object.entries(report?.advice || {}).length > 0 ? (
-                Object.entries(report.advice).map(([disease, text]) => (
-                  <AdviceCard 
-                    key={disease}
-                    label={`${disease.charAt(0).toUpperCase() + disease.slice(1).replace('_', ' ')} Insight`} 
-                    text={text} 
-                    icon={<AlertTriangle className={`w-6 h-6 ${getRiskColor(report?.risk_scores?.[disease]) === '#ef4444' ? 'text-red-500' : 'text-emerald-500'}`} />} 
-                    onFeedback={(r) => handleFeedback(disease, r, 'Status', text)}
-                    done={feedbackStatus[disease]}
-                  />
-                ))
-              ) : (
-                <div className="p-8 text-center bg-gray-50 dark:bg-gray-900/40 rounded-3xl border border-gray-200 dark:border-gray-800 border-dashed">
-                  <Cpu className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-500 italic text-sm">
-                    {t('dashboard.no_insights')}
-                  </p>
-                </div>
-              )}
+              {(() => {
+                const allAdvice = Object.entries(report?.advice || {});
+                if (allAdvice.length === 0) {
+                  return (
+                    <div className="md:col-span-2 p-10 text-center bg-gray-50 dark:bg-gray-900/40 rounded-3xl border border-gray-200 dark:border-gray-800 border-dashed">
+                      <Cpu className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+                      <p className="text-gray-500 dark:text-gray-500 italic text-sm">
+                        {t('dashboard.no_insights')}
+                      </p>
+                    </div>
+                  );
+                }
+
+                const visibleAdvice = showAllAdvice ? allAdvice : allAdvice.slice(0, 4);
+
+                return (
+                  <>
+                    {visibleAdvice.map(([disease, text]) => (
+                      <AdviceCard 
+                        key={disease}
+                        label={`${disease.charAt(0).toUpperCase() + disease.slice(1).replace('_', ' ')} Insight`} 
+                        text={text} 
+                        icon={<AlertTriangle className={`w-6 h-6 ${getRiskColor(report?.risk_scores?.[disease]) === '#ef4444' ? 'text-red-500' : 'text-emerald-500'}`} />} 
+                        onFeedback={(r) => handleFeedback(disease, r, 'Status', text)}
+                        done={feedbackStatus[disease]}
+                      />
+                    ))}
+                  </>
+                );
+              })()}
             </div>
+
+            {Object.entries(report?.advice || {}).length > 4 && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAllAdvice(prev => !prev)}
+                  className="group flex items-center gap-2 px-6 py-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all active:scale-95 transition-all shadow-sm"
+                >
+                  <RefreshCw className={`w-4 h-4 text-blue-500 ${showAllAdvice ? 'rotate-180' : ''} transition-transform duration-500`} />
+                  {showAllAdvice ? t('dashboard.show_less') : `${t('dashboard.show_more')} (${Object.entries(report?.advice || {}).length - 4})`}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

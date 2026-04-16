@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
   Pill, Clock, Calendar, Plus, 
   CheckCircle2, XCircle, Trash2, TrendingUp,
-  RefreshCw, ChevronRight, Droplets, Info
+  RefreshCw, ChevronRight, Droplets, Info, ShieldCheck
 } from 'lucide-react';
 
 import { API_URL } from '../config/api';

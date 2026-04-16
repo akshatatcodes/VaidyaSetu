@@ -842,11 +842,17 @@ function calculateDetailedInsights(profile, diseaseId) {
 
     // STEP 17: PROTECTIVE FACTOR LOGIC
     if (score !== -1) {
+        // Apply Global Protective Factors
         if (bmi >= 18.5 && bmi <= 23) score -= 10;
         if (profile.activityLevel?.value === 'Regular') score -= 15;
         if (profile.isSmoker?.value === false) score -= 20;
 
-        score = Math.max(baseline, score);
+        // Apply Disease-Specific Protective Factors (from protective array)
+        protective.forEach(p => {
+            if (p.impact) score -= p.impact;
+        });
+
+        // Allowing score to drop below baseline if user is explicitly healthy
         score = Math.round(Math.min(95, Math.max(2, score)));
     }
 

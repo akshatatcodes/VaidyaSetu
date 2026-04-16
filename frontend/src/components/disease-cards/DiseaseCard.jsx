@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
@@ -165,6 +165,8 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
     }
   };
 
+
+
   const getRiskColor = (score) => {
     if (score === -1) return '#6b7280';
     if (score > 70) return '#ef4444';
@@ -208,24 +210,29 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
     <motion.div 
       layout
       transition={{ layout: { duration: 0.4, type: 'spring', damping: 25, stiffness: 120 } }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="bg-white dark:bg-gray-950/40 backdrop-blur-3xl border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none p-6 rounded-[2.5rem] transition-all hover:border-emerald-500/30 w-full relative overflow-hidden group"
+      whileHover={{ y: -6, transition: { duration: 0.2 } }}
+      className="bg-white dark:bg-gray-950/40 backdrop-blur-3xl border-2 border-slate-100 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none p-4 sm:p-6 rounded-3xl transition-all hover:border-emerald-500/40 hover:shadow-2xl hover:shadow-emerald-500/10 w-full relative overflow-hidden group"
     >
+      {/* Ambient Background Glow */}
+      <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 ${
+        currentScore >= 70 ? 'bg-red-500/10' : currentScore >= 40 ? 'bg-amber-500/10' : 'bg-emerald-500/10'
+      }`} />
+      
       {/* Collapsed Header - Always clickable for popup */}
       <div 
-        className="flex items-center justify-between cursor-pointer select-none"
+        className="flex items-center justify-between cursor-pointer select-none relative z-10"
         onClick={() => setShowRiskDetailModal(true)}
       >
         <div className="flex items-center space-x-4 flex-1">
-          {/* Circular Progress Indicator */}
-          <div className="relative w-12 h-12 flex items-center justify-center hover:scale-110 transition-transform">
+          {/* Enhanced Circular Progress Indicator */}
+          <div className="relative w-14 h-14 flex items-center justify-center hover:scale-110 transition-transform">
             <svg viewBox="0 0 48 48" className="w-full h-full transform -rotate-90">
               <circle
                 cx="24"
                 cy="24"
                 r="19"
                 stroke="currentColor"
-                strokeWidth="4"
+                strokeWidth="3"
                 fill="transparent"
                 className="text-gray-100 dark:text-gray-800"
               />
@@ -234,7 +241,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
                 cy="24"
                 r="19"
                 stroke={currentScore === -1 ? '#6b7280' : getRiskColor(currentScore)}
-                strokeWidth="4"
+                strokeWidth="3"
                 fill="transparent"
                 strokeDasharray={119.4}
                 initial={{ strokeDashoffset: 119.4 }}
@@ -244,38 +251,57 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-               <AlertCircle className="w-5 h-5 text-gray-400 group-hover:text-emerald-500" />
+               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                 currentScore >= 70 ? 'bg-red-100 dark:bg-red-900/30' : 
+                 currentScore >= 40 ? 'bg-amber-100 dark:bg-amber-900/30' : 
+                 currentScore === -1 ? 'bg-gray-100 dark:bg-gray-800' :
+                 'bg-emerald-100 dark:bg-emerald-900/30'
+               }`}>
+                 <AlertCircle className={`w-4 h-4 ${
+                   currentScore >= 70 ? 'text-red-600 dark:text-red-400' :
+                   currentScore >= 40 ? 'text-amber-600 dark:text-amber-400' :
+                   currentScore === -1 ? 'text-gray-400' :
+                   'text-emerald-600 dark:text-emerald-400'
+                 }`} />
+               </div>
             </div>
           </div>
           <div className="flex-1">
-            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">
-              {diseaseId.replace('_', ' ')}
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+              {diseaseId.replace(/_/g, ' ')}
             </div>
-            <h4 className="font-bold text-gray-900 dark:text-white flex items-center">
+            <h4 className="font-bold text-gray-900 dark:text-white text-lg flex items-center">
               {getRiskLabel(currentScore)} Risk
-              {isReviewed && <CheckCircle2 className="w-3.5 h-3.5 ml-2 text-emerald-500" />}
+              {isReviewed && <CheckCircle2 className="w-4 h-4 ml-2 text-emerald-500" />}
             </h4>
             {verificationMeta?.source && (
-              <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-wider mt-1">
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider mt-1 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
                 Verified: {verificationMeta.source}
               </p>
             )}
-            <p className="text-[10px] text-gray-500 font-semibold mt-0.5">
+            <p className={`text-xs font-semibold mt-1 ${
+              currentScore >= 70 ? 'text-red-600 dark:text-red-400' :
+              currentScore >= 40 ? 'text-amber-600 dark:text-amber-400' :
+              'text-gray-500 dark:text-gray-400'
+            }`}>
               {getRiskGuidance(currentScore)}
             </p>
           </div>
         </div>
 
-        {/* Right side - Score only */}
+        {/* Right side - Enhanced Score Display */}
         <div className="text-right">
           <motion.div 
-            animate={isPulsing ? { scale: [1, 1.2, 1], color: ['#6b7280', '#10b981', getRiskColor(currentScore)] } : {}}
-            className={`text-2xl font-black ${currentScore === -1 ? 'text-gray-500' : ''}`} 
+            animate={isPulsing ? { scale: [1, 1.15, 1] } : {}}
+            transition={{ duration: 0.5 }}
+            className={`text-2xl sm:text-3xl font-black ${currentScore === -1 ? 'text-gray-500' : ''}`} 
             style={{ color: currentScore !== -1 ? getRiskColor(currentScore) : undefined }}
           >
-            {currentScore === -1 ? 'N/A' : `${currentScore}%`}
+            {currentScore === -1 ? 'N/A' : `${currentScore}`}
           </motion.div>
-          <div className="text-[9px] text-gray-400 font-bold mt-0.5">Click card for details</div>
+          <div className="text-[10px] text-gray-400 font-bold mt-0.5">/ 100</div>
+          <div className="text-[9px] text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">View details →</div>
         </div>
       </div>
 
@@ -283,13 +309,12 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
         <button
           type="button"
           onClick={() => setShowRiskDetailModal(true)}
-          className="mt-3 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:text-amber-500 transition-colors"
+          className="mt-4 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:text-amber-500 transition-colors flex items-center gap-1"
         >
+          <AlertCircle className="w-3 h-3" />
           Missing data ({details.missingDataFactors.length}) - improve accuracy
         </button>
       )}
-
-      {/* Removed inline expanded content - using popup modal only */}
 
       {/* New Comprehensive Risk Detail Modal */}
       <RiskDetailModal

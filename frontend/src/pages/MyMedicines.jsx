@@ -387,34 +387,60 @@ const MyMedicines = () => {
 
       {/* Add Medicine Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[3rem] w-full max-w-lg shadow-3xl overflow-hidden animate-in zoom-in duration-500">
-            <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
-              <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Add Medicines</h3>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                <X className="w-6 h-6 text-gray-400" />
-              </button>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:pl-72">
+          <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/90 backdrop-blur-xl animate-in fade-in duration-500" onClick={() => setShowAddModal(false)} />
+          <div className="relative bg-white dark:bg-[#070d1a] border border-slate-200 dark:border-white/10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.4)] overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Ambient glows */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-emerald-500/10 blur-[80px]" />
+              <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-blue-500/10 blur-[80px]" />
             </div>
-            <div className="p-8 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Medicine Names (comma separated)</label>
-                <textarea
-                  value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value)}
-                  placeholder="e.g. Metformin 500mg, Amlodipine, Ashwagandha..."
-                  className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 text-sm outline-none focus:border-emerald-500 resize-none h-24"
-                />
+
+            <div className="relative z-10">
+              <div className="p-8 md:p-10 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-inner">
+                    <Pill size={20} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase leading-none">Matrix <span className="text-emerald-500">Sync</span></h3>
+                    <p className="text-[9px] font-black text-slate-400 dark:text-gray-600 uppercase tracking-[0.2em] mt-2">Manual Bio-Data Entry</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowAddModal(false)} className="p-3 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-[1.25rem] border border-slate-100 dark:border-white/10 transition-all text-slate-400 dark:text-gray-500 hover:text-red-500 shadow-sm leading-none flex items-center justify-center">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <p className="text-[10px] text-gray-400 font-medium">Each medicine will be added to your ongoing list and you can get AI insights by clicking on it.</p>
-            </div>
-            <div className="p-8 bg-gray-50 dark:bg-gray-950/50 border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={handleManualAdd}
-                disabled={!manualInput.trim()}
-                className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl uppercase tracking-widest text-xs disabled:opacity-30"
-              >
-                Add Medicines
-              </button>
+
+              <div className="p-8 md:p-10 space-y-8">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-[0.25em] ml-1">Substance Identifiers</label>
+                  <div className="relative group">
+                    <textarea
+                      value={manualInput}
+                      onChange={(e) => setManualInput(e.target.value)}
+                      placeholder="e.g. Metformin 500mg, Amlodipine, Ashwagandha..."
+                      className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 text-sm text-slate-900 dark:text-white font-bold outline-none focus:border-emerald-500 focus:bg-white dark:focus:bg-white/10 transition-all shadow-inner resize-none h-36 placeholder:text-slate-300 dark:placeholder:text-gray-700"
+                    />
+                    <div className="absolute bottom-4 right-4 p-2 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl opacity-50 group-hover:opacity-100 transition-opacity">
+                      <Search size={14} className="text-slate-400 dark:text-gray-600" />
+                    </div>
+                  </div>
+                  <p className="px-2 text-[9px] text-slate-400 dark:text-gray-500 font-bold leading-relaxed uppercase tracking-tight">AI will auto-analyze your entry for drug-to-drug safety protocols upon submission.</p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={handleManualAdd}
+                    disabled={!manualInput.trim()}
+                    className="w-full flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-emerald-900/30 disabled:opacity-50 disabled:scale-100"
+                  >
+                    <Plus className="w-5 h-5 shadow-sm" />
+                    Archive Changes
+                  </button>
+                  <p className="text-center text-[8px] text-slate-400 dark:text-gray-600 font-black uppercase tracking-[0.3em] mt-8 italic opacity-50">VaidyaSetu Secure Medical Channel 256-bit Encrypted</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
