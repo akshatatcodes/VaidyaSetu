@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+import { API_URL } from '../config/api';
 
 const TYPE_META = {
   real_change: { label: 'Real Change',    color: '#10b981', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },

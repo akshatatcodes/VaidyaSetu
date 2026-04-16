@@ -7,7 +7,7 @@ import {
   AlertTriangle, CheckCircle2, RefreshCw
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+import { API_URL } from '../config/api';
 
 const AlertSettings = () => {
   const { user } = useUser();

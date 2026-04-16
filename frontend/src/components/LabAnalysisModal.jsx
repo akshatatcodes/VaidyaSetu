@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { X, AlertTriangle, CheckCircle, Heart, Activity, Utensils, Dumbbell, Eye, Clock, Download, Save } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+import { API_URL } from '../config/api';
 
 const LabAnalysisModal = ({ isOpen, onClose, labResults, clerkId }) => {
   const [analysis, setAnalysis] = useState(null);

@@ -17,7 +17,7 @@ import jsPDF from 'jspdf';
 import { generateArchivePDF } from '../utils/pdfGenerator';
 import { useTranslation } from 'react-i18next';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+import { API_URL } from '../config/api';
 
 const LANGUAGE_MAP = {
   'English': 'en',

@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Stethoscope, MapPin, Trash2, ExternalLink, Calendar, Phone, Edit3, Check, X } from 'lucide-react';
 import axios from 'axios';
 
+import { API_URL } from '../../config/api';
+
 const SavedDoctorsWidget = ({ doctors, clerkId, onRemove, onRefresh }) => {
   const [editingId, setEditingId] = useState(null);
   const [noteValue, setNoteValue] = useState('');
   const [saving, setSaving] = useState(false);
 
   if (!doctors || doctors.length === 0) return null;
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
   const handleStartEdit = (doc) => {
     setEditingId(doc.placeId);

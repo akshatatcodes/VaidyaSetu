@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { generateDashboardPDF } from '../utils/pdfGenerator';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+import { API_URL } from '../config/api';
 // Must match backend HYBRID_DISEASE_IDS order for "Show more" / bootstrap checks.
 const FULL_HYBRID_DISEASE_IDS = [
   'diabetes', 'pre_diabetes', 'obesity', 'thyroid', 'pcos', 'hypertension',

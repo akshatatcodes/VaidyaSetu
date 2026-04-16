@@ -12,7 +12,7 @@ import autoTable from 'jspdf-autotable';
 import { addHeader, addSection, addDisclaimer } from '../utils/pdfGenerator';
 import { useTranslation } from 'react-i18next';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+import { API_URL } from '../config/api';
 
 const Prescriptions = () => {
   const { user } = useUser();

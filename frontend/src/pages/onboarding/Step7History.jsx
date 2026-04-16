@@ -4,6 +4,7 @@ import CreatableSelect from 'react-select/creatable';
 import useOnboardingStore from '../../store/useOnboardingStore';
 import { ChevronLeft, ShieldCheck, AlertCircle, Check } from 'lucide-react';
 import axios from 'axios';
+import { API_URL } from '../../config/api';
 
 const ALLERGY_OPTIONS = [
   { value: 'Dust Mites', label: 'Dust Mites' },
@@ -68,7 +69,6 @@ const Step7History = () => {
         clerkId: user?.id,
       };
       
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
       const response = await axios.post(`${API_URL}/user/profile`, payload);
 
       if (response.data.status === 'success') {
