@@ -3,7 +3,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, 
   ReferenceLine, ReferenceArea, AreaChart, Area,
-  ComposedChart, Legend
+  ComposedChart, Legend, Cell
 } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
 
@@ -139,8 +139,12 @@ export const StepsChart = ({ data }) => {
             radius={[10, 10, 0, 0]}
             fill="#10b981"
           >
-            {data.map((entry, index) => (
-              <Bar key={`cell-${index}`} fill={entry.value >= 8000 ? '#10b981' : '#3b82f6'} opacity={0.8} />
+            {(data || []).map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={Number(entry?.value) >= 8000 ? '#10b981' : '#3b82f6'}
+                opacity={0.8}
+              />
             ))}
           </Bar>
         </BarChart>
