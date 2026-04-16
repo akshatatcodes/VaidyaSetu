@@ -593,7 +593,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate
                   ) : (
                     <button
                       onClick={handleSubmit}
-                      disabled={submitting || !currentQuestion || Object.keys(answers).length < Math.max(1, questionCount * 0.5)}
+                      disabled={submitting || !currentQuestion || Object.keys(answers).length === 0}
                       className="flex items-center px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-lg disabled:opacity-30 hover:from-emerald-600 hover:to-teal-600 transition-all"
                     >
                       {submitting ? 'Calculating...' : t('questionnaire.calculate_risk', { defaultValue: 'Calculate Risk' })}

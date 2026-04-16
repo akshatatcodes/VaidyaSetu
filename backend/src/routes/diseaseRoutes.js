@@ -653,7 +653,12 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
     let questionnaireScore = scorerQuestionnaireInsights.riskScore;
     let questionnaireInsights = scorerQuestionnaireInsights;
 
-    if (appliedFieldCount === 0 && questionnaireBreakdown.totalPoints > 0 && baselineInsights.riskScore !== -1) {
+    const usedQuestionnairePointFallback =
+      appliedFieldCount === 0 &&
+      questionnaireBreakdown.totalPoints > 0 &&
+      baselineInsights.riskScore !== -1;
+
+    if (usedQuestionnairePointFallback) {
       questionnaireScore = Math.max(
         2,
         Math.min(95, Math.round(baselineInsights.riskScore + questionnaireBreakdown.totalPoints))
@@ -839,60 +844,67 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
     // Best-effort AI authoritative scoring for this disease.
     // If AI scoring fails/times out, we keep deterministic `finalRiskScore` to preserve stability.
     try {
-      const aiResults = await computePredictiveRiskForDiseases({
-        clerkId,
-        diseaseIds: [diseaseId],
-        language: req.resolvedLanguage || 'en'
-      });
+      // If we relied on questionnaire-point fallback (no scorer field mapping),
+      // keep this route deterministic for this response. AI recompute may not
+      // fully reflect generic point-only answers and can appear as "score reset".
+      if (!usedQuestionnairePointFallback) {
+        const aiResults = await computePredictiveRiskForDiseases({
+          clerkId,
+          diseaseIds: [diseaseId],
+          language: req.resolvedLanguage || 'en'
+        });
 
-      const ai = aiResults?.[diseaseId];
-      if (ai && typeof ai.riskScore === 'number') {
-        finalRiskScore = ai.riskScore;
+        const ai = aiResults?.[diseaseId];
+        if (ai && typeof ai.riskScore === 'number') {
+          finalRiskScore = ai.riskScore;
 
-        // Update insight fields used by the response/UI
-        insights.riskScore = finalRiskScore;
-        insights.riskCategory = ai.riskCategory || insights.riskCategory;
-        if (Array.isArray(ai.factorBreakdown)) insights.factorBreakdown = ai.factorBreakdown;
-        if (Array.isArray(ai.protectiveFactors)) insights.protectiveFactors = ai.protectiveFactors;
-        if (Array.isArray(ai.missingDataFactors)) insights.missingDataFactors = ai.missingDataFactors;
-        if (ai.verification) insights.verification = ai.verification;
-        if (typeof ai.dataCompleteness === 'number') insights.dataCompleteness = ai.dataCompleteness;
+          // Update insight fields used by the response/UI
+          insights.riskScore = finalRiskScore;
+          insights.riskCategory = ai.riskCategory || insights.riskCategory;
+          if (Array.isArray(ai.factorBreakdown)) insights.factorBreakdown = ai.factorBreakdown;
+          if (Array.isArray(ai.protectiveFactors)) insights.protectiveFactors = ai.protectiveFactors;
+          if (Array.isArray(ai.missingDataFactors)) insights.missingDataFactors = ai.missingDataFactors;
+          if (ai.verification) insights.verification = ai.verification;
+          if (typeof ai.dataCompleteness === 'number') insights.dataCompleteness = ai.dataCompleteness;
 
-        // Recompute delta shown to user (baseline stays deterministic)
-        questionnaireDelta = baselineScore !== -1 && finalRiskScore !== -1 ? finalRiskScore - baselineScore : 0;
+          // Recompute delta shown to user (baseline stays deterministic)
+          questionnaireDelta = baselineScore !== -1 && finalRiskScore !== -1 ? finalRiskScore - baselineScore : 0;
 
-        // Update modal breakdown + mitigation steps to match AI output
-        assessmentFactors = Array.isArray(ai.factorBreakdown) && ai.factorBreakdown.length ? ai.factorBreakdown : assessmentFactors;
-        allMitigations = Array.isArray(ai.mitigationSteps) && ai.mitigationSteps.length ? ai.mitigationSteps : allMitigations;
+          // Update modal breakdown + mitigation steps to match AI output
+          assessmentFactors = Array.isArray(ai.factorBreakdown) && ai.factorBreakdown.length ? ai.factorBreakdown : assessmentFactors;
+          allMitigations = Array.isArray(ai.mitigationSteps) && ai.mitigationSteps.length ? ai.mitigationSteps : allMitigations;
 
-        // Persist AI-updated values so Dashboard/details match this response
-        await Report.updateOne(
-          { clerkId },
-          {
-            $set: {
-              [`risk_scores.${diseaseId}`]: finalRiskScore,
-              [`risk_score_meta.${diseaseId}`]: ai.verification || getRiskVerificationMeta(diseaseId)
-            }
-          }
-        );
-
-        if (typeof DiseaseInsight.updateOne === 'function') {
-          await DiseaseInsight.updateOne(
-            { clerkId, diseaseId },
+          // Persist AI-updated values so Dashboard/details match this response
+          await Report.updateOne(
+            { clerkId },
             {
               $set: {
-                riskScore: finalRiskScore,
-                riskCategory: insights.riskCategory,
-                factorBreakdown: insights.factorBreakdown || [],
-                protectiveFactors: insights.protectiveFactors || [],
-                missingDataFactors: insights.missingDataFactors || [],
-                mitigationSteps: allMitigations || [],
-                dataCompleteness: insights.dataCompleteness || 0,
-                verification: insights.verification || getRiskVerificationMeta(diseaseId)
+                [`risk_scores.${diseaseId}`]: finalRiskScore,
+                [`risk_score_meta.${diseaseId}`]: ai.verification || getRiskVerificationMeta(diseaseId)
               }
             }
           );
+
+          if (typeof DiseaseInsight.updateOne === 'function') {
+            await DiseaseInsight.updateOne(
+              { clerkId, diseaseId },
+              {
+                $set: {
+                  riskScore: finalRiskScore,
+                  riskCategory: insights.riskCategory,
+                  factorBreakdown: insights.factorBreakdown || [],
+                  protectiveFactors: insights.protectiveFactors || [],
+                  missingDataFactors: insights.missingDataFactors || [],
+                  mitigationSteps: allMitigations || [],
+                  dataCompleteness: insights.dataCompleteness || 0,
+                  verification: insights.verification || getRiskVerificationMeta(diseaseId)
+                }
+              }
+            );
+          }
         }
+      } else {
+        console.log('[Questionnaire] Skipping AI overwrite: using questionnaire-point fallback for this response.');
       }
     } catch (aiErr) {
       console.warn('[Questionnaire] AI scoring update failed; using deterministic finalScore:', aiErr.message);
