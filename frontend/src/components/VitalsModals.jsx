@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, Activity, Droplets, Scale, Footprints, 
   Moon, Heart, AlertCircle, Info, CheckCircle2,
@@ -8,9 +9,13 @@ import {
 
 const ModalWrapper = ({ isOpen, onClose, title, icon: Icon, children }) => {
   if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#030712]/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
+
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-[#030712]/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
+      <div 
+        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500 pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full" />
         
         <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center relative z-10">
@@ -32,7 +37,8 @@ const ModalWrapper = ({ isOpen, onClose, title, icon: Icon, children }) => {
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

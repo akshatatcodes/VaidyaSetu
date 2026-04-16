@@ -519,7 +519,7 @@ const Prescriptions = () => {
           <div className="flex items-center gap-2 text-emerald-500 font-bold uppercase tracking-[0.3em] text-[10px] mb-2">
             <ShieldAlert className="w-4 h-4" /> {t('prescriptions.safety_protocol')}
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">{t('prescriptions.title')}</h1>
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">{t('prescriptions.title')}</h1>
           <p className="text-gray-600 dark:text-gray-300 font-medium">{t('prescriptions.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-4 w-full md:w-auto">
@@ -535,7 +535,7 @@ const Prescriptions = () => {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={scanning}
-              className="w-full md:w-auto px-6 py-3 bg-gray-900/80 backdrop-blur-md border border-gray-800 hover:border-emerald-500/50 hover:bg-gray-800 text-white rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-3 group shadow-xl"
+              className="w-full md:w-auto px-6 py-3 bg-gray-900/90 dark:bg-gray-800/80 backdrop-blur-md border border-gray-800 hover:border-emerald-500/50 hover:bg-black dark:hover:bg-gray-700 text-white rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-3 group shadow-xl"
             >
               {scanning ? (
                 <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
@@ -679,7 +679,7 @@ const Prescriptions = () => {
           {confirmedMeds.length > 0 && (
             <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-white font-bold flex items-center gap-3">
+                <h3 className="text-gray-900 dark:text-white font-bold flex items-center gap-3">
                   <ShieldAlert className="w-5 h-5 text-emerald-500" /> {t('prescriptions.active_profile')}
                 </h3>
                 <button onClick={() => { setConfirmedMeds([]); setInteractions([]); }} className="text-gray-600 hover:text-red-500 transition-colors p-1">
@@ -715,7 +715,7 @@ const Prescriptions = () => {
                   <RefreshCw className="w-16 h-16 text-emerald-500 animate-spin relative z-10" />
                 </div>
                 <p className="text-emerald-500/80 font-black uppercase tracking-[0.3em] text-xs mt-8">{t('prescriptions.analyzing')}</p>
-                <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">{t('prescriptions.analyzing_subtitle')}</p>
+                <p className="text-gray-900 dark:text-gray-300 text-sm mt-2">{t('prescriptions.analyzing_subtitle')}</p>
               </div>
             )}
 
@@ -772,10 +772,10 @@ const Prescriptions = () => {
                 <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner group-hover:scale-110 transition-transform duration-500">
                   <ShieldAlert className="w-12 h-12 text-emerald-500" />
                 </div>
-                <h2 className="text-3xl font-black text-white mb-4 tracking-tight">{t('prescriptions.synergy_cleared')}</h2>
-                <p className="text-gray-600 dark:text-gray-300 max-w-lg mx-auto leading-relaxed font-medium">
+                <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">{t('prescriptions.synergy_cleared')}</h2>
+                <p className="text-gray-600 dark:text-gray-300 max-w-lg mx-auto leading-relaxed font-bold">
                   {t('prescriptions.synergy_desc')}
-                  <span className="block mt-2 text-emerald-400/60 text-xs italic font-bold uppercase tracking-widest">{t('prescriptions.safety_verified')}</span>
+                  <span className="block mt-2 text-emerald-600 dark:text-emerald-400 text-xs italic font-black uppercase tracking-widest">{t('prescriptions.safety_verified')}</span>
                 </p>
               </div>
             )}

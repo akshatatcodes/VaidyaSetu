@@ -474,8 +474,8 @@ const Vitals = () => {
                       <Activity className="w-5 h-5 md:w-6 md:h-6 text-fuchsia-500" />
                    </div>
                    <div>
-                      <h4 className="text-base md:text-lg font-black text-white">{t('vitals.risk_protocols.diabetes')}</h4>
-                      <p className="text-[10px] text-fuchsia-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
+                      <h4 className="text-base md:text-lg font-black text-gray-900 dark:text-white">{t('vitals.risk_protocols.diabetes')}</h4>
+                      <p className="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
                    </div>
                 </div>
                 <button 
@@ -494,8 +494,8 @@ const Vitals = () => {
                       <Heart className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
                    </div>
                    <div>
-                      <h4 className="text-base md:text-lg font-black text-white">{t('vitals.risk_protocols.hypertension')}</h4>
-                      <p className="text-[10px] text-amber-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
+                      <h4 className="text-base md:text-lg font-black text-gray-900 dark:text-white">{t('vitals.risk_protocols.hypertension')}</h4>
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
                    </div>
                 </div>
                 <button 

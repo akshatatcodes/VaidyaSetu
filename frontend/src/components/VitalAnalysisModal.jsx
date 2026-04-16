@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertCircle, CheckCircle2, Activity, ArrowUp, ArrowDown, Heart, Utensils, Shield, Eye, Clock, FileText } from 'lucide-react';
 import axios from 'axios';
 
@@ -71,212 +72,214 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+  return createPortal(
+    <div className="fixed inset-0 bg-[#030712]/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 pointer-events-auto">
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-[2.5rem] max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-white/10 pointer-events-auto flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-6 flex justify-between items-center rounded-t-3xl">
-          <h2 className="text-2xl font-black text-gray-900 dark:text-white">
-            Vital Analysis
-          </h2>
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 p-8 flex justify-between items-center rounded-t-[2.5rem]">
+          <div className="flex items-center gap-4">
+             <div className="p-3 bg-emerald-500/10 rounded-2xl">
+                <Activity className="w-6 h-6 text-emerald-500" />
+             </div>
+             <div>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                  Vital Analysis
+                </h2>
+                <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Biometric Intelligence Protocol</p>
+             </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+            className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-colors"
           >
             <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
           {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
-              <p className="mt-4 text-sm font-bold text-gray-600 dark:text-gray-400">
-                Analyzing your vital signs...
+            <div className="text-center py-20">
+              <div className="relative w-16 h-16 mx-auto mb-6">
+                <div className="absolute inset-0 border-4 border-emerald-500/20 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <p className="text-lg font-black text-gray-900 dark:text-white tracking-tight">
+                Analyzing biometric signatures...
               </p>
             </div>
           ) : analysis ? (
             <>
               {/* Current Reading */}
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-6 rounded-2xl">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">
-                    Current Reading
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full" />
+                <div className="flex items-center justify-between mb-6 relative z-10">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+                    Current Diagnostic State
                   </h3>
-                  <div className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${getStatusColor(analysis.status)}`}>
+                  <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${getStatusColor(analysis.status)}`}>
                     {analysis.status}
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  {getStatusIcon(analysis.status)}
+                <div className="flex items-center gap-8 relative z-10">
+                  <div className="p-4 bg-white dark:bg-gray-800 rounded-3xl shadow-xl">
+                    {getStatusIcon(analysis.status)}
+                  </div>
                   <div>
-                    <div className="text-4xl font-black text-gray-900 dark:text-white">
+                    <div className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">
                       {typeof analysis.currentValue === 'object' 
                         ? `${analysis.currentValue.systolic}/${analysis.currentValue.diastolic}`
                         : analysis.currentValue}
                     </div>
-                    <div className="text-sm font-bold text-gray-600 dark:text-gray-400 mt-1">
-                      Normal Range: <span className="text-emerald-500">{analysis.normalRange}</span>
+                    <div className="text-xs font-bold text-gray-500 mt-2 uppercase tracking-wide">
+                      Standard Range: <span className="text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">{analysis.normalRange}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Mitigations - Only show if not normal */}
+              {/* Mitigations */}
               {analysis.status !== 'normal' && analysis.mitigations && (
-                <>
+                <div className="grid grid-cols-1 gap-6">
                   {/* Immediate Actions */}
                   {analysis.mitigations.immediateActions && analysis.mitigations.immediateActions.length > 0 && (
-                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 p-6 rounded-2xl">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5" />
-                        Immediate Actions
+                    <div className="bg-red-500/5 border border-red-500/10 p-8 rounded-[2rem]">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 mb-6 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        Urgent Stabilization Matrix
                       </h3>
-                      <ul className="space-y-2">
+                      <div className="space-y-3">
                         {analysis.mitigations.immediateActions.map((action, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                            <span className="text-red-500 mt-1">•</span>
+                          <div key={idx} className="flex items-start gap-3 p-4 bg-white dark:bg-gray-950/50 rounded-2xl text-sm font-bold text-gray-800 dark:text-gray-200 shadow-sm border border-red-500/10">
+                            <span className="w-2 h-2 bg-red-500 rounded-full mt-1.5 shrink-0" />
                             {action}
-                          </li>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
-                  {/* Lifestyle Changes */}
-                  {analysis.mitigations.lifestyleChanges && analysis.mitigations.lifestyleChanges.length > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 p-6 rounded-2xl">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
-                        <Activity className="w-5 h-5" />
-                        Lifestyle Changes
-                      </h3>
-                      <ul className="space-y-2">
-                        {analysis.mitigations.lifestyleChanges.map((change, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                            <span className="text-blue-500 mt-1">•</span>
-                            {change}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {/* Lifestyle & Dietary */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {analysis.mitigations.lifestyleChanges && analysis.mitigations.lifestyleChanges.length > 0 && (
+                      <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-[2rem]">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
+                          <Activity className="w-5 h-5" />
+                          Lifestyle Protocol
+                        </h3>
+                        <div className="space-y-2">
+                          {analysis.mitigations.lifestyleChanges.map((change, idx) => (
+                            <div key={idx} className="text-xs font-bold text-gray-700 dark:text-gray-300 flex gap-2">
+                              <span className="text-blue-500">•</span>
+                              {change}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Dietary Advice */}
-                  {analysis.mitigations.dietaryAdvice && analysis.mitigations.dietaryAdvice.length > 0 && (
-                    <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 p-6 rounded-2xl">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
-                        <Utensils className="w-5 h-5" />
-                        Dietary Advice
-                      </h3>
-                      <ul className="space-y-2">
-                        {analysis.mitigations.dietaryAdvice.map((advice, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                            <span className="text-emerald-500 mt-1">•</span>
-                            {advice}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                    {analysis.mitigations.dietaryAdvice && analysis.mitigations.dietaryAdvice.length > 0 && (
+                      <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-[2rem]">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
+                          <Utensils className="w-5 h-5" />
+                          Nutritional Strategy
+                        </h3>
+                        <div className="space-y-2">
+                          {analysis.mitigations.dietaryAdvice.map((advice, idx) => (
+                            <div key={idx} className="text-xs font-bold text-gray-700 dark:text-gray-300 flex gap-2">
+                              <span className="text-emerald-500">•</span>
+                              {advice}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Precautions */}
+                  {/* Risks & Precautions */}
                   {analysis.mitigations.precautions && analysis.mitigations.precautions.length > 0 && (
-                    <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 p-6 rounded-2xl">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
+                    <div className="bg-amber-500/5 border border-amber-500/10 p-6 rounded-[2rem]">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
                         <Shield className="w-5 h-5" />
-                        Precautions
+                        Preventative Guardrails
                       </h3>
-                      <ul className="space-y-2">
-                        {analysis.mitigations.precautions.map((precaution, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                            <span className="text-amber-500 mt-1">•</span>
-                            {precaution}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="flex flex-wrap gap-2">
+                         {analysis.mitigations.precautions.map((precaution, idx) => (
+                           <span key={idx} className="px-3 py-1.5 bg-white dark:bg-gray-800 rounded-xl text-[10px] font-black text-gray-700 dark:text-gray-200 shadow-sm border border-amber-500/10 tracking-tight">
+                             {precaution}
+                           </span>
+                         ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* When to See Doctor */}
-                  {analysis.mitigations.whenToSeeDoctor && (
-                    <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/30 p-6 rounded-2xl">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-3 flex items-center gap-2">
-                        <Eye className="w-5 h-5" />
-                        When to See Doctor
-                      </h3>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                        {analysis.mitigations.whenToSeeDoctor}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Monitoring */}
-                  {analysis.mitigations.monitoring && (
-                    <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800/30 p-6 rounded-2xl">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-2">
-                        <Clock className="w-5 h-5" />
-                        Monitoring
-                      </h3>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                        {analysis.mitigations.monitoring}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Personalized Note */}
-                  {analysis.mitigations.personalizedNote && (
-                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10 border border-emerald-200 dark:border-emerald-800/30 p-6 rounded-2xl">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-2">
-                        <Heart className="w-5 h-5" />
-                        Personalized Note
-                      </h3>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed italic">
-                        {analysis.mitigations.personalizedNote}
-                      </p>
-                    </div>
-                  )}
-                </>
+                  {/* Healthcare Guidance */}
+                  <div className="bg-purple-900 dark:bg-purple-100 p-8 rounded-[2.5rem] text-white dark:text-purple-900 shadow-xl">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-4 flex items-center gap-2">
+                      <Eye className="w-5 h-5" />
+                      Professional Directives
+                    </h3>
+                    <p className="text-lg font-black tracking-tight leading-tight">
+                      {analysis.mitigations.whenToSeeDoctor}
+                    </p>
+                    {analysis.mitigations.monitoring && (
+                       <div className="mt-6 pt-6 border-t border-white/10 dark:border-black/10 flex items-center gap-3">
+                          <Clock className="w-5 h-5 opacity-60" />
+                          <p className="text-sm font-bold opacity-80">{analysis.mitigations.monitoring}</p>
+                       </div>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* Normal Status Message */}
               {analysis.status === 'normal' && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 p-8 rounded-2xl text-center">
-                  <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-black text-emerald-600 dark:text-emerald-400 mb-2">
-                    Great Job! Your {vitalType.replace('_', ' ')} is Normal
+                <div className="bg-emerald-500 p-10 rounded-[3rem] text-white text-center shadow-2xl shadow-emerald-500/20">
+                  <div className="w-20 h-20 bg-white/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 backdrop-blur-md">
+                     <CheckCircle2 className="w-12 h-12 text-white" />
+                  </div>
+                  <h3 className="text-3xl font-black mb-2 tracking-tight uppercase">
+                    Optimal Health State
                   </h3>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    Keep maintaining your healthy lifestyle and continue regular monitoring.
+                  <p className="text-emerald-50 font-bold opacity-80 uppercase tracking-[0.1em] text-xs">
+                    Continuous monitoring suggested to maintain homeostasis
                   </p>
                 </div>
               )}
             </>
           ) : !currentValue ? (
-            <div className="text-center py-12">
-              <Activity className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-              <h3 className="text-lg font-black text-gray-700 dark:text-gray-300 mb-2">
-                No Reading Logged Yet
+            <div className="text-center py-20">
+              <div className="p-10 bg-gray-100 dark:bg-gray-800 rounded-[3rem] w-max mx-auto mb-8">
+                <Activity className="w-16 h-16 text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">
+                No Data Stream Found
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                Log a <span className="capitalize font-bold text-emerald-500">{vitalType?.replace(/_/g, ' ')}</span> reading first to see your personalised analysis.
+              <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                Please record <span className="text-emerald-500">{vitalType?.replace(/_/g, ' ')}</span> data to trigger analysis protocol
               </p>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-sm font-bold text-gray-600 dark:text-gray-400 mb-2">
-                Unable to load analysis. Please try again.
+            <div className="text-center py-20">
+              <div className="p-10 bg-red-500/10 rounded-[3rem] w-max mx-auto mb-8">
+                <AlertCircle className="w-16 h-16 text-red-500" />
+              </div>
+              <p className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-2">
+                Intelligence Protocol Error
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">
-                Check console for details (F12)
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-[0.2em]">
+                Unable to synthesize analysis • Please retry
               </p>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

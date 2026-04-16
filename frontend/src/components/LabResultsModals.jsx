@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, Droplets, FlaskConical, Calendar, 
   ChevronRight, RefreshCw, Upload, FileText,
@@ -143,9 +144,12 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
     { name: 'Creatinine', unit: 'mg/dL', range: '0.7-1.3' }
   ];
 
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#030712]/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-[#030712]/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
+      <div 
+        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500 pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
           <div className="flex items-center gap-4">
@@ -412,7 +416,8 @@ const LabResultsModals = ({ isOpen, onClose, onSave, clerkId }) => {
            )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

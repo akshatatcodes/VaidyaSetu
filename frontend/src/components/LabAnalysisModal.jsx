@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -255,43 +256,46 @@ const LabAnalysisModal = ({ isOpen, onClose, labResults, clerkId }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 bg-[#030712]/60 backdrop-blur-sm flex items-center justify-center z-[99999] p-4 pointer-events-auto">
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-white/10 pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 flex justify-between items-center">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-wider">
+            <h2 className="text-3xl font-black text-white uppercase tracking-tighter">
               Lab Results Analysis
             </h2>
-            <p className="text-emerald-100 text-sm mt-1">
+            <p className="text-emerald-100/80 text-xs font-bold uppercase tracking-widest mt-1">
               AI-Powered Personalized Insights
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
+            className="p-3 bg-white/20 hover:bg-white/30 rounded-2xl transition-colors"
           >
             <X className="w-6 h-6 text-white" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-6">
+        <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-8 custom-scrollbar">
           {!analysis && !loading && (
-            <div className="text-center py-16">
-              <div className="p-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-full w-max mx-auto mb-6">
+            <div className="text-center py-20">
+              <div className="p-10 bg-emerald-500/10 rounded-[3rem] w-max mx-auto mb-8">
                 <Activity className="w-16 h-16 text-emerald-500" />
               </div>
-              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3">
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
                 Ready to Analyze
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+              <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-10 text-lg leading-relaxed">
                 Our AI will analyze {labResults?.length || 0} lab results and provide personalized recommendations, precautions, and mitigations.
               </p>
               <button
                 onClick={handleAnalyze}
-                className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-all shadow-xl"
+                className="px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
               >
                 Analyze Lab Results
               </button>
@@ -299,31 +303,34 @@ const LabAnalysisModal = ({ isOpen, onClose, labResults, clerkId }) => {
           )}
 
           {loading && (
-            <div className="text-center py-16">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-500 border-t-transparent mx-auto mb-6"></div>
-              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3">
+            <div className="text-center py-20">
+              <div className="relative w-20 h-20 mx-auto mb-8">
+                <div className="absolute inset-0 border-4 border-emerald-500/20 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
                 Analyzing Your Results
               </h3>
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-gray-500 dark:text-gray-400 text-lg">
                 AI is generating personalized insights...
               </p>
             </div>
           )}
 
           {error && (
-            <div className="text-center py-16">
-              <div className="p-8 bg-red-50 dark:bg-red-900/20 rounded-full w-max mx-auto mb-6">
+            <div className="text-center py-20">
+              <div className="p-10 bg-red-500/10 rounded-[3rem] w-max mx-auto mb-8">
                 <AlertTriangle className="w-16 h-16 text-red-500" />
               </div>
-              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3">
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
                 Analysis Failed
               </h3>
-              <p className="text-red-500 max-w-md mx-auto mb-6">
+              <p className="text-red-500 text-lg max-w-md mx-auto mb-10">
                 {error}
               </p>
               <button
                 onClick={handleAnalyze}
-                className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-colors"
+                className="px-10 py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] transition-all active:scale-95"
               >
                 Try Again
               </button>
@@ -331,28 +338,28 @@ const LabAnalysisModal = ({ isOpen, onClose, labResults, clerkId }) => {
           )}
 
           {analysis && (
-            <div className="space-y-8">
+            <div className="space-y-10">
               {/* Summary Card */}
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 p-6 rounded-2xl">
-                <h3 className="text-sm font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-2">
+              <div className="p-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[3rem] text-white shadow-2xl shadow-emerald-500/20">
+                <h3 className="text-xs font-black uppercase tracking-[0.4em] mb-6 opacity-80 flex items-center gap-2">
                   <Heart className="w-5 h-5" />
                   Overall Summary
                 </h3>
-                <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                <p className="text-2xl font-bold leading-tight mb-10">
                   {analysis.analysis?.summary || 'Analysis complete'}
                 </p>
-                <div className="mt-4 flex gap-4">
-                  <div className="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Total Tests</div>
-                    <div className="text-2xl font-black text-gray-900 dark:text-white">{analysis.totalTests}</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/10">
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Total Tests</div>
+                    <div className="text-4xl font-black">{analysis.totalTests}</div>
                   </div>
-                  <div className="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Abnormal</div>
-                    <div className="text-2xl font-black text-red-600">{analysis.abnormalCount}</div>
+                  <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/10">
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Abnormal</div>
+                    <div className="text-4xl font-black">{analysis.abnormalCount}</div>
                   </div>
-                  <div className="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Normal</div>
-                    <div className="text-2xl font-black text-emerald-600">{analysis.normalCount}</div>
+                  <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/10">
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Normal</div>
+                    <div className="text-4xl font-black">{analysis.normalCount}</div>
                   </div>
                 </div>
               </div>
@@ -360,38 +367,42 @@ const LabAnalysisModal = ({ isOpen, onClose, labResults, clerkId }) => {
               {/* Critical Findings */}
               {analysis.analysis?.criticalFindings?.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-3 tracking-tight">
+                    <AlertTriangle className="w-8 h-8 text-red-500" />
                     Critical Findings
                   </h3>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-6">
                     {analysis.analysis.criticalFindings.map((finding, idx) => (
-                      <div key={idx} className={`border p-6 rounded-2xl ${getSeverityColor(finding.severity)}`}>
-                        <div className="flex items-start gap-3 mb-3">
-                          {getSeverityIcon(finding.severity)}
-                          <div className="flex-1">
-                            <h4 className="font-bold text-lg">{finding.testName}</h4>
-                            <p className="text-sm opacity-80">{finding.value}</p>
-                          </div>
-                          <span className={`text-xs font-black uppercase px-3 py-1 rounded-lg bg-white/50`}>
-                            {finding.severity}
-                          </span>
+                      <div key={idx} className={`border p-8 rounded-[2.5rem] shadow-xl ${getSeverityColor(finding.severity)}`}>
+                        <div className="flex items-start justify-between mb-6">
+                           <div className="flex items-center gap-4">
+                              <div className="p-3 bg-white/50 rounded-2xl shadow-sm">
+                                 {getSeverityIcon(finding.severity)}
+                              </div>
+                              <div>
+                                 <h4 className="font-black text-xl tracking-tight">{finding.testName}</h4>
+                                 <p className="text-sm font-bold opacity-70">{finding.value}</p>
+                              </div>
+                           </div>
+                           <span className="px-3 py-1 bg-white/50 text-[10px] font-black uppercase tracking-widest rounded-full">
+                              {finding.severity} Risk
+                           </span>
                         </div>
-                        <p className="text-sm mb-3">{finding.explanation}</p>
-                        <div className="bg-white/50 dark:bg-black/20 p-3 rounded-lg mb-3">
-                          <strong>Immediate Action:</strong> {finding.immediateAction}
+                        <p className="text-base font-medium leading-relaxed mb-6 italic">"{finding.explanation}"</p>
+                        <div className="p-6 bg-white/50 dark:bg-black/20 rounded-3xl border border-black/5 mb-6">
+                          <strong className="text-[10px] font-black uppercase tracking-widest block mb-2 opacity-60">Immediate Action</strong>
+                          <p className="text-lg font-bold">{finding.immediateAction}</p>
                         </div>
                         {finding.precautions && finding.precautions.length > 0 && (
-                          <div>
-                            <strong className="text-sm">Precautions:</strong>
-                            <ul className="mt-2 space-y-1">
+                          <div className="space-y-4">
+                            <strong className="text-[10px] font-black uppercase tracking-widest block opacity-60">Required Precautions</strong>
+                            <div className="flex flex-wrap gap-3">
                               {finding.precautions.map((precaution, pIdx) => (
-                                <li key={pIdx} className="text-sm flex items-start gap-2">
-                                  <span className="mt-1">•</span>
+                                <span key={pIdx} className="px-4 py-2 bg-white/30 rounded-xl text-xs font-bold">
                                   {precaution}
-                                </li>
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -400,118 +411,104 @@ const LabAnalysisModal = ({ isOpen, onClose, labResults, clerkId }) => {
                 </div>
               )}
 
-              {/* Dietary Recommendations */}
-              {analysis.analysis?.dietaryRecommendations?.length > 0 && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 p-6 rounded-2xl">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
-                    <Utensils className="w-5 h-5" />
-                    Dietary Recommendations
-                  </h3>
-                  <ul className="space-y-2">
-                    {analysis.analysis.dietaryRecommendations.map((rec, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                        <span className="text-emerald-500 mt-1">✓</span>
-                        {rec}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {/* Dietary Recommendations */}
+                 {analysis.analysis?.dietaryRecommendations?.length > 0 && (
+                   <div className="bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/10 p-8 rounded-[2.5rem]">
+                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-orange-500 mb-6 flex items-center gap-2">
+                       <Utensils className="w-5 h-5" />
+                       Dietary Strategy
+                     </h3>
+                     <div className="space-y-3">
+                       {analysis.analysis.dietaryRecommendations.map((rec, idx) => (
+                         <div key={idx} className="flex items-start gap-3 p-4 bg-white/50 dark:bg-black/20 rounded-2xl text-sm font-bold text-gray-800 dark:text-gray-200 shadow-sm border border-black/5">
+                           <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                           {rec}
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
 
-              {/* Lifestyle Changes */}
-              {analysis.analysis?.lifestyleChanges?.length > 0 && (
-                <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 p-6 rounded-2xl">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
-                    <Dumbbell className="w-5 h-5" />
-                    Lifestyle Changes
-                  </h3>
-                  <ul className="space-y-2">
-                    {analysis.analysis.lifestyleChanges.map((change, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                        <span className="text-blue-500 mt-1">→</span>
-                        {change}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                 {/* Lifestyle Changes */}
+                 {analysis.analysis?.lifestyleChanges?.length > 0 && (
+                   <div className="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/10 p-8 rounded-[2.5rem]">
+                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-blue-500 mb-6 flex items-center gap-2">
+                       <Dumbbell className="w-5 h-5" />
+                       Lifestyle Protocols
+                     </h3>
+                     <div className="space-y-3">
+                       {analysis.analysis.lifestyleChanges.map((change, idx) => (
+                         <div key={idx} className="flex items-start gap-3 p-4 bg-white/50 dark:bg-black/20 rounded-2xl text-sm font-bold text-gray-800 dark:text-gray-200 shadow-sm border border-black/5">
+                           <Activity className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                           {change}
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+              </div>
 
-              {/* When to See Doctor */}
-              {analysis.analysis?.whenToSeeDoctor && (
-                <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/30 p-6 rounded-2xl">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-3 flex items-center gap-2">
-                    <Eye className="w-5 h-5" />
-                    When to See Doctor
-                  </h3>
-                  <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                    {analysis.analysis.whenToSeeDoctor}
-                  </p>
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {/* When to See Doctor */}
+                 {analysis.analysis?.whenToSeeDoctor && (
+                   <div className="bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/10 p-8 rounded-[2.5rem]">
+                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-purple-600 dark:text-purple-400 mb-4 flex items-center gap-2">
+                       <Eye className="w-5 h-5" />
+                       Medical Consultation
+                     </h3>
+                     <p className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                       {analysis.analysis.whenToSeeDoctor}
+                     </p>
+                   </div>
+                 )}
 
-              {/* Monitoring Advice */}
-              {analysis.analysis?.monitoringAdvice && (
-                <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800/30 p-6 rounded-2xl">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Monitoring Advice
-                  </h3>
-                  <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                    {analysis.analysis.monitoringAdvice}
-                  </p>
-                </div>
-              )}
+                 {/* Monitoring Advice */}
+                 {analysis.analysis?.monitoringAdvice && (
+                   <div className="bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 p-8 rounded-[2.5rem]">
+                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-2">
+                       <Clock className="w-5 h-5" />
+                       Bio-Monitoring
+                     </h3>
+                     <p className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                       {analysis.analysis.monitoringAdvice}
+                     </p>
+                   </div>
+                 )}
+              </div>
 
               {/* Next Steps */}
               {analysis.analysis?.nextSteps?.length > 0 && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-800/30 p-6 rounded-2xl">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
+                <div className="bg-gray-900 dark:bg-white p-10 rounded-[3rem] text-white dark:text-gray-900 shadow-2xl">
+                  <h3 className="text-xs font-black uppercase tracking-[0.4em] mb-8 opacity-60 flex items-center gap-2">
                     <Activity className="w-5 h-5" />
-                    Next Steps (Prioritized)
+                    Prioritized Action Plan
                   </h3>
-                  <ol className="space-y-2">
+                  <div className="grid grid-cols-1 gap-4">
                     {analysis.analysis.nextSteps.map((step, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                        <span className="flex-shrink-0 w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                      <div key={idx} className="flex items-center gap-6 p-6 bg-white/10 dark:bg-gray-900/10 rounded-[2rem] border border-white/10 dark:border-black/10">
+                        <span className="flex-shrink-0 w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center text-xl font-black shadow-lg">
                           {idx + 1}
                         </span>
-                        {step}
-                      </li>
+                        <p className="text-xl font-black tracking-tight">{step}</p>
+                      </div>
                     ))}
-                  </ol>
-                </div>
-              )}
-
-              {/* Positive Notes */}
-              {analysis.analysis?.positiveNotes?.length > 0 && (
-                <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/30 p-6 rounded-2xl">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5" />
-                    Positive Notes
-                  </h3>
-                  <ul className="space-y-2">
-                    {analysis.analysis.positiveNotes.map((note, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
-                        <span className="text-green-500 mt-1">★</span>
-                        {note}
-                      </li>
-                    ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex gap-6 pt-6 sticky bottom-0 bg-white dark:bg-gray-900 py-4 z-10">
                 <button
                   onClick={handleSave}
-                  className="flex-1 px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-all shadow-xl flex items-center justify-center gap-2"
+                  className="flex-1 px-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-xs uppercase tracking-[0.3em] transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-3"
                 >
                   <Save className="w-5 h-5" />
-                  Save Analysis
+                  Save Record
                 </button>
                 <button
                   onClick={handleExportPDF}
-                  className="flex-1 px-6 py-4 bg-gray-800 hover:bg-gray-700 text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-all shadow-xl flex items-center justify-center gap-2"
+                  className="flex-1 px-8 py-5 bg-gray-950 dark:bg-gray-100 text-white dark:text-gray-950 font-black rounded-2xl text-xs uppercase tracking-[0.3em] transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 border border-white/10"
                 >
                   <Download className="w-5 h-5" />
                   Export PDF
@@ -521,7 +518,8 @@ const LabAnalysisModal = ({ isOpen, onClose, labResults, clerkId }) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

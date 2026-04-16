@@ -55,36 +55,28 @@ const Dashboard = () => {
   };
 
   const needsHybridBootstrap = (scores) => {
-    // Only bootstrap when the report has no usable risk score object.
-    // If some disease keys are missing, we prefer not to re-run the
-    // global hybrid predictor because it can overwrite questionnaire-updated
-    // disease cards and cause score "jumping".
     if (!scores || typeof scores !== 'object') return true;
     return Object.keys(scores).length === 0;
   };
 
-  /** fullRecompute: run questionnaire hybrid (all diseases) and persist — use after profile edits. */
   const fetchData = async (fullRecompute = false) => {
     if (!user?.id) return;
     try {
-      console.log('[Dashboard] fetchData called with fullRecompute:', fullRecompute, 'at', new Date().toISOString());
+      console.log('[Dashboard] fetchData called...');
       let reportData = null;
       try {
-        // Add cache-busting timestamp to ensure fresh data
         const r = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
         if (r.data?.status === 'success') {
           reportData = r.data.data;
-          console.log('[Dashboard] Report fetched, risk_scores:', Object.keys(reportData.risk_scores || {}).length, 'diseases');
-          console.log('[Dashboard] Diabetes score:', reportData.risk_scores?.diabetes);
         }
       } catch (err) {
         if (err.response?.status !== 404) throw err;
       }
 
       const [vitalsRes, profileRes, medsRes] = await Promise.all([
-        axios.get(`${API_URL}/vitals/latest/${user.id}?t=${Date.now()}`).catch(() => null),
-        axios.get(`${API_URL}/profile/${user.id}?t=${Date.now()}`).catch(() => null),
-        axios.get(`${API_URL}/medications/${user.id}?t=${Date.now()}`).catch(() => null)
+        axios.get(`${API_URL}/vitals/latest/${user.id}`).catch(() => null),
+        axios.get(`${API_URL}/profile/${user.id}`).catch(() => null),
+        axios.get(`${API_URL}/medications/${user.id}`).catch(() => null)
       ]);
 
       if (profileRes?.data?.status === 'success') {
@@ -94,101 +86,41 @@ const Dashboard = () => {
       const profileOk = profileRes?.data?.status === 'success';
       const needsBootstrap = needsHybridBootstrap(reportData?.risk_scores);
       
-      // CRITICAL: Predictive-risk init/recompute is the canonical flow.
-      // Do NOT run it on every refresh to avoid overwriting manual/questionnaire-updated data.
       if (profileOk && needsBootstrap) {
-        console.log('[Dashboard] Initializing predictive risk...', { fullRecompute, needsBootstrap });
         try {
-          await axios.post(`${API_URL}/reports/predictive-risk/init`, {
-            clerkId: user.id,
-            persist: true
-          });
+          await axios.post(`${API_URL}/reports/predictive-risk/init`, { clerkId: user.id, persist: true });
           const again = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
-          if (again.data?.status === 'success') {
-            reportData = again.data.data;
-            setScoresAsOf(new Date());
-            console.log('[Dashboard] ✅ Predictive init complete, updated report');
-            console.log('[Dashboard] New diabetes score:', reportData.risk_scores?.diabetes);
-          }
-        } catch (initErr) {
-          console.warn('[Dashboard] predictive-risk/init failed:', initErr.response?.data || initErr.message);
-        }
-      } else if (profileOk && fullRecompute && !needsBootstrap) {
-        console.log('[Dashboard] Recomputing predictive risk...', { fullRecompute });
+          if (again.data?.status === 'success') reportData = again.data.data;
+        } catch (e) { console.warn(e); }
+      } else if (profileOk && fullRecompute) {
         try {
-          await axios.post(`${API_URL}/reports/predictive-risk/recompute`, {
-            clerkId: user.id,
-            persist: true
-          });
+          await axios.post(`${API_URL}/reports/predictive-risk/recompute`, { clerkId: user.id, persist: true });
           const again = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
-          if (again.data?.status === 'success') {
-            reportData = again.data.data;
-            setScoresAsOf(new Date());
-            console.log('[Dashboard] ✅ Predictive recompute complete, updated report');
-            console.log('[Dashboard] New diabetes score:', reportData.risk_scores?.diabetes);
-          }
-        } catch (reErr) {
-          console.warn('[Dashboard] predictive-risk/recompute failed:', reErr.response?.data || reErr.message);
-        }
+          if (again.data?.status === 'success') reportData = again.data.data;
+        } catch (e) { console.warn(e); }
       }
 
-      if (reportData) {
-        setReport({ ...reportData });
-        console.log('[Dashboard] ✅ Report state updated with', Object.keys(reportData.risk_scores || {}).length, 'diseases');
-        console.log('[Dashboard] Final diabetes score in state:', reportData.risk_scores?.diabetes);
-      } else if (!autoGenerated && !generating) {
-        setAutoGenerated(true);
-        generateReport();
-      }
-
-      if (vitalsRes?.data?.status === 'success') {
-        setLatestVitals(vitalsRes.data.data);
-      }
-
-      if (medsRes?.data?.status === 'success') {
-        setMedications(medsRes.data.data);
-      }
+      if (reportData) setReport({ ...reportData });
+      if (vitalsRes?.data?.status === 'success') setLatestVitals(vitalsRes.data.data);
+      if (medsRes?.data?.status === 'success') setMedications(medsRes.data.data);
     } catch (err) {
-      if (err.response?.status !== 404) {
-        console.error('Error fetching data:', err);
-      }
+      console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDiseaseScoreUpdate = async (diseaseId) => {
-    try {
-      console.log('[Dashboard] Refreshing scores for disease:', diseaseId);
-      setLoading(true);
-      await fetchData(false);
-      setToast({
-        type: 'success',
-        message: `${String(diseaseId).replace(/_/g, ' ')} — questionnaire risk scores refreshed.`
-      });
-      setTimeout(() => setToast(null), 3500);
-    } catch (err) {
-      console.error('[Dashboard] Failed to refresh dashboard:', err.response?.data || err.message);
-      setToast({
-        type: 'error',
-        message: 'Failed to refresh risk scores. Please try again.'
-      });
-      setTimeout(() => setToast(null), 3500);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    await fetchData(false);
+    setToast({ type: 'success', message: `${String(diseaseId).replace(/_/g, ' ')} scores refreshed.` });
+    setTimeout(() => setToast(null), 3500);
+    setLoading(false);
   };
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    if (!isLoaded || !user) return;
     fetchData(false);
-
-    window.refreshDashboard = (fullRecompute = false) => fetchData(fullRecompute);
     window.onHealthDataUpdate = (diseaseId, undoAction) => {
       const impactedDiseases = VITAL_IMPACT_MAP[diseaseId] || ['overall health'];
       setToast({
@@ -199,58 +131,27 @@ const Dashboard = () => {
       fetchData(false);
       setTimeout(() => setToast(null), 6000);
     };
-
-    window.refreshHealthcareNetwork = () => {
-      fetchData(false);
-    };
-
-    const onProfileSynced = () => fetchData(true);
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') fetchData(false);
-    };
-    window.addEventListener('vaidya-profile-updated', onProfileSynced);
-    document.addEventListener('visibilitychange', onVisible);
-
-    const syncInterval = setInterval(() => fetchData(false), 60000);
-    return () => {
-      clearInterval(syncInterval);
-      window.removeEventListener('vaidya-profile-updated', onProfileSynced);
-      document.removeEventListener('visibilitychange', onVisible);
-      delete window.refreshDashboard;
-    };
+    return () => { delete window.onHealthDataUpdate; };
   }, [user, isLoaded]);
 
   const generateReport = async () => {
     if (!user?.id) return;
     setGenerating(true);
-    setError(null);
     try {
       const res = await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id });
-      if (res.data.status === 'success') {
-        setReport(res.data.data);
-      }
-    } catch (err) {
-      setError("Analysis failed. The AI engine might be busy.");
-      console.error(err);
-    } finally {
-      setGenerating(false);
-    }
+      if (res.data.status === 'success') setReport(res.data.data);
+    } catch (err) { setError("Analysis failed."); }
+    finally { setGenerating(false); }
   };
 
   const syncGoogleFit = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setSyncing(true);
       try {
-        const res = await axios.post(`${API_URL}/fitness/steps`, { 
-          clerkId: user.id, 
-          accessToken: tokenResponse.access_token 
-        });
-        if (res.data.status === 'success') fetchData();
-      } catch (err) {
-        console.error("Fitness sync failed:", err);
-      } finally {
-        setSyncing(false);
-      }
+        await axios.post(`${API_URL}/fitness/steps`, { clerkId: user.id, accessToken: tokenResponse.access_token });
+        fetchData();
+      } catch (err) { console.error(err); }
+      finally { setSyncing(false); }
     },
     scope: 'https://www.googleapis.com/auth/fitness.activity.read'
   });
@@ -259,9 +160,7 @@ const Dashboard = () => {
     setFeedbackStatus(prev => ({...prev, [context]: true}));
     try {
       await axios.post(`${API_URL}/feedback`, { clerkId: user.id, context, rating, query, response });
-    } catch (err) {
-      console.error("Feedback failed:", err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const getProfileVal = (field) => {
@@ -271,446 +170,158 @@ const Dashboard = () => {
   };
 
   const getRiskColor = (score) => {
-    if (score === -1) return '#6b7280'; // Gray for N/A
-    if (score >= 70) return '#ef4444'; // Red
-    if (score >= 40) return '#f59e0b'; // Amber
-    return '#10b981'; // Emerald
+    if (score === -1) return '#6b7280';
+    if (score >= 70) return '#ef4444';
+    if (score >= 40) return '#f59e0b';
+    return '#10b981';
   };
 
   const stepCount = getProfileVal('steps') || 0;
 
   const handleExport = async () => {
     try {
-      const [profileRes] = await Promise.all([
-        axios.get(`${API_URL}/profile/${user.id}`).catch(() => ({ data: { data: null } }))
-      ]);
-      generateDashboardPDF(
-        user.fullName || 'User',
-        report,
-        profileRes.data?.data,
-        medications
-      );
-    } catch (err) {
-      console.error("Export failed:", err);
-    }
+      const profileRes = await axios.get(`${API_URL}/profile/${user.id}`).catch(() => ({ data: { data: null } }));
+      generateDashboardPDF(user.fullName || 'User', report, profileRes.data?.data, medications);
+    } catch (err) { console.error(err); }
   };
 
-  if (loading) {
-    return <div className="flex min-h-[60vh] items-center justify-center"><RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /></div>;
-  }
+  if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /></div>;
 
   if (!report) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center max-w-2xl mx-auto animate-fade-in">
-         <div className="w-48 h-48 mb-8 opacity-80 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-full border-4 border-emerald-500/10 dark:border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
-            <Cpu className="w-24 h-24 text-emerald-500 animate-pulse" />
-         </div>
-         <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">{t('dashboard.sync_complete')}</h1>
-         <p className="text-slate-600 dark:text-gray-400 mb-8 text-lg font-medium">
-           {t('dashboard.baseline_ready')}
-         </p>
-         {error && (
-           <p className="text-red-400 text-sm mb-4 max-w-md">{error}</p>
-         )}
-         <button onClick={generateReport} disabled={generating} className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-all disabled:opacity-50 flex items-center shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-           {generating ? <><RefreshCw className="w-5 h-5 mr-3 animate-spin" /> {t('dashboard.analyzing')}</> : <><Activity className="w-5 h-5 mr-3" /> {t('dashboard.initiate_scan')}</>}
+      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center max-w-2xl mx-auto">
+         <Cpu className="w-24 h-24 text-emerald-500 animate-pulse mb-8" />
+         <h1 className="text-4xl font-bold mb-4">{t('dashboard.sync_complete')}</h1>
+         <button onClick={generateReport} disabled={generating} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold">
+           {generating ? t('dashboard.analyzing') : t('dashboard.initiate_scan')}
          </button>
-          <p className="text-gray-500 text-xs mt-6 max-w-md">
-            {t('dashboard.tip_onboarding')}
-          </p>
-        </div>
+      </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Integrated Dashboard Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-8 md:mb-16 pb-6 md:pb-8 border-b border-slate-100 dark:border-white/5">
-        <div className="space-y-2 md:space-y-3">
-          <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.3em] text-[10px] mb-1 md:mb-2">
-             <div className="w-6 md:w-8 h-[2px] bg-emerald-500/30" />
+    <div className="max-w-7xl mx-auto w-full pb-20 px-4 md:px-0 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-20 pb-8 border-b border-slate-200 dark:border-white/5">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-bold uppercase tracking-widest text-[10px]">
              {t('dashboard.title')}
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter leading-[1.1] md:leading-[0.9]">
-            {t('dashboard.welcome')}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">{getProfileVal('name') || user?.firstName || 'User'}</span>
+          <h1 className="text-4xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight">
+            {t('dashboard.welcome')}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">{getProfileVal('name') || user?.firstName || 'User'}</span>
           </h1>
-          <p className="text-slate-500 dark:text-gray-400 font-medium text-base md:text-lg max-w-2xl leading-relaxed">
-            {t('dashboard.matrix_updated')} {report?.createdAt ? new Date(report.createdAt).toLocaleDateString('en-GB') : 'N/A'}. 
-            {scoresAsOf && <span className="text-emerald-600 dark:text-emerald-400 ml-1">{t('dashboard.live_refresh')}</span>}
-          </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setLoading(true);
-              fetchData(true).then(() => {
-                setToast({ type: 'success', message: t('dashboard.sync_toast') });
-                setTimeout(() => setToast(null), 3000);
-              });
-            }}
-            className="group flex w-full sm:w-auto justify-center items-center gap-2 px-6 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-xl shadow-slate-200/20 active:scale-95 active:shadow-none"
-          >
-            <RefreshCw className={`w-4 h-4 text-emerald-500 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-            {t('dashboard.refresh_scan')}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button onClick={() => fetchData(true)} className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold shadow-xl">
+            <RefreshCw className="w-4 h-4 text-emerald-500" /> {t('dashboard.refresh_scan')}
           </button>
-          <button 
-            onClick={handleExport} 
-            className="flex w-full sm:w-auto justify-center items-center gap-2 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-500 transition-all shadow-[0_10px_30px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.4)] hover:-translate-y-1 active:scale-95 active:shadow-none"
-          >
-             <Download className="w-5 h-5" /> {t('dashboard.export_insights')}
+          <button onClick={handleExport} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg">
+             <Download className="w-5 h-5 inline mr-2" /> {t('dashboard.export_insights')}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Main Column */}
         <div className="lg:col-span-8 space-y-10">
-          
-          {/* AI Executive Summary */}
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-5 md:p-6 rounded-[2rem] relative overflow-hidden transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] group hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:border-emerald-500/30">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 dark:bg-emerald-500/20 blur-[80px] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150" />
-            <h2 className="text-emerald-700 dark:text-emerald-400 font-extrabold mb-3 flex items-center uppercase tracking-widest text-[10px] md:text-xs">
-               <Cpu className="w-5 h-5 mr-2" /> {t('dashboard.ai_perspective')}
+          <div className="bg-white dark:bg-gray-950/60 backdrop-blur-3xl border border-slate-200 dark:border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
+            <h2 className="text-emerald-600 font-black uppercase tracking-[0.2em] text-[11px] mb-6 flex items-center">
+              <Cpu className="w-5 h-5 mr-3" /> {t('dashboard.ai_perspective')}
             </h2>
-            <p className="text-slate-800 dark:text-gray-200 text-base md:text-lg leading-relaxed relative z-10 font-semibold">{report?.summary || t('dashboard.report_missing')}</p>
+            <p className="text-slate-800 dark:text-gray-100 text-lg md:text-2xl font-bold leading-relaxed">
+              {report?.summary || t('dashboard.report_missing')}
+            </p>
           </div>
 
           <div className="space-y-6">
-            {/* Enhanced Section Header */}
-            <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-gray-900 dark:text-white font-black text-2xl tracking-tight flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                    <Activity className="w-5 h-5 text-white" />
-                  </div>
-                  {t('dashboard.predictive_risks')}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{
-                    Object.entries(report?.risk_scores || {}).filter(([_, score]) => score >= 70).length
-                  } High Risk</span>
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium pl-[52px]">
-                {t('dashboard.risk_instructions')}
-              </p>
-              <div className="absolute -bottom-4 left-0 right-0 h-px bg-gradient-to-r from-emerald-500/50 via-teal-500/30 to-transparent" />
-            </div>
+            <h3 className="text-gray-900 dark:text-white font-black text-2xl tracking-tight flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg"><Activity className="w-5 h-5 text-white" /></div>
+              {t('dashboard.predictive_risks')}
+            </h3>
             
-            {/* Disease Cards Grid - Enhanced Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {(() => {
                 const riskEntries = Object.entries(report?.risk_scores || {});
-                const normalizeDiseaseId = (diseaseId = '') => diseaseId.toLowerCase().replace(/[_-\s]/g, '');
-                const prioritySet = new Set(PRIORITY_DISEASES.map(normalizeDiseaseId));
+                const normalize = (id = '') => String(id).toLowerCase().replace(/[_-\s]/g, '');
+                const prioritySet = new Set(PRIORITY_DISEASES.map(normalize));
+                
+                const prioritized = riskEntries.filter(([k]) => prioritySet.has(normalize(k)));
+                const remaining = riskEntries.filter(([k]) => !prioritySet.has(normalize(k)));
+                
+                let visible = showAllRiskCards ? [...prioritized, ...remaining] : prioritized;
+                if (!showAllRiskCards && visible.length === 0) visible = remaining.slice(0, 6);
 
-                const prioritized = [];
-                const remaining = [];
+                if (visible.length === 0) return <div className="md:col-span-2 p-10 text-center">{t('dashboard.no_risk_vectors')}</div>;
 
-                riskEntries.forEach(([key, score]) => {
-                  if (prioritySet.has(normalizeDiseaseId(key))) {
-                    prioritized.push([key, score]);
-                    return;
-                  }
-                  remaining.push([key, score]);
-                });
-
-                let visibleEntries = showAllRiskCards ? [...prioritized, ...remaining] : prioritized;
-                if (!showAllRiskCards && visibleEntries.length === 0 && remaining.length > 0) {
-                  visibleEntries = remaining.slice(0, 6);
-                }
-
-                if (visibleEntries.length === 0) {
-                  return (
-                    <div className="md:col-span-2 rounded-3xl border-2 border-dashed border-emerald-300 dark:border-emerald-700/50 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10 p-10 text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                        <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-                      </div>
-                      <p className="font-bold text-emerald-700 dark:text-emerald-300 mb-2 text-lg">{t('dashboard.no_risk_vectors')}</p>
-                        <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
-                          {t('dashboard.report_empty')}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!user?.id) return;
-                            setLoading(true);
-                            try {
-                              await axios.post(`${API_URL}/reports/predictive-risk/init`, { clerkId: user.id, persist: true });
-                              const r = await axios.get(`${API_URL}/reports/${user.id}`);
-                              if (r.data?.status === 'success') setReport(r.data.data);
-                            } catch (e) {
-                              console.error(e);
-                              setToast({ type: 'error', message: 'Could not refresh risks. Check profile and API.' });
-                              setTimeout(() => setToast(null), 4000);
-                            } finally {
-                              setLoading(false);
-                            }
-                          }}
-                          className="px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-emerald-500/30 transition-all hover:-translate-y-0.5 active:scale-95"
-                        >
-                          {t('dashboard.refresh_risks')}
-                        </button>
-                    </div>
-                  );
-                }
-
-                return visibleEntries.map(([key, score]) => (
-                <DiseaseCard 
-                  key={key}
-                  diseaseId={key}
-                  initialScore={score}
-                  verificationMeta={report?.risk_score_meta?.[key] || null}
-                  clerkId={user.id}
-                  profile={profile}
-                  onScoreUpdated={handleDiseaseScoreUpdate}
-                />
+                return visible.map(([key, score]) => (
+                  <DiseaseCard key={key} diseaseId={key} initialScore={score} verificationMeta={report?.risk_score_meta?.[key]} clerkId={user.id} profile={profile} onScoreUpdated={handleDiseaseScoreUpdate} />
                 ));
               })()}
             </div>
-            {(() => {
-              const riskEntries = Object.entries(report?.risk_scores || {});
-              const normalizeDiseaseId = (diseaseId = '') => diseaseId.toLowerCase().replace(/[_-\s]/g, '');
-              const prioritySet = new Set(PRIORITY_DISEASES.map(normalizeDiseaseId));
-              const remainingCount = riskEntries.filter(([key]) => !prioritySet.has(normalizeDiseaseId(key))).length;
-
-              if (remainingCount === 0) return null;
-
-              return (
-                <div className="flex justify-center pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAllRiskCards(prev => !prev)}
-                    className="px-6 py-3 rounded-2xl border-2 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-sm font-bold uppercase tracking-wider hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all hover:-translate-y-0.5 active:scale-95 shadow-sm hover:shadow-md"
-                  >
-                    {showAllRiskCards ? t('dashboard.show_less') : `${t('dashboard.show_more')} (${remainingCount})`}
-                  </button>
-                </div>
-              );
-            })()}
+            {Object.entries(report?.risk_scores || {}).length > 6 && (
+              <div className="flex justify-center"><button onClick={() => setShowAllRiskCards(!showAllRiskCards)} className="px-6 py-2 border-2 border-emerald-500/30 rounded-xl font-bold text-sm uppercase">{showAllRiskCards ? t('dashboard.show_less') : t('dashboard.show_more')}</button></div>
+            )}
           </div>
 
-          {/* Targeted AI Insights (Dynamic Map) */}
-          <div className="space-y-6">
-            <h3 className="text-slate-900 dark:text-white font-black text-xl flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Cpu className="w-5 h-5 text-white" />
-              </div>
+          <div className="space-y-8">
+            <h3 className="text-gray-900 dark:text-white font-black text-2xl flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center shadow-lg"><Cpu className="w-5 h-5 text-white" /></div>
               {t('dashboard.clinical_action_plan')}
             </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Support both new dynamic 'advice' map and legacy hardcoded advice fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {(() => {
-                const allAdvice = Object.entries(report?.advice || {});
-                if (allAdvice.length === 0) {
-                  return (
-                    <div className="md:col-span-2 p-10 text-center bg-gray-50 dark:bg-gray-900/40 rounded-3xl border border-gray-200 dark:border-gray-800 border-dashed">
-                      <Cpu className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-                      <p className="text-gray-500 dark:text-gray-500 italic text-sm">
-                        {t('dashboard.no_insights')}
-                      </p>
-                    </div>
-                  );
-                }
-
-                const visibleAdvice = showAllAdvice ? allAdvice : allAdvice.slice(0, 4);
-
-                return (
-                  <>
-                    {visibleAdvice.map(([disease, text]) => (
-                      <AdviceCard 
-                        key={disease}
-                        label={`${disease.charAt(0).toUpperCase() + disease.slice(1).replace('_', ' ')} Insight`} 
-                        text={text} 
-                        icon={<AlertTriangle className={`w-6 h-6 ${getRiskColor(report?.risk_scores?.[disease]) === '#ef4444' ? 'text-red-500' : 'text-emerald-500'}`} />} 
-                        onFeedback={(r) => handleFeedback(disease, r, 'Status', text)}
-                        done={feedbackStatus[disease]}
-                      />
-                    ))}
-                  </>
-                );
+                const allA = Object.entries(report?.advice || {});
+                const visA = showAllAdvice ? allA : allA.slice(0, 4);
+                return visA.map(([key, text]) => (
+                  <AdviceCard key={key} label={`${String(key).charAt(0).toUpperCase() + String(key).slice(1).replace(/_/g, ' ')} Insight`} text={text} icon={<AlertTriangle className={`w-6 h-6 ${getRiskColor(report?.risk_scores?.[key]) === '#ef4444' ? 'text-red-500' : 'text-emerald-500'}`} />} onFeedback={(r) => handleFeedback(key, r, 'Status', text)} done={feedbackStatus[key]} />
+                ));
               })()}
             </div>
-
-            {Object.entries(report?.advice || {}).length > 4 && (
-              <div className="flex justify-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAllAdvice(prev => !prev)}
-                  className="group flex items-center gap-2 px-6 py-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all active:scale-95 transition-all shadow-sm"
-                >
-                  <RefreshCw className={`w-4 h-4 text-blue-500 ${showAllAdvice ? 'rotate-180' : ''} transition-transform duration-500`} />
-                  {showAllAdvice ? t('dashboard.show_less') : `${t('dashboard.show_more')} (${Object.entries(report?.advice || {}).length - 4})`}
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Right Column - Secondary Data */}
-        <div className="lg:col-span-4 space-y-6">
-           {/* 3D Holographic Bio-Matrix Card */}
-           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] min-h-[400px] md:min-h-[520px] relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:-translate-y-1">
-               {/* Background Grid and Atmosphere */}
-               <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50 dark:opacity-100" />
-               <h3 className="absolute top-6 left-6 text-emerald-700/80 dark:text-emerald-400/40 text-[11px] font-black uppercase tracking-[0.3em] flex items-center z-20">
-                  <Scan className="w-4 h-4 mr-2" /> {t('dashboard.bio_matrix')}
-               </h3>
-               
-               <div className="w-full h-[400px] md:h-[520px] relative z-10 flex items-center justify-center">
-                  <InlineErrorBoundary
-                    title="3D Bio-Matrix unavailable"
-                    fallback={({ message }) => (
-                      <div className="w-full h-full flex items-center justify-center p-8">
-                        <div className="max-w-md w-full rounded-[2rem] border border-emerald-500/15 bg-black/30 backdrop-blur-xl p-8 text-center shadow-[0_0_60px_rgba(16,185,129,0.12)]">
-                          <div className="text-[11px] font-black uppercase tracking-[0.35em] text-emerald-300/70">
-                            3D Scan disabled
-                          </div>
-                          <div className="mt-3 text-sm text-white/80">
-                            Your dashboard is working, but the 3D renderer crashed on this device/browser.
-                          </div>
-                          <div className="mt-4 text-[11px] text-emerald-200/60 font-bold break-words">
-                            {message}
-                          </div>
-                          <div className="mt-6 flex items-center justify-center gap-3">
-                            <button
-                              className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs"
-                              onClick={() => window.location.reload()}
-                            >
-                              Retry
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  >
-                    <BodyScan3D
-                      riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map((v) => Number(v) || 0))}
-                    />
-                  </InlineErrorBoundary>
-               </div>
-           </div>
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-white dark:bg-gray-950/40 backdrop-blur-3xl border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-6 shadow-xl relative min-h-[400px] flex items-center justify-center overflow-hidden">
+             <h3 className="absolute top-6 left-6 text-emerald-700/80 text-[11px] font-black uppercase tracking-[0.3em] flex items-center">
+                <Scan className="w-4 h-4 mr-2" /> {t('dashboard.bio_matrix')}
+             </h3>
+             <InlineErrorBoundary title="3D Scan Error"><BodyScan3D riskScore={Math.max(0, ...Object.values(report?.risk_scores || {}).map(v => Number(v) || 0))} /></InlineErrorBoundary>
+          </div>
 
-           {/* Latest Vitals Integration (Step 82) */}
-           {latestVitals && latestVitals.length > 0 && (
-              <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] group hover:border-rose-500/30 hover:shadow-[0_8px_32px_rgba(225,29,72,0.15)] transition-all relative overflow-hidden">
-                <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-rose-500/5 blur-[80px] rounded-full pointer-events-none" />
-                <div className="flex justify-between items-center mb-6 relative z-10">
-                  <h3 className="text-slate-900 dark:text-white font-bold flex items-center text-lg">
-                     <HeartPulse className="w-5 h-5 text-rose-600 dark:text-rose-500 mr-2" /> {t('dashboard.vitals_telemetry')}
-                  </h3>
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" title="Live Sync Active" />
-                </div>
-                <div className="space-y-4">
-                  {latestVitals.slice(0, 3).map((vital) => (
-                    <div key={vital.type} className="flex justify-between items-end p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800">
-                       <div>
-                          <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest">{vital.type.replace('_', ' ')}</div>
-                          <div className="text-xl font-black text-gray-900 dark:text-white mt-1">
-                             {typeof vital.value === 'object' ? `${vital.value.systolic}/${vital.value.diastolic}` : vital.value}
-                             <span className="text-xs text-gray-400 font-bold ml-1">{vital.unit}</span>
-                          </div>
-                       </div>
-                       <div className="text-[9px] font-bold text-gray-400">
-                          {new Date(vital.timestamp).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}
-                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-           {/* Step Tracker Placeholder */}
-           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] group hover:border-emerald-500/30 transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:-translate-y-1 relative overflow-hidden">
-              <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-emerald-500/15 dark:bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none group-hover:scale-150 transition-transform duration-700" />
-              <div className="flex justify-between items-center mb-6 relative z-10">
-                <h3 className="text-slate-900 dark:text-white font-bold flex items-center text-lg">
-                   <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-500 mr-2" /> {t('dashboard.step_tracker')}
-                </h3>
-                <button 
-                  onClick={() => syncGoogleFit()} disabled={syncing}
-                  className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-3 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest font-bold transition-all disabled:opacity-50"
-                >
-                   {syncing ? 'Syncing...' : t('dashboard.sync_fit')}
-                </button>
-              </div>
-              
+          {latestVitals?.length > 0 && (
+            <div className="bg-white dark:bg-gray-950/40 border border-slate-200 dark:border-white/10 p-6 rounded-[2.5rem] shadow-xl">
+              <h3 className="text-slate-900 dark:text-white font-bold flex items-center text-lg mb-6"><HeartPulse className="w-5 h-5 text-rose-500 mr-2" /> {t('dashboard.vitals_telemetry')}</h3>
               <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{stepCount}</div>
-                    <div className="text-[10px] text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest mt-1">{t('dashboard.steps')}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-emerald-500 font-bold">{Math.round((stepCount / 8000) * 100)}%</div>
-                    <div className="text-[10px] text-gray-500 uppercase">{t('dashboard.goal')}: 8,000</div>
-                  </div>
-                </div>
-                
-                <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000" 
-                    style={{ width: `${Math.min(100, (stepCount / 8000) * 100)}%` }}
-                  />
-                </div>
-              </div>
-           </div>
-
-           {/* General Tips */}
-           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] hover:-translate-y-1 hover:border-emerald-500/30 transition-all duration-500 relative overflow-hidden group">
-              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-emerald-500/5 to-transparent pointer-events-none" />
-              <h3 className="text-slate-900 dark:text-white font-black mb-4 flex items-center relative z-10 text-lg">
-                 <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500 mr-2" /> {t('dashboard.lifestyle_routine')}
-              </h3>
-              <div className="space-y-3 relative">
-                 {(Array.isArray(report?.general_tips) ? report?.general_tips : (report?.general_tips || '').split('\n')).filter(t => t && t.trim()).map((tip, i) => (
-                    <div key={i} className="flex items-start group">
-                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 mr-3 shrink-0 group-hover:scale-125 transition-transform" />
-                       <span className="text-slate-700 dark:text-gray-400 text-[15px] font-medium leading-relaxed">{tip.replace(/^-/,'').trim()}</span>
+                {latestVitals.slice(0, 3).map(v => (
+                  <div key={v.type} className="flex justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/5">
+                    <div>
+                      <div className="text-[10px] text-gray-400 uppercase font-black">{v.type.replace('_', ' ')}</div>
+                      <div className="text-xl font-black">{typeof v.value === 'object' ? `${v.value.systolic}/${v.value.diastolic}` : v.value} <span className="text-xs text-gray-400">{v.unit}</span></div>
                     </div>
-                 ))}
-                 {!feedbackStatus['Lifestyle'] ? (
-                    <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                       <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mr-2">{t('dashboard.helpful')}</span>
-                       <button onClick={() => handleFeedback('Lifestyle', 'up', 'General Tips', report?.general_tips)} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-gray-500 hover:text-white dark:hover:text-emerald-400 rounded-lg transition-all active:scale-95"><ThumbsUp className="w-4 h-4" /></button>
-                       <button onClick={() => handleFeedback('Lifestyle', 'down', 'General Tips', report?.general_tips)} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-500 hover:text-white dark:hover:text-red-400 rounded-lg transition-all active:scale-95"><ThumbsDown className="w-4 h-4" /></button>
-                    </div>
-                 ) : (
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800"><CheckCircle className="w-3 h-3" /> {t('dashboard.feedback_received')}</div>
-                 )}
+                  </div>
+                ))}
               </div>
-           </div>
-
-            <SavedDoctorsWidget 
-              doctors={profile?.savedDoctors} 
-              clerkId={user.id}
-              onRefresh={fetchData}
-              onRemove={async (placeId) => {
-                try {
-                  await axios.delete(`${API_URL}/profile/saved-doctors/${user.id}/${placeId}`);
-                  fetchData();
-                } catch (err) {
-                  console.error("Error removing doctor:", err);
-                }
-              }}
-            />
-
-            <div className="bg-red-500/5 backdrop-blur-sm border border-red-500/20 p-6 rounded-[2rem] text-center shadow-[0_8px_32px_rgba(239,68,68,0.05)]">
-               <div className="w-8 h-8 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ShieldAlert className="w-4 h-4 text-red-500" />
-               </div>
-               <p className="text-red-400/80 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed">
-                  {report?.disclaimer || 'Screening support only — not a medical diagnosis.'}
-               </p>
             </div>
+          )}
+
+          <div className="bg-white dark:bg-gray-950/40 border border-slate-200 dark:border-white/10 p-6 rounded-[2.5rem] shadow-xl">
+            <div className="flex justify-between mb-6">
+              <h3 className="text-slate-900 dark:text-white font-bold flex items-center"><Activity className="w-5 h-5 text-emerald-500 mr-2" /> {t('dashboard.step_tracker')}</h3>
+              <button onClick={() => syncGoogleFit()} disabled={syncing} className="text-[10px] font-bold uppercase">{syncing ? '...' : t('dashboard.sync_fit')}</button>
+            </div>
+            <div className="text-3xl font-black">{stepCount}</div>
+            <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-4 overflow-hidden">
+               <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (stepCount / 8000) * 100)}%` }} />
+            </div>
+          </div>
+
+          <SavedDoctorsWidget doctors={profile?.savedDoctors} clerkId={user.id} onRefresh={fetchData} onRemove={async (id) => { await axios.delete(`${API_URL}/profile/saved-doctors/${user.id}/${id}`); fetchData(); }} />
+
+          <div className="p-6 bg-red-500/5 rounded-[2rem] text-center border border-red-500/10">
+            <p className="text-red-400/80 text-[10px] font-black uppercase tracking-widest">{report?.disclaimer || 'Screening support only.'}</p>
+          </div>
         </div>
       </div>
 
-      {/* Persistence Notifications */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 pointer-events-none">
         <AnimatePresence>
           {toast && (
@@ -733,20 +344,18 @@ const Dashboard = () => {
 const AdviceCard = ({ label, text, icon, onFeedback, done }) => {
   const { t } = useTranslation();
   return (
-    <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] flex items-start group hover:border-emerald-500/30 transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(16,185,129,0.15)] relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      <div className="mr-5 shrink-0 mt-1 relative z-10">{icon}</div>
+    <div className="bg-white dark:bg-gray-950/40 backdrop-blur-3xl border border-slate-200 dark:border-white/10 p-6 rounded-[2.5rem] flex items-start group shadow-xl hover:border-emerald-500/30 transition-all duration-500 relative overflow-hidden">
+      <div className="mr-5 shrink-0 mt-1">{icon}</div>
       <div className="flex-1">
         <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-1">{label}</h4>
-        <p className="text-slate-700 dark:text-gray-400 text-[15px] font-medium mb-4 leading-relaxed">{text || "No advice generated."}</p>
+        <p className="text-slate-700 dark:text-gray-400 text-[15px] font-medium leading-relaxed mb-4">{text || "No advice."}</p>
         {!done ? (
-          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 mr-2">{t('dashboard.helpful')}</span>
-            <button onClick={() => onFeedback('up')} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-gray-400 hover:text-white dark:hover:text-emerald-500 rounded-lg transition-all active:scale-95"><ThumbsUp className="w-4 h-4" /></button>
-            <button onClick={() => onFeedback('down')} className="p-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-white dark:hover:text-red-400 rounded-lg transition-all active:scale-95"><ThumbsDown className="w-4 h-4" /></button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => onFeedback('up')} className="p-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg"><ThumbsUp className="w-4 h-4" /></button>
+            <button onClick={() => onFeedback('down')} className="p-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg"><ThumbsDown className="w-4 h-4" /></button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 animate-in zoom-in"><CheckCircle className="w-3 h-3" /> {t('dashboard.feedback_received')}</div>
+          <div className="text-[10px] font-bold text-emerald-500"><CheckCircle className="w-3 h-3 inline mr-1" /> {t('dashboard.feedback_received')}</div>
         )}
       </div>
     </div>

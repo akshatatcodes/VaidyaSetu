@@ -287,7 +287,7 @@ const Chatbot = () => {
     },
     floatBtn: {
       position: 'fixed',
-      bottom: isMobile ? '5.5rem' : '1.5rem',
+      bottom: isMobile ? '6.5rem' : '1.5rem',
       right: isMobile ? '1.5rem' : '1.5rem',
       width: '3.5rem',
       height: '3.5rem',
@@ -297,7 +297,7 @@ const Chatbot = () => {
       cursor: 'pointer',
       color: '#ffffff',
       boxShadow: '0 8px 32px rgba(16,185,129,0.4)',
-      zIndex: 50,
+      zIndex: 9999,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -439,8 +439,12 @@ const Chatbot = () => {
           50% { box-shadow: 0 0 40px rgba(16,185,129,0.8), 0 0 0 20px rgba(16,185,129,0); }
         }
         @keyframes blinkEffect {
-          0%, 100% { opacity: 1; transform: scale(1.2); filter: brightness(1.2); }
-          50% { opacity: 0.3; transform: scale(0.8); filter: brightness(1); }
+          0%, 100% { opacity: 1; transform: scale(1); filter: brightness(1.2); }
+          50% { opacity: 0.3; transform: scale(1.5); filter: brightness(1); }
+        }
+        @keyframes ringPulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(2.5); opacity: 0; }
         }
         @keyframes heartbeat {
           0%, 100% { transform: scale(1); }
@@ -469,6 +473,15 @@ const Chatbot = () => {
           title="Open AI Health Assistant"
         >
           <div style={{ position: 'relative' }}>
+            {/* Outer Pulsing Ring */}
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              width: '100%', height: '100%',
+              background: '#10b981', borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              animation: 'ringPulse 2s infinite',
+              zIndex: -1
+            }} />
             <MessageCircle style={{ width: '1.75rem', height: '1.75rem' }} />
             <span style={{
               position: 'absolute', top: '-0.35rem', right: '-0.35rem',

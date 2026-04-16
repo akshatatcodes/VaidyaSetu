@@ -207,6 +207,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
   };
 
   return (
+    <>
     <motion.div 
       layout
       transition={{ layout: { duration: 0.4, type: 'spring', damping: 25, stiffness: 120 } }}
@@ -316,31 +317,32 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
         </button>
       )}
 
-      {/* New Comprehensive Risk Detail Modal */}
-      <RiskDetailModal
-        isOpen={showRiskDetailModal}
-        onClose={() => setShowRiskDetailModal(false)}
-        diseaseId={diseaseId}
-        score={currentScore}
-        details={details}
-        clerkId={clerkId}
-        userProfile={details?.userProfile}
-        loading={loading}
-        onOpenQuestionnaire={() => {
-          setShowRiskDetailModal(false);
-          setShowQuestionnaireModal(true);
-        }}
-      />
-
-      {/* Disease-Specific Questionnaire Modal */}
-      <QuestionnaireModal
-        isOpen={showQuestionnaireModal}
-        onClose={() => setShowQuestionnaireModal(false)}
-        diseaseId={diseaseId}
-        profile={{ ...profile, clerkId }}
-        onScoreUpdate={handleQuestionnaireComplete}
-      />
     </motion.div>
+
+    {/* Modals outside motion wrapper to prevent layout parent conflicts */}
+    <RiskDetailModal
+      isOpen={showRiskDetailModal}
+      onClose={() => setShowRiskDetailModal(false)}
+      diseaseId={diseaseId}
+      score={currentScore}
+      details={details}
+      clerkId={clerkId}
+      userProfile={details?.userProfile || profile}
+      loading={loading}
+      onOpenQuestionnaire={() => {
+        setShowRiskDetailModal(false);
+        setTimeout(() => setShowQuestionnaireModal(true), 100);
+      }}
+    />
+
+    <QuestionnaireModal
+      isOpen={showQuestionnaireModal}
+      onClose={() => setShowQuestionnaireModal(false)}
+      diseaseId={diseaseId}
+      profile={{ ...profile, clerkId }}
+      onScoreUpdate={handleQuestionnaireComplete}
+    />
+  </>
   );
 };
 

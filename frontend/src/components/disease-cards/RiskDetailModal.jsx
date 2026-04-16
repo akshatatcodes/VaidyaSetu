@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
-  X, TrendingUp, TrendingDown, Shield, AlertTriangle, Lightbulb, 
-  Info, ChevronDown, ChevronUp, ChevronRight, Activity, Coffee, Star, Leaf,
+  X, TrendingUp, Shield, AlertTriangle, Lightbulb, 
+  Info, Activity, Coffee, Star, Leaf,
   CheckCircle, ArrowRight, Heart
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -19,19 +20,6 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
     setLocalCompletedMitigationStepIds(details?.completedMitigationStepIds || []);
   }, [details?.completedMitigationStepIds]);
 
-  if (!isOpen) return null;
-
-  // Debug logging
-  console.log('[RiskDetailModal] Props:', {
-    diseaseId,
-    score,
-    hasDetails: !!details,
-    loading,
-    factorBreakdown: details?.factorBreakdown?.length || 0,
-    protectiveFactors: details?.protectiveFactors?.length || 0,
-    mitigationSteps: details?.mitigationSteps?.length || 0
-  });
-
   const getRiskColor = (score) => {
     if (score === -1) return '#6b7280';
     if (score > 70) return '#ef4444';
@@ -44,13 +32,6 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
     if (score > 70) return 'Elevated';
     if (score >= 40) return 'Moderate';
     return 'Low';
-  };
-
-  const getRiskGuidance = (score) => {
-    if (score === -1) return 'Missing baseline inputs';
-    if (score > 70) return 'Recommend assessment';
-    if (score >= 40) return 'Consider screening';
-    return 'Low risk';
   };
 
   const getPriorityColor = (priority) => {
@@ -82,42 +63,17 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
     }
   };
 
-  // Normalize factor shape from multiple backends/versions.
-  // Some responses may include { question, answer, points } (questionnaire detail),
-  // while canonical factors use { name, displayValue, impact, direction }.
   const normalizeFactor = (factor, idx) => {
     if (!factor || typeof factor !== 'object') {
-      return {
-        id: `factor_${idx}`,
-        name: 'Risk factor',
-        displayValue: '—',
-        explanation: '',
-        category: 'profile',
-        impact: 0,
-        direction: 'increase'
-      };
+      return { id: `f_${idx}`, name: 'Factor', displayValue: '—', impact: 0, direction: 'increase', category: 'General' };
     }
-
     const name = factor.name || factor.question || 'Risk factor';
     const displayValue = factor.displayValue || factor.answer || '—';
-
-    const rawImpact =
-      typeof factor.impact === 'number'
-        ? factor.impact
-        : (typeof factor.impact === 'string'
-            ? Number(String(factor.impact).replace('%', '').replace('+', '').trim())
-            : undefined);
-    const points = typeof factor.points === 'number' ? factor.points : undefined;
-    const impactNum = Number.isFinite(rawImpact)
-      ? Math.abs(rawImpact)
-      : (Number.isFinite(points) ? Math.abs(points) : 0);
-
-    const direction =
-      factor.direction ||
-      (Number.isFinite(points) && points < 0 ? 'decrease' : 'increase');
+    const impactNum = Math.abs(Number(factor.impact || factor.points || 0));
+    const direction = factor.direction || (factor.points < 0 ? 'decrease' : 'increase');
 
     return {
-      id: factor.id || `factor_${idx}`,
+      id: factor.id || `f_${idx}`,
       name,
       displayValue,
       explanation: factor.explanation || '',
@@ -127,561 +83,176 @@ const RiskDetailModal = ({ isOpen, onClose, diseaseId, score, details, userProfi
     };
   };
 
-  const questionnaireLabel = details?.questionnaireLength
-    ? `${details.questionnaireLength}`
-    : '6-8';
-
   const handleMarkMitigationDone = async (stepId) => {
     if (!clerkId || !stepId) return;
     try {
       await axios.post(`${API_URL}/mitigations/${diseaseId}/${stepId}/complete`, { clerkId });
       setLocalCompletedMitigationStepIds((prev) => (prev.includes(stepId) ? prev : [...prev, stepId]));
-      // Let backend scheduler persist and update the report
       if (window.refreshDashboard) {
         setTimeout(() => window.refreshDashboard(false), 2500);
       }
     } catch (err) {
-      console.error('[RiskDetailModal] Mark mitigation done failed:', err.response?.data || err.message);
+      console.error('[RiskDetailModal] Mitigation complete error:', err);
     }
   };
 
-  // Show loading state
-  if (loading) {
-    return (
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200]"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-4 md:inset-6 lg:inset-8 bg-white dark:bg-gray-950 rounded-3xl shadow-2xl z-[210] flex items-center justify-center"
-            >
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-                <p className="text-gray-600 dark:text-gray-400 font-bold">{t('risk.loading_analysis', { defaultValue: 'Loading risk analysis...' })}</p>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    );
-  }
-
-  // Show error state if details failed to load
-  if (!details) {
-    return (
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200]"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-4 md:inset-6 lg:inset-8 bg-white dark:bg-gray-950 rounded-3xl shadow-2xl z-[210] flex items-center justify-center"
-            >
-              <div className="text-center p-8">
-                <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                <p className="text-gray-900 dark:text-white font-black text-lg mb-2">{t('risk.no_data', { defaultValue: 'No Data Available' })}</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                  {t('risk.no_data_desc', { defaultValue: 'Risk analysis data could not be loaded for' })} {diseaseId?.replace('_', ' ')}
-                </p>
-                <button
-                  onClick={onClose}
-                  className="px-6 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition-colors"
-                >
-                  {t('common.close', { defaultValue: 'Close' })}
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    );
-  }
-
-  return (
-    <AnimatePresence>
+  return createPortal(
+    <AnimatePresence mode="wait">
       {isOpen && (
-        <>
+        <motion.div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200]"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md pointer-events-auto"
           />
 
-          {/* Modal */}
+          {/* Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-4 md:inset-6 lg:inset-8 bg-white dark:bg-gray-950 rounded-3xl shadow-2xl z-[210] overflow-hidden flex flex-col"
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.4 }}
+            className="relative w-full max-w-5xl h-[90vh] md:h-[85vh] bg-white dark:bg-gray-950 rounded-[3rem] shadow-[0_32px_128px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col pointer-events-auto border border-white/10 mx-4"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-emerald-500/5 to-blue-500/5">
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                  style={{ backgroundColor: `${getRiskColor(score)}20` }}
-                >
-                  <Activity 
-                    className="w-8 h-8" 
-                    style={{ color: getRiskColor(score) }} 
-                  />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white capitalize">
-                    {diseaseId?.replace('_', ' ')} {t('risk.analysis', { defaultValue: 'Risk Analysis' })}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span 
-                      className="text-2xl font-black"
-                      style={{ color: getRiskColor(score) }}
-                    >
-                      {score}%
-                    </span>
-                    <span className="text-sm font-bold text-gray-500">
-                      • {getRiskLabel(score)} Risk - {getRiskGuidance(score)}
-                    </span>
-                  </div>
-                  {details?.verification?.source && (
-                    <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mt-1">
-                      Verified: {details.verification.source}
-                    </p>
-                  )}
-                </div>
+            {loading ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                 <Activity className="w-16 h-16 text-emerald-500 animate-pulse mb-6" />
+                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Analyzing Vectors...</h2>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
-              >
-                <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-
-            {/* Take Detailed Assessment Button */}
-            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800/30">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h4 className="font-black text-blue-900 dark:text-blue-400 flex items-center mb-1">
-                    <Lightbulb className="w-4 h-4 mr-2" />
-                    {t('risk.get_accurate_score', { defaultValue: 'Get More Accurate Risk Score' })}
-                  </h4>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    {t('risk.questionnaire_cta', { defaultValue: 'Answer' })} {questionnaireLabel} {t('risk.questionnaire_cta_tail', { defaultValue: 'targeted questions about' })} {diseaseId?.replace('_', ' ')}. 
-                    {t('risk.questionnaire_cta_note', { defaultValue: "We'll also consider your allergies, medications, and medical history." })}
-                  </p>
-                </div>
-                <button
-                  onClick={onOpenQuestionnaire}
-                  className="ml-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-black rounded-lg transition-colors whitespace-nowrap"
-                >
-                  {t('risk.take_assessment', { defaultValue: 'Take Assessment' })}
-                  <ChevronRight className="w-3 h-3 inline ml-1" />
-                </button>
+            ) : !details ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                 <AlertTriangle className="w-16 h-16 text-amber-500 mb-6" />
+                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Data Unavailable</h2>
+                 <p className="text-gray-500 mb-8 max-w-sm">We couldn't retrieve the clinical breakdown. Please try again.</p>
+                 <button onClick={onClose} className="px-8 py-3 bg-gray-100 rounded-2xl font-bold">Return</button>
               </div>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 dark:border-gray-800">
-              <button
-                onClick={() => setActiveTab('calculation')}
-                className={`flex-1 p-4 font-bold text-sm transition-all ${
-                  activeTab === 'calculation'
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                <TrendingUp className="w-4 h-4 inline mr-2" />
-                {t('risk.calculation_breakdown', { defaultValue: 'Calculation Breakdown' })}
-              </button>
-              <button
-                onClick={() => setActiveTab('mitigation')}
-                className={`flex-1 p-4 font-bold text-sm transition-all ${
-                  activeTab === 'mitigation'
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                <Lightbulb className="w-4 h-4 inline mr-2" />
-                {t('risk.recovery_strategy', { defaultValue: 'Recovery Strategy' })}
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto">
-              {activeTab === 'calculation' && (
-                <div className="p-6 space-y-6">
-                  {/* User Profile Considerations */}
-                  {userProfile && (userProfile.allergies?.length > 0 || userProfile.activeMedications?.length > 0) && (
-                    <div className="p-5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800/30">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-3 flex items-center">
-                        <Heart className="w-4 h-4 mr-2" />
-                        Your Profile Factors
-                      </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {userProfile.allergies?.length > 0 && (
-                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                            <div className="text-xs font-bold text-gray-500 mb-1">Allergies</div>
-                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.allergies.length} known</div>
-                          </div>
-                        )}
-                        {userProfile.activeMedications?.length > 0 && (
-                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                            <div className="text-xs font-bold text-gray-500 mb-1">Medications</div>
-                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.activeMedications.length} active</div>
-                          </div>
-                        )}
-                        {userProfile.age && (
-                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                            <div className="text-xs font-bold text-gray-500 mb-1">Age</div>
-                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.age} years</div>
-                          </div>
-                        )}
-                        {userProfile.bmi && (
-                          <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                            <div className="text-xs font-bold text-gray-500 mb-1">BMI</div>
-                            <div className="text-sm font-black text-gray-900 dark:text-white">{userProfile.bmi}</div>
-                          </div>
-                        )}
-                      </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 md:p-10 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-gray-950/50 backdrop-blur-xl sticky top-0 z-20">
+                  <div className="flex items-center gap-6">
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-white dark:bg-gray-900 flex items-center justify-center shadow-2xl border border-gray-100 dark:border-white/10">
+                       <Activity className="w-8 h-8 md:w-10 md:h-10" style={{ color: getRiskColor(score) }} />
                     </div>
-                  )}
-
-                  {/* Risk Factors */}
-                  <div>
-                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2 text-red-500" />
-                      Risk Factors ({details?.factorBreakdown?.length || 0})
-                    </h3>
-                    
-                    {details?.factorBreakdown && details.factorBreakdown.length > 0 ? (
-                      <div className="space-y-3">
-                        {details.factorBreakdown.map((factor, idx) => {
-                          const f = normalizeFactor(factor, idx);
-                          const sign = f.direction === 'decrease' ? '-' : '+';
-                          return (
-                          <motion.div
-                            key={f.id || idx}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="p-4 bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center mb-2">
-                                  <h4 className="font-bold text-gray-900 dark:text-white">
-                                    {f.name}
-                                  </h4>
-                                  <span className="ml-2 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                                    {String(f.category)}
-                                  </span>
-                                </div>
-                                {f.explanation ? (
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                    {f.explanation}
-                                  </p>
-                                ) : null}
-                                <p className="text-xs font-bold text-gray-500">
-                                  Your Value: <span className="text-gray-900 dark:text-white">{f.displayValue}</span>
-                                </p>
-                              </div>
-                              <div className="ml-4 text-right">
-                                <div className="flex items-center font-black text-lg text-red-500">
-                                  <TrendingUp className="w-4 h-4 mr-1" />
-                                  {sign}{f.impact}%
-                                </div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )})}
-                      </div>
-                    ) : (
-                      <div className="p-6 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                          <Info className="w-5 h-5 inline mr-2" />
-                          No specific risk factors detected. Your score of <strong>{score}%</strong> is based on baseline population data.
-                        </p>
-                        <p className="text-xs text-gray-500 mt-2 text-center">
-                          Complete your health profile to get personalized risk factor analysis.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Missing Data Prompts */}
-                  {details?.missingDataFactors?.length > 0 && (
-                    <div className="p-5 bg-amber-50/60 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <h3 className="text-sm font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-2">
-                            Missing Data ({details.missingDataFactors.length})
-                          </h3>
-                          <p className="text-xs text-amber-700/90 dark:text-amber-300 mb-3">
-                            Add these fields to improve prediction quality:
-                          </p>
-                          <div className="space-y-2">
-                            {details.missingDataFactors.slice(0, 5).map((factor, idx) => (
-                              <div key={factor.id || idx} className="text-xs text-gray-700 dark:text-gray-300">
-                                • {factor.name}: {factor.prompt}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <button
-                          onClick={onOpenQuestionnaire}
-                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          Fill Missing Data
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Protective Factors */}
-                  {details.protectiveFactors?.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
-                        <Shield className="w-5 h-5 mr-2 text-emerald-500" />
-                        Protective Factors ({details.protectiveFactors.length})
-                      </h3>
-                      <div className="space-y-3">
-                        {details.protectiveFactors.map((factor, idx) => (
-                          <div
-                            key={factor.id || idx}
-                            className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 rounded-xl"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-bold text-gray-900 dark:text-white mb-1">
-                                  {factor.name}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {factor.explanation}
-                                </p>
-                              </div>
-                              <div className="ml-4 text-emerald-500 font-black text-lg">
-                                -{factor.impact}%
-                              </div>
-                            </div>
+                      <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white capitalize tracking-tighter leading-none">
+                        {diseaseId?.replace(/_/g, ' ')}
+                      </h2>
+                      <div className="flex items-center gap-4 mt-3">
+                         <span className="text-sm font-black uppercase tracking-widest text-gray-500">{getRiskLabel(score)} Risk</span>
+                         <span className="text-2xl font-black" style={{ color: getRiskColor(score) }}>{score}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={onClose} className="p-4 bg-gray-100 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 rounded-2xl transition-all">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex px-10 border-b border-gray-100 dark:border-white/5">
+                  <button onClick={() => setActiveTab('calculation')} className={`px-8 py-5 font-black text-[11px] uppercase tracking-[0.2em] relative ${activeTab === 'calculation' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                    Risk Vectors
+                    {activeTab === 'calculation' && <motion.div layoutId="tLine" className="absolute bottom-0 left-8 right-8 h-1 bg-emerald-500 rounded-t-full" />}
+                  </button>
+                  <button onClick={() => setActiveTab('mitigation')} className={`px-8 py-5 font-black text-[11px] uppercase tracking-[0.2em] relative ${activeTab === 'mitigation' ? 'text-blue-500' : 'text-gray-400'}`}>
+                    Action Strategy
+                    {activeTab === 'mitigation' && <motion.div layoutId="tLine" className="absolute bottom-0 left-8 right-8 h-1 bg-blue-500 rounded-t-full" />}
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-8 md:p-10 custom-scrollbar">
+                   {activeTab === 'calculation' ? (
+                     <div className="max-w-4xl mx-auto space-y-10">
+                        <div className="p-8 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-[2.5rem] border border-indigo-500/10">
+                           <h3 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-500 mb-4">Clinical Perspective</h3>
+                           <p className="text-lg md:text-xl font-bold italic text-slate-800 dark:text-gray-100 leading-relaxed">
+                              "{details.summary || `Analysis indicates ${details.factorBreakdown?.length || 0} active biomarkers driving this profile.`}"
+                           </p>
+                           <button onClick={onOpenQuestionnaire} className="mt-8 flex items-center gap-2 px-6 py-3 bg-white dark:bg-white/5 border border-indigo-200 dark:border-indigo-500/30 rounded-2xl text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+                              Refine Clinical Score <ArrowRight className="w-4 h-4" />
+                           </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div className="space-y-4">
+                              <h3 className="font-black text-gray-900 dark:text-white pb-2 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-red-500" /> Aggravating Vectors
+                              </h3>
+                              {details.factorBreakdown?.map((f, i) => {
+                                const factor = normalizeFactor(f, i);
+                                return (
+                                  <div key={i} className="p-5 bg-red-500/5 border border-red-500/10 rounded-3xl flex items-center justify-between">
+                                     <div>
+                                        <div className="text-[10px] uppercase font-black text-gray-400">{factor.category}</div>
+                                        <div className="font-bold">{factor.name}</div>
+                                        <div className="text-xs text-gray-500 mt-1">Observed: <span className="text-red-500 font-bold">{factor.displayValue}</span></div>
+                                     </div>
+                                     <div className="text-right">
+                                        <div className="text-lg font-black text-red-500">+{factor.impact}%</div>
+                                     </div>
+                                  </div>
+                                );
+                              })}
+                           </div>
+
+                           <div className="space-y-4">
+                              <h3 className="font-black text-gray-900 dark:text-white pb-2 flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-emerald-500" /> Protective Buffers
+                              </h3>
+                              {details.protectiveFactors?.map((f, i) => (
+                                <div key={i} className="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl flex items-center justify-between">
+                                   <div>
+                                      <div className="font-bold">{f.name}</div>
+                                      <div className="text-xs text-emerald-500 mt-1">{f.explanation}</div>
+                                   </div>
+                                   <div className="text-right">
+                                      <div className="text-lg font-black text-emerald-500">-{f.impact}%</div>
+                                   </div>
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+                     </div>
+                   ) : (
+                     <div className="max-w-4xl mx-auto space-y-6">
+                        {details.mitigationSteps?.map((step, idx) => (
+                          <div key={idx} className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-white/10 p-8 rounded-[2.5rem] shadow-xl flex flex-col md:flex-row gap-8">
+                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${getCategoryColor(step.category)}`}>
+                                {getCategoryIcon(step.category)}
+                             </div>
+                             <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-3">
+                                   <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getPriorityColor(step.priority)}`}>{step.priority} Priority</span>
+                                </div>
+                                <h4 className="text-2xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">{step.title}</h4>
+                                <p className="text-slate-600 dark:text-gray-400 text-base leading-relaxed mb-6 font-medium">{step.description}</p>
+                                <button
+                                   onClick={() => handleMarkMitigationDone(step.id)}
+                                   disabled={localCompletedMitigationStepIds.includes(step.id)}
+                                   className={`px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
+                                      localCompletedMitigationStepIds.includes(step.id) ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white'
+                                   }`}
+                                >
+                                   {localCompletedMitigationStepIds.includes(step.id) ? 'Integrated' : 'Mark as Applied'}
+                                </button>
+                             </div>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Calculation Methodology */}
-                  <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-xl">
-                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-3 flex items-center">
-                      <Info className="w-5 h-5 mr-2 text-blue-500" />
-                      How is this calculated?
-                    </h3>
-                    <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                      <p><strong>1. Baseline Risk:</strong> Calculated from verified population prevalence plus your saved profile inputs.</p>
-                      <p><strong>2. Risk Factors:</strong> Added based on your current profile ({details.factorBreakdown?.length || 0} factors)</p>
-                      {details.protectiveFactors?.length > 0 && (
-                        <p><strong>3. Protective Factors:</strong> Subtracted for healthy behaviors ({details.protectiveFactors.length} factors)</p>
-                      )}
-                      <p><strong>4. Assessment Step:</strong> Use the targeted questionnaire to refine this disease score further.</p>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800/30">
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        <strong>Data Sources:</strong> ICMR-INDIAB 2023, NFHS-5, WHO Guidelines, IDRS
-                      </p>
-                    </div>
-                  </div>
+                     </div>
+                   )}
                 </div>
-              )}
-
-              {activeTab === 'mitigation' && (
-                <div className="p-6 space-y-6">
-                  {/* User Profile Considerations */}
-                  {userProfile && (
-                    <div className="p-5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800/30">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-3 flex items-center">
-                        <Heart className="w-4 h-4 mr-2" />
-                        Considering Your Profile
-                      </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {userProfile.allergies?.length > 0 && (
-                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
-                            <p className="text-[10px] font-bold text-gray-500 uppercase">Allergies</p>
-                            <p className="text-xs font-bold text-red-600 dark:text-red-400 mt-1">
-                              {userProfile.allergies.join(', ')}
-                            </p>
-                          </div>
-                        )}
-                        {userProfile.activeMedications?.length > 0 && (
-                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
-                            <p className="text-[10px] font-bold text-gray-500 uppercase">Medications</p>
-                            <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1">
-                              {userProfile.activeMedications.map(m => m.name).join(', ')}
-                            </p>
-                          </div>
-                        )}
-                        {userProfile.age && (
-                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
-                            <p className="text-[10px] font-bold text-gray-500 uppercase">Age</p>
-                            <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{userProfile.age} yrs</p>
-                          </div>
-                        )}
-                        {userProfile.bmi && (
-                          <div className="p-3 bg-white/50 dark:bg-gray-900/30 rounded-lg">
-                            <p className="text-[10px] font-bold text-gray-500 uppercase">BMI</p>
-                            <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{userProfile.bmi}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Critical Precautions */}
-                  {details.mitigationSteps?.filter(s => s.priority === 'high').length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
-                        <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
-                        Critical Precautions
-                      </h3>
-                      <div className="space-y-3">
-                        {details.mitigationSteps
-                          .filter(s => s.priority === 'high')
-                          .map((step, idx) => (
-                            <div
-                              key={step.id || idx}
-                              className="p-4 bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl"
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="p-2 bg-red-500 rounded-lg">
-                                  <AlertTriangle className="w-4 h-4 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="font-bold text-gray-900 dark:text-white mb-1">
-                                    {step.title}
-                                  </h4>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    {step.description}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* All Mitigation Steps */}
-                  <div>
-                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center">
-                      <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
-                      All Recovery Steps
-                    </h3>
-                    <div className="space-y-3">
-                      {details.mitigationSteps?.map((step, idx) => (
-                        <div
-                          key={step.id || idx}
-                          className="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-emerald-500/30 transition-colors"
-                        >
-                          <button
-                            onClick={() => setExpandedStep(expandedStep === step.id ? null : step.id)}
-                            className="w-full p-4 text-left flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <span className={`p-2 rounded-lg ${getCategoryColor(step.category)}`}>
-                                {getCategoryIcon(step.category)}
-                              </span>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${getPriorityColor(step.priority)}`}>
-                                    {step.priority}
-                                  </span>
-                                  <h4 className="font-bold text-gray-900 dark:text-white">
-                                    {step.title}
-                                  </h4>
-                                </div>
-                                <p className="text-xs text-gray-500 line-clamp-1">
-                                  {step.description}
-                                </p>
-                              </div>
-                            </div>
-                            <ArrowRight 
-                              className={`w-5 h-5 text-gray-400 transition-transform ${
-                                expandedStep === step.id ? 'rotate-90' : ''
-                              }`} 
-                            />
-                          </button>
-
-                          <AnimatePresence>
-                            {expandedStep === step.id && (
-                              <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800">
-                                <div className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-3 ${getCategoryColor(step.category)}`}>
-                                  {getCategoryIcon(step.category)}
-                                  <span className="ml-2">{step.category}</span>
-                                </div>
-                                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                                  {step.description}
-                                </p>
-                                <div className="mt-3">
-                                  <button
-                                    type="button"
-                                    disabled={!step?.id || localCompletedMitigationStepIds.includes(step.id)}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMarkMitigationDone(step.id);
-                                    }}
-                                    className={`w-full px-4 py-2 rounded-lg text-xs font-bold transition-colors border ${
-                                      !step?.id || localCompletedMitigationStepIds.includes(step.id)
-                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 cursor-not-allowed'
-                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600/30'
-                                    }`}
-                                  >
-                                    {step?.id && localCompletedMitigationStepIds.includes(step.id) ? 'Completed' : 'Mark done'}
-                                  </button>
-                                </div>
-                                {step.isRegional && (
-                                  <div className="mt-3 inline-flex items-center text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
-                                    🇮🇳 Indian Context Applied
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Medical Disclaimer */}
-                  <div className="p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Medical Disclaimer:</strong> These recommendations are based on clinical guidelines and your health profile. 
-                      Always consult with a qualified healthcare provider before making significant changes to your treatment plan.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+              </>
+            )}
           </motion.div>
-        </>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

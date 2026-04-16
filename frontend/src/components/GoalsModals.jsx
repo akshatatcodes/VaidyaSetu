@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, Target, Zap, Clock, ChevronRight, 
   RefreshCw, CheckCircle2, TrendingUp,
@@ -58,11 +59,14 @@ const GoalsModals = ({ isOpen, onClose, onSave, clerkId }) => {
     { id: 'water', label: 'Hydration Goal', unit: 'ml' }
   ];
 
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#030712]/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-[#030712]/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
+      <div 
+        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl relative overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500 pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+        <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-emerald-500/10 rounded-2xl">
               <Target className="w-6 h-6 text-emerald-500" />
@@ -100,7 +104,7 @@ const GoalsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                 <div className="relative">
                    <input 
                      type="number" 
-                     className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none"
+                     className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                      onChange={(e) => setFormData({...formData, targetValue: e.target.value})}
                    />
                    <span className="absolute right-4 top-4 text-xs font-bold text-gray-700 dark:text-gray-300">{formData.unit}</span>
@@ -110,7 +114,7 @@ const GoalsModals = ({ isOpen, onClose, onSave, clerkId }) => {
                 <label className="block text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 mb-2 tracking-widest">Deadline (Optional)</label>
                 <input 
                    type="date" 
-                   className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none"
+                   className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                    onChange={(e) => setFormData({...formData, deadline: e.target.value})}
                 />
              </div>
@@ -118,7 +122,7 @@ const GoalsModals = ({ isOpen, onClose, onSave, clerkId }) => {
 
           <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-2xl flex gap-3 items-start">
              <AlertCircle className="w-5 h-5 text-blue-500 shrink-0" />
-             <p className="text-[10px] text-blue-400 font-medium leading-relaxed uppercase tracking-tighter">Your current value for this metric is tracked automatically. Progress will be displayed in the dashboard timeline.</p>
+             <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold leading-relaxed uppercase tracking-tighter">Your current value for this metric is tracked automatically. Progress will be displayed in the dashboard timeline.</p>
           </div>
         </div>
 
@@ -126,14 +130,15 @@ const GoalsModals = ({ isOpen, onClose, onSave, clerkId }) => {
            <button 
              onClick={handleSave}
              disabled={saving || !formData.targetValue}
-             className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] uppercase tracking-[0.2em] text-xs"
+             className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-3 active:scale-[0.98] uppercase tracking-[0.2em] text-xs"
            >
              {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Trophy className="w-5 h-5" />}
              Activate Goal Protocol
            </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

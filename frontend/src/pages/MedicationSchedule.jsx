@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import { 
@@ -174,40 +175,51 @@ const MedicationSchedule = () => {
       </div>
 
       {/* Add Modal */}
-      {showAdd && (
-         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[3rem] w-full max-w-lg shadow-3xl overflow-hidden animate-in zoom-in duration-500">
-               <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50">
-                  <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Prescription Entry</h3>
-                  <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+      {showAdd && createPortal(
+         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-[#030712]/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
+            <div 
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[3rem] w-full max-w-lg shadow-3xl overflow-hidden animate-in zoom-in duration-500 pointer-events-auto flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+               <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-950/50">
+                  <div className="flex items-center gap-4">
+                     <div className="p-3 bg-emerald-500/10 rounded-2xl">
+                        <Pill className="w-6 h-6 text-emerald-500" />
+                     </div>
+                     <div>
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Prescription Entry</h3>
+                        <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest leading-none mt-1">Initialize Treatment Protocol</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setShowAdd(false)} className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-colors">
                     <XCircle className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                   </button>
                </div>
                <div className="p-8 space-y-6">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Medication Identifier</label>
+                     <label className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 tracking-[0.2em] px-1">Medication Identifier</label>
                      <input 
                        type="text" 
                        placeholder="e.g. Metformin, Lisinopril..." 
-                       className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 text-sm outline-none focus:border-emerald-500" 
+                       className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all font-medium" 
                        onChange={(e) => setNewMed({...newMed, name: e.target.value})}
                      />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Unit Dosage</label>
+                        <label className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 tracking-[0.2em] px-1">Unit Dosage</label>
                         <input 
                           type="text" 
                           placeholder="e.g. 500mg" 
-                          className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 text-sm outline-none focus:border-emerald-500" 
+                          className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all font-medium" 
                           onChange={(e) => setNewMed({...newMed, dosage: e.target.value})}
                         />
                      </div>
                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Primary timing</label>
+                        <label className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 tracking-[0.2em] px-1">Primary timing</label>
                         <input 
                           type="time" 
-                          className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 text-sm outline-none focus:border-emerald-500" 
+                          className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all font-medium" 
                           defaultValue="09:00"
                           onChange={(e) => setNewMed({...newMed, timings: [e.target.value]})}
                         />
@@ -218,13 +230,14 @@ const MedicationSchedule = () => {
                   <button 
                     onClick={handleAddMed}
                     disabled={!newMed.name || !newMed.dosage}
-                    className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl uppercase tracking-widest text-xs disabled:opacity-30"
+                    className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl shadow-emerald-500/20 uppercase tracking-[0.25em] text-xs disabled:opacity-30 flex items-center justify-center gap-3"
                   >
-                    Activate Entry Protocol
+                    <Plus className="w-5 h-5" /> Activate Entry Protocol
                   </button>
                </div>
             </div>
-         </div>
+         </div>,
+         document.body
       )}
 
     </div>
