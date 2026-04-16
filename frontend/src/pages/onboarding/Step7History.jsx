@@ -5,6 +5,7 @@ import useOnboardingStore from '../../store/useOnboardingStore';
 import { ChevronLeft, ShieldCheck, AlertCircle, Check } from 'lucide-react';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
+import { useTheme } from '../../context/ThemeContext';
 
 const ALLERGY_OPTIONS = [
   { value: 'Dust Mites', label: 'Dust Mites' },
@@ -36,6 +37,7 @@ const CONDITION_OPTIONS = [
 
 const Step7History = () => {
   const { user } = useUser();
+  const { theme } = useTheme();
   const { formData, updateFormData, setStep } = useOnboardingStore();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -98,8 +100,8 @@ const Step7History = () => {
         <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-emerald-500">
           <ShieldCheck className="w-10 h-10 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2 text-center">Ecosystem Activated</h2>
-        <p className="text-gray-600 dark:text-gray-300 text-center">Redirecting you to your health bridge...</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center">Ecosystem Activated</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-center">Redirecting you to your health bridge...</p>
       </div>
     );
   }
@@ -107,27 +109,28 @@ const Step7History = () => {
   const selectStyles = {
     control: (base, state) => ({
       ...base,
-      backgroundColor: '#030712',
-      borderColor: state.isFocused ? '#10b981' : '#1f2937',
+      backgroundColor: theme === 'dark' ? '#030712' : '#ffffff',
+      borderColor: state.isFocused ? '#10b981' : (theme === 'dark' ? '#1f2937' : '#e5e7eb'),
       borderRadius: '0.75rem',
       padding: '4px',
-      color: 'white',
+      color: theme === 'dark' ? 'white' : '#111827',
       boxShadow: 'none',
       '&:hover': {
-        borderColor: '#374151'
+        borderColor: theme === 'dark' ? '#374151' : '#d1d5db'
       }
     }),
     menu: (base) => ({
       ...base,
-      backgroundColor: '#111827',
-      border: '1px solid #374151',
+      backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+      border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
       borderRadius: '0.75rem',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      zIndex: 50
     }),
     option: (base, state) => ({
       ...base,
       backgroundColor: state.isFocused ? '#059669' : 'transparent',
-      color: state.isFocused ? 'white' : '#9ca3af',
+      color: state.isFocused ? 'white' : (theme === 'dark' ? '#9ca3af' : '#4b5563'),
       '&:active': {
         backgroundColor: '#10b981'
       }
@@ -153,14 +156,18 @@ const Step7History = () => {
     }),
     input: (base) => ({
       ...base,
-      color: 'white'
+      color: theme === 'dark' ? 'white' : '#111827'
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: theme === 'dark' ? 'white' : '#111827'
     })
   };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 max-h-[70vh] overflow-y-auto pr-4 custom-scrollbar">
       <div className="space-y-2">
-        <h2 className="text-xl font-bold text-white flex items-center">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
           <ShieldCheck className="w-5 h-5 mr-3 text-emerald-400" /> Final Assessment
         </h2>
         <p className="text-gray-600 dark:text-gray-300 text-sm">One last step to build your complete health matrix.</p>
@@ -196,7 +203,7 @@ const Step7History = () => {
               <button
                 onClick={() => handleToggle('gestationalDiabetesHistory')}
                 className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs transition-all ${
-                  formData?.gestationalDiabetesHistory ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-gray-950 border-gray-800 text-gray-500'
+                  formData?.gestationalDiabetesHistory ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-300 font-bold' : 'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 text-gray-500'
                 }`}
               >
                 History of gestational diabetes
@@ -237,7 +244,7 @@ const Step7History = () => {
                 key={days}
                 onClick={() => handleChoice('weeklyExerciseDays', days)}
                 className={`px-3 py-2 rounded-lg text-[10px] font-bold border transition-all ${
-                  formData?.weeklyExerciseDays === days ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-gray-950 border-gray-800 text-gray-500'
+                  formData?.weeklyExerciseDays === days ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 text-gray-500'
                 }`}
               >
                 Exercise days/week: {days}

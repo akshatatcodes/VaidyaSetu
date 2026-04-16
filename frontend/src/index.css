@@ -507,3 +507,93 @@ html:not(.dark) .bg-gray-200 {
   background-size: 200% 100% !important;
   animation: shimmer 1.5s infinite !important;
 }
+/* ================================================================
+   PRINT & PDF EXPORT OPTIMIZATION
+   ================================================================ */
+@media print {
+  /* Hide non-report elements */
+  .vs-sidebar, 
+  nav, 
+  button, 
+  .fixed, 
+  #chatbot-container, 
+  .theme-toggle,
+  .disclaimer-banner,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  body, html {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Remove sidebar margin/padding during print */
+  .md\:ml-72, 
+  .flex-1, 
+  main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .max-w-7xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Card styling for print */
+  .rounded-3xl, 
+  .rounded-\[2\.5rem\],
+  .rounded-\[2rem\] {
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+    margin-bottom: 2rem !important;
+    background: white !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* High contrast text for print */
+  h1, h2, h3, h4, .text-white {
+    color: black !important;
+  }
+
+  .text-gray-400, .text-gray-500, .text-gray-600 {
+    color: #334155 !important;
+  }
+
+  /* Indicators and Pills */
+  .bg-emerald-500\/10, .bg-blue-500\/10, .bg-fuchsia-500\/10 {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  /* Ensure colors and backgrounds print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Add a Report Header only for print */
+  body::before {
+    content: "VaidyaSetu Clinical Health Summary";
+    display: block;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 900;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #10b981;
+    padding-bottom: 10px;
+  }
+}
+
+/* Fix for Sidebar overlap on desktop */
+@media (min-width: 768px) {
+  .vs-main-content {
+    min-height: calc(100vh - 100px);
+  }
+}
