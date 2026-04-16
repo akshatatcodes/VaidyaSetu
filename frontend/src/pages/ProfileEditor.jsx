@@ -9,6 +9,7 @@ import {
   ArrowLeft, Shield, Zap
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 
 import { API_URL } from '../config/api';
 
@@ -162,6 +163,7 @@ const YesNoToggle = ({ label, value, onChange }) => (
 const ProfileEditor = () => {
   const { user } = useUser();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -288,11 +290,14 @@ const ProfileEditor = () => {
   }).length;
 
   return (
-    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in duration-500">
+    <div className="max-w-6xl w-full pb-20 animate-in fade-in duration-500">
 
       {/* ── HEADER ── */}
       <div className="relative rounded-[2rem] overflow-hidden mb-8 border border-white/8 p-7 md:p-8"
-        style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #061310 60%, #0a0f1e 100%)' }}>
+        style={{ background: theme === 'dark'
+          ? 'linear-gradient(135deg, #0a0f1e 0%, #061310 60%, #0a0f1e 100%)'
+          : 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 60%, #f0f9ff 100%)'
+        }}>
         <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-15 pointer-events-none"
           style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }} />
         <div className="relative z-10 flex items-start justify-between gap-4">
@@ -543,15 +548,17 @@ const ProfileEditor = () => {
 
       {/* ── INTENT MODAL ── */}
       {showIntentModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+        <div className="fixed inset-0 md:left-72 z-[1000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => !saving && setShowIntentModal(false)} />
-          <div className="relative bg-[#070d1a] border border-white/10 rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className={`relative border border-white/10 rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 ${
+            theme === 'dark' ? 'bg-[#070d1a]' : 'bg-white'
+          }`}>
             {/* Modal header */}
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-xl bg-emerald-500/10">
                 <Shield size={16} className="text-emerald-400" />
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tighter">Update <span className="text-emerald-400">Context</span></h2>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">Update <span className="text-emerald-400">Context</span></h2>
             </div>
             <p className="text-gray-600 text-sm mb-6">Select the reason for this data update.</p>
 
@@ -567,9 +574,9 @@ const ProfileEditor = () => {
                       ? 'bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/20'
                       : 'border-white/8 bg-white/3 hover:bg-white/6'
                   }`}>
-                  <div className="font-black text-white text-sm mb-0.5 flex items-center justify-between">
+                  <div className="font-black text-gray-800 dark:text-white text-sm mb-0.5 flex items-center justify-between">
                     {opt.label}
-                    <Info size={12} className="text-gray-600" />
+                    <Info size={12} className="text-gray-400 dark:text-gray-600" />
                   </div>
                   <div className="text-[10px] text-gray-600 font-semibold">{opt.sub}</div>
                 </button>

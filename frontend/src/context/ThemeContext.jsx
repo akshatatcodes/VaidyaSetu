@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [fontSize, setFontSize] = useState(localStorage.getItem('fontSize') || 'base'); // base, large, x-large
   const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
   const [reducedMotion, setReducedMotion] = useState(localStorage.getItem('reducedMotion') === 'true');

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
 
 import { API_URL } from '../config/api';
 
@@ -59,20 +60,22 @@ const RingGauge = ({ value = 0, max = 100, color = '#10b981', size = 120, label 
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-black text-white text-xl leading-none">{isNaN(numericValue) ? '—' : value}</span>
-        {label && <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{label}</span>}
+        <span className="font-black text-gray-900 dark:text-white text-xl leading-none">{isNaN(numericValue) ? '—' : value}</span>
+        {label && <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-0.5">{label}</span>}
       </div>
     </div>
   );
 };
 
 const Pill = ({ label, active, color = 'emerald' }) => {
+  if (!active) return null;
+  
   const palettes = {
-    emerald: active ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-white/3 text-gray-600 border-white/8 line-through',
-    fuchsia: active ? 'bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30' : 'bg-white/3 text-gray-600 border-white/8 line-through',
-    blue:    active ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'           : 'bg-white/3 text-gray-600 border-white/8 line-through',
-    red:     active ? 'bg-red-500/15 text-red-400 border-red-500/30' : 'bg-white/3 text-gray-600 border-white/8 line-through',
-    sky:     active ? 'bg-sky-500/15 text-sky-400 border-sky-500/30' : 'bg-white/3 text-gray-600 border-white/8 line-through',
+    emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    fuchsia: 'bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30',
+    blue:    'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    red:     'bg-red-500/15 text-red-400 border-red-500/30',
+    sky:     'bg-sky-500/15 text-sky-400 border-sky-500/30',
   };
   return (
     <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full border ${palettes[color] ?? palettes.emerald}`}>
@@ -83,9 +86,9 @@ const Pill = ({ label, active, color = 'emerald' }) => {
 
 const StatRow = ({ label, value, unit = '', highlight = false }) => (
   <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-    <span className="text-xs font-semibold text-gray-400">{label}</span>
+    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</span>
     <span className={`text-xs font-black px-2.5 py-0.5 rounded-lg ${
-      highlight ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-gray-100'
+      highlight ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-200/50 dark:bg-white/5 text-gray-900 dark:text-gray-100'
     }`}>
       {value !== null && value !== undefined && value !== '' ? `${value}${unit ? ' ' + unit : ''}` : '—'}
     </span>
@@ -112,7 +115,7 @@ const CardHeader = ({ icon: Icon, title, iconColor, lastUpdated }) => (
       <div className="p-2 rounded-xl" style={{ background: `${iconColor}20` }}>
         <Icon size={16} style={{ color: iconColor }} />
       </div>
-      <h3 className="text-sm font-black text-white uppercase tracking-widest">{title}</h3>
+      <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">{title}</h3>
     </div>
     {lastUpdated && (
       <div className="flex items-center gap-1 text-[9px] font-bold text-gray-500 uppercase tracking-wider">
@@ -128,6 +131,7 @@ const CardHeader = ({ icon: Icon, title, iconColor, lastUpdated }) => (
 const HealthProfile = () => {
   const { user } = useUser();
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [dataQuality, setDataQuality] = useState(null);
@@ -185,7 +189,7 @@ const HealthProfile = () => {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-8 fade-in duration-300">
           <div className="bg-emerald-950/95 border border-emerald-500/40 backdrop-blur-xl px-6 py-3 rounded-full shadow-[0_8px_40px_rgba(16,185,129,0.35)] flex items-center gap-3">
             <CheckCircle2 size={16} className="text-emerald-400" />
-            <span className="text-white font-semibold text-sm">{toastMessage}</span>
+            <span className="text-emerald-900 dark:text-white font-semibold text-sm">{toastMessage}</span>
             <button onClick={() => setToastMessage(null)} className="ml-2 text-emerald-400 hover:text-white transition-colors">
               <X size={14} />
             </button>
@@ -194,8 +198,11 @@ const HealthProfile = () => {
       )}
 
       {/* ── HERO BANNER ── */}
-      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-white/8"
-        style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1a12 50%, #0a0f1e 100%)' }}>
+      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-white/8 dark:border-white/8 light:border-emerald-500/20"
+        style={{ background: theme === 'dark' 
+          ? 'linear-gradient(135deg, #0a0f1e 0%, #0d1a12 50%, #0a0f1e 100%)' 
+          : 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0f9ff 100%)' 
+        }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-20"
             style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }} />
@@ -234,18 +241,15 @@ const HealthProfile = () => {
                 </span>
               )}
             </div>
-            <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter mb-2 italic uppercase">
+            <h1 className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tighter mb-2 italic uppercase">
               {profile?.name?.value || user?.fullName || t('profile.errors.no_profile', { defaultValue: 'Legacy Entity' })}
             </h1>
-            <p className="text-gray-400 text-sm max-w-lg leading-relaxed font-medium">
+            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-lg leading-relaxed font-medium">
               {t('profile.health_overview_subtitle', { defaultValue: 'Real-time overview of your foundational health metrics.' })}
             </p>
           </div>
 
           <div className="flex flex-col gap-3 flex-shrink-0 w-full md:w-auto">
-            <button onClick={() => window.print()} className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-300 text-sm font-bold hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest text-[10px]">
-              <Download size={15} /> {t('profile.export_profile', { defaultValue: 'Export Data' })}
-            </button>
             <Link to="/profile/edit"
               className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95 uppercase tracking-widest text-[10px]">
               <Edit3 size={15} /> {t('profile.edit_profile', { defaultValue: 'Edit Ledger' })}
@@ -269,8 +273,8 @@ const HealthProfile = () => {
                   {t(`profile.quality_${dqLabel}`, { defaultValue: dataQuality.label })} {t('profile.profile_label', { defaultValue: 'Profile' })}
                 </span>
               </div>
-              <h2 className="text-2xl font-black text-white mb-2">{t('profile.data_quality', { defaultValue: 'Bio-Data Quality' })}</h2>
-              <p className="text-gray-400 text-sm md:text-base max-w-2xl leading-relaxed font-medium">
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{t('profile.data_quality', { defaultValue: 'Bio-Data Quality' })}</h2>
+              <p className="text-gray-400 dark:text-gray-500 text-sm md:text-base max-w-2xl leading-relaxed font-medium">
                 {dataQuality?.message || t('profile.action.update_stats', { defaultValue: 'Complete your bio-matrix for deeper AI assessment.' })}
               </p>
             </div>
@@ -282,7 +286,7 @@ const HealthProfile = () => {
                 { label: t('profile.diet_nutrition', { defaultValue: 'Nutrition Matrix' }), pct: profile?.dietType?.value ? 100 : 30 },
               ].map(bar => (
                 <div key={bar.label}>
-                  <div className="flex justify-between text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  <div className="flex justify-between text-[9px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-wider mb-1">
                     <span>{bar.label}</span><span>{bar.pct}%</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
@@ -421,25 +425,25 @@ const HealthProfile = () => {
           <CardHeader icon={AlertTriangle} title={t('profile.allergies_medical', { defaultValue: 'Alerts & History' })} iconColor="#f87171" lastUpdated={profile?.allergies?.lastUpdated} />
           <div className="px-6 py-5 space-y-4">
             <div>
-              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">{t('profile.labels.allergies', { defaultValue: 'Known Allergies' })}</p>
+              <p className="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">{t('profile.labels.allergies', { defaultValue: 'Known Allergies' })}</p>
               <div className="flex flex-wrap gap-2">
                 {profile?.allergies?.value?.length > 0
                   ? profile.allergies.value.map(a => <Pill key={a} label={a} active color="red" />)
-                  : <span className="text-xs text-gray-600 italic">{t('profile.values.none', { defaultValue: 'No known allergies' })}</span>}
+                  : <span className="text-xs text-gray-500 dark:text-gray-400 italic">{t('profile.values.none', { defaultValue: 'No known allergies' })}</span>}
               </div>
             </div>
             <div>
-              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">{t('profile.labels.conditions', { defaultValue: 'Medical Conditions' })}</p>
+              <p className="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">{t('profile.labels.conditions', { defaultValue: 'Medical Conditions' })}</p>
               <div className="flex flex-wrap gap-2">
                 {profile?.medicalHistory?.value?.length > 0
                   ? profile.medicalHistory.value.map(c => <Pill key={c} label={c} active color="sky" />)
-                  : <span className="text-xs text-gray-600 italic">{t('profile.values.no_history', { defaultValue: 'No records reported' })}</span>}
+                  : <span className="text-xs text-gray-500 dark:text-gray-400 italic">{t('profile.values.no_history', { defaultValue: 'No records reported' })}</span>}
               </div>
             </div>
             {profile?.otherConditions?.value && (
               <div className="border-t border-white/6 pt-3">
-                <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">{t('profile.labels.obs_title', { defaultValue: 'Observations' })}</p>
-                <p className="text-xs text-gray-400 italic leading-relaxed">"{profile.otherConditions.value}"</p>
+                <p className="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">{t('profile.labels.obs_title', { defaultValue: 'Observations' })}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed">"{profile.otherConditions.value}"</p>
               </div>
             )}
           </div>
@@ -448,7 +452,10 @@ const HealthProfile = () => {
         {/* 8. CTA Card */}
         <Card accent="#10b981" className="md:col-span-2 xl:col-span-1">
           <div className="relative overflow-hidden h-full min-h-[200px]"
-            style={{ background: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%)' }}>
+            style={{ background: theme === 'dark'
+              ? 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%)'
+              : 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #059669 100%)'
+            }}>
             <div className="absolute -top-8 -right-8 opacity-[0.12] pointer-events-none">
               <TrendingUp size={180} className="text-white" />
             </div>
@@ -479,8 +486,8 @@ const HealthProfile = () => {
            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl w-fit mx-auto mb-6 group-hover:scale-110 transition-transform">
               <History size={24} />
            </div>
-           <h3 className="text-xs text-gray-400 uppercase tracking-[0.3em] font-black mb-4">{t('profile.labels.obs_title', { defaultValue: 'Clinical Context' })}</h3>
-          <p className="text-xl md:text-2xl text-white font-black italic max-w-4xl mx-auto leading-relaxed">
+           <h3 className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.3em] font-black mb-4">{t('profile.labels.obs_title', { defaultValue: 'Clinical Context' })}</h3>
+          <p className="text-xl md:text-2xl text-gray-900 dark:text-white font-black italic max-w-4xl mx-auto leading-relaxed">
             "{profile.otherConditions.value}"
           </p>
           <div className="mt-8 flex justify-center">

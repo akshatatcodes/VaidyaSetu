@@ -32,7 +32,8 @@ const Sidebar = () => {
     }
   }, [user]);
 
-  const navItems = [
+  // Full list for Desktop
+  const desktopNavItems = [
     { to: '/', icon: Home, label: t('sidebar.dashboard') },
     { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals') },
@@ -40,6 +41,15 @@ const Sidebar = () => {
     { to: '/alerts', icon: AlertCircle, label: t('sidebar.alerts') },
     { to: '/profile', icon: UserCircle, label: t('sidebar.profile') },
     { to: '/settings', icon: Settings, label: t('sidebar.settings') },
+  ];
+
+  // Limited list for Mobile Bottom Nav (removing Alerts and Settings)
+  const mobileBottomNavItems = [
+    { to: '/', icon: Home, label: t('sidebar.dashboard') },
+    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions') },
+    { to: '/vitals', icon: Activity, label: t('sidebar.vitals') },
+    { to: '/medicines', icon: Pill, label: t('sidebar.medicines') },
+    { to: '/profile', icon: UserCircle, label: t('sidebar.profile') },
   ];
 
   /* ──────────────────────────────────────────────
@@ -70,7 +80,7 @@ const Sidebar = () => {
         {/* Nav */}
         <div className="flex flex-col flex-1 justify-between overflow-hidden">
           <nav className="flex flex-col space-y-2">
-            {navItems.map((item) => (
+            {desktopNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -97,18 +107,23 @@ const Sidebar = () => {
           {/* Desktop user profile */}
           <div className="pt-6 border-t border-gray-200/50 dark:border-white/5">
             <SignedIn>
-              <div className="flex items-center justify-between px-4 py-3 bg-white/40 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5 backdrop-blur-md hover:border-emerald-500/30 transition-all">
-                <UserButton
-                  showName
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox: 'w-8 h-8',
-                      userButtonBox: 'flex-row-reverse',
-                      userButtonOuterIdentifier: 'text-slate-900 dark:!text-white font-bold'
-                    }
-                  }}
-                />
-                <Link to="/profile" className="text-slate-600 dark:text-gray-400 hover:text-emerald-600 transition-colors" title="My Health Profile">
+              <div className="flex items-center gap-3 px-4 h-14 bg-white/40 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5 backdrop-blur-md hover:border-emerald-500/30 transition-all">
+                <div className="flex items-center flex-1 min-w-0 gap-3">
+                  <div className="flex items-center justify-center shrink-0">
+                    <UserButton
+                      appearance={{
+                        elements: {
+                          userButtonAvatarBox: 'w-8 h-8',
+                          rootBox: 'w-8 h-8 flex items-center justify-center'
+                        }
+                      }}
+                    />
+                  </div>
+                  <span className="text-sm font-black text-slate-900 dark:text-white truncate pt-0.5">
+                    {user?.fullName || 'User Entity'}
+                  </span>
+                </div>
+                <Link to="/profile" className="text-slate-400 hover:text-emerald-600 transition-colors shrink-0 flex items-center justify-center" title="My Health Profile">
                   <UserCircle className="w-5 h-5" />
                 </Link>
               </div>
@@ -124,7 +139,7 @@ const Sidebar = () => {
 
       {/* ── MOBILE TOP HEADER ── */}
       <div
-        className="md:hidden flex items-center justify-between px-4 py-3 border-b z-50 sticky top-0"
+        className="md:hidden flex items-center justify-between px-4 h-16 border-b z-50 sticky top-0"
         style={theme === 'dark' ? {
           background: 'rgba(5, 11, 20, 0.95)',
           borderColor: 'rgba(255,255,255,0.05)',
@@ -135,15 +150,30 @@ const Sidebar = () => {
           backdropFilter: 'blur(20px)'
         }}
       >
-        <h2 className="text-xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
-          Vaidya<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Setu</span>
-        </h2>
+        <div className="flex items-center pt-1">
+          <h2 className="text-xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
+            Vaidya<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Setu</span>
+          </h2>
+        </div>
+
         <SignedIn>
-          <div className="flex items-center gap-3">
-            <Link to="/profile" className="text-slate-600 dark:text-gray-400 hover:text-emerald-600 transition-colors">
-              <UserCircle className="w-5 h-5" />
+          <div className="flex items-center gap-4">
+            {/* Alerts icon moved here for mobile */}
+            <Link to="/alerts" className="relative text-slate-600 dark:text-gray-400 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Link>
-            <UserButton appearance={{ elements: { userButtonAvatarBox: 'w-8 h-8' } }} />
+            {/* Settings icon moved here for mobile */}
+            <Link to="/settings" className="text-slate-600 dark:text-gray-400 flex items-center justify-center">
+              <Settings className="w-5 h-5" />
+            </Link>
+            <div className="flex items-center pt-1">
+              <UserButton appearance={{ elements: { userButtonAvatarBox: 'w-8 h-8' } }} />
+            </div>
           </div>
         </SignedIn>
         <SignedOut>
@@ -168,7 +198,7 @@ const Sidebar = () => {
           boxShadow: '0 -8px 32px rgba(16,185,129,0.08)'
         }}
       >
-        {navItems.map((item) => (
+        {mobileBottomNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -188,13 +218,8 @@ const Sidebar = () => {
                 )}
                 <item.icon className={`w-5 h-5 mb-0.5 transition-transform ${isActive ? 'scale-110' : ''}`} />
                 <span className="text-[9px] font-black uppercase tracking-wider leading-none">
-                  {item.label.length > 6 ? item.label.slice(0, 6) : item.label}
+                  {item.label.length > 8 ? item.label.slice(0, 8) : item.label}
                 </span>
-                {item.to === '/alerts' && unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-[calc(50%-18px)] w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
               </>
             )}
           </NavLink>
