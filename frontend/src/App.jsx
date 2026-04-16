@@ -29,7 +29,7 @@ import MedicationSchedule from './pages/MedicationSchedule';
 import AlertSettings from './pages/AlertSettings';
 import MyMedicines from './pages/MyMedicines';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
 
 // Guard: redirect unauthenticated users to /sign-in
 const ProtectedRoute = ({ children }) => {

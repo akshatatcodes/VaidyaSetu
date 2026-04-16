@@ -10,7 +10,7 @@ const SavedDoctorsWidget = ({ doctors, clerkId, onRemove, onRefresh }) => {
 
   if (!doctors || doctors.length === 0) return null;
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
 
   const handleStartEdit = (doc) => {
     setEditingId(doc.placeId);

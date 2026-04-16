@@ -22,7 +22,7 @@ import VitalAnalysisModal from '../components/VitalAnalysisModal';
 import LabAnalysisModal from '../components/LabAnalysisModal';
 import { useTranslation } from 'react-i18next';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://vaidyasetu-eyg9.onrender.com/api';
 
 const VitalCard = ({ title, value, unit, type, status, trend, timestamp, icon: Icon, onClick }) => {
   const { t } = useTranslation();
