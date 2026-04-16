@@ -237,6 +237,28 @@ function buildQuestionnaireAnswerBreakdown(questionnaire, answers = {}, profile 
   return { totalPoints, details };
 }
 
+function toFactorBreakdownFromQuestionnaireDetails(details = []) {
+  return (details || []).map((detail, idx) => {
+    const points = Number(detail?.points || 0);
+    const normalizedCategory = ['symptom', 'demographic', 'lifestyle', 'lab', 'clinical', 'critical', 'questionnaire']
+      .includes(detail?.category)
+      ? detail.category
+      : 'questionnaire';
+
+    return {
+      id: `questionnaire_factor_${idx + 1}`,
+      name: detail?.question || 'Questionnaire factor',
+      displayValue: detail?.answer || 'Answered',
+      rawValue: detail?.answer || null,
+      impact: Math.abs(points),
+      direction: points >= 0 ? 'increase' : 'decrease',
+      explanation: `Captured from questionnaire response (${detail?.weight || 'medium'} priority).`,
+      category: normalizedCategory,
+      source: 'questionnaire'
+    };
+  });
+}
+
 // @route   GET /api/diseases/:diseaseId/details
 // @desc    Get complete disease info for a specific user
 router.get('/:diseaseId/details', async (req, res) => {
@@ -627,6 +649,9 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       answers || {},
       comprehensiveProfile
     );
+    const questionnaireFactorBreakdown = toFactorBreakdownFromQuestionnaireDetails(
+      questionnaireBreakdown.details
+    );
 
     // Baseline profile for scoring (onboarding-only), but still includes allergies & medications.
     const profileForBaseline = {
@@ -666,7 +691,7 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       questionnaireInsights = {
         ...scorerQuestionnaireInsights,
         riskScore: questionnaireScore,
-        factorBreakdown: questionnaireBreakdown.details
+        factorBreakdown: questionnaireFactorBreakdown
       };
     }
 
@@ -693,7 +718,7 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       questionnaireInsights = {
         ...questionnaireInsights,
         riskScore: questionnaireScore,
-        factorBreakdown: questionnaireBreakdown.details
+        factorBreakdown: questionnaireFactorBreakdown
       };
     }
 
@@ -720,7 +745,7 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
     };
     let assessmentFactors = (insights.factorBreakdown && insights.factorBreakdown.length > 0)
       ? insights.factorBreakdown
-      : questionnaireBreakdown.details;
+      : questionnaireFactorBreakdown;
     
     // PERSIST QUESTIONNAIRE ANSWERS TO USER PROFILE (CRITICAL FIX)
     try {
