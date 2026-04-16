@@ -4,6 +4,7 @@ const UserProfile = require('../models/UserProfile');
 const History = require('../models/History');
 const Report = require('../models/Report');
 const { calculateDataQuality } = require('../utils/dataQualityWatcher');
+const { schedulePredictiveRecompute } = require('../services/predictiveRiskRecomputeScheduler');
 
 // Get current profile with metadata
 router.get('/:clerkId', async (req, res) => {
@@ -127,6 +128,9 @@ router.post('/update', async (req, res) => {
       
       await profile.save();
     }
+
+    // Debounced predictive-risk refresh (baseline affected by onboarding/profile changes)
+    schedulePredictiveRecompute({ clerkId });
 
     res.json({
       status: 'success',

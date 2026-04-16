@@ -9,7 +9,7 @@ import {
   ArrowLeft, Shield, Zap
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
 
 import { API_URL } from '../config/api';
 
@@ -31,37 +31,30 @@ const CONDITION_OPTIONS = [
 const selectStyles = {
   control: (base, state) => ({
     ...base,
-    backgroundColor: 'transparent',
-    borderColor: state.isFocused ? '#10b981' : 'rgba(100,116,139,0.2)',
-    borderRadius: '1rem', padding: '6px', 
-    boxShadow: 'none', '&:hover': { borderColor: '#10b981' },
-    transition: 'all 0.2s ease',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: state.isFocused ? '#10b981' : 'rgba(255,255,255,0.1)',
+    borderRadius: '0.75rem', padding: '4px', color: 'white',
+    boxShadow: 'none', '&:hover': { borderColor: 'rgba(255,255,255,0.2)' }
   }),
   menu: (base) => ({
-    ...base, 
-    backgroundColor: 'var(--select-menu-bg, #ffffff)', 
-    border: '1px solid rgba(148,163,184,0.1)',
-    borderRadius: '1rem', zIndex: 200, backdropFilter: 'blur(20px)',
-    boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
+    ...base, backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '0.75rem', zIndex: 200
   }),
   option: (base, state) => ({
-    ...base, 
-    backgroundColor: state.isFocused ? 'rgba(16,185,129,0.1)' : 'transparent',
-    color: state.isFocused ? '#059669' : 'inherit',
-    fontWeight: '600',
-    '&:active': { backgroundColor: 'rgba(16,185,129,0.2)' }
+    ...base, backgroundColor: state.isFocused ? '#059669' : 'transparent',
+    color: 'white', '&:active': { backgroundColor: '#10b981' }
   }),
   multiValue: (base) => ({
-    ...base, backgroundColor: 'rgba(16,185,129,0.1)', borderRadius: '0.5rem',
-    border: '1px solid rgba(16,185,129,0.2)'
+    ...base, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: '0.5rem',
+    border: '1px solid rgba(16,185,129,0.25)'
   }),
-  multiValueLabel: (base) => ({ ...base, color: '#059669', fontWeight: '700' }),
+  multiValueLabel: (base) => ({ ...base, color: '#10b981' }),
   multiValueRemove: (base) => ({
-    ...base, color: '#059669',
-    '&:hover': { backgroundColor: 'rgba(16,185,129,0.2)', color: '#047857' }
+    ...base, color: '#10b981',
+    '&:hover': { backgroundColor: 'rgba(16,185,129,0.2)', color: '#34d399' }
   }),
-  input: (base) => ({ ...base, color: 'inherit' }),
-  placeholder: (base) => ({ ...base, color: '#94a3b8' }),
+  input: (base) => ({ ...base, color: 'white' }),
+  placeholder: (base) => ({ ...base, color: '#6b7280' }),
 };
 
 /* ─── Section config ─── */
@@ -77,23 +70,23 @@ const SECTIONS = [
 
 /* ─── Reusable sub-components ─── */
 const SectionCard = ({ sectionKey, label, icon: Icon, accent, open, onToggle, children }) => (
-  <div className="rounded-[2rem] border border-slate-200 dark:border-white/8 bg-white dark:bg-white/4 backdrop-blur-xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md"
-    style={{ boxShadow: open ? `0 20px 40px ${accent}08` : 'none' }}>
+  <div className="rounded-3xl border border-white/8 bg-white/4 backdrop-blur overflow-hidden transition-all duration-300"
+    style={{ boxShadow: open ? `0 0 30px ${accent}12` : 'none' }}>
     <button type="button"
       onClick={onToggle}
-      className={`w-full flex items-center justify-between p-5 md:p-6 text-left group transition-colors ${open ? 'bg-slate-50 dark:bg-white/5' : ''}`}>
-      <div className="flex items-center gap-4">
-        <div className="p-2.5 rounded-2xl transition-all" style={{ background: `${accent}15` }}>
-          <Icon size={18} style={{ color: accent }} />
+      className="w-full flex items-center justify-between p-5 md:p-6 text-left group">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-xl transition-all" style={{ background: `${accent}18` }}>
+          <Icon size={16} style={{ color: accent }} />
         </div>
-        <span className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest">{label}</span>
+        <span className="text-sm font-black text-white uppercase tracking-widest">{label}</span>
       </div>
-      <div className={`p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-gray-600 group-hover:text-emerald-500 transition-colors ${open ? 'rotate-180' : ''}`}>
-        <ChevronDown size={14} />
+      <div className="p-1.5 rounded-xl bg-white/5 text-gray-600 group-hover:text-gray-300 transition-colors">
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
       </div>
     </button>
     {open && (
-      <div className="px-5 md:px-8 pb-8 border-t border-slate-100 dark:border-white/6 pt-6 space-y-6 animate-in slide-in-from-top-2 duration-300">
+      <div className="px-5 md:px-6 pb-6 border-t border-white/6 pt-5 space-y-6 animate-in slide-in-from-top-2 duration-200">
         {children}
       </div>
     )}
@@ -110,8 +103,8 @@ const TextInput = ({ value, onChange, type = 'text', placeholder = '' }) => (
     value={value}
     onChange={onChange}
     placeholder={placeholder}
-    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-3.5 text-slate-900 dark:text-white font-bold text-sm
-      focus:border-emerald-500 focus:bg-white dark:focus:bg-white/8 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-gray-700 shadow-inner"
+    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-semibold text-sm
+      focus:border-emerald-500 focus:bg-white/8 outline-none transition-all placeholder:text-gray-700"
   />
 );
 
@@ -134,32 +127,33 @@ const ChipGroup = ({ options, value, onChange, accent = '#10b981' }) => (
 
 const ToggleRow = ({ label, desc, checked, onChange, accent = '#10b981' }) => (
   <button type="button" onClick={() => onChange(!checked)}
-    className={`w-full flex items-start p-4 rounded-2xl border transition-all text-left group`}
+    className={`w-full flex items-start p-4 rounded-2xl border transition-all text-left`}
     style={checked
-      ? { background: `${accent}08`, borderColor: `${accent}30`, boxShadow: `0 4px 12px ${accent}05` }
-      : { background: 'transparent', borderColor: 'rgba(148,163,184,0.1)' }}>
-    <div className="p-2 rounded-xl mr-4 mt-0.5 flex-shrink-0 transition-all shadow-sm"
-      style={checked ? { background: accent, color: '#fff' } : { background: 'rgba(148,163,184,0.1)', color: '#94a3b8' }}>
-      {checked ? <CheckCircle2 size={16} /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-30" />}
+      ? { background: `${accent}12`, borderColor: `${accent}50` }
+      : { background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}>
+    <div className="p-1.5 rounded-xl mr-3 mt-0.5 flex-shrink-0 transition-all"
+      style={checked ? { background: accent, color: '#fff' } : { background: 'rgba(255,255,255,0.08)', color: '#6b7280' }}>
+      {checked ? <CheckCircle2 size={14} /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-current" />}
     </div>
     <div className="flex-1 min-w-0">
-      <div className="font-bold text-sm" style={{ color: checked ? accent : 'inherit' }}>{label}</div>
-      {desc && <div className="text-[10px] text-slate-400 dark:text-gray-500 mt-1 font-semibold leading-relaxed">{desc}</div>}
+      <div className="font-bold text-sm" style={{ color: checked ? accent : '#d1d5db' }}>{label}</div>
+      {desc && <div className="text-[10px] text-gray-600 mt-0.5 leading-relaxed">{desc}</div>}
     </div>
+    {checked && <CheckCircle2 size={15} className="ml-2 flex-shrink-0 mt-0.5" style={{ color: accent }} />}
   </button>
 );
 
 const YesNoToggle = ({ label, value, onChange }) => (
-  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/4 border border-slate-200 dark:border-white/8 rounded-2xl">
-    <span className="text-sm font-bold text-slate-600 dark:text-gray-300">{label}</span>
+  <div className="flex items-center justify-between p-4 bg-white/4 border border-white/8 rounded-2xl">
+    <span className="text-sm font-semibold text-gray-300">{label}</span>
     <div className="flex gap-2">
       <button type="button" onClick={() => onChange(true)}
-        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all text-sm font-black shadow-sm ${value ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-400 dark:text-gray-600'}`}>
+        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all text-sm font-bold ${value ? 'bg-emerald-600 text-white' : 'bg-white/5 text-gray-600'}`}>
         ✓
       </button>
       <button type="button" onClick={() => onChange(false)}
-        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all text-sm font-black shadow-sm ${!value ? 'bg-slate-700 dark:bg-gray-700 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-400 dark:text-gray-600'}`}>
-        <X size={15} />
+        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all text-sm ${!value ? 'bg-gray-700 text-white' : 'bg-white/5 text-gray-600'}`}>
+        <X size={14} />
       </button>
     </div>
   </div>
@@ -169,7 +163,7 @@ const YesNoToggle = ({ label, value, onChange }) => (
 const ProfileEditor = () => {
   const { user } = useUser();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -261,30 +255,15 @@ const ProfileEditor = () => {
       Object.keys(formData).forEach(key => {
         const oldVal = profile[key]?.value;
         const newVal = formData[key];
-        
-        let processed = newVal;
-        if (['age', 'height', 'weight'].includes(key)) {
-          processed = (newVal === '' || newVal === null) ? 0 : Number(newVal);
-        }
-
-        // Logic check: only include in updates if it actually changed
-        const isOldDefined = oldVal !== undefined && oldVal !== null;
-        const isNewDefined = processed !== undefined && processed !== null;
-
-        if (JSON.stringify(oldVal) !== JSON.stringify(processed)) {
-          // Additional check: if both were "empty", don't trigger update
-          if (!isOldDefined && (processed === '' || processed === 0 || processed === false)) {
-            return;
-          }
-          updates[key] = processed;
-        }
+        const processed = ['age', 'height', 'weight'].includes(key) ? (newVal === '' ? 0 : Number(newVal)) : newVal;
+        if (JSON.stringify(oldVal) !== JSON.stringify(processed)) updates[key] = processed;
       });
       const response = await axios.post(`${API_URL}/profile/update`, {
         clerkId: user.id, updates, intent: intentData.intent,
         notes: intentData.notes, changeDate: intentData.changeDate
       });
       if (response.data.status === 'success') {
-         await axios.post(`${API_URL}/reports/hybrid-assessment`, { clerkId: user.id, persist: true }).catch(() => null);
+         await axios.post(`${API_URL}/reports/predictive-risk/recompute`, { clerkId: user.id, persist: true }).catch(() => null);
          await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id }).catch(() => null);
          window.dispatchEvent(new CustomEvent('vaidya-profile-updated'));
          navigate('/profile', { state: { toast: 'Your questionnaire-based risk scores and insights have been refreshed.' } });
@@ -311,45 +290,43 @@ const ProfileEditor = () => {
   }).length;
 
   return (
-    <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in duration-500">
+    <div className="max-w-6xl w-full pb-20 animate-in fade-in duration-500">
 
       {/* ── HEADER ── */}
-      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-slate-200 dark:border-white/8 p-8 md:p-12 bg-white dark:bg-[#0a0f1e] shadow-2xl shadow-slate-200/50 dark:shadow-none transition-all duration-500">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-10 dark:opacity-20"
-            style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }} />
-          <div className="absolute -bottom-10 -left-10 w-60 h-60 rounded-full opacity-5 dark:opacity-10"
-            style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }} />
-        </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-          <div className="flex-1 text-center md:text-left">
+      <div className="relative rounded-[2rem] overflow-hidden mb-8 border border-white/8 p-7 md:p-8"
+        style={{ background: theme === 'dark'
+          ? 'linear-gradient(135deg, #0a0f1e 0%, #061310 60%, #0a0f1e 100%)'
+          : 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 60%, #f0f9ff 100%)'
+        }}>
+        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-15 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }} />
+        <div className="relative z-10 flex items-start justify-between gap-4">
+          <div className="flex-1">
             <Link to="/profile"
-              className="inline-flex items-center gap-1.5 text-[10px] font-black text-slate-400 dark:text-gray-600 hover:text-emerald-500 transition-colors mb-6 uppercase tracking-[0.3em]">
-              <ArrowLeft size={12} /> {t('profile.back_to_profile', { defaultValue: 'Back to Bio-Ledger' })}
+              className="inline-flex items-center gap-1.5 text-[10px] font-black text-gray-600 hover:text-emerald-400 transition-colors mb-4 uppercase tracking-widest">
+              <ArrowLeft size={11} /> Back to Profile
             </Link>
-            <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-              <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-inner">
-                <Shield size={18} className="text-emerald-500" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10">
+                <Shield size={15} className="text-emerald-400" />
               </div>
-              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.25em]">{t('profile.secure_update', { defaultValue: 'Secure Matrix Sync' })}</span>
+              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Secure Update</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase leading-none">
-              Matrix <span className="text-emerald-500">Update</span>
+            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter">
+              Matrix <span className="text-emerald-400">Update</span>
             </h1>
-            <p className="text-slate-500 dark:text-gray-500 text-sm mt-3 font-semibold max-w-lg">
-              {t('profile.update_subtitle', { defaultValue: 'Synchronize your health parameters with the core archival bio-matrix.' })}
-            </p>
+            <p className="text-gray-500 text-sm mt-1">Synchronize your health parameters with the core archive.</p>
           </div>
-          <Link to="/profile" className="p-3.5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/8 rounded-[1.5rem] text-slate-400 dark:text-gray-500 hover:text-emerald-500 transition-all flex-shrink-0 shadow-sm">
-            <X size={20} />
+          <Link to="/profile" className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl text-gray-500 hover:text-white transition-all flex-shrink-0">
+            <X size={18} />
           </Link>
         </div>
 
         {/* Progress bar */}
         <div className="relative z-10 mt-6">
-          <div className="flex justify-between text-[9px] font-black text-slate-400 dark:text-gray-600 uppercase tracking-widest mb-3">
-            <span>{t('profile.completion_status', { defaultValue: 'Bio-Matrix Integrity' })}</span>
-            <span className="text-emerald-500">{completedSections}/{SECTIONS.length} Sections Syncing</span>
+          <div className="flex justify-between text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">
+            <span>Profile Completion</span>
+            <span className="text-emerald-400">{completedSections}/{SECTIONS.length} Sections</span>
           </div>
           <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
             <div className="h-full rounded-full bg-emerald-500 transition-all duration-700"
@@ -550,8 +527,8 @@ const ProfileEditor = () => {
               onChange={e => updateField('otherConditions', e.target.value)}
               placeholder="Type additional health notes here…"
               rows={3}
-              className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white text-sm font-bold
-                focus:outline-none focus:border-emerald-500 transition-all shadow-inner resize-none placeholder:text-slate-300 dark:placeholder:text-gray-700" />
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm font-medium
+                focus:outline-none focus:border-emerald-500 transition-all shadow-inner resize-none placeholder:text-gray-700" />
           </div>
         </SectionCard>
 
@@ -571,53 +548,55 @@ const ProfileEditor = () => {
 
       {/* ── INTENT MODAL ── */}
       {showIntentModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+        <div className="fixed inset-0 md:left-72 z-[1000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => !saving && setShowIntentModal(false)} />
-          <div className="relative bg-white dark:bg-[#070d1a] border border-slate-200 dark:border-white/10 rounded-[3rem] p-10 max-w-md w-full shadow-[0_40px_100px_rgba(0,0,0,0.2)] animate-in zoom-in-95 duration-300">
+          <div className={`relative border border-white/10 rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 ${
+            theme === 'dark' ? 'bg-[#070d1a]' : 'bg-white'
+          }`}>
             {/* Modal header */}
-            <div className="flex items-center gap-4 mb-3">
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-inner">
-                <Shield size={20} className="text-emerald-500" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10">
+                <Shield size={16} className="text-emerald-400" />
               </div>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Sync <span className="text-emerald-500">Intent</span></h2>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">Update <span className="text-emerald-400">Context</span></h2>
             </div>
-            <p className="text-slate-500 dark:text-gray-600 text-sm mb-8 font-semibold">Classification is required for archival integrity.</p>
+            <p className="text-gray-600 text-sm mb-6">Select the reason for this data update.</p>
 
-            <div className="space-y-4 mb-8">
+            <div className="space-y-3 mb-6">
               {[
-                { id: 'correction',  label: 'Adjustment',     sub: 'Archival error correction — ignores trend alerts' },
-                { id: 'real_change', label: 'Baseline Shift',  sub: 'Actual clinical change — triggers AI re-indexing' },
-                { id: 'initial',     label: 'Data Sync',      sub: 'Filling archive gaps — baseline calibration' },
+                { id: 'correction',  label: 'Correction',     sub: 'Fixing a previous input error — no progress tracked' },
+                { id: 'real_change', label: 'Baseline Shift',  sub: 'Actual physiological or lifestyle change — AI re-analysis triggered' },
+                { id: 'initial',     label: 'Missing Data',   sub: 'Backfilling archival records' },
               ].map(opt => (
                 <button key={opt.id} type="button" onClick={() => setIntentData({ ...intentData, intent: opt.id })}
-                  className={`w-full p-5 rounded-2xl border text-left transition-all relative overflow-hidden group ${
+                  className={`w-full p-4 rounded-2xl border text-left transition-all ${
                     intentData.intent === opt.id
-                      ? 'bg-emerald-500/10 border-emerald-500/50 ring-2 ring-emerald-500/5 shadow-lg'
-                      : 'border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/3 hover:border-emerald-500/30'
+                      ? 'bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/20'
+                      : 'border-white/8 bg-white/3 hover:bg-white/6'
                   }`}>
-                  <div className={`font-black uppercase tracking-tight text-sm mb-1 flex items-center justify-between ${intentData.intent === opt.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-white'}`}>
+                  <div className="font-black text-gray-800 dark:text-white text-sm mb-0.5 flex items-center justify-between">
                     {opt.label}
-                    <div className={`w-2 h-2 rounded-full transition-all ${intentData.intent === opt.id ? 'bg-emerald-500 animate-pulse' : 'bg-slate-200 dark:bg-white/10'}`} />
+                    <Info size={12} className="text-gray-400 dark:text-gray-600" />
                   </div>
-                  <div className="text-[10px] text-slate-500 dark:text-gray-500 font-bold tracking-tight">{opt.sub}</div>
+                  <div className="text-[10px] text-gray-600 font-semibold">{opt.sub}</div>
                 </button>
               ))}
             </div>
 
-            <div className="mb-8">
-              <FieldLabel>Archive Notes</FieldLabel>
+            <div className="mb-6">
+              <FieldLabel>Optional Notes</FieldLabel>
               <textarea value={intentData.notes}
                 onChange={e => setIntentData({ ...intentData, notes: e.target.value })}
-                placeholder="Briefly describe the change context…"
+                placeholder="e.g., Started a keto diet, lost 3 kg…"
                 rows={2}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm text-slate-800 dark:text-white font-bold
-                  focus:outline-none focus:border-emerald-500 transition-all shadow-inner resize-none placeholder:text-slate-300 dark:placeholder:text-gray-700" />
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white
+                  focus:outline-none focus:border-emerald-500 transition-all shadow-inner resize-none placeholder:text-gray-700" />
             </div>
 
             <button onClick={handleFinalSave} disabled={saving}
-              className="w-full flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-emerald-900/30 disabled:opacity-50">
-              <Save size={18} />
-              {saving ? 'Syncing Matrix…' : 'Push To Archive'}
+              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-emerald-900/30 disabled:opacity-50">
+              <Save size={15} />
+              {saving ? 'Encrypting Archive…' : 'Push Matrix Update'}
             </button>
           </div>
         </div>

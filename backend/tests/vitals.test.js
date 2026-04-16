@@ -36,11 +36,11 @@ describe('Vitals API Integration Suite (Step 87)', () => {
 
     test('GET /api/vitals/latest/:clerkId - Should retrieve 200 payload', async () => {
         // Mock DB implementation
-        Vital.find.mockReturnValue({
-            sort: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([
-                    { type: 'heart_rate', value: 75, timestamp: new Date() }
-                ])
+        Vital.findOne.mockReturnValue({
+            sort: jest.fn().mockResolvedValue({
+                type: 'heart_rate',
+                value: 75,
+                timestamp: new Date()
             })
         });
 

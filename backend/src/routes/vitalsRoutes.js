@@ -6,6 +6,7 @@ const Alert = require('../models/Alert');
 const alertService = require('../services/alertService');
 const { getVitalStatus, getNormalRange } = require('../utils/vitalRanges');
 const { generateVitalMitigations } = require('../services/vitalMitigationService');
+const { schedulePredictiveRecompute } = require('../services/predictiveRiskRecomputeScheduler');
 
 /**
  * Helper: Generate Health Alerts based on Vital Thresholds
@@ -108,6 +109,9 @@ router.post('/', async (req, res) => {
     
     // Step 58: Check thresholds and trigger alerts asynchronously
     checkThresholds(clerkId, type, value).catch(err => console.error("Alert generation failed", err));
+
+    // Debounced predictive-risk refresh (baseline and vitals-informed factors affected)
+    schedulePredictiveRecompute({ clerkId });
 
     res.status(201).json({ status: 'success', data: newVital });
   } catch (error) {
@@ -219,6 +223,9 @@ router.patch('/:id', async (req, res) => {
   try {
     const vital = await Vital.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!vital) return res.status(404).json({ status: 'error', message: 'Vital not found' });
+
+    schedulePredictiveRecompute({ clerkId: vital.clerkId });
+
     res.json({ status: 'success', data: vital });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
@@ -233,6 +240,9 @@ router.delete('/:id', async (req, res) => {
   try {
     const vital = await Vital.findByIdAndDelete(req.params.id);
     if (!vital) return res.status(404).json({ status: 'error', message: 'Vital not found' });
+
+    schedulePredictiveRecompute({ clerkId: vital.clerkId });
+
     res.json({ status: 'success', message: 'Vital deleted' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });

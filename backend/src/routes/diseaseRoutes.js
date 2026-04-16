@@ -5,9 +5,12 @@ const DiseaseInsight = require('../models/DiseaseInsight');
 const UserProfile = require('../models/UserProfile');
 const Report = require('../models/Report');
 const Medication = require('../models/Medication');
-const { calculateDetailedInsights, getRiskVerificationMeta } = require('../utils/riskScorer');
+const MitigationCompletion = require('../models/MitigationCompletion');
+const { HYBRID_DISEASE_IDS, calculateDetailedInsights, getRiskVerificationMeta } = require('../utils/riskScorer');
 const aiService = require('../services/aiService');
 const { DISEASE_QUESTIONNAIRES, generateGenericQuestionnaire } = require('../utils/diseaseQuestionnaires');
+const { schedulePredictiveRecompute } = require('../services/predictiveRiskRecomputeScheduler');
+const { computePredictiveRiskForDiseases } = require('../services/predictiveRiskAiService');
 
 // Auto-seed helper: creates DiseaseMetadata if missing
 function getAutoMetadata(diseaseId) {
@@ -44,6 +47,218 @@ function getAutoMetadata(diseaseId) {
   };
 }
 
+const QUESTIONNAIRE_FIELD_MAPPING = {
+  waist_circumference: 'waistCircumference',
+  diabetes_family_history: 'familyHistoryDiabetes',
+  physical_activity: 'activityLevel',
+  gestational_diabetes: 'gestationalDiabetesHistory',
+  frequent_thirst: 'frequentThirst',
+  frequent_urination: 'frequentUrination',
+  blurred_vision: 'blurredVision',
+  slow_healing: 'slowHealingWounds',
+  tingling_extremities: 'tinglingExtremities',
+  family_history_htn: 'familyHistoryHypertension',
+  salt_intake: 'saltIntake',
+  stress_level: 'stressLevel',
+  sleep_quality: 'sleepQuality',
+  previous_bp_readings: 'previous_bp_readings',
+  family_history_thyroid: 'familyHistoryThyroid',
+  weight_changes: 'weightChangeUnexplained',
+  fatigue_level: 'fatiguePersistent',
+  temperature_sensitivity: 'coldIntolerance',
+  chest_pain: 'chestPainActivity',
+  breathlessness: 'shortnessBreath',
+  cholesterol_history: 'cholesterolHistory',
+  family_heart_history: 'familyHistoryHeartDisease',
+  palpitations: 'palpitations',
+  leg_swelling: 'legSwelling',
+  exercise_tolerance: 'exerciseTolerance',
+  weight_trend: 'weightGainTrend',
+  physical_limitations: 'physicalLimitations',
+  weight_loss_attempts: 'weightLossAttempts',
+  family_obesity: 'familyHistoryObesity',
+  menstrual_cycle: 'menstrualCycleIrregular',
+  hirsutism: 'facialBodyHairExcess',
+  weight_gain_pcos: 'weightGainPCOS',
+  family_history_anemia: 'familyHistoryAnemia',
+  recent_blood_donation: 'recentBloodDonation',
+  heavy_menstrual_flow: 'heavyMenstrualFlow',
+  iron_supplementation: 'ironSupplementation',
+  wheezing: 'wheezing',
+  high_pollution_area: 'highPollutionArea',
+  pack_years: 'packYears',
+  biomass_fuel_use: 'biomassFuelUse',
+  occupational_dust_exposure: 'occupationalDustExposure',
+  anxiety_screen: 'mentalHealthAnxiety',
+  sleep_hours: 'sleepHours',
+  depression_screen: 'mentalHealthDepressed',
+  lost_interest: 'lostInterestActivities'
+};
+
+const QUESTIONNAIRE_MULTI_SELECT_MAPPING = {
+  symptoms: {
+    frequent_urination: 'frequentUrination',
+    excessive_thirst: 'frequentThirst',
+    blurred_vision: 'blurredVision',
+    slow_healing: 'slowHealingWounds',
+    tingling_extremities: 'tinglingExtremities',
+    unexplained_weight_loss: 'weightChangeUnexplained',
+    fatigue: 'fatiguePersistent'
+  },
+  anemia_symptoms: {
+    pale_skin: 'paleSkinObservation',
+    brittle_nails: 'brittleNails',
+    dizziness: 'dizzinessOnStanding',
+    fatigue: 'fatiguePersistent'
+  },
+  hair_skin_changes: {
+    hair_loss: 'drySkinHairLoss',
+    dry_skin: 'drySkinHairLoss',
+    brittle_nails: 'brittleNails'
+  },
+  previous_cardiac_events: {
+    heart_attack: 'priorHeartAttack',
+    angioplasty: 'angioplastyHistory',
+    bypass: 'bypassHistory',
+    stroke: 'strokeHistory'
+  },
+  eating_patterns: {
+    emotional_eating: 'emotionalEating',
+    night_eating: 'nightEating',
+    binge_eating: 'bingeEating',
+    frequent_snacking: 'frequentSnacking',
+    large_portions: 'largePortions'
+  }
+};
+
+function getQuestionnaireDefinition(diseaseId) {
+  return DISEASE_QUESTIONNAIRES[diseaseId] || generateGenericQuestionnaire(diseaseId, diseaseId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+}
+
+function setProfileField(target, field, value, now) {
+  target[field] = {
+    value,
+    lastUpdated: now,
+    updateType: 'real_change'
+  };
+}
+
+function applyQuestionnaireAnswersToProfile(target, answers = {}, now = new Date()) {
+  let appliedFieldCount = 0;
+
+  Object.entries(answers).forEach(([key, value]) => {
+    const profileField = QUESTIONNAIRE_FIELD_MAPPING[key];
+    if (!profileField) return;
+    setProfileField(target, profileField, value, now);
+    appliedFieldCount += 1;
+  });
+
+  Object.entries(QUESTIONNAIRE_MULTI_SELECT_MAPPING).forEach(([answerKey, fieldMap]) => {
+    const selectedValues = answers[answerKey];
+    if (!Array.isArray(selectedValues)) return;
+
+    const mappedFields = Object.values(fieldMap);
+    if (selectedValues.includes('none')) {
+      mappedFields.forEach((field) => setProfileField(target, field, false, now));
+      appliedFieldCount += mappedFields.length;
+      return;
+    }
+
+    mappedFields.forEach((field) => setProfileField(target, field, false, now));
+    selectedValues.forEach((selectedValue) => {
+      const field = fieldMap[selectedValue];
+      if (!field) return;
+      setProfileField(target, field, true, now);
+      appliedFieldCount += 1;
+    });
+  });
+
+  return appliedFieldCount;
+}
+
+function buildQuestionnaireAnswerBreakdown(questionnaire, answers = {}, profile = {}) {
+  if (!questionnaire?.questions?.length) {
+    return { totalPoints: 0, details: [] };
+  }
+
+  const gender = profile?.gender?.value || profile?.gender;
+  let totalPoints = 0;
+  const details = [];
+
+  questionnaire.questions.forEach((question) => {
+    const answer = answers[question.id];
+    if (answer === undefined || answer === null || answer === '') return;
+
+    if (question.type === 'choice') {
+      const selectedOption = (question.options || []).find((option) => option.value === answer);
+      if (!selectedOption) return;
+
+      let points = selectedOption.points || 0;
+      if (question.scoring && typeof question.scoring === 'function') {
+        const result = question.scoring(parseInt(answer, 10), gender);
+        points = result?.points || 0;
+      }
+
+      totalPoints += points;
+      details.push({
+        question: question.question,
+        answer: selectedOption.label,
+        points,
+        weight: question.weight,
+        category: question.category,
+        source: 'questionnaire'
+      });
+      return;
+    }
+
+    if (question.type === 'multi-select' && Array.isArray(answer)) {
+      let questionPoints = 0;
+      const labels = [];
+
+      answer.forEach((value) => {
+        const option = (question.options || []).find((candidate) => candidate.value === value);
+        if (!option) return;
+        questionPoints += option.points || 0;
+        labels.push(option.label);
+      });
+
+      totalPoints += questionPoints;
+      details.push({
+        question: question.question,
+        answer: labels.join(', ') || 'None',
+        points: questionPoints,
+        weight: question.weight,
+        category: question.category,
+        source: 'questionnaire'
+      });
+    }
+  });
+
+  return { totalPoints, details };
+}
+
+function toFactorBreakdownFromQuestionnaireDetails(details = []) {
+  return (details || []).map((detail, idx) => {
+    const points = Number(detail?.points || 0);
+    const normalizedCategory = ['symptom', 'demographic', 'lifestyle', 'lab', 'clinical', 'critical', 'questionnaire']
+      .includes(detail?.category)
+      ? detail.category
+      : 'questionnaire';
+
+    return {
+      id: `questionnaire_factor_${idx + 1}`,
+      name: detail?.question || 'Questionnaire factor',
+      displayValue: detail?.answer || 'Answered',
+      rawValue: detail?.answer || null,
+      impact: Math.abs(points),
+      direction: points >= 0 ? 'increase' : 'decrease',
+      explanation: `Captured from questionnaire response (${detail?.weight || 'medium'} priority).`,
+      category: normalizedCategory,
+      source: 'questionnaire'
+    };
+  });
+}
+
 // @route   GET /api/diseases/:diseaseId/details
 // @desc    Get complete disease info for a specific user
 router.get('/:diseaseId/details', async (req, res) => {
@@ -52,6 +267,7 @@ router.get('/:diseaseId/details', async (req, res) => {
     const { clerkId } = req.query; // Expecting clerkId in query for now
 
     console.log(`[DiseaseDetails] Fetching for diseaseId=${diseaseId}, clerkId=${clerkId}`);
+    const questionnaireDefinition = getQuestionnaireDefinition(diseaseId);
 
     if (!clerkId) {
       return res.status(400).json({ status: 'error', message: 'clerkId is required' });
@@ -102,6 +318,13 @@ router.get('/:diseaseId/details', async (req, res) => {
       }
     }
 
+    const completedMitigationRows = await MitigationCompletion.find({
+      clerkId,
+      diseaseId,
+      status: true
+    }).lean();
+    const completedMitigationStepIds = (completedMitigationRows || []).map((r) => r.stepId);
+
     // 3. Generate Personalized Mitigations (Step 1.5 & 1.6)
     // We generate these fresh to ensure allergies/medications are processed
     try {
@@ -150,9 +373,11 @@ router.get('/:diseaseId/details', async (req, res) => {
             alternatives: metadata.alternativeSpecialists
           },
           sourceAttributions: metadata.sources,
+          questionnaireLength: questionnaireDefinition?.questions?.length || 0,
           verification: currentInsight?.verification || getRiskVerificationMeta(diseaseId),
           emergencyAlerts: currentInsight?.emergencyAlerts,
           rawInputData: currentInsight?.rawInputData,
+          completedMitigationStepIds,
           userProfile: {
             allergies: profile?.allergies || [],
             activeMedications: profile?.activeMedications || [],
@@ -187,9 +412,11 @@ router.get('/:diseaseId/details', async (req, res) => {
             alternatives: metadata.alternativeSpecialists
           },
           sourceAttributions: metadata.sources,
+          questionnaireLength: questionnaireDefinition?.questions?.length || 0,
           verification: currentInsight?.verification || getRiskVerificationMeta(diseaseId),
           emergencyAlerts: currentInsight?.emergencyAlerts,
           rawInputData: currentInsight?.rawInputData,
+          completedMitigationStepIds,
           userProfile: {
             allergies: profile?.allergies || [],
             activeMedications: profile?.activeMedications || [],
@@ -298,6 +525,13 @@ router.post('/:diseaseId/add-data', async (req, res) => {
       // Don't fail the request if Report update fails
     }
 
+    // Debounced predictive-risk refresh:
+    // Exclude the disease being updated to avoid score "jumping" after the modal response.
+    const diseaseIdsToRecompute = Array.isArray(HYBRID_DISEASE_IDS)
+      ? HYBRID_DISEASE_IDS.filter((d) => d !== diseaseId)
+      : undefined;
+    schedulePredictiveRecompute({ clerkId, diseaseIds: diseaseIdsToRecompute });
+
     res.json({
       status: 'success',
       message: 'Data updated and risk recalculated',
@@ -363,7 +597,7 @@ router.get('/:diseaseId/questionnaire', async (req, res) => {
 router.post('/:diseaseId/questionnaire', async (req, res) => {
   try {
     const { diseaseId } = req.params;
-    const { clerkId, answers, userProfile } = req.body;
+    const { clerkId, answers, userProfile, recalculateFullRisk } = req.body;
     
     if (!clerkId) {
       return res.status(400).json({ status: 'error', message: 'clerkId is required' });
@@ -385,87 +619,15 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       console.warn('[Questionnaire] Could not fetch medications:', medErr.message);
     }
     
-    // 1. Map raw questionnaire answers to structured UserProfile fields
-    const fieldMapping = {
-      // Diabetes
-      'waist_circumference': 'waistCircumference',
-      'diabetes_family_history': 'familyHistoryDiabetes',
-      'physical_activity': 'activityLevel',
-      'gestational_diabetes': 'gestationalDiabetesHistory',
-      'frequent_thirst': 'frequentThirst',
-      'frequent_urination': 'frequentUrination',
-      'blurred_vision': 'blurredVision',
-      'slow_healing': 'slowHealingWounds',
-      'tingling_extremities': 'tinglingExtremities',
-      
-      // Hypertension
-      'family_history_htn': 'familyHistoryHypertension',
-      'salt_intake': 'saltIntake',
-      'stress_level': 'stressLevel',
-      'sleep_quality': 'sleepQuality',
-      'previous_bp_readings': 'bloodPressureNotes',
-      
-      // Thyroid
-      'family_history_thyroid': 'familyHistoryThyroid',
-      'weight_changes': 'weightChangeUnexplained',
-      'fatigue_level': 'fatiguePersistent',
-      'temperature_sensitivity': 'coldIntolerance',
-      
-      // PCOS
-      'menstrual_cycle': 'menstrualCycleIrregular',
-      'hirsutism': 'facialBodyHairExcess'
-    };
-
-    const now = new Date();
-    const mappedUpdatesForDB = {};
-    const localProfileInjections = {};
-
-    // Map direct answers
-    Object.entries(answers || {}).forEach(([key, value]) => {
-      const profileField = fieldMapping[key];
-      if (profileField) {
-        mappedUpdatesForDB[profileField] = { value, lastUpdated: now, updateType: 'real_change' };
-        localProfileInjections[profileField] = { value }; // For immediate calculation
-      }
-    });
-
-    // Handle specific multi-select symptom mapping
-    if (answers && answers.symptoms && Array.isArray(answers.symptoms)) {
-      const symptomMap = {
-        'frequent_urination': 'frequentUrination',
-        'excessive_thirst': 'frequentThirst',
-        'blurred_vision': 'blurredVision',
-        'slow_healing': 'slowHealingWounds',
-        'tingling_extremities': 'tinglingExtremities',
-        'unexplained_weight_loss': 'weightChangeUnexplained',
-        'fatigue': 'fatiguePersistent'
-      };
-      
-      answers.symptoms.forEach(s => {
-        const field = symptomMap[s];
-        if (field) {
-          mappedUpdatesForDB[field] = { value: true, lastUpdated: now, updateType: 'real_change' };
-          localProfileInjections[field] = { value: true };
-        }
-      });
-      
-      if (answers.symptoms.includes('none')) {
-        Object.values(symptomMap).forEach(field => {
-           if (!mappedUpdatesForDB[field]) {
-             mappedUpdatesForDB[field] = { value: false, lastUpdated: now, updateType: 'real_change' };
-             localProfileInjections[field] = { value: false };
-           }
-        });
-      }
-    }
-
-    // Merge database profile with frontend profile data AND the new locally mapped answers!
+    // Merge database profile with frontend profile data (use most complete data)
     const comprehensiveProfile = {
+      // Database data
       ...dbProfile,
-      ...(userProfile || {}),
-      ...localProfileInjections, // Newly answered symptoms overriding old data
       
-      // Keep raw answers for fallback
+      // Frontend profile data (overrides if more complete)
+      ...(userProfile || {}),
+      
+      // Questionnaire answers
       questionnaireAnswers: answers,
       
       // Ensure arrays exist and are populated
@@ -473,33 +635,129 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       activeMedications: activeMeds.length > 0 ? activeMeds : (userProfile?.activeMedications || dbProfile?.activeMedications || [])
     };
     
-    console.log(`[Questionnaire] Considering for ${diseaseId}:`);
+    console.log(`[Questionnaire] Considering:`);
     console.log(`  - Age: ${comprehensiveProfile?.age?.value || comprehensiveProfile?.age}`);
     console.log(`  - BMI: ${comprehensiveProfile?.bmi?.value || comprehensiveProfile?.bmi}`);
     console.log(`  - Allergies: ${comprehensiveProfile.allergies.length} known`);
     console.log(`  - Medications: ${comprehensiveProfile.activeMedications.length} active`);
-    console.log(`  - Questionnaire mapped fields:`, Object.keys(localProfileInjections));
-    
-    // Calculate baseline and questionnaire-enriched scores separately, then blend 40/60.
-    const baselineInsights = calculateDetailedInsights(dbProfile, diseaseId);
-    const questionnaireInsights = calculateDetailedInsights(comprehensiveProfile, diseaseId);
+    console.log(`  - Questionnaire answers: ${Object.keys(answers || {}).length}`);
 
-    let finalRiskScore = questionnaireInsights.riskScore;
-    if (baselineInsights.riskScore !== -1 && questionnaireInsights.riskScore !== -1) {
-      finalRiskScore = Math.round((baselineInsights.riskScore * 0.4) + (questionnaireInsights.riskScore * 0.6));
-      finalRiskScore = Math.max(0, Math.min(95, finalRiskScore));
+    const now = new Date();
+    const questionnaireDefinition = getQuestionnaireDefinition(diseaseId);
+    const questionnaireBreakdown = buildQuestionnaireAnswerBreakdown(
+      questionnaireDefinition,
+      answers || {},
+      comprehensiveProfile
+    );
+    const questionnaireFactorBreakdown = toFactorBreakdownFromQuestionnaireDetails(
+      questionnaireBreakdown.details
+    );
+
+    // Baseline profile for scoring (onboarding-only), but still includes allergies & medications.
+    const profileForBaseline = {
+      ...dbProfile,
+      ...(userProfile || {}),
+      allergies: userProfile?.allergies || dbProfile?.allergies || [],
+      activeMedications: activeMeds.length > 0 ? activeMeds : (userProfile?.activeMedications || dbProfile?.activeMedications || [])
+    };
+
+    // Questionnaire-enriched profile: apply answers in-memory immediately so scoring uses them.
+    const profileForQuestionnaire = { ...profileForBaseline };
+    const appliedFieldCount = applyQuestionnaireAnswersToProfile(
+      profileForQuestionnaire,
+      answers || {},
+      now
+    );
+
+    // Calculate baseline and questionnaire-enriched scores separately.
+    const baselineInsights = calculateDetailedInsights(profileForBaseline, diseaseId);
+    const scorerQuestionnaireInsights = calculateDetailedInsights(profileForQuestionnaire, diseaseId);
+
+    // If questionnaire answers did not map into scorer fields, fall back to canonical
+    // answer-point scoring so generic questionnaires still affect the backend result.
+    let questionnaireScore = scorerQuestionnaireInsights.riskScore;
+    let questionnaireInsights = scorerQuestionnaireInsights;
+
+    const usedQuestionnairePointFallback =
+      appliedFieldCount === 0 &&
+      questionnaireBreakdown.totalPoints > 0 &&
+      baselineInsights.riskScore !== -1;
+
+    if (usedQuestionnairePointFallback) {
+      questionnaireScore = Math.max(
+        2,
+        Math.min(95, Math.round(baselineInsights.riskScore + questionnaireBreakdown.totalPoints))
+      );
+      questionnaireInsights = {
+        ...scorerQuestionnaireInsights,
+        riskScore: questionnaireScore,
+        factorBreakdown: questionnaireFactorBreakdown
+      };
     }
+
+    const baselineScore = baselineInsights.riskScore;
+    const baselineFactors = baselineInsights.factorBreakdown || [];
+
+    // If mapped scorer fields produced no change but questionnaire point-model has
+    // non-zero impact, preserve questionnaire impact in final score.
+    // This handles cases where question option values don't perfectly align with
+    // deterministic scorer enums/booleans for that disease.
+    const scorerNoDelta =
+      baselineScore !== -1 &&
+      questionnaireScore !== -1 &&
+      questionnaireScore === baselineScore;
+    const shouldForceQuestionnairePointDelta =
+      questionnaireBreakdown.totalPoints > 0 &&
+      scorerNoDelta;
+
+    if (shouldForceQuestionnairePointDelta) {
+      questionnaireScore = Math.max(
+        2,
+        Math.min(95, Math.round(baselineScore + questionnaireBreakdown.totalPoints))
+      );
+      questionnaireInsights = {
+        ...questionnaireInsights,
+        riskScore: questionnaireScore,
+        factorBreakdown: questionnaireFactorBreakdown
+      };
+    }
+
+    const usedQuestionnaireDeltaRecovery = shouldForceQuestionnairePointDelta;
+
+    let finalRiskScore = questionnaireScore;
+    if (baselineScore === -1 && questionnaireScore !== -1) {
+      finalRiskScore = questionnaireScore;
+    }
+    let questionnaireDelta =
+      baselineScore !== -1 && finalRiskScore !== -1
+        ? finalRiskScore - baselineScore
+        : 0;
+    const questionnaireMeta = {
+      title: questionnaireDefinition?.title || `${diseaseId.replace(/_/g, ' ')} Risk Assessment`,
+      questionCount: questionnaireDefinition?.questions?.length || 0,
+      isSpecific: Boolean(DISEASE_QUESTIONNAIRES[diseaseId]),
+      diseaseId
+    };
 
     const insights = {
       ...questionnaireInsights,
       riskScore: finalRiskScore
     };
+    let assessmentFactors = (insights.factorBreakdown && insights.factorBreakdown.length > 0)
+      ? insights.factorBreakdown
+      : questionnaireFactorBreakdown;
     
-    // PERSIST QUESTIONNAIRE ANSWERS TO USER PROFILE
+    // PERSIST QUESTIONNAIRE ANSWERS TO USER PROFILE (CRITICAL FIX)
     try {
-      if (Object.keys(mappedUpdatesForDB).length > 0) {
-        console.log(`[Questionnaire] Persisting ${Object.keys(mappedUpdatesForDB).length} fields to UserProfile for ${clerkId}`);
-        await UserProfile.updateOne({ clerkId }, { $set: mappedUpdatesForDB });
+      const profileToUpdate = await UserProfile.findOne({ clerkId });
+      if (profileToUpdate) {
+        const updates = {};
+        applyQuestionnaireAnswersToProfile(updates, answers || {}, now);
+
+        if (Object.keys(updates).length > 0) {
+          console.log(`[Questionnaire] Persisting ${Object.keys(updates).length} fields to UserProfile for ${clerkId}`);
+          await UserProfile.updateOne({ clerkId }, { $set: updates });
+        }
       }
     } catch (saveErr) {
       console.warn('[Questionnaire] Failed to persist answers to UserProfile:', saveErr.message);
@@ -517,7 +775,7 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
     });
     
     // Combine AI mitigations with library-based mitigations
-    const allMitigations = [
+    let allMitigations = [
       ...aiMitigations,
       ...insights.mitigationSteps
     ].slice(0, 10); // Top 10 recommendations
@@ -634,21 +892,104 @@ router.post('/:diseaseId/questionnaire', async (req, res) => {
       console.error('[Questionnaire] Error stack:', err.stack);
       // Don't fail the request if Report update fails
     }
+
+    // Best-effort AI authoritative scoring for this disease.
+    // If AI scoring fails/times out, we keep deterministic `finalRiskScore` to preserve stability.
+    try {
+      // If we relied on questionnaire-point fallback (no scorer field mapping),
+      // keep this route deterministic for this response. AI recompute may not
+      // fully reflect generic point-only answers and can appear as "score reset".
+      if (!usedQuestionnairePointFallback && !usedQuestionnaireDeltaRecovery) {
+        const aiResults = await computePredictiveRiskForDiseases({
+          clerkId,
+          diseaseIds: [diseaseId],
+          language: req.resolvedLanguage || 'en'
+        });
+
+        const ai = aiResults?.[diseaseId];
+        if (ai && typeof ai.riskScore === 'number') {
+          finalRiskScore = ai.riskScore;
+
+          // Update insight fields used by the response/UI
+          insights.riskScore = finalRiskScore;
+          insights.riskCategory = ai.riskCategory || insights.riskCategory;
+          if (Array.isArray(ai.factorBreakdown)) insights.factorBreakdown = ai.factorBreakdown;
+          if (Array.isArray(ai.protectiveFactors)) insights.protectiveFactors = ai.protectiveFactors;
+          if (Array.isArray(ai.missingDataFactors)) insights.missingDataFactors = ai.missingDataFactors;
+          if (ai.verification) insights.verification = ai.verification;
+          if (typeof ai.dataCompleteness === 'number') insights.dataCompleteness = ai.dataCompleteness;
+
+          // Recompute delta shown to user (baseline stays deterministic)
+          questionnaireDelta = baselineScore !== -1 && finalRiskScore !== -1 ? finalRiskScore - baselineScore : 0;
+
+          // Update modal breakdown + mitigation steps to match AI output
+          assessmentFactors = Array.isArray(ai.factorBreakdown) && ai.factorBreakdown.length ? ai.factorBreakdown : assessmentFactors;
+          allMitigations = Array.isArray(ai.mitigationSteps) && ai.mitigationSteps.length ? ai.mitigationSteps : allMitigations;
+
+          // Persist AI-updated values so Dashboard/details match this response
+          await Report.updateOne(
+            { clerkId },
+            {
+              $set: {
+                [`risk_scores.${diseaseId}`]: finalRiskScore,
+                [`risk_score_meta.${diseaseId}`]: ai.verification || getRiskVerificationMeta(diseaseId)
+              }
+            }
+          );
+
+          if (typeof DiseaseInsight.updateOne === 'function') {
+            await DiseaseInsight.updateOne(
+              { clerkId, diseaseId },
+              {
+                $set: {
+                  riskScore: finalRiskScore,
+                  riskCategory: insights.riskCategory,
+                  factorBreakdown: insights.factorBreakdown || [],
+                  protectiveFactors: insights.protectiveFactors || [],
+                  missingDataFactors: insights.missingDataFactors || [],
+                  mitigationSteps: allMitigations || [],
+                  dataCompleteness: insights.dataCompleteness || 0,
+                  verification: insights.verification || getRiskVerificationMeta(diseaseId)
+                }
+              }
+            );
+          }
+        }
+      } else {
+        console.log('[Questionnaire] Skipping AI overwrite: using questionnaire-point fallback for this response.');
+      }
+    } catch (aiErr) {
+      console.warn('[Questionnaire] AI scoring update failed; using deterministic finalScore:', aiErr.message);
+    }
     
+    // Debounced predictive-risk refresh:
+    // Exclude the disease being assessed to avoid score "jumping" after the modal response.
+    const diseaseIdsToRecompute = Array.isArray(HYBRID_DISEASE_IDS)
+      ? HYBRID_DISEASE_IDS.filter((d) => d !== diseaseId)
+      : undefined;
+    schedulePredictiveRecompute({ clerkId, diseaseIds: diseaseIdsToRecompute });
+
     // Return comprehensive response
     res.json({
       status: 'success',
       data: {
+        finalScore: finalRiskScore,
         riskScore: finalRiskScore,
         riskCategory: insights.riskCategory,
-        baselineScore: Math.round(baselineInsights.riskScore),
-        questionnaireScore: Math.round(questionnaireInsights.riskScore),
-        totalPoints: finalRiskScore,
+        baselineScore: Math.round(baselineScore),
+        questionnaireScore: Math.round(questionnaireScore),
+        assessmentDelta: Math.round(questionnaireDelta),
+        questionnaireDelta: Math.round(questionnaireDelta),
+        totalPoints: questionnaireBreakdown.totalPoints,
+        baselineFactors,
+        assessmentFactors,
         factorBreakdown: insights.factorBreakdown,
+        questionnaireBreakdown: questionnaireBreakdown.details,
         protectiveFactors: insights.protectiveFactors,
         mitigationSteps: allMitigations,
         allergyConsiderations,
         medicationConsiderations,
+        questionnaireMeta,
         verification: insights.verification || getRiskVerificationMeta(diseaseId),
         dataCompleteness: insights.dataCompleteness,
         questionnaireCompleted: true,

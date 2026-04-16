@@ -18,6 +18,9 @@ const Alerts = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('unread'); // unread, critical, all
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [protocolLoading, setProtocolLoading] = useState(false);
+  const [protocolData, setProtocolData] = useState(null);
+  const [protocolError, setProtocolError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('newest'); // newest, oldest
 
@@ -85,6 +88,79 @@ const Alerts = () => {
     if (t.includes('profile') || t === 'profile_incomplete') return '/profile';
     return alert.actionUrl || '/';
   };
+
+  const deriveVitalContextFromAlert = (alert) => {
+    const text = `${alert?.title || ''} ${alert?.description || ''}`.toLowerCase();
+    const raw = `${alert?.title || ''} ${alert?.description || ''}`;
+
+    // BP pattern: "180/120"
+    const bpMatch = raw.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
+    if (bpMatch && (text.includes('bp') || text.includes('blood pressure') || text.includes('hypertensive'))) {
+      const systolic = Number(bpMatch[1]);
+      const diastolic = Number(bpMatch[2]);
+      if (Number.isFinite(systolic) && Number.isFinite(diastolic)) {
+        return { vitalType: 'blood_pressure', value: { systolic, diastolic } };
+      }
+    }
+
+    // Glucose pattern (mg/dL)
+    if (text.includes('glucose')) {
+      const gMatch = raw.match(/(\d{2,3})\s*(mg\/dl|mg\/dL)?/);
+      if (gMatch) {
+        const value = Number(gMatch[1]);
+        if (Number.isFinite(value)) return { vitalType: 'blood_glucose', value };
+      }
+    }
+
+    // SpO2 pattern (%)
+    if (text.includes('spo2') || text.includes('oxygen')) {
+      const sMatch = raw.match(/(\d{2,3})\s*%/);
+      if (sMatch) {
+        const value = Number(sMatch[1]);
+        if (Number.isFinite(value)) return { vitalType: 'oxygen_saturation', value };
+      }
+    }
+
+    return null;
+  };
+
+  const getDoctorSearchQuery = (alert) => {
+    const t = (alert?.type || '').toLowerCase();
+    const priority = (alert?.priority || '').toLowerCase();
+    const ctx = deriveVitalContextFromAlert(alert);
+
+    if (t.includes('interaction')) return 'General Physician';
+    if (ctx?.vitalType === 'blood_pressure') return priority === 'critical' ? 'Emergency cardiologist' : 'Cardiologist';
+    if (ctx?.vitalType === 'blood_glucose') return 'Endocrinologist';
+    if (ctx?.vitalType === 'oxygen_saturation') return 'Pulmonologist';
+    if (t.includes('medication')) return 'General Physician';
+    return 'General Physician';
+  };
+
+  useEffect(() => {
+    if (!selectedAlert || !user) return;
+    const t = (selectedAlert.type || '').toLowerCase();
+    setProtocolData(null);
+    setProtocolError(null);
+
+    // Only fetch protocol details for vital alerts right now.
+    if (!(t.includes('vital') || t === 'vital_out_of_range')) return;
+
+    const ctx = deriveVitalContextFromAlert(selectedAlert);
+    if (!ctx?.vitalType || ctx.value === undefined) return;
+
+    setProtocolLoading(true);
+    axios.post(`${API_URL}/vitals/${user.id}/analyze`, {
+      vitalType: ctx.vitalType,
+      value: ctx.value
+    }).then((res) => {
+      if (res.data.status === 'success') setProtocolData(res.data.data?.mitigations || null);
+      else setProtocolError('Protocol generation failed.');
+    }).catch((err) => {
+      console.error('[Alerts] Protocol fetch failed:', err.response?.data || err.message);
+      setProtocolError('Protocol generation failed.');
+    }).finally(() => setProtocolLoading(false));
+  }, [selectedAlert, user]);
 
   const filteredAlerts = alerts
     .filter(a => {
@@ -355,6 +431,56 @@ const Alerts = () => {
                         </li>
                      </ul>
                   </div>
+
+                  {/* Full Protocol (Mitigations + Precautions) */}
+                  {(protocolLoading || protocolData || protocolError) && (
+                    <div className="p-6 bg-white dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-3xl space-y-4">
+                      <h5 className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-[0.3em]">Full Protocol</h5>
+                      {protocolLoading && (
+                        <div className="text-xs font-bold text-gray-500 flex items-center gap-2">
+                          <RefreshCw className="w-4 h-4 animate-spin" /> Loading protocol steps...
+                        </div>
+                      )}
+                      {protocolError && (
+                        <div className="text-xs font-bold text-red-500 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" /> {protocolError}
+                        </div>
+                      )}
+                      {protocolData && (
+                        <div className="space-y-5">
+                          {Array.isArray(protocolData.immediateActions) && protocolData.immediateActions.length > 0 && (
+                            <div>
+                              <div className="text-[9px] font-black uppercase tracking-widest text-red-500 mb-2">Immediate actions</div>
+                              <ul className="space-y-2">
+                                {protocolData.immediateActions.slice(0, 6).map((s, i) => (
+                                  <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" /> {s}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(protocolData.precautions) && protocolData.precautions.length > 0 && (
+                            <div>
+                              <div className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-2">Precautions</div>
+                              <ul className="space-y-2">
+                                {protocolData.precautions.slice(0, 6).map((s, i) => (
+                                  <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" /> {s}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {protocolData.whenToSeeDoctor && (
+                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-sm text-amber-700 dark:text-amber-300 font-bold">
+                              {protocolData.whenToSeeDoctor}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="flex gap-4 items-center">
                       <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Relevance Feedback</span>
                       <button className="p-2 bg-gray-50 dark:bg-gray-950 rounded-lg hover:text-emerald-500 transition-colors"><ThumbsUp className="w-4 h-4" /></button>
@@ -371,6 +497,17 @@ const Alerts = () => {
                     className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl uppercase tracking-widest text-xs active:scale-95"
                   >
                     {selectedAlert.actionText || 'View Full Protocol'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const query = getDoctorSearchQuery(selectedAlert);
+                      const mapUrl = `https://www.google.com/maps/search/${encodeURIComponent(`${query} near me`)}`;
+                      window.open(mapUrl, '_blank');
+                    }}
+                    className="px-8 py-5 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-200 font-black rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-emerald-500/40 hover:text-emerald-500 transition-all uppercase tracking-widest text-xs"
+                  >
+                    Contact Doctor
                   </button>
                   <button 
                     onClick={() => dismissAlert(selectedAlert._id)}

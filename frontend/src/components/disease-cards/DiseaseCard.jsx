@@ -323,6 +323,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
         diseaseId={diseaseId}
         score={currentScore}
         details={details}
+        clerkId={clerkId}
         userProfile={details?.userProfile}
         loading={loading}
         onOpenQuestionnaire={() => {
@@ -336,7 +337,6 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
         isOpen={showQuestionnaireModal}
         onClose={() => setShowQuestionnaireModal(false)}
         diseaseId={diseaseId}
-        currentScore={currentScore}
         profile={{ ...profile, clerkId }}
         onScoreUpdate={handleQuestionnaireComplete}
       />

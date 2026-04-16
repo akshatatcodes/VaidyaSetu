@@ -364,6 +364,19 @@ function calculateDetailedInsights(profile, diseaseId) {
                 ob += 10;
                 factors.push({ id: 'ob_diet', name: 'Diet quality', displayValue: 'Poor', impact: 10, direction: 'increase', category: 'lifestyle', explanation: 'Poor diet quality supports weight gain.' });
             }
+            const weightTrend = getVal(profile.weightGainTrend);
+            if (weightTrend === 'gradual_gain') {
+                ob += 10;
+                factors.push({ id: 'ob_weight_trend_gradual', name: 'Recent weight gain', displayValue: 'Gradual gain', impact: 10, direction: 'increase', category: 'symptom', explanation: 'Steady recent weight gain increases metabolic risk.' });
+            } else if (weightTrend === 'rapid_gain') {
+                ob += 18;
+                factors.push({ id: 'ob_weight_trend_rapid', name: 'Rapid weight gain', displayValue: 'Rapid gain', impact: 18, direction: 'increase', category: 'symptom', explanation: 'Rapid recent weight gain can indicate worsening metabolic stress.' });
+            }
+            if (getVal(profile.emotionalEating) === true) addFactor('ob_emotional_eating', 'Emotional eating', 'Yes', 6, 'increase', 'Emotional eating patterns often increase caloric intake.', 'lifestyle');
+            if (getVal(profile.nightEating) === true) addFactor('ob_night_eating', 'Night eating', 'Yes', 5, 'increase', 'Late calorie intake can worsen metabolic control.', 'lifestyle');
+            if (getVal(profile.bingeEating) === true) addFactor('ob_binge', 'Binge eating episodes', 'Yes', 10, 'increase', 'Binge eating is strongly associated with weight gain.', 'lifestyle');
+            if (getVal(profile.frequentSnacking) === true) addFactor('ob_snacking', 'Frequent snacking', 'Yes', 5, 'increase', 'Frequent snacking can contribute to calorie surplus.', 'lifestyle');
+            if (getVal(profile.largePortions) === true) addFactor('ob_portions', 'Large portion sizes', 'Yes', 6, 'increase', 'Large portions increase energy intake.', 'lifestyle');
             score = ob;
             break;
         }
@@ -517,7 +530,7 @@ function calculateDetailedInsights(profile, diseaseId) {
             }
 
             // Alcohol Consumption
-            const alcohol = getVal(profile.alcoholConsumption);
+            const alcohol = getVal(profile.alcoholConsumption) || getVal(profile.alcoholUse);
             if (alcohol) {
                 let alcPts = alcohol === 'Never' || alcohol === 'none' ? 0 : (alcohol === 'Light' || alcohol === 'light' ? 5 : (alcohol === 'Moderate' || alcohol === 'moderate' ? 15 : 25));
                 htnScore += alcPts;
@@ -583,7 +596,8 @@ function calculateDetailedInsights(profile, diseaseId) {
             let thyOdds = thyP / (1 - thyP);
             const fatigue = isAffirmative(getVal(profile.fatiguePersistent)) || isAffirmative(getVal(profile.weightChangeUnexplained));
             if (fatigue) thyOdds *= 1.5;
-            if (isAffirmative(getVal(profile.coldIntolerance))) thyOdds *= 2.0;
+            const coldSensitivity = getVal(profile.coldIntolerance);
+            if (isAffirmative(coldSensitivity) || coldSensitivity === 'cold' || coldSensitivity === 'both') thyOdds *= 2.0;
             if (isAffirmative(getVal(profile.drySkinHairLoss))) thyOdds *= 1.8;
             
             score = (thyOdds / (1 + thyOdds)) * 100;
@@ -606,6 +620,7 @@ function calculateDetailedInsights(profile, diseaseId) {
         case 'anemia':
             if (profile.dietType?.value === 'Veg') addFactor('diet_veg', 'Vegetarian Diet', 'Veg', 15, 'increase', 'Lower absorption of non-heme iron.', 'lifestyle');
             if (profile.vegetarianVeganDiet?.value || profile.vegetarianVeganDiet === true) addFactor('diet_vegan', 'Vegetarian/Vegan Diet', 'Yes', 10, 'increase', 'Higher chance of iron and B12 inadequacy if not planned well.', 'lifestyle');
+            if (isAffirmative(getVal(profile.familyHistoryAnemia))) addFactor('anemia_family', 'Family History of Anemia', 'Yes', 10, 'increase', 'Inherited or familial anemia patterns can increase risk.', 'demographic');
             if (profile.paleSkinObservation?.value || profile.paleSkinObservation === true) addFactor('anemia_pallor', 'Pale Skin Observation', 'Yes', 12, 'increase', 'Pallor can be associated with reduced hemoglobin.', 'symptom');
             if (profile.brittleNails?.value || profile.brittleNails === true) addFactor('anemia_nails', 'Brittle Nails', 'Yes', 7, 'increase', 'Brittle nails may occur with nutritional deficiency anemia.', 'symptom');
             if (profile.dizzinessOnStanding?.value || profile.dizzinessOnStanding === true) addFactor('anemia_dizziness', 'Dizziness on Standing', 'Yes', 8, 'increase', 'Orthostatic dizziness can be associated with anemia.', 'symptom');
@@ -668,7 +683,38 @@ function calculateDetailedInsights(profile, diseaseId) {
             let heartScore = baseline + 10;
             if (age > 50) heartScore += 15;
             if (bmi > 27.5) heartScore += 12;
-            if (getVal(profile.chestPainActivity)) heartScore += 25;
+            const chestPainLevel = getVal(profile.chestPainActivity);
+            if (chestPainLevel) {
+                const chestPainPts = chestPainLevel === 'frequently' ? 35 : chestPainLevel === 'sometimes' ? 22 : chestPainLevel === 'rarely' ? 10 : 25;
+                heartScore += chestPainPts;
+                factors.push({ id: 'heart_chest_pain', name: 'Chest pain or discomfort', displayValue: String(chestPainLevel), impact: chestPainPts, direction: 'increase', category: 'symptom', explanation: 'Chest pain during activity or at rest is an important cardiovascular warning sign.' });
+            }
+            const breathlessness = getVal(profile.shortnessBreath);
+            if (breathlessness === 'stairs' || breathlessness === true) addFactor('heart_breath_stairs', 'Breathlessness', 'Climbing stairs', 10, 'increase', 'Reduced exertional capacity can reflect cardiovascular limitation.', 'symptom');
+            if (breathlessness === 'walking') addFactor('heart_breath_walk', 'Breathlessness', 'Walking on level ground', 18, 'increase', 'Shortness of breath with walking raises concern for cardiovascular disease.', 'symptom');
+            if (breathlessness === 'rest') addFactor('heart_breath_rest', 'Breathlessness', 'At rest', 28, 'increase', 'Breathlessness at rest is a high-risk cardiac symptom.', 'symptom');
+            const cholesterolHistory = getVal(profile.cholesterolHistory);
+            if (cholesterolHistory === 'borderline') addFactor('heart_chol_borderline', 'Cholesterol history', 'Borderline', 12, 'increase', 'Borderline cholesterol raises atherosclerotic risk.', 'clinical');
+            if (cholesterolHistory === 'high') addFactor('heart_chol_high', 'Cholesterol history', 'High', 22, 'increase', 'High cholesterol substantially increases cardiovascular risk.', 'clinical');
+            const heartFamilyHistory = getVal(profile.familyHistoryHeartDisease);
+            if (heartFamilyHistory === 'grandparents') addFactor('heart_family_gp', 'Family history of heart disease', 'Grandparents', 8, 'increase', 'Family history suggests inherited cardiovascular risk.', 'demographic');
+            if (heartFamilyHistory === 'parents_late' || heartFamilyHistory === 'siblings') addFactor('heart_family_close', 'Family history of heart disease', String(heartFamilyHistory), 18, 'increase', 'Heart disease in close relatives increases risk.', 'demographic');
+            if (heartFamilyHistory === 'parents_early') addFactor('heart_family_early', 'Family history of heart disease', 'Parents at early age', 28, 'increase', 'Premature heart disease in parents is a strong risk marker.', 'demographic');
+            const palpitations = getVal(profile.palpitations);
+            if (palpitations === 'rarely') addFactor('heart_palpitations_rare', 'Heart palpitations', 'Rarely', 6, 'increase', 'Palpitations can signal rhythm strain.', 'symptom');
+            if (palpitations === 'sometimes') addFactor('heart_palpitations_some', 'Heart palpitations', 'Sometimes', 12, 'increase', 'Recurrent palpitations merit more concern.', 'symptom');
+            if (palpitations === 'frequently') addFactor('heart_palpitations_freq', 'Heart palpitations', 'Frequently', 20, 'increase', 'Frequent palpitations can indicate cardiac rhythm issues.', 'symptom');
+            const legSwelling = getVal(profile.legSwelling);
+            if (legSwelling === 'end_of_day') addFactor('heart_leg_swelling_eod', 'Leg swelling', 'End of day', 8, 'increase', 'Fluid retention may reflect cardiovascular strain.', 'symptom');
+            if (legSwelling === 'persistent') addFactor('heart_leg_swelling_persistent', 'Leg swelling', 'Persistent', 18, 'increase', 'Persistent swelling may indicate reduced cardiac efficiency.', 'symptom');
+            if (legSwelling === 'severe') addFactor('heart_leg_swelling_severe', 'Leg swelling', 'Severe', 28, 'increase', 'Severe swelling is a higher-risk cardiovascular sign.', 'symptom');
+            const exerciseTolerance = getVal(profile.exerciseTolerance);
+            if (exerciseTolerance === 'fair') addFactor('heart_exercise_fair', 'Exercise tolerance', 'Fair', 8, 'increase', 'Reduced exercise tolerance can signal cardiovascular limitation.', 'symptom');
+            if (exerciseTolerance === 'poor') addFactor('heart_exercise_poor', 'Exercise tolerance', 'Poor', 16, 'increase', 'Poor exercise tolerance raises concern for heart disease.', 'symptom');
+            if (getVal(profile.priorHeartAttack) === true) addFactor('heart_prior_mi', 'Previous heart attack', 'Yes', 35, 'increase', 'Previous myocardial infarction strongly predicts future cardiac events.', 'clinical');
+            if (getVal(profile.angioplastyHistory) === true) addFactor('heart_prior_angio', 'Prior angioplasty/stent', 'Yes', 28, 'increase', 'A history of coronary intervention indicates established disease.', 'clinical');
+            if (getVal(profile.bypassHistory) === true) addFactor('heart_prior_bypass', 'Prior bypass surgery', 'Yes', 35, 'increase', 'Past bypass surgery indicates established coronary artery disease.', 'clinical');
+            if (getVal(profile.strokeHistory) === true) addFactor('heart_prior_stroke', 'Previous stroke/TIA', 'Yes', 20, 'increase', 'Cerebrovascular disease overlaps strongly with cardiovascular risk.', 'clinical');
             if (getVal(profile.isSmoker)) heartScore += 15;
             
             // Heart Medications
@@ -691,6 +737,9 @@ function calculateDetailedInsights(profile, diseaseId) {
             } else {
                 if (getVal(profile.menstrualCycleIrregular)) addFactor('cycle', 'Irregular Periods', 'Yes', 30, 'increase', 'Common hormonal imbalance symptom.', 'symptom');
                 if (getVal(profile.facialBodyHairExcess)) addFactor('hirsutism', 'Excess Hair Growth', 'Yes', 20, 'increase', 'Indicator of high androgen levels.', 'symptom');
+                const pcosWeightGain = getVal(profile.weightGainPCOS);
+                if (pcosWeightGain === 'yes') addFactor('pcos_weight_gain', 'Recent weight gain', 'Yes', 10, 'increase', 'Weight gain commonly coexists with insulin resistance in PCOS.', 'symptom');
+                if (pcosWeightGain === 'mild') addFactor('pcos_weight_gain_mild', 'Recent weight gain', 'Mild', 5, 'increase', 'Mild recent weight gain can still contribute to PCOS risk.', 'symptom');
             }
             break;
 

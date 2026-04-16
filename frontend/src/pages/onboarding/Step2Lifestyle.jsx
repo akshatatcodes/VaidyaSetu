@@ -10,8 +10,8 @@ const Step2Lifestyle = () => {
       type="button"
       onClick={() => onClick(value)}
       className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center ${current === value
-          ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400'
-          : 'bg-gray-950 border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-600'
+          ? 'bg-emerald-500/10 dark:bg-emerald-600/20 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-bold shadow-lg shadow-emerald-500/10'
+          : 'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-emerald-500/50 hover:text-emerald-500 transition-colors'
         }`}
     >
       {Icon && <Icon className="w-4 h-4 mr-2" />}
@@ -105,7 +105,7 @@ const Step2Lifestyle = () => {
       <div className="flex gap-4 mt-8">
         <button
           onClick={() => setStep(1)}
-          className="flex-1 py-4 bg-gray-950 border border-gray-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-900 transition-all flex items-center justify-center group"
+          className="flex-1 py-4 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all flex items-center justify-center group"
         >
           <ChevronLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
           Back
