@@ -62,6 +62,108 @@ function safeJsonParse(raw) {
   }
 }
 
+function extractBp(vitalsLatest) {
+  const bp = vitalsLatest?.blood_pressure?.value;
+  if (!bp || typeof bp !== 'object') return null;
+  const systolic = Number(bp.systolic);
+  const diastolic = Number(bp.diastolic);
+  if (!Number.isFinite(systolic) || !Number.isFinite(diastolic)) return null;
+  return { systolic, diastolic, unit: vitalsLatest?.blood_pressure?.unit || 'mmHg' };
+}
+
+function extractGlucose(vitalsLatest) {
+  const g = vitalsLatest?.blood_glucose?.value;
+  const value = Number(g);
+  if (!Number.isFinite(value)) return null;
+  return { value, unit: vitalsLatest?.blood_glucose?.unit || 'mg/dL' };
+}
+
+function applyDeterministicVitalsAdjustment({ diseaseId, score, factorBreakdown = [], vitalsLatest }) {
+  // If baseline is N/A, do not apply vitals deltas.
+  if (score === -1) return { score, factorBreakdown };
+
+  const factors = Array.isArray(factorBreakdown) ? [...factorBreakdown] : [];
+
+  const hasVitalsFactorAlready = factors.some((f) => {
+    const id = String(f?.id || '');
+    return f?.source === 'vitals' || id.startsWith('vitals_');
+  });
+  if (hasVitalsFactorAlready) return { score, factorBreakdown: factors };
+
+  let delta = 0;
+  let vitalsLabel = '';
+  let vitalsExplanation = '';
+
+  const bp = extractBp(vitalsLatest);
+  if (bp) {
+    const crisis = bp.systolic >= 180 || bp.diastolic >= 120;
+    const high = bp.systolic >= 140 || bp.diastolic >= 90;
+
+    const bpDisplay = `${bp.systolic}/${bp.diastolic} ${bp.unit}`;
+    if (crisis) {
+      if (diseaseId === 'hypertension') delta += 25;
+      if (diseaseId === 'stroke') delta += 20;
+      if (diseaseId === 'heart_disease') delta += 15;
+      if (diseaseId === 'ckd') delta += 10;
+
+      vitalsLabel = `Blood pressure (hypertensive crisis)`;
+      vitalsExplanation = `Your latest BP (${bpDisplay}) is in the hypertensive crisis range. This significantly raises cardiovascular risk.`;
+    } else if (high) {
+      if (diseaseId === 'hypertension') delta += 12;
+      if (diseaseId === 'stroke') delta += 10;
+      if (diseaseId === 'heart_disease') delta += 8;
+      if (diseaseId === 'ckd') delta += 5;
+
+      vitalsLabel = `Blood pressure (high)`;
+      vitalsExplanation = `Your latest BP (${bpDisplay}) is above normal. This increases cardiovascular risk.`;
+    }
+    if (delta > 0) {
+      factors.push({
+        id: `vitals_bp_${bp.systolic}_${bp.diastolic}`,
+        name: vitalsLabel,
+        displayValue: bpDisplay,
+        rawValue: bp,
+        impact: delta,
+        direction: 'increase',
+        explanation: vitalsExplanation,
+        category: 'clinical',
+        source: 'vitals'
+      });
+    }
+  }
+
+  const glucose = extractGlucose(vitalsLatest);
+  if (glucose) {
+    // Only apply if BP didn't already add a vitals factor (avoid spamming UI).
+    // If needed later, we can support multiple vitals factors.
+    const alreadyAdded = factors.some((f) => String(f?.id || '').startsWith('vitals_'));
+    if (!alreadyAdded) {
+      if (glucose.value >= 250) {
+        let gDelta = 0;
+        if (diseaseId === 'diabetes') gDelta = 18;
+        if (diseaseId === 'pre_diabetes') gDelta = 12;
+        if (diseaseId === 'fatty_liver') gDelta = 6;
+        if (gDelta > 0) {
+          factors.push({
+            id: `vitals_glucose_${glucose.value}`,
+            name: 'Blood glucose (very high)',
+            displayValue: `${glucose.value} ${glucose.unit}`,
+            rawValue: glucose,
+            impact: gDelta,
+            direction: 'increase',
+            explanation: 'Very high glucose readings increase metabolic risk and should be reviewed by a clinician.',
+            category: 'lab',
+            source: 'vitals'
+          });
+          delta += gDelta;
+        }
+      }
+    }
+  }
+
+  return { score: score + delta, factorBreakdown: factors };
+}
+
 /**
  * AI-first predictive risk calculation.
  *
@@ -169,7 +271,14 @@ async function computePredictiveRiskForDiseases({
       const det = deterministicPerDisease[diseaseId];
       const mitigationSteps = await generateMitigationSteps(profileDoc, diseaseId, det.questionnaireScore, language);
 
-      let finalScore = det.questionnaireScore;
+      const vitalsAdjusted = applyDeterministicVitalsAdjustment({
+        diseaseId,
+        score: det.questionnaireScore,
+        factorBreakdown: det.questionnaireFactorBreakdown,
+        vitalsLatest
+      });
+
+      let finalScore = vitalsAdjusted.score;
       if (finalScore !== -1 && det.mitigationReduction > 0) {
         finalScore = finalScore - det.mitigationReduction;
       }
@@ -182,7 +291,7 @@ async function computePredictiveRiskForDiseases({
         baselineScore: baselineScoreClamped,
         questionnaireScore: clampScore(det.questionnaireScore),
         assessmentDelta: finalScoreClamped !== -1 && baselineScoreClamped !== -1 ? finalScoreClamped - baselineScoreClamped : 0,
-        factorBreakdown: det.questionnaireFactorBreakdown,
+        factorBreakdown: vitalsAdjusted.factorBreakdown,
         protectiveFactors: det.protectiveFactors,
         missingDataFactors: det.missingDataFactors,
         mitigationSteps,
@@ -369,13 +478,20 @@ OUTPUT SCHEMA:
     const finalScoreClamped = clampScore(finalScoreAdjusted);
     const baselineScoreClamped = clampScore(baselineScore);
 
+    const vitalsAdjusted = applyDeterministicVitalsAdjustment({
+      diseaseId,
+      score: finalScoreClamped,
+      factorBreakdown: Array.isArray(ai.factorBreakdown) ? ai.factorBreakdown : det.questionnaireFactorBreakdown,
+      vitalsLatest
+    });
+
     result[diseaseId] = {
-      riskScore: finalScoreClamped,
-      riskCategory: getScoreCategory(finalScoreClamped),
+      riskScore: clampScore(vitalsAdjusted.score),
+      riskCategory: getScoreCategory(clampScore(vitalsAdjusted.score)),
       baselineScore: baselineScoreClamped,
       questionnaireScore: clampScore(questionnaireScore),
-      assessmentDelta: finalScoreClamped !== -1 && baselineScoreClamped !== -1 ? finalScoreClamped - baselineScoreClamped : 0,
-      factorBreakdown: Array.isArray(ai.factorBreakdown) ? ai.factorBreakdown : det.questionnaireFactorBreakdown,
+      assessmentDelta: clampScore(vitalsAdjusted.score) !== -1 && baselineScoreClamped !== -1 ? clampScore(vitalsAdjusted.score) - baselineScoreClamped : 0,
+      factorBreakdown: vitalsAdjusted.factorBreakdown,
       protectiveFactors: mergedProtectiveFactors,
       missingDataFactors: Array.isArray(ai.missingDataFactors) ? ai.missingDataFactors : det.missingDataFactors,
       mitigationSteps,
