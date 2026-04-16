@@ -157,6 +157,13 @@ Return output STRICTLY as this JSON structure:
 function generateFallbackBreakdown(medicines, medicineDataArray = []) {
   const takeAsDirected = 'Take as directed by physician';
   const noWarnings = 'No major warnings found.';
+  const fallbackAlternatives = (medList) =>
+    (medList || []).slice(0, 3).map((m) => ({
+      originalMedicine: m,
+      alternative: `Generic equivalent for ${m}`,
+      reason: 'AI service is unavailable right now. A pharmacist can suggest the best generic equivalent based on the exact salt/strength.',
+      type: 'Generic Equivalent'
+    }));
   
   // If we have real API data, use it
   if (medicineDataArray.length > 0) {
@@ -178,7 +185,7 @@ function generateFallbackBreakdown(medicines, medicineDataArray = []) {
         overallRisk: 'CAUTION',
         summary: 'Please consult a healthcare provider for detailed analysis',
         interactions: [],
-        alternatives: [{ name: 'Please consult a doctor', type: 'Notice', reason: 'AI service connection error' }]
+        alternatives: fallbackAlternatives(medicines)
       },
       disclaimer: 'This tool is for informational purposes only. Do not use this as a substitute for professional medical advice. Always consult a doctor or pharmacist.'
     };
@@ -200,7 +207,7 @@ function generateFallbackBreakdown(medicines, medicineDataArray = []) {
       overallRisk: 'CAUTION',
       summary: 'Please consult a healthcare provider for detailed analysis',
       interactions: [],
-      alternatives: [{ name: 'Please consult a doctor', type: 'Notice', reason: 'AI service connection error' }]
+      alternatives: fallbackAlternatives(medicines)
     },
     disclaimer: 'This tool is for informational purposes only. Do not use this as a substitute for professional medical advice. Always consult a doctor or pharmacist.'
   };
