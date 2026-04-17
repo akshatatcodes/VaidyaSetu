@@ -70,7 +70,7 @@ const SECTIONS = [
 
 /* ─── Reusable sub-components ─── */
 const SectionCard = ({ sectionKey, label, icon: Icon, accent, open, onToggle, children }) => (
-  <div className="rounded-3xl border border-white/8 bg-white/4 backdrop-blur overflow-hidden transition-all duration-300"
+  <div className="rounded-3xl border border-gray-200 dark:border-white/8 bg-white dark:bg-white/4 backdrop-blur overflow-hidden transition-all duration-300"
     style={{ boxShadow: open ? `0 0 30px ${accent}12` : 'none' }}>
     <button type="button"
       onClick={onToggle}
@@ -79,9 +79,9 @@ const SectionCard = ({ sectionKey, label, icon: Icon, accent, open, onToggle, ch
         <div className="p-2 rounded-xl transition-all" style={{ background: `${accent}18` }}>
           <Icon size={16} style={{ color: accent }} />
         </div>
-        <span className="text-sm font-black text-white uppercase tracking-widest">{label}</span>
+        <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">{label}</span>
       </div>
-      <div className="p-1.5 rounded-xl bg-white/5 text-gray-600 group-hover:text-gray-300 transition-colors">
+      <div className="p-1.5 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-600 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
         {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
       </div>
     </button>
@@ -103,8 +103,8 @@ const TextInput = ({ value, onChange, type = 'text', placeholder = '' }) => (
     value={value}
     onChange={onChange}
     placeholder={placeholder}
-    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white font-semibold text-sm
-      focus:border-emerald-500 focus:bg-white/8 outline-none transition-all placeholder:text-gray-700"
+    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-3.5 text-gray-900 dark:text-white font-semibold text-sm
+      focus:border-emerald-500 focus:bg-white dark:focus:bg-white/8 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
   />
 );
 
@@ -144,15 +144,15 @@ const ToggleRow = ({ label, desc, checked, onChange, accent = '#10b981' }) => (
 );
 
 const YesNoToggle = ({ label, value, onChange }) => (
-  <div className="flex items-center justify-between p-4 bg-white/4 border border-white/8 rounded-2xl">
-    <span className="text-sm font-semibold text-gray-300">{label}</span>
+  <div className="flex items-center justify-between p-4 bg-white dark:bg-white/4 border border-gray-200 dark:border-white/8 rounded-2xl">
+    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</span>
     <div className="flex gap-2">
       <button type="button" onClick={() => onChange(true)}
-        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all text-sm font-bold ${value ? 'bg-emerald-600 text-white' : 'bg-white/5 text-gray-600'}`}>
+        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all text-sm font-bold ${value ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-600'}`}>
         ✓
       </button>
       <button type="button" onClick={() => onChange(false)}
-        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all text-sm ${!value ? 'bg-gray-700 text-white' : 'bg-white/5 text-gray-600'}`}>
+        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all text-sm ${!value ? 'bg-gray-700 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-600'}`}>
         <X size={14} />
       </button>
     </div>

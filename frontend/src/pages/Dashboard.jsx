@@ -112,10 +112,20 @@ const Dashboard = () => {
 
   const handleDiseaseScoreUpdate = async (diseaseId) => {
     setLoading(true);
-    await fetchData(false);
+    try {
+      // Ensure both risk vectors and AI advice blocks are regenerated.
+      await axios.post(`${API_URL}/reports/predictive-risk/recompute`, { clerkId: user.id, persist: true }).catch(() => null);
+      const generated = await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id }).catch(() => null);
+      if (generated?.data?.status === 'success') {
+        setReport(generated.data.data);
+      } else {
+        await fetchData(true);
+      }
+    } finally {
+      setLoading(false);
+    }
     setToast({ type: 'success', message: `${String(diseaseId).replace(/_/g, ' ')} scores refreshed.` });
     setTimeout(() => setToast(null), 3500);
-    setLoading(false);
   };
 
   useEffect(() => {

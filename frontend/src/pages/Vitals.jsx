@@ -1080,17 +1080,29 @@ function normalizeChartRows(data) {
   return data
     .map((d) => {
       let value = d.value;
+      let systolic;
+      let diastolic;
+      let numericValue;
       if (value && typeof value === 'object' && !Array.isArray(value) && 'systolic' in value) {
-        const systolic = Number(value.systolic);
-        const diastolic = Number(value.diastolic);
+        systolic = Number(value.systolic);
+        diastolic = Number(value.diastolic);
         if (!Number.isFinite(systolic) || !Number.isFinite(diastolic)) return null;
         value = { systolic, diastolic };
+        numericValue = systolic;
       } else {
         const parsed = typeof value === 'number' ? value : Number(value);
         if (!Number.isFinite(parsed)) return null;
         value = parsed;
+        numericValue = parsed;
       }
-      return { ...d, value, timestamp: d.timestamp || d.createdAt || new Date().toISOString() };
+      return {
+        ...d,
+        value,
+        numericValue,
+        systolic,
+        diastolic,
+        timestamp: d.timestamp || d.createdAt || new Date().toISOString()
+      };
     })
     .filter(Boolean);
 }

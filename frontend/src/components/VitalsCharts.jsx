@@ -50,7 +50,7 @@ export const BloodPressureChart = ({ data }) => {
           <Line
             type="monotone" 
             name="Systolic"
-            dataKey={(d) => Number(d?.value?.systolic)}
+            dataKey="systolic"
             stroke="#ef4444" 
             strokeWidth={3}
             dot={{ r: 4, fill: '#ef4444', strokeWidth: 2, stroke: theme === 'dark' ? '#111827' : '#fff' }}
@@ -59,7 +59,7 @@ export const BloodPressureChart = ({ data }) => {
           <Line
             type="monotone" 
             name="Diastolic"
-            dataKey={(d) => Number(d?.value?.diastolic)}
+            dataKey="diastolic"
             stroke="#3b82f6" 
             strokeWidth={3}
             dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: theme === 'dark' ? '#111827' : '#fff' }}
@@ -91,7 +91,7 @@ export const GlucoseChart = ({ data, hba1c }) => {
           <Area
             type="monotone" 
             name="Glucose"
-            dataKey={(d) => Number(d?.value)}
+            dataKey="numericValue"
             stroke="#f59e0b" 
             fillOpacity={1} 
             fill="url(#colorGlucose)" 
@@ -114,7 +114,7 @@ export const WeightBMIChart = ({ data }) => {
           <YAxis yAxisId="left" stroke="#4b5563" fontSize={10} />
           <YAxis yAxisId="right" orientation="right" stroke="#10b981" fontSize={10} />
           <Tooltip content={<CustomTooltip unit="kg / bmi" />} />
-          <Bar yAxisId="left" dataKey={(d) => Number(d?.value)} name="Weight" fill="#3b82f6" opacity={0.3} radius={[10, 10, 0, 0]} />
+          <Bar yAxisId="left" dataKey="numericValue" name="Weight" fill="#3b82f6" opacity={0.3} radius={[10, 10, 0, 0]} />
           <Line yAxisId="right" type="monotone" dataKey="bmi" name="BMI" stroke="#10b981" strokeWidth={3} dot={false} />
         </ComposedChart>
       </ResponsiveContainer>
@@ -134,7 +134,7 @@ export const StepsChart = ({ data }) => {
           <Tooltip content={<CustomTooltip unit="steps" />} />
           <ReferenceLine y={8000} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'GOAL', fill: '#10b981', fontSize: 10 }} />
           <Bar
-            dataKey={(d) => Number(d?.value)}
+            dataKey="numericValue"
             name="Steps"
             radius={[10, 10, 0, 0]}
             fill="#10b981"
@@ -163,7 +163,7 @@ export const SleepPatternChart = ({ data }) => {
           <XAxis dataKey="timestamp" hide />
           <YAxis stroke="#4b5563" fontSize={10} />
           <Tooltip content={<CustomTooltip unit="hours" />} />
-          <Bar dataKey={(d) => Number(d?.value)} name="Duration" fill="#8884d8" opacity={0.3} radius={[10, 10, 0, 0]} />
+          <Bar dataKey="numericValue" name="Duration" fill="#8884d8" opacity={0.3} radius={[10, 10, 0, 0]} />
           <Line type="monotone" dataKey="quality" name="Quality" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
         </ComposedChart>
       </ResponsiveContainer>
