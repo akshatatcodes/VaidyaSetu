@@ -319,6 +319,11 @@ const Vitals = () => {
           clerkId: activeUser.id, 
           accessToken: tokenResponse.access_token 
         });
+        // Fallback explicit step aggregate to ensure today's steps get persisted.
+        await axios.post(`${API_URL}/fitness/steps`, {
+          clerkId: activeUser.id,
+          accessToken: tokenResponse.access_token
+        }).catch(() => null);
         if (res.data.status === 'success') {
           alert("Successfully synced health data from Google Fit!");
           fetchVitals({ silent: true });

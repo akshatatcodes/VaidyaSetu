@@ -280,6 +280,21 @@ router.post('/predictive-risk/recompute', async (req, res) => {
     res.json({ status: 'success', data: { risk_scores: Object.fromEntries(Object.entries(results).map(([d, v]) => [d, v.riskScore])) } });
   } catch (error) {
     console.error('Predictive risk recompute error:', error);
+    try {
+      const { clerkId } = req.body || {};
+      if (clerkId) {
+        const existing = await Report.findOne({ clerkId }).sort({ createdAt: -1 }).lean();
+        if (existing?.risk_scores) {
+          return res.json({
+            status: 'success',
+            warning: 'Recompute failed; returned latest persisted risk scores.',
+            data: { risk_scores: existing.risk_scores }
+          });
+        }
+      }
+    } catch (fallbackErr) {
+      console.warn('Predictive recompute fallback failed:', fallbackErr.message);
+    }
     res.status(500).json({ status: 'error', message: error.message });
   }
 });

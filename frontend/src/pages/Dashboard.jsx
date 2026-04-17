@@ -177,6 +177,10 @@ const Dashboard = () => {
           clerkId: user.id,
           accessToken: tokenResponse.access_token
         });
+        await axios.post(`${API_URL}/fitness/steps`, {
+          clerkId: user.id,
+          accessToken: tokenResponse.access_token
+        }).catch(() => null);
         if (res.data.status === 'success') {
           await fetchData();
           window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
