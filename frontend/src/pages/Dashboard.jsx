@@ -110,9 +110,22 @@ const Dashboard = () => {
     }
   };
 
-  const handleDiseaseScoreUpdate = async (diseaseId) => {
+  const handleDiseaseScoreUpdate = async (diseaseId, newScore) => {
     setLoading(true);
     try {
+      // Optimistically keep risk vectors in sync with just-submitted questionnaire values.
+      if (Number.isFinite(Number(newScore))) {
+        setReport((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            risk_scores: {
+              ...(prev.risk_scores || {}),
+              [diseaseId]: Number(newScore)
+            }
+          };
+        });
+      }
       // Ensure both risk vectors and AI advice blocks are regenerated.
       await axios.post(`${API_URL}/reports/predictive-risk/recompute`, { clerkId: user.id, persist: true }).catch(() => null);
       const generated = await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id }).catch(() => null);
@@ -299,9 +312,24 @@ const Dashboard = () => {
               {(() => {
                 const allA = Object.entries(report?.advice || {});
                 const visA = showAllAdvice ? allA : allA.slice(0, 4);
-                return visA.map(([key, text]) => (
-                  <AdviceCard key={key} label={`${String(key).charAt(0).toUpperCase() + String(key).slice(1).replace(/_/g, ' ')} Insight`} text={text} icon={<AlertTriangle className={`w-6 h-6 ${getRiskColor(report?.risk_scores?.[key]) === '#ef4444' ? 'text-red-500' : 'text-emerald-500'}`} />} onFeedback={(r) => handleFeedback(key, r, 'Status', text)} done={feedbackStatus[key]} />
-                ));
+                return visA.map(([key, text]) => {
+                  const score = Number(report?.risk_scores?.[key]);
+                  const normalizedText = typeof text === 'string'
+                    ? text
+                        .replace(/\b(Current\s*Risk\s*:\s*)\d{1,3}%/i, (_, prefix) => `${prefix}${Number.isFinite(score) ? score : 0}%`)
+                        .replace(/\b(risk\s*:\s*)\d{1,3}%/i, (_, prefix) => `${prefix}${Number.isFinite(score) ? score : 0}%`)
+                    : text;
+                  return (
+                    <AdviceCard
+                      key={key}
+                      label={`${String(key).charAt(0).toUpperCase() + String(key).slice(1).replace(/_/g, ' ')} Insight`}
+                      text={normalizedText}
+                      icon={<AlertTriangle className={`w-6 h-6 ${getRiskColor(report?.risk_scores?.[key]) === '#ef4444' ? 'text-red-500' : 'text-emerald-500'}`} />}
+                      onFeedback={(r) => handleFeedback(key, r, 'Status', normalizedText)}
+                      done={feedbackStatus[key]}
+                    />
+                  );
+                });
               })()}
             </div>
           </div>

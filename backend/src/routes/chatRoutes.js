@@ -26,27 +26,52 @@ router.post('/symptom', async (req, res) => {
       ]);
       
       if (profile) {
-        const age = profile.age?.value || 'unknown';
-        const gender = profile.gender?.value || 'unknown';
-        const conditions = profile.medicalHistory?.value || [];
-        const allergies = profile.allergies?.value || [];
-        const diet = profile.diet?.value || 'unknown';
-        const lifestyle = profile.lifestyle?.value || 'unknown';
-        const smoking = profile.smoking?.value || 'unknown';
-        const alcohol = profile.alcohol?.value || 'unknown';
-        const exercise = profile.exerciseFrequency?.value || 'unknown';
-        const familyHistory = profile.familyHistory?.value || [];
-        const height = profile.height?.value || 'unknown';
-        const weight = profile.weight?.value || 'unknown';
-        
+        const fv = (key, fallback = 'unknown') => {
+          const field = profile?.[key];
+          if (field && typeof field === 'object' && Object.prototype.hasOwnProperty.call(field, 'value')) {
+            const v = field.value;
+            if (v === undefined || v === null || v === '') return fallback;
+            return v;
+          }
+          if (field === undefined || field === null || field === '') return fallback;
+          return field;
+        };
+
+        const asArray = (key) => {
+          const v = fv(key, []);
+          if (Array.isArray(v)) return v;
+          if (typeof v === 'string' && v.trim()) return [v];
+          return [];
+        };
+
+        const age = fv('age');
+        const gender = fv('gender');
+        const height = fv('height');
+        const weight = fv('weight');
+        const waist = fv('waistCircumference', 'not recorded');
+        const bmi = fv('bmi', 'not recorded');
+        const conditions = asArray('medicalHistory');
+        const allergies = asArray('allergies');
+        const diet = fv('dietType');
+        const activityLevel = fv('activityLevel');
+        const sleepHours = fv('sleepHours');
+        const stressLevel = fv('stressLevel');
+        const smoking = fv('isSmoker', 'unknown');
+        const alcohol = fv('alcoholConsumption');
+        const familyHistory = [
+          fv('familyHistoryDiabetes', null) ? 'Diabetes' : null,
+          fv('familyHistoryHypertension', null) ? 'Hypertension' : null,
+          fv('familyHistoryThyroid', null) ? 'Thyroid' : null
+        ].filter(Boolean);
+
         profileContext = `COMPLETE USER HEALTH PROFILE:
 - Age: ${age}, Gender: ${gender}
-- Height: ${height} cm, Weight: ${weight} kg
-- Diet: ${diet}, Lifestyle: ${lifestyle}
-- Smoking: ${smoking}, Alcohol: ${alcohol}, Exercise: ${exercise}
+- Height: ${height} cm, Weight: ${weight} kg, BMI: ${bmi}, Waist: ${waist}
+- Diet: ${diet}, Activity: ${activityLevel}, Sleep: ${sleepHours} hours, Stress: ${stressLevel}
+- Smoking: ${smoking}, Alcohol: ${alcohol}
 - Known Conditions: ${conditions.join(', ') || 'None'}
 - Allergies: ${allergies.join(', ') || 'None'}
-- Family History: ${familyHistory.join(', ') || 'None'}`;
+- Family History: ${familyHistory.join(', ') || 'None recorded'}`;
 
         if (vitals.length > 0) {
           const vitalSummary = {};
@@ -70,8 +95,15 @@ router.post('/symptom', async (req, res) => {
 
         if (report) {
           const riskScores = report.risk_scores || {};
+          const allRisks = Object.entries(riskScores)
+            .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+            .slice(0, 8)
+            .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}%`);
           const highRisks = Object.entries(riskScores).filter(([, v]) => v > 40).map(([k, v]) => `${k}: ${v}%`);
           profileContext += `\n\nAI RISK ASSESSMENT: ${report.summary || 'No summary'}`;
+          if (allRisks.length > 0) {
+            profileContext += `\nTop risks: ${allRisks.join(', ')}`;
+          }
           if (highRisks.length > 0) {
             profileContext += `\nElevated risks: ${highRisks.join(', ')}`;
           }

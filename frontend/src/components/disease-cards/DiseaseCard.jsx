@@ -202,7 +202,7 @@ const DiseaseCard = ({ diseaseId, initialScore, verificationMeta, clerkId, profi
     // Notify parent (Dashboard) to refresh all scores
     if (onScoreUpdated) {
       console.log('[DiseaseCard] Notifying dashboard to refresh scores');
-      onScoreUpdated(diseaseId);
+      onScoreUpdated(diseaseId, newScore, breakdown);
     }
   };
 

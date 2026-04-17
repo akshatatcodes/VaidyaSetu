@@ -28,34 +28,46 @@ const CONDITION_OPTIONS = [
   'Asthma', 'Heart Disease', 'PCOS', 'Anemia'
 ];
 
-const selectStyles = {
+const getSelectStyles = (isDark) => ({
   control: (base, state) => ({
     ...base,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: state.isFocused ? '#10b981' : 'rgba(255,255,255,0.1)',
-    borderRadius: '0.75rem', padding: '4px', color: 'white',
-    boxShadow: 'none', '&:hover': { borderColor: 'rgba(255,255,255,0.2)' }
+    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+    borderColor: state.isFocused ? '#10b981' : (isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'),
+    borderRadius: '0.75rem',
+    padding: '4px',
+    color: isDark ? 'white' : '#111827',
+    boxShadow: 'none',
+    '&:hover': { borderColor: state.isFocused ? '#10b981' : (isDark ? 'rgba(255,255,255,0.2)' : '#d1d5db') }
   }),
   menu: (base) => ({
-    ...base, backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '0.75rem', zIndex: 200
+    ...base,
+    backgroundColor: isDark ? '#0f172a' : '#ffffff',
+    border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e5e7eb',
+    borderRadius: '0.75rem',
+    zIndex: 200
   }),
   option: (base, state) => ({
-    ...base, backgroundColor: state.isFocused ? '#059669' : 'transparent',
-    color: 'white', '&:active': { backgroundColor: '#10b981' }
+    ...base,
+    backgroundColor: state.isFocused ? '#059669' : 'transparent',
+    color: state.isFocused ? '#ffffff' : (isDark ? '#ffffff' : '#111827'),
+    '&:active': { backgroundColor: '#10b981' }
   }),
   multiValue: (base) => ({
-    ...base, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: '0.5rem',
+    ...base,
+    backgroundColor: 'rgba(16,185,129,0.12)',
+    borderRadius: '0.5rem',
     border: '1px solid rgba(16,185,129,0.25)'
   }),
   multiValueLabel: (base) => ({ ...base, color: '#10b981' }),
   multiValueRemove: (base) => ({
-    ...base, color: '#10b981',
+    ...base,
+    color: '#10b981',
     '&:hover': { backgroundColor: 'rgba(16,185,129,0.2)', color: '#34d399' }
   }),
-  input: (base) => ({ ...base, color: 'white' }),
-  placeholder: (base) => ({ ...base, color: '#6b7280' }),
-};
+  input: (base) => ({ ...base, color: isDark ? 'white' : '#111827' }),
+  placeholder: (base) => ({ ...base, color: isDark ? '#6b7280' : '#9ca3af' }),
+  singleValue: (base) => ({ ...base, color: isDark ? 'white' : '#111827' })
+});
 
 /* ─── Section config ─── */
 const SECTIONS = [
@@ -498,7 +510,7 @@ const ProfileEditor = () => {
             <CreatableSelect isMulti options={ALLERGY_OPTIONS}
               value={(formData.allergies || []).map(a => ({ value: a, label: a }))}
               onChange={v => updateField('allergies', v ? v.map(o => o.value) : [])}
-              styles={selectStyles} placeholder="Search e.g. Penicillin…" />
+              styles={getSelectStyles(theme === 'dark')} placeholder="Search e.g. Penicillin…" />
           </div>
           <div>
             <FieldLabel>Medical History</FieldLabel>
@@ -527,8 +539,8 @@ const ProfileEditor = () => {
               onChange={e => updateField('otherConditions', e.target.value)}
               placeholder="Type additional health notes here…"
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm font-medium
-                focus:outline-none focus:border-emerald-500 transition-all shadow-inner resize-none placeholder:text-gray-700" />
+              className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 text-gray-900 dark:text-white text-sm font-medium
+                focus:outline-none focus:border-emerald-500 transition-all shadow-inner resize-none placeholder:text-gray-400 dark:placeholder:text-gray-700" />
           </div>
         </SectionCard>
 
