@@ -35,10 +35,7 @@ export const BloodPressureChart = ({ data }) => {
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
-          <XAxis 
-            dataKey="timestamp" 
-            hide 
-          />
+          <XAxis dataKey="chartIndex" hide />
           <YAxis
             domain={['auto', 'auto']}
             stroke={theme === 'dark' ? '#4b5563' : '#9ca3af'}
@@ -53,8 +50,10 @@ export const BloodPressureChart = ({ data }) => {
             dataKey="systolic"
             stroke="#ef4444" 
             strokeWidth={3}
+            isAnimationActive={false}
             dot={{ r: 4, fill: '#ef4444', strokeWidth: 2, stroke: theme === 'dark' ? '#111827' : '#fff' }}
             activeDot={{ r: 6 }}
+            connectNulls
           />
           <Line
             type="monotone" 
@@ -62,8 +61,10 @@ export const BloodPressureChart = ({ data }) => {
             dataKey="diastolic"
             stroke="#3b82f6" 
             strokeWidth={3}
+            isAnimationActive={false}
             dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: theme === 'dark' ? '#111827' : '#fff' }}
             activeDot={{ r: 6 }}
+            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>
@@ -84,7 +85,7 @@ export const GlucoseChart = ({ data, hba1c }) => {
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
-          <XAxis dataKey="timestamp" hide />
+          <XAxis dataKey="chartIndex" hide />
           <YAxis stroke="#4b5563" fontSize={10} />
           <Tooltip content={<CustomTooltip unit="mg/dL" />} />
           <ReferenceLine y={100} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: 'Normal', fill: '#10b981', fontSize: 10 }} />
@@ -96,6 +97,8 @@ export const GlucoseChart = ({ data, hba1c }) => {
             fillOpacity={1} 
             fill="url(#colorGlucose)" 
             strokeWidth={3}
+            isAnimationActive={false}
+            connectNulls
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -110,12 +113,12 @@ export const WeightBMIChart = ({ data }) => {
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
-          <XAxis dataKey="timestamp" hide />
+          <XAxis dataKey="chartIndex" hide />
           <YAxis yAxisId="left" stroke="#4b5563" fontSize={10} />
           <YAxis yAxisId="right" orientation="right" stroke="#10b981" fontSize={10} />
           <Tooltip content={<CustomTooltip unit="kg / bmi" />} />
           <Bar yAxisId="left" dataKey="numericValue" name="Weight" fill="#3b82f6" opacity={0.3} radius={[10, 10, 0, 0]} />
-          <Line yAxisId="right" type="monotone" dataKey="bmi" name="BMI" stroke="#10b981" strokeWidth={3} dot={false} />
+          <Line yAxisId="right" type="monotone" dataKey="bmi" name="BMI" stroke="#10b981" strokeWidth={3} dot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -129,7 +132,7 @@ export const StepsChart = ({ data }) => {
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
-          <XAxis dataKey="timestamp" hide />
+          <XAxis dataKey="chartIndex" hide />
           <YAxis stroke="#4b5563" fontSize={10} />
           <Tooltip content={<CustomTooltip unit="steps" />} />
           <ReferenceLine y={8000} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'GOAL', fill: '#10b981', fontSize: 10 }} />
@@ -160,11 +163,11 @@ export const SleepPatternChart = ({ data }) => {
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
-          <XAxis dataKey="timestamp" hide />
+          <XAxis dataKey="chartIndex" hide />
           <YAxis stroke="#4b5563" fontSize={10} />
           <Tooltip content={<CustomTooltip unit="hours" />} />
           <Bar dataKey="numericValue" name="Duration" fill="#8884d8" opacity={0.3} radius={[10, 10, 0, 0]} />
-          <Line type="monotone" dataKey="quality" name="Quality" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
+          <Line type="monotone" dataKey="quality" name="Quality" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

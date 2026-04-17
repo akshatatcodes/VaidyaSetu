@@ -2,6 +2,44 @@ const express = require('express');
 const router = express.Router();
 const axiosNode = require('axios');
 const Vital = require('../models/Vital');
+const STEPS_AGGREGATE_URL = 'https://www.googleapis.com/fitness/v1/users/me/dataset/aggregate';
+
+async function aggregateDailySteps(accessToken, startTimeMillis, endTimeMillis) {
+  const aggregateByVariants = [
+    [{ dataTypeName: 'com.google.step_count.delta' }],
+    [{ dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps' }],
+    [{ dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:merge_step_deltas' }]
+  ];
+
+  for (const aggregateBy of aggregateByVariants) {
+    try {
+      const body = {
+        aggregateBy,
+        bucketByTime: { durationMillis: 86400000 },
+        startTimeMillis,
+        endTimeMillis
+      };
+      const res = await axiosNode.post(STEPS_AGGREGATE_URL, body, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      let steps = 0;
+      if (Array.isArray(res.data?.bucket)) {
+        res.data.bucket.forEach((b) => {
+          (b.dataset || []).forEach((ds) => {
+            (ds.point || []).forEach((p) => {
+              steps += p?.value?.[0]?.intVal || 0;
+            });
+          });
+        });
+      }
+      if (steps > 0) return steps;
+    } catch (err) {
+      console.warn('[Fitness] Step aggregate variant failed:', err.response?.data?.error?.message || err.message);
+    }
+  }
+
+  return 0;
+}
 // Helper to fetch Google Fit Datasets
 const fetchGoogleDataset = async (accessToken, startTimeNs, endTimeNs, dataType) => {
   try {
@@ -30,28 +68,7 @@ router.post('/steps', async (req, res) => {
     const startTimeNs = startOfDay * 1000000;
     const endTimeNs = endOfDay * 1000000;
 
-    const url = 'https://www.googleapis.com/fitness/v1/users/me/dataset/aggregate';
-    const body = {
-      aggregateBy: [{ dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps" }],
-      bucketByTime: { durationMillis: 86400000 },
-      startTimeMillis: startOfDay,
-      endTimeMillis: endOfDay
-    };
-
-    const fitnessRes = await axiosNode.post(url, body, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
-    let totalSteps = 0;
-    if (fitnessRes.data.bucket) {
-      fitnessRes.data.bucket.forEach(b => {
-        b.dataset.forEach(ds => {
-          ds.point.forEach(p => {
-            totalSteps += p.value[0]?.intVal || 0;
-          });
-        });
-      });
-    }
+    const totalSteps = await aggregateDailySteps(accessToken, startOfDay, endOfDay);
 
     if (totalSteps > 0) {
       // Update or create step count for today
@@ -65,7 +82,7 @@ router.post('/steps', async (req, res) => {
     res.json({ status: 'success', data: { steps: totalSteps } });
   } catch (error) {
     console.error('Steps sync error:', error);
-    res.json({ status: 'success', note: 'Running in demo mode with mock sync', data: { steps: 5432 } });
+    res.status(500).json({ status: 'error', message: 'Steps sync failed', detail: error.message });
   }
 });
 
@@ -109,29 +126,8 @@ router.post('/sync-extended', async (req, res) => {
     }
 
     // 4. Sync Steps (for current day)
-    const stepsUrl = 'https://www.googleapis.com/fitness/v1/users/me/dataset/aggregate';
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const stepsBody = {
-      aggregateBy: [{ dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps" }],
-      bucketByTime: { durationMillis: 86400000 },
-      startTimeMillis: startOfToday,
-      endTimeMillis: endOfDay
-    };
-
-    const stepsRes = await axiosNode.post(stepsUrl, stepsBody, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
-    let todaySteps = 0;
-    if (stepsRes.data.bucket) {
-      stepsRes.data.bucket.forEach(b => {
-        b.dataset.forEach(ds => {
-          ds.point.forEach(p => {
-            todaySteps += p.value[0]?.intVal || 0;
-          });
-        });
-      });
-    }
+    const todaySteps = await aggregateDailySteps(accessToken, startOfToday, endOfDay);
 
     if (todaySteps > 0) {
       await Vital.findOneAndUpdate(
@@ -144,7 +140,7 @@ router.post('/sync-extended', async (req, res) => {
     res.json({ status: 'success', message: 'Fitness data (Steps, HR, Weight, Sleep) synced successfully', data: { steps: todaySteps } });
   } catch (error) {
     console.error('Extended sync error:', error);
-    res.json({ status: 'success', note: 'Running in demo mode with mock sync', data: { steps: 5432 } });
+    res.status(500).json({ status: 'error', message: 'Extended fitness sync failed', detail: error.message });
   }
 });
 

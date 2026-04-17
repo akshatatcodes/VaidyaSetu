@@ -38,6 +38,7 @@ const Dashboard = () => {
   const [showAllRiskCards, setShowAllRiskCards] = useState(false);
   const [showAllAdvice, setShowAllAdvice] = useState(false);
   const [scoresAsOf, setScoresAsOf] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // STEP 62: Global Disease Refresh Mechanism
   const VITAL_IMPACT_MAP = {
@@ -217,7 +218,28 @@ const Dashboard = () => {
     return '#10b981';
   };
 
-  const stepCount = getProfileVal('steps') || 0;
+  const latestStepsVital = latestVitals.find((v) => v.type === 'steps');
+  const stepRaw = typeof latestStepsVital?.value === 'object'
+    ? latestStepsVital?.value?.value
+    : latestStepsVital?.value;
+  const stepFromReport = getProfileVal('steps');
+  const stepCountParsed = Number(stepRaw ?? stepFromReport ?? 0);
+  const stepCount = Number.isFinite(stepCountParsed) ? stepCountParsed : 0;
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData(true);
+      setToast({ type: 'success', message: 'Dashboard refreshed with latest profile and vitals.' });
+      setTimeout(() => setToast(null), 2500);
+    } catch (err) {
+      console.error('Manual refresh failed:', err);
+      setToast({ type: 'error', message: 'Refresh failed. Please try again.' });
+      setTimeout(() => setToast(null), 2500);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -253,8 +275,8 @@ const Dashboard = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4">
-          <button onClick={() => fetchData(true)} className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold shadow-xl">
-            <RefreshCw className="w-4 h-4 text-emerald-500" /> {t('dashboard.refresh_scan')}
+          <button onClick={handleManualRefresh} disabled={refreshing} className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold shadow-xl disabled:opacity-60">
+            <RefreshCw className={`w-4 h-4 text-emerald-500 ${refreshing ? 'animate-spin' : ''}`} /> {t('dashboard.refresh_scan')}
           </button>
           <button onClick={handleExport} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg">
              <Download className="w-5 h-5 inline mr-2" /> {t('dashboard.export_insights')}

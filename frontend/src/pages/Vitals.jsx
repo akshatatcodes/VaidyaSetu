@@ -1078,7 +1078,7 @@ const Vitals = () => {
 function normalizeChartRows(data) {
   if (!Array.isArray(data)) return [];
   return data
-    .map((d) => {
+    .map((d, idx) => {
       let value = d.value;
       let systolic;
       let diastolic;
@@ -1097,6 +1097,7 @@ function normalizeChartRows(data) {
       }
       return {
         ...d,
+        chartIndex: idx,
         value,
         numericValue,
         systolic,
