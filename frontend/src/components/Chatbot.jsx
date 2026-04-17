@@ -61,15 +61,17 @@ const Chatbot = () => {
   const S = {
     chatWindow: {
       position: 'fixed',
-      bottom: isMobile ? '0' : '1.5rem',
+      top: isMobile ? '4rem' : 'auto',
+      // Keep chatbot fully above mobile bottom navigation + device safe area.
+      bottom: isMobile ? 'calc(5.75rem + env(safe-area-inset-bottom, 0px))' : '1.5rem',
       right: isMobile ? '0' : '1.5rem',
       width: isMobile ? '100%' : '380px',
       maxWidth: isMobile ? '100%' : 'calc(100vw - 2rem)',
-      height: isMobile ? 'calc(100vh - 4rem)' : 'auto',
-      maxHeight: isMobile ? 'calc(100vh - 4rem)' : '88vh',
+      height: isMobile ? 'auto' : 'auto',
+      maxHeight: isMobile ? 'calc(100dvh - 10rem - env(safe-area-inset-bottom, 0px))' : '88vh',
       display: 'flex',
       flexDirection: 'column',
-      borderRadius: isMobile ? '2rem 2rem 0 0' : '2rem',
+      borderRadius: isMobile ? '1.25rem' : '2rem',
       background: isDark 
         ? 'linear-gradient(145deg, #030712 0%, #06121d 100%)'
         : 'linear-gradient(145deg, #ffffff 0%, #f8faff 100%)',
@@ -77,7 +79,7 @@ const Chatbot = () => {
         ? '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)'
         : '0 32px 80px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(16, 185, 129, 0.1)',
       border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.15)'}`,
-      zIndex: 200,
+      zIndex: 10050,
       transformOrigin: 'bottom right',
       overflow: 'hidden',
       fontFamily: "'Inter', system-ui, sans-serif",
@@ -91,6 +93,7 @@ const Chatbot = () => {
       padding: isMobile ? '1.25rem 1.5rem' : '1rem 1.5rem',
       borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)'}`,
       flexShrink: 0,
+      zIndex: 2,
       background: isDark
         ? 'linear-gradient(90deg, rgba(16,185,129,0.08) 0%, transparent 60%, rgba(20,184,166,0.04) 100%)'
         : 'linear-gradient(90deg, rgba(16,185,129,0.05) 0%, transparent 60%, rgba(16,185,129,0.02) 100%)',
@@ -113,14 +116,17 @@ const Chatbot = () => {
     closeBtn: {
       padding: '0.5rem',
       borderRadius: '0.75rem',
-      background: 'transparent',
-      border: 'none',
+      background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)',
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.12)'}`,
       cursor: 'pointer',
-      color: isDark ? '#6b7280' : '#94a3b8',
+      color: isDark ? '#e5e7eb' : '#334155',
       transition: 'all 0.2s',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      minWidth: '2.25rem',
+      minHeight: '2.25rem',
+      zIndex: 3
     },
     messagesContainer: {
       flex: 1,
@@ -188,7 +194,7 @@ const Chatbot = () => {
       flexShrink: 0,
     },
     inputArea: {
-      padding: isMobile ? '1rem 1rem 1.5rem' : '0.75rem 1rem 1rem',
+      padding: isMobile ? '1rem 1rem calc(1.35rem + env(safe-area-inset-bottom, 0px))' : '0.75rem 1rem 1rem',
       background: isDark ? 'rgba(0,0,0,0.2)' : '#f8faff',
       borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.1)'}`,
       flexShrink: 0,
@@ -287,7 +293,7 @@ const Chatbot = () => {
     },
     floatBtn: {
       position: 'fixed',
-      bottom: isMobile ? '6.5rem' : '1.5rem',
+      bottom: isMobile ? 'calc(7.8rem + env(safe-area-inset-bottom, 0px))' : '1.5rem',
       right: isMobile ? '1.5rem' : '1.5rem',
       width: '3.5rem',
       height: '3.5rem',
@@ -297,7 +303,7 @@ const Chatbot = () => {
       cursor: 'pointer',
       color: '#ffffff',
       boxShadow: '0 8px 32px rgba(16,185,129,0.4)',
-      zIndex: 9999,
+      zIndex: 10040,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
