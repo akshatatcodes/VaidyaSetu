@@ -194,9 +194,14 @@ const AuthPage = ({ children }) => {
 };
 
 function App() {
+  const googleClientId =
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    import.meta.env.GOOGLE_CLIENT_ID ||
+    "YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER";
+
   return (
     <ThemeProvider>
-      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER"}>
+      <GoogleOAuthProvider clientId={googleClientId}>
         <BrowserRouter>
           <AuthWrapper />
         </BrowserRouter>
