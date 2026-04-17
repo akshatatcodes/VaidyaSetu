@@ -15,6 +15,7 @@ import Chatbot from './components/Chatbot';
 import DisclaimerBanner from './components/DisclaimerBanner';
 import ThemeToggle from './components/ThemeToggle';
 import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -198,6 +199,7 @@ function App() {
     <ThemeProvider>
       <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER"}>
         <BrowserRouter>
+          <ScrollToTop />
           <AuthWrapper />
         </BrowserRouter>
       </GoogleOAuthProvider>

@@ -435,11 +435,11 @@ const Prescriptions = () => {
   const getSeverityStyle = (severity) => {
     switch (severity?.toLowerCase()) {
       case 'critical':
-      case 'high': return 'border-red-500/30 bg-red-500/10 text-red-500 icon-red';
-      case 'moderate': return 'border-amber-500/30 bg-amber-500/10 text-amber-500 icon-amber';
+      case 'high': return 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-500 icon-red';
+      case 'moderate': return 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-500 icon-amber';
       case 'minor':
-      case 'low': return 'border-blue-500/30 bg-blue-500/10 text-blue-500 icon-blue';
-      default: return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 icon-emerald';
+      case 'low': return 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-500 icon-blue';
+      default: return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 icon-emerald';
     }
   };
 
@@ -499,10 +499,10 @@ const Prescriptions = () => {
       error: <AlertCircle className="w-4 h-4" />
     };
     const colors = {
-      loading: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      error: 'bg-red-500/10 text-red-500 border-red-500/20'
+      loading: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+      success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+      error: 'bg-red-500/10 text-red-600 dark:text-red-500 border-red-500/20'
     };
     return (
       <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl border ${colors[scanStatus.type]} text-xs font-bold mb-6 animate-in fade-in slide-in-from-top-2`}>
@@ -806,8 +806,8 @@ const Prescriptions = () => {
                             </div>
                             {renderSourceBadges(item.source)}
                           </div>
-                          <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter flex items-center gap-4">
-                            {item.allopathy_drug} <span className="text-white/20">+</span> {drugB}
+                          <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tighter flex items-center gap-4">
+                            {item.allopathy_drug} <span className="text-gray-300 dark:text-white/20">+</span> {drugB}
 
                             {/* Step 54: Source Attribution Icon */}
                             <div className="group/src relative">
@@ -865,7 +865,7 @@ const Prescriptions = () => {
                         </div>
                         <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md p-6 rounded-[2rem] border border-white/5">
                           <span className="text-[10px] font-black uppercase tracking-widest opacity-40 block mb-3">{t('prescriptions.labels.recommendation')}</span>
-                          <p className="text-sm font-bold leading-relaxed tracking-tight text-white/90">{item.recommendation}</p>
+                          <p className="text-sm font-bold leading-relaxed tracking-tight text-gray-700 dark:text-white/90">{item.recommendation}</p>
                         </div>
                       </div>
 
@@ -879,7 +879,7 @@ const Prescriptions = () => {
                         </h4>
                         {explanations[pairKey] ? (
                           <div>
-                            <p className="text-gray-200 text-sm leading-relaxed font-medium italic pr-12">"{explanations[pairKey]}"</p>
+                            <p className="text-gray-600 dark:text-gray-200 text-sm leading-relaxed font-medium italic pr-12">"{explanations[pairKey]}"</p>
                             {!feedbackStatus[pairKey] ? (
                               <div className="flex items-center gap-3 mt-4 animate-in fade-in slide-in-from-left-2">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500/50 mr-2">{t('prescriptions.helpful')}</span>
@@ -1176,7 +1176,7 @@ const Prescriptions = () => {
             <div className="mt-20 pt-12 border-t border-gray-800">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-2xl font-black text-white tracking-tight mb-1 flex items-center gap-3">
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-1 flex items-center gap-3">
                     <Clock className="w-6 h-6 text-gray-700 dark:text-gray-300" /> Archival Safety Logs
                   </h3>
                   <p className="text-xs text-gray-700 dark:text-gray-300 font-medium tracking-wide uppercase">Your last {history.length} cross-interaction scans</p>

@@ -1,0 +1,22 @@
+# VAIDYASETU PREDICTIVE MODELS & ALGORITHMS
+
+**1. IDRS (Indian Diabetes Risk Score) Regression**
+Used for: Diabetes and Pre-Diabetes
+
+**2. Bayesian Likelihood Ratio Model**
+Used for: Thyroid Disorders
+
+**3. Weighted Rule-Based Regression (ICMR-Aligned)**
+Used for: Hypertension and Heart Disease
+
+**4. Multi-Factor Risk Weighting**
+Used for: Anemia and PCOD
+
+**5. LLM-Augmented Predictive Refinement (Llama-3.3)**
+Used for: Final Risk Score Adjustment
+
+**6. Linear Mitigation Reduction Algorithm**
+Used for: Post-Assessment Risk Mitigation
+
+**7. Population Baseline Normalization**
+Used for: Indian-specific Prevalence Calibration
