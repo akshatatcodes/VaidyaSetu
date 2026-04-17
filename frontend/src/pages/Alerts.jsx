@@ -514,16 +514,6 @@ const Alerts = () => {
                </div>
 
                <div className="p-10 bg-gray-50 dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row flex-wrap gap-3">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      navigate(getProtocolRoute(selectedAlert));
-                      setSelectedAlert(null);
-                    }}
-                    className="flex-1 min-w-[140px] py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl uppercase tracking-widest text-xs active:scale-95"
-                  >
-                    {selectedAlert.actionText || 'View details'}
-                  </button>
                   <button
                     type="button"
                     onClick={() => {

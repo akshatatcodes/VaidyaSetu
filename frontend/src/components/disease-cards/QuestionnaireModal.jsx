@@ -103,6 +103,12 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate
   const questions = questionnaire?.questions || [];
   const currentQuestion = questions[currentStep];
   const progress = questions.length > 0 ? ((currentStep + (calculatedScore !== null ? questions.length : 0)) / (questions.length * 2)) * 100 : 0;
+  const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+  const hasCurrentAnswer = Array.isArray(currentAnswer)
+    ? currentAnswer.length > 0
+    : currentQuestion?.type === 'number'
+      ? currentAnswer !== undefined && currentAnswer !== null && String(currentAnswer).trim() !== ''
+      : currentAnswer !== undefined && currentAnswer !== null && currentAnswer !== '';
 
   return createPortal(
     <AnimatePresence mode="wait">
@@ -208,7 +214,26 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate
                          </div>
 
                          <div className="grid grid-cols-1 gap-4">
-                            {currentQuestion.options.map((opt) => {
+                            {!currentQuestion ? (
+                              <div className="p-6 rounded-3xl border border-red-200 bg-red-50 text-red-600 text-sm font-bold">
+                                Unable to load this question. Please close and reopen the assessment.
+                              </div>
+                            ) : currentQuestion.type === 'number' ? (
+                              <div className="p-6 rounded-3xl border-2 border-gray-100 dark:border-white/5 bg-white dark:bg-gray-900">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3 block">
+                                  Enter value {currentQuestion.unit ? `(${currentQuestion.unit})` : ''}
+                                </label>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0"
+                                  value={answers[currentQuestion.id] ?? ''}
+                                  onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
+                                  placeholder={currentQuestion.placeholder || 'Enter value'}
+                                  className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-4 text-lg font-black text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                                />
+                              </div>
+                            ) : (currentQuestion.options || []).map((opt) => {
                                const selected = currentQuestion.type === 'multi-select' 
                                  ? (answers[currentQuestion.id] || []).includes(opt.value)
                                  : answers[currentQuestion.id] === opt.value;
@@ -265,7 +290,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate
                       {currentStep === questions.length - 1 ? (
                          <button
                             onClick={handleSubmit}
-                            disabled={submitting || !answers[currentQuestion?.id]}
+                            disabled={submitting || !hasCurrentAnswer}
                             className="px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 disabled:opacity-30 transition-all flex items-center gap-3"
                          >
                             {submitting ? 'Synthesizing...' : 'Generate Matrix'} <ChevronRight className="w-4 h-4" />
@@ -273,7 +298,7 @@ const QuestionnaireModal = ({ isOpen, onClose, diseaseId, profile, onScoreUpdate
                       ) : (
                          <button
                             onClick={() => setCurrentStep(s => s + 1)}
-                            disabled={!answers[currentQuestion?.id]}
+                            disabled={!hasCurrentAnswer}
                             className="px-10 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl disabled:opacity-30 transition-all flex items-center gap-3"
                          >
                             Next Vector <ChevronRight className="w-4 h-4" />

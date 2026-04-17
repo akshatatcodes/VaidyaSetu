@@ -146,7 +146,7 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
               {analysis.status !== 'normal' && analysis.mitigations && (
                 <div className="grid grid-cols-1 gap-6">
                   {/* Immediate Actions */}
-                  {analysis.mitigations.immediateActions && analysis.mitigations.immediateActions.length > 0 && (
+                  {Array.isArray(analysis.mitigations.immediateActions) && analysis.mitigations.immediateActions.length > 0 && (
                     <div className="bg-red-500/5 border border-red-500/10 p-8 rounded-[2rem]">
                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 mb-6 flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 shrink-0" />
@@ -165,7 +165,7 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
 
                   {/* Lifestyle & Dietary */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {analysis.mitigations.lifestyleChanges && analysis.mitigations.lifestyleChanges.length > 0 && (
+                    {Array.isArray(analysis.mitigations.lifestyleChanges) && analysis.mitigations.lifestyleChanges.length > 0 && (
                       <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-[2rem]">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
                           <Activity className="w-5 h-5" />
@@ -182,7 +182,7 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
                       </div>
                     )}
 
-                    {analysis.mitigations.dietaryAdvice && analysis.mitigations.dietaryAdvice.length > 0 && (
+                    {Array.isArray(analysis.mitigations.dietaryAdvice) && analysis.mitigations.dietaryAdvice.length > 0 && (
                       <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-[2rem]">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
                           <Utensils className="w-5 h-5" />
@@ -201,7 +201,7 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
                   </div>
 
                   {/* Risks & Precautions */}
-                  {analysis.mitigations.precautions && analysis.mitigations.precautions.length > 0 && (
+                  {Array.isArray(analysis.mitigations.precautions) && analysis.mitigations.precautions.length > 0 && (
                     <div className="bg-amber-500/5 border border-amber-500/10 p-6 rounded-[2rem]">
                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
                         <Shield className="w-5 h-5" />
@@ -218,16 +218,16 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
                   )}
 
                   {/* Healthcare Guidance */}
-                  <div className="bg-purple-900 dark:bg-purple-100 p-8 rounded-[2.5rem] text-white dark:text-purple-900 shadow-xl">
+                  <div className="bg-emerald-50 dark:bg-gray-800/70 p-8 rounded-[2.5rem] text-gray-900 dark:text-gray-100 shadow-xl border border-emerald-100 dark:border-gray-700">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-4 flex items-center gap-2">
                       <Eye className="w-5 h-5" />
-                      Professional Directives
+                      Professional Guidance
                     </h3>
                     <p className="text-lg font-black tracking-tight leading-tight">
                       {analysis.mitigations.whenToSeeDoctor}
                     </p>
                     {analysis.mitigations.monitoring && (
-                       <div className="mt-6 pt-6 border-t border-white/10 dark:border-black/10 flex items-center gap-3">
+                       <div className="mt-6 pt-6 border-t border-emerald-200 dark:border-gray-700 flex items-center gap-3">
                           <Clock className="w-5 h-5 opacity-60" />
                           <p className="text-sm font-bold opacity-80">{analysis.mitigations.monitoring}</p>
                        </div>

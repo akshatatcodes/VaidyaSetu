@@ -105,42 +105,55 @@ const Vitals = () => {
   const [labTrendsModal, setLabTrendsModal] = useState({ open: false, testName: null });
   const [labTrends, setLabTrends] = useState([]);
 
-  const fetchVitals = async () => {
+  const fetchVitals = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
-      const [latestRes, historyRes, reportRes, labRes, goalRes, currentAnalysisRes] = await Promise.all([
+      // Phase 1: load critical card/chart data first for fast first paint.
+      const [latestRes, historyRes, reportRes] = await Promise.all([
         axios.get(`${API_URL}/vitals/latest/${activeUser.id}`),
         axios.get(`${API_URL}/vitals/${activeUser.id}`),
-        axios.get(`${API_URL}/reports/${activeUser.id}`).catch(() => ({ data: { status: 'error' } })),
-        axios.get(`${API_URL}/lab-results/${activeUser.id}`),
-        axios.get(`${API_URL}/goals/${activeUser.id}`),
-        axios.get(`${API_URL}/vitals/latest-with-analysis/${activeUser.id}`).catch(() => ({ data: { status: 'error' } }))
+        axios.get(`${API_URL}/reports/${activeUser.id}`).catch(() => ({ data: { status: 'error' } }))
       ]);
-      
+
       if (latestRes.data.status === 'success') {
         const mapped = {};
-        latestRes.data.data.forEach(v => mapped[v.type] = v);
+        latestRes.data.data.forEach((v) => {
+          mapped[v.type] = v;
+        });
         setVitals(mapped);
+        setCurrentVitalsWithAnalysis(latestRes.data.data || []);
       }
-      if (historyRes.data.status === 'success') setHistory(historyRes.data.data);
+      if (historyRes.data.status === 'success') setHistory(historyRes.data.data || []);
       if (reportRes.data.status === 'success') setReport(reportRes.data.data);
-      if (labRes.data.status === 'success') setLabResults(labRes.data.data);
-      if (goalRes.data.status === 'success') setGoals(goalRes.data.data);
-      
-      // Set current vitals with analysis, fallback to latest vitals if analysis fails
-      if (currentAnalysisRes.data.status === 'success' && currentAnalysisRes.data.data.length > 0) {
-        setCurrentVitalsWithAnalysis(currentAnalysisRes.data.data);
-      } else if (latestRes.data.status === 'success' && latestRes.data.data.length > 0) {
-        // Fallback: use latest vitals without analysis
-        console.log('[Vitals] Using fallback - latest vitals without analysis');
-        setCurrentVitalsWithAnalysis(latestRes.data.data);
-      } else {
-        setCurrentVitalsWithAnalysis([]);
-      }
 
+      if (!silent) setLoading(false);
+
+      // Phase 2: non-critical data in background.
+      const [labRes, goalRes, currentAnalysisRes] = await Promise.allSettled([
+        axios.get(`${API_URL}/lab-results/${activeUser.id}`),
+        axios.get(`${API_URL}/goals/${activeUser.id}`),
+        axios.get(`${API_URL}/vitals/latest-with-analysis/${activeUser.id}`)
+      ]);
+
+      if (labRes.status === 'fulfilled' && labRes.value?.data?.status === 'success') {
+        setLabResults(labRes.value.data.data || []);
+      }
+      if (goalRes.status === 'fulfilled' && goalRes.value?.data?.status === 'success') {
+        setGoals(goalRes.value.data.data || []);
+      }
+      if (
+        currentAnalysisRes.status === 'fulfilled' &&
+        currentAnalysisRes.value?.data?.status === 'success' &&
+        Array.isArray(currentAnalysisRes.value.data.data) &&
+        currentAnalysisRes.value.data.data.length > 0
+      ) {
+        setCurrentVitalsWithAnalysis(currentAnalysisRes.value.data.data);
+      }
     } catch (err) {
-      console.error("Vitals fetch failed", err);
+      console.error('Vitals fetch failed', err);
+      if (!silent) setLoading(false);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -211,7 +224,7 @@ const Vitals = () => {
       console.log("[Vitals] Save response:", res.data);
 
       if (res.data.status === 'success') {
-        fetchVitals();
+        fetchVitals({ silent: true });
         setModal({ open: false, type: '' });
         window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
       }
@@ -227,7 +240,7 @@ const Vitals = () => {
     if (!window.confirm("Delete this reading?")) return;
     try {
         await axios.delete(`${API_URL}/vitals/${id}`);
-        fetchVitals();
+        fetchVitals({ silent: true });
     } catch (err) {
         console.error("Delete failed", err);
     }
@@ -308,7 +321,7 @@ const Vitals = () => {
         });
         if (res.data.status === 'success') {
           alert("Successfully synced health data from Google Fit!");
-          fetchVitals();
+          fetchVitals({ silent: true });
           window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
         }
       } catch (err) {
