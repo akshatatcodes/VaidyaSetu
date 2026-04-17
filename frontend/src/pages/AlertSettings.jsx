@@ -319,15 +319,15 @@ const AlertSettings = () => {
 
         {/* Biometric Thresholds (Sidebar Card) */}
         <div className="lg:col-span-4 space-y-8">
-           <div className="bg-slate-900 dark:bg-black border border-white/10 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden group">
+           <div className="bg-white dark:bg-black border border-emerald-100 dark:border-white/10 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none group-hover:scale-150 transition-transform duration-1000" />
               
               <div className="flex items-center gap-5 mb-10 relative z-10">
-                 <div className="p-4 bg-white/10 text-white rounded-2xl">
+                 <div className="p-4 bg-emerald-500/10 dark:bg-white/10 text-emerald-700 dark:text-white rounded-2xl">
                     <SlidersHorizontal className="w-6 h-6" />
                  </div>
                  <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">Biometric Gates</h3>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Biometric Gates</h3>
                     <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mt-1">Clinical threshold Logic</p>
                  </div>
               </div>
@@ -401,12 +401,12 @@ const AlertSettings = () => {
                  />
               </div>
 
-              <div className="mt-10 p-6 bg-white/5 rounded-3xl border border-white/5 space-y-3">
+              <div className="mt-10 p-6 bg-emerald-50/70 dark:bg-white/5 rounded-3xl border border-emerald-100 dark:border-white/5 space-y-3">
                  <div className="flex items-center gap-3">
                     <ShieldAlert className="w-4 h-4 text-emerald-500" />
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Active Guard</span>
+                    <span className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Active Guard</span>
                  </div>
-                 <p className="text-[9px] text-gray-400 font-medium leading-relaxed italic">Changes to biometric gates will trigger immediate recalibration of real-time monitoring streams.</p>
+                 <p className="text-[9px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed italic">Changes to biometric gates will trigger immediate recalibration of real-time monitoring streams.</p>
               </div>
            </div>
 
@@ -472,7 +472,7 @@ const ThresholdInput = ({ label, value, onChange, unit, icon, max }) => (
    <div className="space-y-3">
       <div className="flex items-center gap-3">
          <div className="text-gray-400">{icon}</div>
-         <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{label}</label>
+         <label className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-400 tracking-widest">{label}</label>
       </div>
       <div className="relative group">
          <input 
@@ -480,7 +480,7 @@ const ThresholdInput = ({ label, value, onChange, unit, icon, max }) => (
             value={value} 
             max={max}
             onChange={(e) => onChange(Number(e.target.value))} 
-            className="w-full bg-white/5 border border-white/5 group-hover:border-emerald-500/30 rounded-2xl p-5 text-lg font-black text-white outline-none transition-all pr-16" 
+            className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 group-hover:border-emerald-500/30 rounded-2xl p-5 text-lg font-black text-gray-900 dark:text-white outline-none transition-all pr-16" 
          />
          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-500 uppercase tracking-widest">{unit}</span>
       </div>
@@ -488,3 +488,4 @@ const ThresholdInput = ({ label, value, onChange, unit, icon, max }) => (
 );
 
 export default AlertSettings;
+

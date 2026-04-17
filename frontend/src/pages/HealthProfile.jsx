@@ -472,7 +472,7 @@ const HealthProfile = () => {
                 </p>
               </div>
               <Link to="/"
-                className="mt-6 flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur border border-white/20 text-white font-bold py-3 rounded-2xl transition-all active:scale-95 text-sm">
+                className="mt-6 flex items-center justify-center gap-2 bg-white/85 hover:bg-white backdrop-blur border border-white/30 text-gray-900 font-bold py-3 rounded-2xl transition-all active:scale-95 text-sm">
                 {t('profile.action.go_dashboard', { defaultValue: 'Dashboard' })} <ArrowRight size={16} />
               </Link>
             </div>
@@ -500,3 +500,4 @@ const HealthProfile = () => {
 };
 
 export default HealthProfile;
+

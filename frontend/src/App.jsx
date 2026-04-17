@@ -109,8 +109,9 @@ const AppLayout = () => {
       <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full dark:bg-blue-500/15 blur-[140px] pointer-events-none z-0" style={{background: theme === 'dark' ? '' : 'radial-gradient(ellipse, rgba(16,185,129,0.12) 0%, transparent 70%)'}} />
       
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 md:ml-72 h-full md:h-screen overflow-y-auto scrollbar-hide">
-        <main className="flex-1 p-4 sm:p-6 md:p-12 w-full vs-main-content bg-transparent dark:bg-transparent pb-12 text-slate-900 dark:text-white">
+      {/* md:ml-72 offsets fixed sidebar (w-72); min-w-0 prevents flex overflow under sidebar */}
+      <div className="flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 md:ml-72 h-full md:h-screen overflow-y-auto overflow-x-hidden scrollbar-hide">
+        <main className="flex-1 p-4 pt-20 sm:p-6 md:pt-6 md:p-12 w-full max-w-[100vw] min-w-0 vs-main-content bg-transparent dark:bg-transparent pb-24 md:pb-12 text-slate-900 dark:text-white">
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Dashboard />} />

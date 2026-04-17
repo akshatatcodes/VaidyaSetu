@@ -213,6 +213,7 @@ const Vitals = () => {
       if (res.data.status === 'success') {
         fetchVitals();
         setModal({ open: false, type: '' });
+        window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
       }
     } catch (err) {
       console.error("Vital save failed", err);
@@ -308,6 +309,7 @@ const Vitals = () => {
         if (res.data.status === 'success') {
           alert("Successfully synced health data from Google Fit!");
           fetchVitals();
+          window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
         }
       } catch (err) {
         console.error("Fitness sync failed:", err);
@@ -1060,43 +1062,95 @@ const Vitals = () => {
   );
 };
 
-const TrendAnalysisCard = ({ title, subtitle, icon: Icon, color, data, Chart, extra, labels = {} }) => (
-  <div className={`bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[3rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-8 group transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_15px_40px_rgba(16,185,129,0.15)] hover:border-${color}-500/30 relative overflow-hidden`}>
-    <div className={`absolute top-[-20%] right-[-10%] w-64 h-64 bg-${color}-500/5 dark:bg-${color}-500/5 blur-[80px] rounded-full group-hover:bg-${color}-500/10 transition-colors duration-700 pointer-events-none`} />
+function normalizeChartRows(data) {
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((d) => {
+      let value = d.value;
+      if (value && typeof value === 'object' && !Array.isArray(value) && 'systolic' in value) {
+        const systolic = Number(value.systolic);
+        const diastolic = Number(value.diastolic);
+        if (!Number.isFinite(systolic) || !Number.isFinite(diastolic)) return null;
+        value = { systolic, diastolic };
+      } else {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        if (!Number.isFinite(parsed)) return null;
+        value = parsed;
+      }
+      return { ...d, value, timestamp: d.timestamp || d.createdAt || new Date().toISOString() };
+    })
+    .filter(Boolean);
+}
+
+function summarizeNumericSeries(rows) {
+  if (!rows?.length) return { avg: '--', max: '--', n: 0 };
+  const vals = rows
+    .map((b) => {
+      const v = b.value;
+      if (v && typeof v === 'object' && 'systolic' in v) return Number(v.systolic);
+      if (typeof v === 'number') return v;
+      return Number(v);
+    })
+    .filter((n) => Number.isFinite(n));
+  if (!vals.length) return { avg: '--', max: '--', n: rows.length };
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+  return { avg: avg.toFixed(1), max: String(Math.max(...vals)), n: rows.length };
+}
+
+const TrendAnalysisCard = ({ title, subtitle, icon: Icon, color, data, Chart, extra, labels = {} }) => {
+  const rows = normalizeChartRows(data);
+  const summary = summarizeNumericSeries(rows);
+  const colorMap = {
+    rose: 'text-rose-600 dark:text-rose-400',
+    amber: 'text-amber-600 dark:text-amber-400',
+    blue: 'text-blue-600 dark:text-blue-400',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    indigo: 'text-indigo-600 dark:text-indigo-400'
+  };
+  const iconTint = colorMap[color] || 'text-emerald-600 dark:text-emerald-400';
+  return (
+  <div className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[3rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-8 group transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_15px_40px_rgba(16,185,129,0.15)] relative overflow-hidden min-w-0">
+    <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-emerald-500/5 dark:bg-emerald-500/5 blur-[80px] rounded-full group-hover:bg-emerald-500/10 transition-colors duration-700 pointer-events-none" />
     <div className="flex justify-between items-start relative z-10">
-      <div className="flex items-center gap-4">
-        <div className={`p-4 bg-${color}-500/10 rounded-3xl`}>
-          <Icon className={`w-8 h-8 text-${color}-600 dark:text-${color}-500`} />
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="p-4 bg-emerald-500/10 rounded-3xl shrink-0">
+          <Icon className={`w-8 h-8 ${iconTint}`} />
         </div>
-        <div>
+        <div className="min-w-0">
           <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{title}</h3>
           <p className="text-[10px] text-slate-600 dark:text-gray-300 font-bold uppercase tracking-widest">{subtitle}</p>
         </div>
       </div>
-      {extra && <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/10 animate-pulse">{extra}</div>}
+      {extra && <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/10 animate-pulse shrink-0">{extra}</div>}
     </div>
-    
-    <Chart data={data} />
+
+    <div className="w-full min-h-[300px] min-w-0 relative z-10">
+      {rows.length === 0 ? (
+        <div className="h-[300px] flex flex-col items-center justify-center text-center px-4 rounded-2xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
+          <p className="text-sm font-bold text-gray-600 dark:text-gray-300">No data points yet</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 max-w-xs">Log this vital a few times to unlock the trend chart.</p>
+        </div>
+      ) : (
+        <Chart data={rows} />
+      )}
+    </div>
 
     <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-50 dark:border-gray-900">
        <div className="text-center">
           <div className="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest mb-1">{labels.average || 'Average'}</div>
-          <div className="text-sm font-black text-gray-900 dark:text-white">
-            {data.length ? (data.reduce((a, b) => a + (typeof b.value === 'object' ? b.value.systolic : b.value), 0) / data.length).toFixed(1) : '--'}
-          </div>
+          <div className="text-sm font-black text-gray-900 dark:text-white">{summary.avg}</div>
        </div>
        <div className="text-center">
           <div className="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest mb-1">{labels.max || 'Max'}</div>
-          <div className="text-sm font-black text-gray-900 dark:text-white">
-            {data.length ? Math.max(...data.map(b => typeof b.value === 'object' ? b.value.systolic : b.value)) : '--'}
-          </div>
+          <div className="text-sm font-black text-gray-900 dark:text-white">{summary.max}</div>
        </div>
        <div className="text-center">
           <div className="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-black tracking-widest mb-1">{labels.readings || 'Readings'}</div>
-          <div className="text-sm font-black text-emerald-500">{data.length}</div>
+          <div className="text-sm font-black text-emerald-500">{summary.n}</div>
        </div>
     </div>
   </div>
-);
+  );
+};
 
 export default Vitals;

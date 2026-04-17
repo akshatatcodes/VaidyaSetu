@@ -535,12 +535,12 @@ const Prescriptions = () => {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={scanning}
-              className="w-full md:w-auto px-6 py-3 bg-gray-900/90 dark:bg-gray-800/80 backdrop-blur-md border border-gray-800 hover:border-emerald-500/50 hover:bg-black dark:hover:bg-gray-700 text-white rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-3 group shadow-xl"
+              className="w-full md:w-auto px-6 py-3 bg-white dark:bg-gray-800/90 backdrop-blur-md border-2 border-gray-300 dark:border-gray-600 hover:border-emerald-500/60 hover:bg-emerald-50/90 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-3 group shadow-xl"
             >
               {scanning ? (
-                <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
               ) : (
-                <ScanSearch className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                <ScanSearch className="w-5 h-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
               )}
               {scanning ? t('prescriptions.scanning') : t('prescriptions.smart_scan')}
             </button>

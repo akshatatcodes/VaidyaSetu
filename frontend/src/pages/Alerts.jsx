@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -23,9 +23,12 @@ const Alerts = () => {
   const [protocolError, setProtocolError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('newest'); // newest, oldest
+  const protocolRef = useRef(null);
 
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async (silent = false) => {
+    if (!user?.id) return;
     try {
+      if (!silent) setLoading(true);
       const res = await axios.get(`${API_URL}/alerts/${user.id}`);
       if (res.data.status === 'success') {
         setAlerts(res.data.data);
@@ -33,13 +36,29 @@ const Alerts = () => {
     } catch (err) {
       console.error("Fetch alerts failed", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) fetchAlerts();
-  }, [user]);
+    if (user) fetchAlerts(false);
+  }, [user, fetchAlerts]);
+
+  useEffect(() => {
+    if (!user) return;
+    const id = setInterval(() => fetchAlerts(true), 12000);
+    const onRefresh = () => fetchAlerts(true);
+    window.addEventListener('vaidya:alerts-refresh', onRefresh);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') fetchAlerts(true);
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('vaidya:alerts-refresh', onRefresh);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [user, fetchAlerts]);
 
   const markRead = async (id) => {
     try {
@@ -53,9 +72,12 @@ const Alerts = () => {
   const dismissAlert = async (id) => {
     try {
       await axios.delete(`${API_URL}/alerts/${id}`);
-      setAlerts(alerts.filter(a => a._id !== id));
+      setAlerts((prev) => prev.filter((a) => a._id !== id));
+      setSelectedAlert((cur) => (cur && cur._id === id ? null : cur));
+      window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
     } catch (err) {
-      console.error("Dismiss failed", err);
+      console.error('Dismiss failed', err);
+      alert('Could not archive this alert. Please try again.');
     }
   };
 
@@ -63,6 +85,7 @@ const Alerts = () => {
     try {
       await axios.patch(`${API_URL}/alerts/${user.id}/read-all`);
       setAlerts(alerts.map(a => ({ ...a, status: 'read' })));
+      window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
     } catch (err) {
       console.error("Mark all read failed", err);
     }
@@ -263,7 +286,7 @@ const Alerts = () => {
               onClick={() => setSortOrder('oldest')}
               className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest' ? 'bg-white dark:bg-gray-800 text-emerald-500' : 'text-gray-600 dark:text-gray-300'}`}
             >
-               Archival
+               Oldest first
             </button>
          </div>
          <button 
@@ -362,8 +385,8 @@ const Alerts = () => {
 
       {/* Detail Modal (Step 56) */}
       {selectedAlert && (
-         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[3rem] w-full max-w-2xl shadow-3xl overflow-hidden animate-in zoom-in slide-in-from-bottom-12 duration-500">
+         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 pt-20 md:pt-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 md:pl-72">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[3rem] w-full max-w-2xl max-h-[90vh] shadow-3xl overflow-y-auto animate-in zoom-in slide-in-from-bottom-12 duration-500">
                <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
                   <div className="flex items-center gap-4">
                      <div className="p-3 bg-emerald-500/10 rounded-2xl">
@@ -395,6 +418,7 @@ const Alerts = () => {
                      </p>
                   </div>
 
+                  <div ref={protocolRef} className="space-y-6 scroll-mt-28">
                   <div className="p-6 bg-gray-50 dark:bg-gray-950/50 border border-gray-100 dark:border-gray-800 rounded-3xl space-y-4">
                      <h5 className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-[0.3em]">AI Protocol Recommendations</h5>
                      <ul className="space-y-3">
@@ -481,6 +505,7 @@ const Alerts = () => {
                       )}
                     </div>
                   )}
+                  </div>
                   <div className="flex gap-4 items-center">
                       <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-widest">Relevance Feedback</span>
                       <button className="p-2 bg-gray-50 dark:bg-gray-950 rounded-lg hover:text-emerald-500 transition-colors"><ThumbsUp className="w-4 h-4" /></button>
@@ -488,15 +513,26 @@ const Alerts = () => {
                   </div>
                </div>
 
-               <div className="p-10 bg-gray-50 dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 flex gap-4">
+               <div className="p-10 bg-gray-50 dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row flex-wrap gap-3">
                   <button 
+                    type="button"
                     onClick={() => {
-                        navigate(getProtocolRoute(selectedAlert));
-                        setSelectedAlert(null);
+                      navigate(getProtocolRoute(selectedAlert));
+                      setSelectedAlert(null);
                     }}
-                    className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl uppercase tracking-widest text-xs active:scale-95"
+                    className="flex-1 min-w-[140px] py-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition-all shadow-xl uppercase tracking-widest text-xs active:scale-95"
                   >
-                    {selectedAlert.actionText || 'View Full Protocol'}
+                    {selectedAlert.actionText || 'View details'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate(getProtocolRoute(selectedAlert));
+                      setSelectedAlert(null);
+                    }}
+                    className="flex-1 min-w-[140px] py-5 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all uppercase tracking-widest text-xs"
+                  >
+                    View details
                   </button>
                   <button
                     type="button"
@@ -510,7 +546,11 @@ const Alerts = () => {
                     Contact Doctor
                   </button>
                   <button 
-                    onClick={() => dismissAlert(selectedAlert._id)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      dismissAlert(selectedAlert._id);
+                    }}
                     className="px-10 py-5 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-black rounded-2xl border border-gray-100 dark:border-gray-700 hover:text-red-500 transition-all uppercase tracking-widest text-xs"
                   >
                     Archive
@@ -525,3 +565,5 @@ const Alerts = () => {
 };
 
 export default Alerts;
+
+

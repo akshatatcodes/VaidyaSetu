@@ -31,8 +31,8 @@ const CustomTooltip = ({ active, payload, label, unit }) => {
 export const BloodPressureChart = ({ data }) => {
   const { theme } = useTheme();
   return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[300px] w-full min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
           <XAxis 
@@ -74,8 +74,8 @@ export const BloodPressureChart = ({ data }) => {
 export const GlucoseChart = ({ data, hba1c }) => {
   const { theme } = useTheme();
   return (
-    <div className="h-[300px] w-full relative">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[300px] w-full min-w-0 relative">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <AreaChart data={data}>
           <defs>
             <linearGradient id="colorGlucose" x1="0" y1="0" x2="0" y2="1">
@@ -106,8 +106,8 @@ export const GlucoseChart = ({ data, hba1c }) => {
 export const WeightBMIChart = ({ data }) => {
   const { theme } = useTheme();
   return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[300px] w-full min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
           <XAxis dataKey="timestamp" hide />
@@ -125,8 +125,8 @@ export const WeightBMIChart = ({ data }) => {
 export const StepsChart = ({ data }) => {
   const { theme } = useTheme();
   return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[300px] w-full min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
           <XAxis dataKey="timestamp" hide />
@@ -156,8 +156,8 @@ export const StepsChart = ({ data }) => {
 export const SleepPatternChart = ({ data }) => {
   const { theme } = useTheme();
   return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[300px] w-full min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1f2937' : '#f3f4f6'} vertical={false} />
           <XAxis dataKey="timestamp" hide />

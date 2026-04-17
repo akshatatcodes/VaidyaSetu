@@ -155,6 +155,7 @@ const Dashboard = () => {
         });
         if (res.data.status === 'success') {
           await fetchData();
+          window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
           setToast({ type: 'success', message: 'Synchronization successful! Bio-matrix updated.' });
         }
       } catch (err) {

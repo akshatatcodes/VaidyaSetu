@@ -27,8 +27,13 @@ const Sidebar = () => {
         }
       };
       fetchCount();
-      const interval = setInterval(fetchCount, 60000);
-      return () => clearInterval(interval);
+      const interval = setInterval(fetchCount, 30000);
+      const onRefresh = () => fetchCount();
+      window.addEventListener('vaidya:alerts-refresh', onRefresh);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('vaidya:alerts-refresh', onRefresh);
+      };
     }
   }, [user]);
 
