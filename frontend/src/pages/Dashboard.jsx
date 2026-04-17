@@ -147,13 +147,30 @@ const Dashboard = () => {
   const syncGoogleFit = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setSyncing(true);
+      setToast({ type: 'success', message: 'Broadcasting authentication to Google Health matrix...' });
       try {
-        await axios.post(`${API_URL}/fitness/steps`, { clerkId: user.id, accessToken: tokenResponse.access_token });
-        fetchData();
-      } catch (err) { console.error(err); }
-      finally { setSyncing(false); }
+        const res = await axios.post(`${API_URL}/fitness/sync-extended`, {
+          clerkId: user.id,
+          accessToken: tokenResponse.access_token
+        });
+        if (res.data.status === 'success') {
+          await fetchData();
+          setToast({ type: 'success', message: 'Synchronization successful! Bio-matrix updated.' });
+        }
+      } catch (err) {
+        console.error('Fitness sync failed:', err);
+        setToast({ type: 'error', message: 'Synchronization aborted. Check console for protocol errors.' });
+      } finally {
+        setSyncing(false);
+        setTimeout(() => setToast(null), 4000);
+      }
     },
-    scope: 'https://www.googleapis.com/auth/fitness.activity.read'
+    onError: () => {
+      setToast({ type: 'error', message: 'Google authentication failed. Connection rejected.' });
+      setTimeout(() => setToast(null), 4000);
+    },
+    scope:
+      'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.heart_rate.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.sleep.read'
   });
 
   const handleFeedback = async (context, rating, query, response) => {

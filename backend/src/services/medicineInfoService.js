@@ -1,10 +1,12 @@
 const { Groq } = require('groq-sdk');
 const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { getDrugComposition } = require('../utils/rxnav');
 const { getDrugWarnings } = require('../utils/openfda');
 
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
-const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
+const geminiGenai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
+const geminiLegacy = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
 function isUsefulComposition(value) {
   const v = String(value || '').toLowerCase();
@@ -218,10 +220,10 @@ Return output STRICTLY as this JSON structure:
       }
     }
 
-    // Gemini fallback when Groq is unavailable or failed.
-    if (!responseContent && gemini) {
+    // Gemini (@google/genai) when Groq is unavailable or failed.
+    if (!responseContent && geminiGenai) {
       try {
-        const response = await gemini.models.generateContent({
+        const response = await geminiGenai.models.generateContent({
           model: 'gemini-2.0-flash',
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
@@ -229,9 +231,27 @@ Return output STRICTLY as this JSON structure:
             responseMimeType: 'application/json'
           }
         });
-        responseContent = response?.text || null;
+        const raw = response && (typeof response.text === 'function' ? response.text() : response.text);
+        responseContent = raw || null;
       } catch (geminiError) {
-        console.warn('[MedicineInfo] Gemini fallback failed:', geminiError.message);
+        console.warn('[MedicineInfo] Gemini (@google/genai) failed:', geminiError.message);
+      }
+    }
+
+    // Tertiary: legacy @google/generative-ai SDK (same API key).
+    if (!responseContent && geminiLegacy) {
+      try {
+        const model = geminiLegacy.getGenerativeModel({
+          model: 'gemini-2.0-flash',
+          generationConfig: {
+            temperature: 0.3,
+            responseMimeType: 'application/json'
+          }
+        });
+        const result = await model.generateContent(prompt);
+        responseContent = result.response.text() || null;
+      } catch (legacyErr) {
+        console.warn('[MedicineInfo] Gemini (generative-ai) failed:', legacyErr.message);
       }
     }
 
@@ -270,13 +290,19 @@ Return output STRICTLY as this JSON structure:
 function generateFallbackBreakdown(medicines, medicineDataArray = []) {
   const takeAsDirected = 'Take as directed by physician';
   const noWarnings = 'No major warnings found.';
-  const fallbackAlternatives = (medList) =>
-    (medList || []).slice(0, 3).map((m) => ({
-      originalMedicine: m,
-      alternative: `Generic equivalent for ${m}`,
-      reason: 'AI service is unavailable right now. A pharmacist can suggest the best generic equivalent based on the exact salt/strength.',
-      type: 'Generic Equivalent'
-    }));
+  const fallbackAlternatives = (medList, dataArr = []) =>
+    (medList || []).slice(0, 3).map((m, i) => {
+      const gen = dataArr[i]?.warningsData?.genericName || dataArr[i]?.compositionData?.composition;
+      const salt = gen && String(gen).trim() && !/information not available/i.test(String(gen)) ? String(gen).trim() : null;
+      return {
+        originalMedicine: m,
+        alternative: salt ? `Other brands with ${salt}` : `Generic equivalent for ${m}`,
+        reason: salt
+          ? `Ask your pharmacist for Indian generic options containing ${salt} at the strength your doctor prescribed.`
+          : 'Confirm the exact salt and strength with your doctor or pharmacist, then ask for the best-priced generic at a licensed pharmacy.',
+        type: 'Generic Equivalent'
+      };
+    });
   
   // If we have real API data, use it
   if (medicineDataArray.length > 0) {
@@ -310,7 +336,7 @@ function generateFallbackBreakdown(medicines, medicineDataArray = []) {
         overallRisk: 'CAUTION',
         summary: 'Please consult a healthcare provider for detailed analysis',
         interactions: [],
-        alternatives: fallbackAlternatives(medicines)
+        alternatives: fallbackAlternatives(medicines, medicineDataArray)
       },
       disclaimer: 'This tool is for informational purposes only. Do not use this as a substitute for professional medical advice. Always consult a doctor or pharmacist.'
     };
@@ -332,7 +358,7 @@ function generateFallbackBreakdown(medicines, medicineDataArray = []) {
       overallRisk: 'CAUTION',
       summary: 'Please consult a healthcare provider for detailed analysis',
       interactions: [],
-      alternatives: fallbackAlternatives(medicines)
+      alternatives: fallbackAlternatives(medicines, medicineDataArray)
     },
     disclaimer: 'This tool is for informational purposes only. Do not use this as a substitute for professional medical advice. Always consult a doctor or pharmacist.'
   };

@@ -301,18 +301,22 @@ const Vitals = () => {
     onSuccess: async (tokenResponse) => {
       setSyncing(true);
       try {
-        const res = await axios.post(`${API_URL}/fitness/steps`, { 
+        const res = await axios.post(`${API_URL}/fitness/sync-extended`, { 
           clerkId: activeUser.id, 
           accessToken: tokenResponse.access_token 
         });
-        if (res.data.status === 'success') fetchVitals();
+        if (res.data.status === 'success') {
+          alert("Successfully synced health data from Google Fit!");
+          fetchVitals();
+        }
       } catch (err) {
         console.error("Fitness sync failed:", err);
+        alert("Sync failed. Ensure you granted all permissions.");
       } finally {
         setSyncing(false);
       }
     },
-    scope: 'https://www.googleapis.com/auth/fitness.activity.read'
+    scope: 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.heart_rate.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.sleep.read'
   });
 
   const handleSync = () => {

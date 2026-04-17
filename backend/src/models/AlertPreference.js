@@ -19,7 +19,8 @@ const AlertPreferenceSchema = new mongoose.Schema({
         'profile_incomplete', 
         'goal_achieved', 
         'new_feature', 
-        'health_tip'
+        'health_tip',
+        'predictive_risk_high'
       ]
     },
     pushEnabled: { type: Boolean, default: true },

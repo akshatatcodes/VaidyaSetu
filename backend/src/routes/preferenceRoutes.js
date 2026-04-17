@@ -62,9 +62,15 @@ router.post('/:clerkId/reset', async (req, res) => {
       { 
         $set: { 
           preferences: [
-            { alertType: 'interaction_detected', pushEnabled: true, emailEnabled: true, inAppEnabled: true },
             { alertType: 'vital_out_of_range', pushEnabled: true, emailEnabled: true, inAppEnabled: true },
-            { alertType: 'medication_reminder', pushEnabled: true, emailEnabled: true, inAppEnabled: true }
+            { alertType: 'predictive_risk_high', pushEnabled: true, emailEnabled: true, inAppEnabled: true },
+            { alertType: 'medication_reminder', pushEnabled: true, emailEnabled: true, inAppEnabled: true },
+            { alertType: 'interaction_detected', pushEnabled: true, emailEnabled: true, inAppEnabled: true },
+            { alertType: 'lab_test_due', pushEnabled: true, emailEnabled: false, inAppEnabled: true },
+            { alertType: 'profile_incomplete', pushEnabled: true, emailEnabled: false, inAppEnabled: true },
+            { alertType: 'goal_achieved', pushEnabled: true, emailEnabled: false, inAppEnabled: true },
+            { alertType: 'new_feature', pushEnabled: false, emailEnabled: false, inAppEnabled: true },
+            { alertType: 'health_tip', pushEnabled: false, emailEnabled: false, inAppEnabled: true }
           ],
           quietHours: { enabled: false, start: '22:00', end: '07:00' },
           customThresholds: {
