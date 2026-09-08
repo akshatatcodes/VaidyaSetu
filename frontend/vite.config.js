@@ -9,6 +9,9 @@ export default defineConfig({
   ],
   // Prevent duplicate module instances that can break React Three Fiber context.
   resolve: {
+    alias: {
+      '@clerk/clerk-react': new URL('./src/auth/clerkAdapter.jsx', import.meta.url).pathname
+    },
     dedupe: [
       'react',
       'react-dom',

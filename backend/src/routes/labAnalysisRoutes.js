@@ -4,7 +4,8 @@ const LabResult = require('../models/LabResult');
 const UserProfile = require('../models/UserProfile');
 const Groq = require('groq-sdk');
 
-const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_');
+const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 /**
  * POST /api/lab-results/analyze

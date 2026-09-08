@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { SignedIn, SignedOut, SignIn, SignUp, useUser } from '@clerk/clerk-react';
-import { dark } from '@clerk/themes';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { Loader2, Sun, Moon } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 // Context
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -32,71 +31,98 @@ import Vitals from './pages/Vitals';
 import MedicationSchedule from './pages/MedicationSchedule';
 import AlertSettings from './pages/AlertSettings';
 import MyMedicines from './pages/MyMedicines';
+import KioskIntake from './pages/KioskIntake';
+import DoctorDashboard from './pages/DoctorDashboard';
+import AuthGateway from './pages/AuthGateway';
+import AccessDenied from './pages/AccessDenied';
 
 import { API_URL } from './config/api';
 
-// Guard: redirect unauthenticated users to /sign-in
-const ProtectedRoute = ({ children }) => {
-  return (
-    <>
-      <SignedIn>{children}</SignedIn>
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  );
-};
+// Guard: Strict Authentication and Role Authorization
+const ProtectedRoute = ({ children, allowedRole }) => {
+  const { isAuthenticated, userRole, authLoading } = useAuth();
 
-// Main app shell
-const AppLayout = () => {
-  const { user, isLoaded } = useUser();
-  const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    if (!isLoaded || !user) {
-        if (isLoaded && !user) setChecking(false);
-        return;
-    }
-
-    // Step 63: Register Push Service Worker Foundation
-    if ('serviceWorker' in navigator && import.meta.env.PROD) {
-       window.addEventListener('load', () => {
-         navigator.serviceWorker.register('/sw.js').then(reg => {
-           console.log('[SW] Service Worker Registered:', reg.scope);
-         }).catch(err => console.error('[SW] Registration failed:', err));
-       });
-    }
-
-    axios.get(`${API_URL}/profile/${user.id}`)
-      .then((res) => {
-        if (res.data?.status === 'success') {
-          const profile = res.data.data;
-          const onboardingDone = Boolean(profile?.onboardingCompleted ?? profile?.onboardingComplete);
-          if (!onboardingDone) {
-            navigate('/onboarding', { replace: true });
-          }
-        }
-      })
-      .catch((err) => {
-        if (err.response?.status === 404) {
-          navigate('/onboarding', { replace: true });
-        }
-      })
-      .finally(() => setChecking(false));
-  }, [isLoaded, user, navigate]);
-
-  if (checking || !isLoaded) {
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-[#030712] transition-colors duration-500">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
-          <p className="text-gray-400 text-sm">Validating session...</p>
+          <p className="text-gray-400 text-sm font-medium">Verifying VaidyaSetu security clearance...</p>
         </div>
       </div>
     );
   }
+
+  // By default, unauthenticated users MUST be redirected to /login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Role authorization guard
+  if (allowedRole && userRole !== allowedRole) {
+    if (allowedRole === 'doctor') {
+      return <AccessDenied requiredRole="doctor" />;
+    }
+    if (allowedRole === 'patient') {
+      return <Navigate to="/doctor" replace />;
+    }
+  }
+
+  return children;
+};
+
+// Sub-route guard for doctor exclusive pages
+const DoctorRoute = ({ children }) => {
+  const { userRole } = useAuth();
+  if (userRole !== 'doctor') {
+    return <AccessDenied requiredRole="doctor" />;
+  }
+  return children;
+};
+
+// Sub-route guard for patient exclusive pages
+const PatientRoute = ({ children }) => {
+  const { userRole } = useAuth();
+  if (userRole === 'doctor') {
+    return <Navigate to="/doctor" replace />;
+  }
+  return children;
+};
+
+// Main app shell
+const AppLayout = () => {
+  const { theme } = useTheme();
+  const { currentUser, userRole } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Step 63: Register Push Service Worker Foundation
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          console.log('[SW] Service Worker Registered:', reg.scope);
+        }).catch(err => console.error('[SW] Registration failed:', err));
+      });
+    }
+
+    // Only run patient onboarding check for patient accounts
+    const patientId = currentUser?._id || currentUser?.id;
+    if (userRole === 'patient' && patientId && typeof patientId === 'string' && !patientId.startsWith('demo-')) {
+      axios.get(`${API_URL}/profile/${patientId}`)
+        .then((res) => {
+          if (res.data?.status === 'success') {
+            const profile = res.data.data;
+            const onboardingDone = Boolean(profile?.onboardingCompleted ?? profile?.onboardingComplete);
+            if (!onboardingDone) {
+              navigate('/onboarding', { replace: true });
+            }
+          }
+        })
+        .catch(() => {
+          // Graceful fallback
+        });
+    }
+  }, [currentUser, userRole, navigate]);
 
   return (
     <div 
@@ -115,19 +141,28 @@ const AppLayout = () => {
         <main className="flex-1 p-4 pt-20 sm:p-6 md:pt-6 md:p-12 w-full max-w-[100vw] min-w-0 vs-main-content bg-transparent dark:bg-transparent pb-24 md:pb-12 text-slate-900 dark:text-white">
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              {/* Patient Only Route: Root lands on Health Sanctuary for patients */}
+              <Route path="/" element={<PatientRoute><Dashboard /></PatientRoute>} />
+              
+              {/* Doctor Only Route: Clinical Cockpit with AI Pre-Consultation Evidence */}
+              <Route path="/doctor" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
+
+              {/* Patient Dedicated Routes */}
+              <Route path="/medications" element={<PatientRoute><MedicationSchedule /></PatientRoute>} />
+              <Route path="/medicines" element={<PatientRoute><MyMedicines /></PatientRoute>} />
+
+              {/* Shared Role Clinical Routes */}
+              <Route path="/kiosk" element={<KioskIntake />} />
               <Route path="/profile" element={<HealthProfile />} />
               <Route path="/profile/edit" element={<ProfileEditor />} />
               <Route path="/history" element={<ChangeHistory />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
               <Route path="/vitals" element={<Vitals />} />
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/alerts/settings" element={<AlertSettings />} />
-              <Route path="/medications" element={<MedicationSchedule />} />
-              <Route path="/medicines" element={<MyMedicines />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
             </Routes>
           </ErrorBoundary>
           
@@ -142,55 +177,44 @@ const AppLayout = () => {
   );
 };
 
-const AuthPage = ({ children }) => {
-  const { theme } = useTheme();
-  
+const AuthWrapper = () => {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden transition-colors duration-500 bg-slate-50 dark:bg-[#030712] p-4 sm:p-8">
-      {/* Premium Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full dark:bg-emerald-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full dark:bg-blue-500/10 blur-[120px] pointer-events-none" />
-      
-      <div className="flex flex-col lg:flex-row w-full max-w-6xl mx-auto items-center justify-center gap-12 lg:gap-20 z-10">
-        {/* Left Side: Branding (Visible on lg+) */}
-        <div className="hidden lg:flex flex-col flex-1 min-w-0 space-y-8 text-left animate-in fade-in slide-in-from-left-8 duration-700">
-          <div className="flex items-center space-x-4">
-            <div className="flex-shrink-0 p-3 bg-emerald-500 rounded-2xl shadow-xl shadow-emerald-500/20">
-              <Loader2 className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
-              VaidyaSetu
-            </h2>
-          </div>
-          
-          <div className="space-y-6">
-            <h3 className="text-5xl xl:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-600 to-blue-600 dark:from-emerald-400 dark:to-blue-400 leading-[1.1]">
-              Your AI-Powered <br /> Health Sanctuary.
-            </h3>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-lg leading-relaxed">
-              Experience the future of personal healthcare with intelligent tracking, predictive analysis, and medical record management.
-            </p>
-          </div>
+    <Routes>
+      {/* ── Separate Role Authentication Gateways ── */}
+      <Route path="/login" element={<AuthGateway />} />
+      <Route path="/auth" element={<AuthGateway />} />
+      <Route path="/auth/patient" element={<AuthGateway initialPortal="patient" />} />
+      <Route path="/auth/doctor" element={<AuthGateway initialPortal="doctor" />} />
 
-          <div className="flex flex-wrap gap-3">
-            {['Secure Data', 'AI Diagnostics', 'Real-time Alerts'].map((feature) => (
-              <span key={feature} className="px-4 py-2 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-emerald-600 dark:text-emerald-400 text-sm font-semibold backdrop-blur-md">
-                {feature}
-              </span>
-            ))}
-          </div>
-        </div>
+      {/* Legacy auth route redirects to unified role gateway */}
+      <Route path="/sign-in/*" element={<Navigate to="/login" replace />} />
+      <Route path="/sign-up/*" element={<Navigate to="/login" replace />} />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
-        {/* Right Side: Auth Form (No extra box wrapper) */}
-        <div className="w-full lg:w-auto flex-shrink-0 transition-all duration-500 flex justify-center">
-            {children}
-        </div>
-      </div>
-      
-      <div className="absolute top-8 right-8 z-[100]">
-        <ThemeToggle />
-      </div>
-    </div>
+      {/* Public / Standalone Walk-in Kiosk Hardware Terminal */}
+      <Route path="/kiosk-terminal" element={<KioskIntake />} />
+
+      {/* Standalone Doctor Station alias */}
+      <Route path="/doctor-station" element={
+        <ProtectedRoute allowedRole="doctor">
+          <DoctorDashboard />
+        </ProtectedRoute>
+      } />
+
+      {/* Patient Onboarding */}
+      <Route path="/onboarding" element={
+        <ProtectedRoute allowedRole="patient">
+          <Onboarding />
+        </ProtectedRoute>
+      } />
+
+      {/* Main Authenticated Application Shell */}
+      <Route path="/*" element={
+        <ProtectedRoute>
+          <AppLayout />
+        </ProtectedRoute>
+      } />
+    </Routes>
   );
 };
 
@@ -203,46 +227,14 @@ function App() {
   return (
     <ThemeProvider>
       <GoogleOAuthProvider clientId={googleClientId}>
-        <BrowserRouter>
-          <ScrollToTop />
-          <AuthWrapper />
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <AuthWrapper />
+          </BrowserRouter>
+        </AuthProvider>
       </GoogleOAuthProvider>
     </ThemeProvider>
-  );
-}
-
-const AuthWrapper = () => {
-  const { theme } = useTheme();
-  const clerkAppearance = {
-    baseTheme: theme === 'dark' ? dark : undefined,
-    variables: {
-      colorPrimary: '#10b981',
-    },
-    elements: {
-      card: {
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        borderRadius: '2rem',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-      },
-      navbar: {
-        display: 'none',
-      },
-    }
-  };
-
-  return (
-    <Routes>
-      {/* Auth Routes */}
-      <Route path="/login" element={<Navigate to="/sign-in" replace />} />
-      <Route path="/dashboard" element={<Navigate to="/" replace />} />
-      <Route path="/sign-in/*" element={<AuthPage><SignIn routing="path" path="/sign-in" appearance={clerkAppearance} /></AuthPage>} />
-      <Route path="/sign-up/*" element={<AuthPage><SignUp routing="path" path="/sign-up" appearance={clerkAppearance} /></AuthPage>} />
-
-      {/* Application Routes */}
-      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-      <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-    </Routes>
   );
 }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
-import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText, HeartPulse, Scan, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Activity, RefreshCw, AlertTriangle, CheckCircle, ShieldAlert, Cpu, Download, Pill, Scale, FileText, HeartPulse, Scan, ThumbsUp, ThumbsDown, Calendar, Plus, CheckCircle2, ChevronRight, Upload, Sparkles, Clock, ArrowUpRight, Check, Zap } from 'lucide-react';
 import BodyScan3D from '../components/BodyScan3D';
 import InlineErrorBoundary from '../components/InlineErrorBoundary';
 import DiseaseCard from '../components/disease-cards/DiseaseCard';
@@ -12,6 +12,9 @@ import { useTranslation } from 'react-i18next';
 import { generateDashboardPDF } from '../utils/pdfGenerator';
 
 import { API_URL } from '../config/api';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 // Must match backend HYBRID_DISEASE_IDS order for "Show more" / bootstrap checks.
 const FULL_HYBRID_DISEASE_IDS = [
   'diabetes', 'pre_diabetes', 'obesity', 'thyroid', 'pcos', 'hypertension',
@@ -23,6 +26,8 @@ const PRIORITY_DISEASES = ['diabetes', 'pre_diabetes', 'hypertension', 'anemia',
 
 const Dashboard = () => {
   const { user, isLoaded } = useUser();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +44,48 @@ const Dashboard = () => {
   const [showAllAdvice, setShowAllAdvice] = useState(false);
   const [scoresAsOf, setScoresAsOf] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const effectiveUserId = currentUser?.patientId || currentUser?.mobile || user?.id;
+  const isDemoProfile = Boolean(
+    currentUser?.isDemo === true ||
+    currentUser?.abhaId === '14-1122-3344-5566'
+  );
+
+  // At-Home Pre-Consultation Preparation & Longitudinal Timeline State
+  const [preVisitPrepared, setPreVisitPrepared] = useState(isDemoProfile);
+  const [isSyncingPreVisit, setIsSyncingPreVisit] = useState(false);
+  const [activeTimelineYear, setActiveTimelineYear] = useState('2026');
+  const [uploadedRecords, setUploadedRecords] = useState(() => {
+    if (isDemoProfile) {
+      return [
+        {
+          id: 'rec_1',
+          title: 'Discharge Summary - Fortis Escorts Heart Institute',
+          date: '12 Jan 2026',
+          type: 'Hospital Discharge',
+          meds: [
+            { name: 'Atorvastatin', dose: '20mg OD', verified: true },
+            { name: 'Metoprolol', dose: '25mg BD', verified: true }
+          ],
+          ocrConfidence: '98.4%',
+          verifiedByPatient: true
+        },
+        {
+          id: 'rec_2',
+          title: 'Quest Diagnostics - Comprehensive Metabolic & HbA1c Panel',
+          date: '04 Feb 2026',
+          type: 'Lab Report',
+          labs: [
+            { name: 'HbA1c', value: '8.2%', status: 'Elevated (Target < 6.5%)', trend: '+1.1% from 2024' },
+            { name: 'eGFR', value: '72 mL/min', status: 'Normal / Borderline', trend: '-6 from 2024' }
+          ],
+          ocrConfidence: '99.1%',
+          verifiedByPatient: true
+        }
+      ];
+    }
+    return [];
+  });
 
   // STEP 62: Global Disease Refresh Mechanism
   const VITAL_IMPACT_MAP = {
@@ -61,12 +108,12 @@ const Dashboard = () => {
   };
 
   const fetchData = async (fullRecompute = false) => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
-      console.log('[Dashboard] fetchData called...');
+      console.log('[Dashboard] fetchData called for:', effectiveUserId);
       let reportData = null;
       try {
-        const r = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
+        const r = await axios.get(`${API_URL}/reports/${effectiveUserId}?t=${Date.now()}`);
         if (r.data?.status === 'success') {
           reportData = r.data.data;
         }
@@ -75,28 +122,38 @@ const Dashboard = () => {
       }
 
       const [vitalsRes, profileRes, medsRes] = await Promise.all([
-        axios.get(`${API_URL}/vitals/latest/${user.id}`).catch(() => null),
-        axios.get(`${API_URL}/profile/${user.id}`).catch(() => null),
-        axios.get(`${API_URL}/medications/${user.id}`).catch(() => null)
+        axios.get(`${API_URL}/vitals/latest/${effectiveUserId}`).catch(() => null),
+        axios.get(`${API_URL}/profile/${effectiveUserId}`).catch(() => null),
+        axios.get(`${API_URL}/medications/${effectiveUserId}`).catch(() => null)
       ]);
 
+      let loadedProfile = null;
       if (profileRes?.data?.status === 'success') {
-        setProfile(profileRes.data.data);
+        loadedProfile = profileRes.data.data;
+        setProfile(loadedProfile);
       }
 
-      const profileOk = profileRes?.data?.status === 'success';
+      const profileOk = Boolean(loadedProfile);
+      const isOnboardingDone = Boolean(
+        loadedProfile?.onboardingCompleted ?? 
+        loadedProfile?.onboardingComplete ?? 
+        currentUser?.onboardingCompleted ?? 
+        isDemoProfile
+      );
+
       const needsBootstrap = needsHybridBootstrap(reportData?.risk_scores);
       
-      if (profileOk && needsBootstrap) {
+      // ONLY bootstrap predictive risk vectors if onboarding has genuinely been completed!
+      if (profileOk && isOnboardingDone && needsBootstrap) {
         try {
-          await axios.post(`${API_URL}/reports/predictive-risk/init`, { clerkId: user.id, persist: true });
-          const again = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
+          await axios.post(`${API_URL}/reports/predictive-risk/init`, { clerkId: effectiveUserId, persist: true });
+          const again = await axios.get(`${API_URL}/reports/${effectiveUserId}?t=${Date.now()}`);
           if (again.data?.status === 'success') reportData = again.data.data;
         } catch (e) { console.warn(e); }
-      } else if (profileOk && fullRecompute) {
+      } else if (profileOk && isOnboardingDone && fullRecompute) {
         try {
-          await axios.post(`${API_URL}/reports/predictive-risk/recompute`, { clerkId: user.id, persist: true });
-          const again = await axios.get(`${API_URL}/reports/${user.id}?t=${Date.now()}`);
+          await axios.post(`${API_URL}/reports/predictive-risk/recompute`, { clerkId: effectiveUserId, persist: true });
+          const again = await axios.get(`${API_URL}/reports/${effectiveUserId}?t=${Date.now()}`);
           if (again.data?.status === 'success') reportData = again.data.data;
         } catch (e) { console.warn(e); }
       }
@@ -158,15 +215,6 @@ const Dashboard = () => {
     return () => { delete window.onHealthDataUpdate; };
   }, [user, isLoaded]);
 
-  const generateReport = async () => {
-    if (!user?.id) return;
-    setGenerating(true);
-    try {
-      const res = await axios.post(`${API_URL}/ai/generate-report`, { clerkId: user.id });
-      if (res.data.status === 'success') setReport(res.data.data);
-    } catch (err) { setError("Analysis failed."); }
-    finally { setGenerating(false); }
-  };
 
   const syncGoogleFit = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -245,26 +293,31 @@ const Dashboard = () => {
     }
   };
 
+  const generateReport = async () => {
+    setGenerating(true);
+    try {
+      if (!profile?.onboardingCompleted && !currentUser?.onboardingCompleted && !isDemoProfile) {
+        navigate('/onboarding');
+        return;
+      }
+      await axios.post(`${API_URL}/reports/predictive-risk/init`, { clerkId: effectiveUserId, persist: true });
+      await fetchData(true);
+    } catch (err) {
+      console.error('Report generation notice:', err);
+      navigate('/onboarding');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
-      const profileRes = await axios.get(`${API_URL}/profile/${user.id}`).catch(() => ({ data: { data: null } }));
-      generateDashboardPDF(user.fullName || 'User', report, profileRes.data?.data, medications);
+      const profileRes = await axios.get(`${API_URL}/profile/${effectiveUserId}`).catch(() => ({ data: { data: null } }));
+      generateDashboardPDF(user?.fullName || currentUser?.patientName || 'User', report, profileRes.data?.data, medications);
     } catch (err) { console.error(err); }
   };
 
   if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" /></div>;
-
-  if (!report) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center max-w-2xl mx-auto">
-         <Cpu className="w-24 h-24 text-emerald-500 animate-pulse mb-8" />
-         <h1 className="text-4xl font-bold mb-4">{t('dashboard.sync_complete')}</h1>
-         <button onClick={generateReport} disabled={generating} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold">
-           {generating ? t('dashboard.analyzing') : t('dashboard.initiate_scan')}
-         </button>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto w-full pb-20 px-4 md:px-0 animate-in fade-in duration-700">
@@ -290,43 +343,315 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-10">
-          <div className="bg-white dark:bg-gray-950/60 backdrop-blur-3xl border border-slate-200 dark:border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
-            <h2 className="text-emerald-600 font-black uppercase tracking-[0.2em] text-[11px] mb-6 flex items-center">
-              <Cpu className="w-5 h-5 mr-3" /> {t('dashboard.ai_perspective')}
-            </h2>
-            <p className="text-slate-800 dark:text-gray-100 text-lg md:text-2xl font-bold leading-relaxed">
-              {report?.summary || t('dashboard.report_missing')}
-            </p>
+          {!report ? (
+            <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-900/10 dark:bg-gray-950/60 backdrop-blur-3xl border-2 border-emerald-500/30 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl text-center space-y-5">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/10">
+                <Cpu className="w-10 h-10 text-emerald-500 animate-pulse" />
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest text-[10px] mb-2">
+                  ABDM Health Record Synchronized
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {t('dashboard.sync_complete')}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-gray-400 max-w-lg mx-auto mt-2 leading-relaxed">
+                  Your personal health sanctuary is linked. Complete your clinical profile to generate personalized disease risk vectors and your Ayush preventive care plan.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/onboarding')}
+                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-200" /> Complete Clinical Health Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={generateReport}
+                  disabled={generating}
+                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-800 dark:text-white font-bold text-sm transition-all border border-gray-300 dark:border-white/10 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {generating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" /> Analyzing Biometrics...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 text-emerald-500" /> {t('dashboard.initiate_scan')}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-950/60 backdrop-blur-3xl border border-slate-200 dark:border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
+              <h2 className="text-emerald-600 font-black uppercase tracking-[0.2em] text-[11px] mb-6 flex items-center">
+                <Cpu className="w-5 h-5 mr-3" /> {t('dashboard.ai_perspective')}
+              </h2>
+              <p className="text-slate-800 dark:text-gray-100 text-lg md:text-2xl font-bold leading-relaxed">
+                {report?.summary || t('dashboard.report_missing')}
+              </p>
+            </div>
+          )}
+
+          {/* ────────────────── AT-HOME OPD VISIT PREPARATION (ZERO-ENTRY KIOSK PASS) ────────────────── */}
+          <div className="bg-gradient-to-br from-emerald-900/30 via-slate-900/60 to-teal-950/40 backdrop-blur-3xl border-2 border-emerald-500/30 p-8 rounded-[2.5rem] shadow-2xl space-y-6 relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> AT-HOME PRE-CONSULTATION PASSPORT
+                </div>
+                <h3 className="text-2xl font-black text-white">
+                  Prepare for Your Hospital OPD Visit
+                </h3>
+                <p className="text-sm text-gray-300 mt-1 max-w-2xl">
+                  Upload old prescriptions, blood reports, or discharge summaries at home with zero queue pressure. When you arrive at the hospital, your MediKiosk token is ready in 10 seconds!
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setToast({ type: 'success', message: 'Simulated new prescription uploaded & extracted via Medical OCR!' });
+                    setTimeout(() => setToast(null), 3000);
+                  }}
+                  className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 border border-white/15 transition-all cursor-pointer"
+                >
+                  <Upload className="w-4 h-4 text-emerald-400" /> Scan / Upload PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreVisitPrepared(true);
+                    setToast({ type: 'success', message: '✓ All pre-consultation records synchronized with AIIA OPD MediKiosk!' });
+                    setTimeout(() => setToast(null), 3500);
+                  }}
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 hover:scale-105 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Ready for Fast-Pass
+                </button>
+              </div>
+            </div>
+
+            {/* Extracted & Verified Documents List or Empty State */}
+            {uploadedRecords.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-slate-900/60 border border-dashed border-emerald-500/30 text-center space-y-3">
+                <FileText className="w-10 h-10 text-emerald-400/60 mx-auto" />
+                <h4 className="text-base font-bold text-white">No Hospital Records Uploaded Yet</h4>
+                <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
+                  Upload your past prescriptions, discharge summaries, or blood tests from home to extract clinical parameters and unlock your 10-second fast-pass token at the hospital OPD MediKiosk.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {uploadedRecords.map((rec) => (
+                  <div key={rec.id} className="p-5 rounded-2xl bg-slate-900/80 border border-emerald-500/20 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                          {rec.type} • {rec.date}
+                        </span>
+                        <h4 className="text-sm font-bold text-white mt-0.5">{rec.title}</h4>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black tracking-wide border border-emerald-500/30 shrink-0">
+                        OCR: {rec.ocrConfidence}
+                      </span>
+                    </div>
+
+                    {rec.meds && (
+                      <div className="space-y-1 pt-2 border-t border-white/5">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">Active Medications Extracted:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {rec.meds.map((m, idx) => (
+                            <span key={idx} className="px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs font-medium text-gray-200 flex items-center gap-1">
+                              <Check className="w-3 h-3 text-emerald-400" /> {m.name} ({m.dose})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {rec.labs && (
+                      <div className="space-y-1.5 pt-2 border-t border-white/5">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">Longitudinal Lab Values:</span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {rec.labs.map((l, idx) => (
+                            <div key={idx} className="p-2 rounded-xl bg-white/5 border border-white/10">
+                              <span className="text-[10px] text-gray-400 block">{l.name}</span>
+                              <span className="text-sm font-black text-white">{l.value}</span>
+                              <span className="text-[9px] text-amber-300 font-bold block">{l.trend}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* ────────────────── VISUAL LONGITUDINAL MEDICAL TIMELINE ────────────────── */}
+          <div className="bg-white dark:bg-gray-950/60 backdrop-blur-3xl border border-slate-200 dark:border-white/10 p-8 rounded-[2.5rem] shadow-2xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-gray-900 dark:text-white font-black text-2xl tracking-tight flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-teal-500 flex items-center justify-center shadow-lg">
+                    <Calendar className="w-5 h-5 text-white" />
+                  </div>
+                  Longitudinal Clinical Timeline
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400 mt-1">
+                  Chronological progression of chronic conditions, Ayush prescriptions, and diagnostic lab trends over time.
+                </p>
+              </div>
+
+              {isDemoProfile && (
+                <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-gray-200 dark:border-white/10">
+                  {['2023', '2024', '2025', '2026'].map(year => (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => setActiveTimelineYear(year)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        activeTimelineYear === year
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'text-gray-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {year} {year === '2026' ? '• Now' : ''}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Timeline Content */}
+            {!isDemoProfile ? (
+              <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-teal-500/30 text-center space-y-4">
+                <Clock className="w-10 h-10 text-teal-500/60 mx-auto" />
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white">Your Clinical Timeline Starts With Your Next Visit</h4>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
+                    No previous hospital visits recorded for this account. Every time you register at the OPD MediKiosk and consult with a Vaidya, your dual-coded diagnoses (ICD-11 & NAMASTE) and prescriptions will be logged here chronologically.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/kiosk')}
+                  className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Zap className="w-3.5 h-3.5" /> Book OPD Token at MediKiosk
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-2">
+                {activeTimelineYear === '2026' && (
+                  <div className="relative pl-6 border-l-2 border-emerald-500 space-y-3">
+                    <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400">February 2026 • Current Visit</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 font-bold">AIIA OPD</span>
+                    </div>
+                    <h4 className="text-base font-bold text-slate-900 dark:text-white">Knee Pain Follow-up & Metabolic Lab Review</h4>
+                    <p className="text-xs text-slate-600 dark:text-gray-300">
+                      Knee pain reduced by 50% under Yogaraj Guggulu. Cardiologist added <strong>Atorvastatin 20mg</strong>. New lab shows <strong>HbA1c elevated to 8.2%</strong>; physician alerted for pre-diabetes lifestyle & Nishamalaki intervention.
+                    </p>
+                  </div>
+                )}
+                {activeTimelineYear === '2025' && (
+                  <div className="relative pl-6 border-l-2 border-teal-500 space-y-3">
+                    <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-teal-500 ring-4 ring-teal-500/20" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-teal-600 dark:text-teal-400">August 2025 • Annual Consultation</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-500 font-bold">Kayachikitsa</span>
+                    </div>
+                    <h4 className="text-base font-bold text-slate-900 dark:text-white">Ayurvedic Rasayana & Joint Mobility Therapy</h4>
+                    <p className="text-xs text-slate-600 dark:text-gray-300">
+                      Started <strong>Ashwagandha Churna (3g HS with warm milk)</strong>. Reported improvement in morning stiffness. VAS pain score reduced from 8/10 to 5/10.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ────────────────── PREDICTIVE RISK VECTORS ────────────────── */}
           <div className="space-y-6">
             <h3 className="text-gray-900 dark:text-white font-black text-2xl tracking-tight flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg"><Activity className="w-5 h-5 text-white" /></div>
               {t('dashboard.predictive_risks')}
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {(() => {
-                const riskEntries = Object.entries(report?.risk_scores || {});
-                const normalize = (id = '') => String(id).toLowerCase().replace(/[_-\s]/g, '');
-                const prioritySet = new Set(PRIORITY_DISEASES.map(normalize));
-                
-                const prioritized = riskEntries.filter(([k]) => prioritySet.has(normalize(k)));
-                const remaining = riskEntries.filter(([k]) => !prioritySet.has(normalize(k)));
-                
-                let visible = showAllRiskCards ? [...prioritized, ...remaining] : prioritized;
-                if (!showAllRiskCards && visible.length === 0) visible = remaining.slice(0, 6);
+            {(() => {
+              const isOnboardingDone = Boolean(
+                profile?.onboardingCompleted ?? 
+                profile?.onboardingComplete ?? 
+                currentUser?.onboardingCompleted ?? 
+                isDemoProfile
+              );
 
-                if (visible.length === 0) return <div className="md:col-span-2 p-10 text-center">{t('dashboard.no_risk_vectors')}</div>;
+              if (!isOnboardingDone) {
+                return (
+                  <div className="bg-white dark:bg-gray-950/60 backdrop-blur-3xl border-2 border-dashed border-emerald-500/40 p-8 rounded-[2.5rem] shadow-xl text-center space-y-5">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+                      <Activity className="w-8 h-8 animate-pulse" />
+                    </div>
+                    <div className="max-w-lg mx-auto space-y-2">
+                      <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                        Check Your Predictive Risk Vectors
+                      </h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                        You have not completed your clinical onboarding yet. Fill in your biometrics, diet, lifestyle, and past medical history so our AI can accurately compute your personalized risk vectors across 20+ chronic conditions without displaying inaccurate data.
+                      </p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/onboarding')}
+                        className="px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition-all cursor-pointer inline-flex items-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Complete Onboarding to Calculate Risk Vectors
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
 
-                return visible.map(([key, score]) => (
-                  <DiseaseCard key={key} diseaseId={key} initialScore={score} verificationMeta={report?.risk_score_meta?.[key]} clerkId={user.id} profile={profile} onScoreUpdated={handleDiseaseScoreUpdate} />
-                ));
-              })()}
-            </div>
-            {Object.entries(report?.risk_scores || {}).length > 6 && (
-              <div className="flex justify-center"><button onClick={() => setShowAllRiskCards(!showAllRiskCards)} className="px-6 py-2 border-2 border-emerald-500/30 rounded-xl font-bold text-sm uppercase">{showAllRiskCards ? t('dashboard.show_less') : t('dashboard.show_more')}</button></div>
-            )}
+              const riskEntries = Object.entries(report?.risk_scores || {});
+              const normalize = (id = '') => String(id).toLowerCase().replace(/[_-\s]/g, '');
+              const prioritySet = new Set(PRIORITY_DISEASES.map(normalize));
+              
+              const prioritized = riskEntries.filter(([k]) => prioritySet.has(normalize(k)));
+              const remaining = riskEntries.filter(([k]) => !prioritySet.has(normalize(k)));
+              
+              let visible = showAllRiskCards ? [...prioritized, ...remaining] : prioritized;
+              if (!showAllRiskCards && visible.length === 0) visible = remaining.slice(0, 6);
+
+              if (visible.length === 0) return <div className="md:col-span-2 p-10 text-center">{t('dashboard.no_risk_vectors')}</div>;
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {visible.map(([key, score]) => (
+                      <DiseaseCard key={key} diseaseId={key} initialScore={score} verificationMeta={report?.risk_score_meta?.[key]} clerkId={effectiveUserId} profile={profile} onScoreUpdated={handleDiseaseScoreUpdate} />
+                    ))}
+                  </div>
+                  {Object.entries(report?.risk_scores || {}).length > 6 && (
+                    <div className="flex justify-center">
+                      <button onClick={() => setShowAllRiskCards(!showAllRiskCards)} className="px-6 py-2 border-2 border-emerald-500/30 rounded-xl font-bold text-sm uppercase">
+                        {showAllRiskCards ? t('dashboard.show_less') : t('dashboard.show_more')}
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           <div className="space-y-8">

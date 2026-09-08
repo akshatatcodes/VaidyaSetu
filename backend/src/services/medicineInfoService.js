@@ -4,7 +4,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { getDrugComposition } = require('../utils/rxnav');
 const { getDrugWarnings } = require('../utils/openfda');
 
-const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_');
+const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 const geminiGenai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 const geminiLegacy = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 

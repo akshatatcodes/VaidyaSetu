@@ -19,6 +19,29 @@ const UserProfileSchema = new mongoose.Schema({
     unique: true
   },
 
+  // Role-Based Access Control (RBAC): patient, doctor, reception
+  role: {
+    type: String,
+    enum: ['patient', 'doctor', 'reception'],
+    default: 'patient'
+  },
+
+  onboardingCompleted: {
+    type: Boolean,
+    default: false
+  },
+  abhaId: FieldSchema,
+
+  // Clinician details if role is doctor
+  doctorProfile: {
+    doctorId: { type: String },
+    doctorName: { type: String },
+    registrationNumber: { type: String }, // e.g. CCIM-DEL-2018-9844
+    department: { type: String, default: 'Kayachikitsa' },
+    roomNumber: { type: String, default: 'Room 104' },
+    hospitalName: { type: String, default: 'All India Institute of Ayurveda (AIIA)' }
+  },
+
   // Step 1: Biometrics
   name: FieldSchema,
   phone: FieldSchema,

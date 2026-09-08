@@ -6,11 +6,8 @@ import i18n from './i18n'
 import { ClerkProvider } from '@clerk/clerk-react'
 import axios from 'axios'
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_bGlrZWQtYnVmZmFsby05NS5jbGVyay5hY2NvdW50cy5kZXYk';
 
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Publishable Key")
-}
 
 axios.interceptors.request.use((config) => {
   const language = (i18n.language || localStorage.getItem('i18nextLng') || 'en').split('-')[0];

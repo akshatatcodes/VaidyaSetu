@@ -30,6 +30,8 @@ const governanceRoutes = require('./src/routes/governanceRoutes');
 const diseaseRoutes = require('./src/routes/diseaseRoutes');
 const doctorRoutes = require('./src/routes/doctorRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
+const kioskRoutes = require('./src/routes/kioskRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 const { resolveLanguage } = require('./src/middleware/languageResolver');
 const { runReminderService } = require('./src/services/reminderService');
 const initCronJobs = require('./src/scripts/cronJobs');
@@ -72,6 +74,8 @@ app.use('/api/governance', governanceRoutes);
 app.use('/api/diseases', diseaseRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/kiosk', kioskRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

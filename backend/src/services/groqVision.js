@@ -17,7 +17,7 @@ async function extractFromImageGroq(base64Image, mediaType) {
     const dataUri = `data:${mediaType};base64,${base64Image}`;
 
     const chatCompletion = await groq.chat.completions.create({
-      model: "meta-llama/llama-4-scout-17b-16e-instruct", // Latest Groq vision model
+      model: "llama-3.2-11b-vision-preview", // Active Groq multimodal vision model
       messages: [
         {
           role: "user",

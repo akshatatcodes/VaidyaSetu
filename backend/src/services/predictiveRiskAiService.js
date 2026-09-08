@@ -12,7 +12,8 @@ const { getPrevalenceEvidenceBatch } = require('../utils/evidenceProviders');
 const { getVitalStatus } = require('../utils/vitalRanges');
 const { generateMitigationSteps } = require('./aiService');
 
-const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_');
+const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 function clampScore(score) {
   // riskScorer uses `-1` to represent "N/A" (not applicable due to gender/conditions).
@@ -545,14 +546,20 @@ OUTPUT SCHEMA:
   }
 }`;
 
-  const chatCompletion = await groq.chat.completions.create({
-    messages: [{ role: 'user', content: prompt }],
-    model: 'llama-3.3-70b-versatile',
-    temperature: 0.2,
-    response_format: { type: 'json_object' }
-  });
+  let raw = '{}';
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.2,
+      response_format: { type: 'json_object' }
+    });
+    raw = chatCompletion?.choices?.[0]?.message?.content || '{}';
+  } catch (groqErr) {
+    console.warn(`[PredictiveRiskAI] Groq failed (${groqErr.message}), using deterministic fallback.`);
+    raw = '{}';
+  }
 
-  const raw = chatCompletion?.choices?.[0]?.message?.content || '{}';
   const parsed = safeJsonParse(raw);
 
   if (!parsed?.results || typeof parsed.results !== 'object') {

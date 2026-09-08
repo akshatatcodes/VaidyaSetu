@@ -6,6 +6,7 @@ import { ChevronLeft, ShieldCheck, AlertCircle, Check } from 'lucide-react';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ALLERGY_OPTIONS = [
   { value: 'Dust Mites', label: 'Dust Mites' },
@@ -37,10 +38,13 @@ const CONDITION_OPTIONS = [
 
 const Step7History = () => {
   const { user } = useUser();
+  const { currentUser } = useAuth();
   const { theme } = useTheme();
   const { formData, updateFormData, setStep } = useOnboardingStore();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const effectiveUserId = currentUser?.patientId || currentUser?.mobile || user?.id || formData?.userId;
 
   const handleToggle = (field) => {
     updateFormData({ [field]: !formData[field] });
@@ -67,8 +71,8 @@ const Step7History = () => {
     try {
       const payload = {
         ...formData,
-        name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim(),
-        clerkId: user?.id,
+        name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || currentUser?.patientName,
+        clerkId: effectiveUserId,
       };
       
       const response = await axios.post(`${API_URL}/user/profile`, payload);
@@ -76,7 +80,7 @@ const Step7History = () => {
       if (response.data.status === 'success') {
         // Create/update predictive baseline risk scores (onboarding-first).
         await axios.post(`${API_URL}/reports/predictive-risk/init`, {
-          clerkId: user?.id,
+          clerkId: effectiveUserId,
           persist: true
         }).catch(() => null);
 
