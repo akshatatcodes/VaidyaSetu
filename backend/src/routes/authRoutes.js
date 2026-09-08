@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const UserProfile = require('../models/UserProfile');
 
 // Demo Doctor Presets
@@ -193,42 +194,62 @@ router.post('/patient/login', async (req, res) => {
 
     const cleanId = identifier.trim();
 
-    // Check MongoDB for real registered user profile
-    const dbProfile = await UserProfile.findOne({
-      $or: [
-        { clerkId: cleanId },
-        { 'phone.value': cleanId },
-        { 'phone.value': new RegExp(cleanId.replace(/\D/g, '').slice(-10)) },
-        { 'abhaId.value': cleanId }
-      ]
-    });
-
-    // Match demo patient if in demo mode
+    // 1. Fast-path: Check demo patients FIRST (instant login, even if DB is offline/cold)
     const matchedDemo = DEMO_PATIENTS.find(p => 
       p.abhaId === cleanId ||
       p.mobile === cleanId ||
       p.email?.toLowerCase() === cleanId.toLowerCase() ||
-      p.patientName.toLowerCase().includes(cleanId.toLowerCase())
+      p.patientName.toLowerCase().includes(cleanId.toLowerCase()) ||
+      (p.abhaId && cleanId.includes(p.abhaId.slice(-4)))
     );
 
-    let patientProfile;
-    if (dbProfile) {
-      patientProfile = {
-        patientId: dbProfile.clerkId,
-        abhaId: dbProfile.abhaId?.value || (cleanId.includes('-') ? cleanId : `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`),
-        patientName: dbProfile.name?.value || 'Ayush Patient',
-        age: dbProfile.age?.value || 35,
-        gender: dbProfile.gender?.value || 'Male',
-        mobile: dbProfile.phone?.value || cleanId,
-        email: `${(dbProfile.name?.value || 'patient').toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-        onboardingCompleted: Boolean(dbProfile.onboardingCompleted)
-      };
-    } else if (matchedDemo) {
+    let patientProfile = null;
+
+    // 2. Check MongoDB for real registered user profile
+    const isDbConnected = mongoose.connection.readyState === 1;
+
+    if (isDbConnected) {
+      try {
+        const dbProfile = await UserProfile.findOne({
+          $or: [
+            { clerkId: cleanId },
+            { 'phone.value': cleanId },
+            { 'phone.value': new RegExp(cleanId.replace(/\D/g, '').slice(-10)) },
+            { 'abhaId.value': cleanId }
+          ]
+        }).maxTimeMS(3000);
+
+        if (dbProfile) {
+          patientProfile = {
+            patientId: dbProfile.clerkId,
+            abhaId: dbProfile.abhaId?.value || (cleanId.includes('-') ? cleanId : `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`),
+            patientName: dbProfile.name?.value || 'Ayush Patient',
+            age: dbProfile.age?.value || 35,
+            gender: dbProfile.gender?.value || 'Male',
+            mobile: dbProfile.phone?.value || cleanId,
+            email: `${(dbProfile.name?.value || 'patient').toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+            onboardingCompleted: Boolean(dbProfile.onboardingCompleted)
+          };
+        }
+      } catch (dbErr) {
+        console.warn('MongoDB profile lookup failed:', dbErr.message);
+      }
+    }
+
+    if (!patientProfile && matchedDemo) {
       patientProfile = {
         ...matchedDemo,
         onboardingCompleted: true
       };
-    } else {
+    } else if (!patientProfile) {
+      // If DB is offline and not demo profile, let the user know cleanly rather than buffering 10s
+      if (!isDbConnected) {
+        return res.status(503).json({
+          status: 'error',
+          message: 'Database Connection Unavailable: The live backend cannot reach MongoDB Atlas. Please ensure MONGODB_URI is configured in Render Environment Variables and 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access. You can use the 1-Tap Demo Profile in the meantime.'
+        });
+      }
+
       // New walk-in patient session without prior DB record
       const newPatientId = 'PAT-' + Math.floor(10000 + Math.random() * 90000);
       const cleanDigits = cleanId.replace(/\D/g, '').slice(-10);
@@ -324,13 +345,21 @@ router.post('/patient/register', async (req, res) => {
       onboardingCompleted: false
     };
 
+    const isDbConnected = mongoose.connection.readyState === 1;
+    if (!isDbConnected) {
+      return res.status(503).json({
+        status: 'error',
+        message: 'Database Connection Unavailable: The live backend cannot reach MongoDB Atlas. Please ensure MONGODB_URI is set in Render Environment Variables and 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access.'
+      });
+    }
+
     // Save genuine UserProfile in MongoDB with onboardingCompleted: false (no fake biometrics!)
     const existing = await UserProfile.findOne({
       $or: [
         { clerkId: patientId },
         ...(cleanMobileDigits ? [{ 'phone.value': new RegExp(cleanMobileDigits) }] : [])
       ]
-    });
+    }).maxTimeMS(3000);
 
     if (existing) {
       existing.name = { value: patientName, lastUpdated: new Date() };

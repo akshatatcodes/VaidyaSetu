@@ -45,9 +45,16 @@ app.use(express.json());
 app.use(resolveLanguage);
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB Atlas'))
-  .catch(err => console.error('MongoDB connection error:', err));
+const mongoUri = process.env.MONGODB_URI;
+if (!mongoUri) {
+  console.error('❌ MONGODB_URI is not set in environment variables! Please configure it in Render/cloud settings.');
+} else {
+  mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: 5000 // Fail fast if cluster is unreachable instead of hanging requests
+  })
+    .then(() => console.log('✅ Connected to MongoDB Atlas'))
+    .catch(err => console.error('❌ MongoDB connection error:', err.message));
+}
 
 // Routes Configuration
 app.use('/api/user', userRoutes);
