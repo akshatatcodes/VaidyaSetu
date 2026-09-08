@@ -1,29 +1,34 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill, Sun, Moon } from 'lucide-react';
-import { UserButton, useClerk, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck } from 'lucide-react';
+import { useClerk } from '@clerk/clerk-react';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '@clerk/clerk-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
 import { API_URL } from '../config/api';
 
 const Sidebar = () => {
-  const { signOut } = useClerk();
   const { theme, toggleTheme } = useTheme();
   const { user } = useUser();
+  const { userRole, currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [unreadCount, setUnreadCount] = React.useState(0);
 
+  const activeRole = userRole || localStorage.getItem('vaidya_active_role') || 'patient';
+
   React.useEffect(() => {
-    if (user) {
+    const userId = currentUser?._id || currentUser?.id || user?.id;
+    if (userId) {
       const fetchCount = async () => {
         try {
-          const res = await axios.get(`${API_URL}/alerts/${user.id}/count`);
+          const res = await axios.get(`${API_URL}/alerts/${userId}/count`);
           if (res.data.status === 'success') setUnreadCount(res.data.data.count);
         } catch (err) {
-          console.error('Sidebar count fetch failed', err);
+          // Silent fallback for demo mode
         }
       };
       fetchCount();
@@ -35,27 +40,53 @@ const Sidebar = () => {
         window.removeEventListener('vaidya:alerts-refresh', onRefresh);
       };
     }
-  }, [user]);
+  }, [currentUser, user]);
 
-  // Full list for Desktop
-  const desktopNavItems = [
-    { to: '/', icon: Home, label: t('sidebar.dashboard') },
-    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions') },
-    { to: '/vitals', icon: Activity, label: t('sidebar.vitals') },
-    { to: '/medicines', icon: Pill, label: t('sidebar.medicines') },
-    { to: '/alerts', icon: AlertCircle, label: t('sidebar.alerts') },
-    { to: '/profile', icon: UserCircle, label: t('sidebar.profile') },
-    { to: '/settings', icon: Settings, label: t('sidebar.settings') },
+  // Dedicated Patient Sanctuary navigation items (Doctor Cockpit completely excluded)
+  const patientNavItems = [
+    { to: '/', icon: Home, label: t('sidebar.dashboard', 'Health Sanctuary') },
+    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'OPD MediKiosk') },
+    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'My Records') },
+    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'My Vitals') },
+    { to: '/medicines', icon: Pill, label: t('sidebar.medicines', 'Medicine Tracker') },
+    { to: '/alerts', icon: AlertCircle, label: t('sidebar.alerts', 'Health Alerts') },
+    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Health Profile') },
+    { to: '/settings', icon: Settings, label: t('sidebar.settings', 'Settings') },
   ];
 
-  // Limited list for Mobile Bottom Nav (removing Alerts and Settings)
-  const mobileBottomNavItems = [
-    { to: '/', icon: Home, label: t('sidebar.dashboard') },
-    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions') },
-    { to: '/vitals', icon: Activity, label: t('sidebar.vitals') },
-    { to: '/medicines', icon: Pill, label: t('sidebar.medicines') },
-    { to: '/profile', icon: UserCircle, label: t('sidebar.profile') },
+  // Dedicated AIIA Doctor Cockpit navigation items (Consumer dashboard excluded)
+  const doctorNavItems = [
+    { to: '/doctor', icon: ClipboardCheck, label: t('sidebar.doctor', 'Doctor Cockpit') },
+    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kioskQueue', 'Kiosk Terminal') },
+    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Clinical Records') },
+    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Triage Telemetry') },
+    { to: '/alerts', icon: AlertCircle, label: t('sidebar.alerts', 'Safety & HDI Guard') },
+    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Physician Profile') },
+    { to: '/settings', icon: Settings, label: t('sidebar.settings', 'Settings') },
   ];
+
+  const desktopNavItems = activeRole === 'doctor' ? doctorNavItems : patientNavItems;
+
+  // Limited list for Mobile Bottom Nav
+  const mobilePatientNavItems = [
+    { to: '/', icon: Home, label: t('sidebar.dashboard', 'Sanctuary') },
+    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'Kiosk') },
+    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Records') },
+    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Vitals') },
+    { to: '/medicines', icon: Pill, label: t('sidebar.medicines', 'Medicines') },
+    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Profile') },
+  ];
+
+  const mobileDoctorNavItems = [
+    { to: '/doctor', icon: ClipboardCheck, label: t('sidebar.doctor', 'Cockpit') },
+    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'Kiosk') },
+    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Records') },
+    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Vitals') },
+    { to: '/alerts', icon: AlertCircle, label: t('sidebar.alerts', 'Safety') },
+    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Profile') },
+  ];
+
+  const mobileBottomNavItems = activeRole === 'doctor' ? mobileDoctorNavItems : mobilePatientNavItems;
 
   /* ──────────────────────────────────────────────
      DESKTOP SIDEBAR (hidden on mobile)
@@ -64,7 +95,7 @@ const Sidebar = () => {
     <>
       {/* ── DESKTOP SIDEBAR ── */}
       <div
-        className="vs-sidebar hidden md:flex flex-col w-72 h-screen fixed top-0 left-0 bottom-0 px-5 py-10 backdrop-blur-3xl border-r text-slate-700 dark:text-gray-300 shrink-0 z-50 transition-all duration-500"
+        className="vs-sidebar hidden md:flex flex-col w-72 h-screen fixed top-0 left-0 bottom-0 px-5 py-8 backdrop-blur-3xl border-r text-slate-700 dark:text-gray-300 shrink-0 z-50 transition-all duration-500"
         style={theme === 'dark' ? {
           background: 'rgba(5, 11, 20, 0.4)',
           borderColor: 'rgba(255,255,255,0.05)',
@@ -75,16 +106,25 @@ const Sidebar = () => {
           boxShadow: '4px 0 40px rgba(16,185,129,0.1), 2px 0 12px rgba(59,130,246,0.06)'
         }}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-center mb-12">
-          <h2 className="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
-            Vaidya<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Setu</span>
-          </h2>
+        {/* Logo & Role Identity Header */}
+        <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200/60 dark:border-white/10">
+          <div>
+            <h2 className="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
+              Vaidya<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Setu</span>
+            </h2>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold block">
+              {activeRole === 'doctor' ? 'AIIA CLINICIAN STATION' : 'PATIENT SANCTUARY'}
+            </span>
+          </div>
+
+          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${activeRole === 'doctor' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'}`}>
+            {activeRole === 'doctor' ? '🩺 DOCTOR' : '🌿 PATIENT'}
+          </span>
         </div>
 
         {/* Nav */}
-        <div className="flex flex-col flex-1 justify-between overflow-hidden">
-          <nav className="flex flex-col space-y-2">
+        <div className="flex flex-col flex-1 justify-between overflow-y-auto">
+          <nav className="flex flex-col space-y-1.5">
             {desktopNavItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -111,33 +151,49 @@ const Sidebar = () => {
 
           {/* Desktop user profile */}
           <div className="pt-6 border-t border-gray-200/50 dark:border-white/5">
-            <SignedIn>
-              <div className="flex items-center gap-3 px-4 h-14 bg-white/40 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5 backdrop-blur-md hover:border-emerald-500/30 transition-all">
-                <div className="flex items-center flex-1 min-w-0 gap-3">
-                  <div className="flex items-center justify-center shrink-0">
-                    <UserButton
-                      appearance={{
-                        elements: {
-                          userButtonAvatarBox: 'w-8 h-8',
-                          rootBox: 'w-8 h-8 flex items-center justify-center'
-                        }
-                      }}
-                    />
+            {currentUser ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 px-3 py-2.5 bg-white/50 dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 backdrop-blur-md">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                    activeRole === 'doctor' 
+                      ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' 
+                      : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                  }`}>
+                    {activeRole === 'doctor' ? 'MD' : 'PT'}
                   </div>
-                  <span className="text-sm font-black text-slate-900 dark:text-white truncate pt-0.5">
-                    {user?.fullName || 'User Entity'}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-slate-900 dark:text-white truncate">
+                      {currentUser?.doctorName || currentUser?.patientName || currentUser?.name || currentUser?.fullName || (activeRole === 'doctor' ? 'Dr. Vaidya' : 'Patient')}
+                    </p>
+                    <p className="text-[10px] text-gray-500 truncate font-mono">
+                      {activeRole === 'doctor' 
+                        ? (currentUser?.department || currentUser?.registrationNumber || 'AIIA Physician')
+                        : (currentUser?.abhaId || 'Ayush Health ID')}
+                    </p>
+                  </div>
                 </div>
-                <Link to="/profile" className="text-slate-400 hover:text-emerald-600 transition-colors shrink-0 flex items-center justify-center" title="My Health Profile">
-                  <UserCircle className="w-5 h-5" />
-                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    navigate('/login', { replace: true });
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500/90 transition-all border border-rose-500/20 hover:border-transparent cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out ({activeRole === 'doctor' ? 'Doctor' : 'Patient'})</span>
+                </button>
               </div>
-            </SignedIn>
-            <SignedOut>
-              <div className="w-full flex items-center justify-center px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors cursor-pointer text-center">
-                <SignInButton mode="modal">{t('sidebar.signin')}</SignInButton>
-              </div>
-            </SignedOut>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/login', { replace: true })}
+                className="w-full flex items-center justify-center px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer text-center shadow-md shadow-emerald-600/20"
+              >
+                Sign In to VaidyaSetu
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -155,44 +211,55 @@ const Sidebar = () => {
           backdropFilter: 'blur(20px)'
         }}
       >
-        <div className="flex items-center pt-1">
+        <div className="flex items-center pt-1 gap-2">
           <h2 className="text-xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
             Vaidya<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">Setu</span>
           </h2>
+          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
+            activeRole === 'doctor' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' : 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30'
+          }`}>
+            {activeRole === 'doctor' ? 'DOC' : 'PAT'}
+          </span>
         </div>
 
-        <SignedIn>
-          <div className="flex items-center gap-4">
-            {/* Theme Toggle moved here for mobile */}
+        <div className="flex items-center gap-3">
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="text-slate-600 dark:text-gray-400 p-1 hover:text-emerald-500 transition-colors"
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          {/* Alerts icon */}
+          <Link to="/alerts" className="relative text-slate-600 dark:text-gray-400 flex items-center justify-center">
+            <AlertCircle className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
+          
+          {currentUser ? (
             <button
-              onClick={toggleTheme}
-              className="text-slate-600 dark:text-gray-400 p-1 hover:text-emerald-500 transition-colors"
+              onClick={() => {
+                logout();
+                navigate('/login', { replace: true });
+              }}
+              className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+              title="Sign Out"
             >
-              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              <LogOut className="w-4 h-4" />
             </button>
-            {/* Alerts icon moved here for mobile */}
-            <Link to="/alerts" className="relative text-slate-600 dark:text-gray-400 flex items-center justify-center">
-              <AlertCircle className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
-            {/* Settings icon moved here for mobile */}
-            <Link to="/settings" className="text-slate-600 dark:text-gray-400 flex items-center justify-center">
-              <Settings className="w-5 h-5" />
-            </Link>
-            <div className="flex items-center pt-1">
-              <UserButton appearance={{ elements: { userButtonAvatarBox: 'w-8 h-8' } }} />
-            </div>
-          </div>
-        </SignedIn>
-        <SignedOut>
-          <div className="bg-emerald-600 text-white rounded-lg px-4 py-1.5 text-sm font-medium cursor-pointer">
-            <SignInButton mode="modal">{t('sidebar.signin')}</SignInButton>
-          </div>
-        </SignedOut>
+          ) : (
+            <button
+              onClick={() => navigate('/login', { replace: true })}
+              className="bg-emerald-600 text-white rounded-lg px-3 py-1 text-xs font-bold"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── MOBILE BOTTOM NAV ── */}

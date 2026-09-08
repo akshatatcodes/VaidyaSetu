@@ -22,6 +22,7 @@ import VitalAnalysisModal from '../components/VitalAnalysisModal';
 import LabAnalysisModal from '../components/LabAnalysisModal';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 
 import { API_URL } from '../config/api';
 
@@ -83,9 +84,13 @@ const VitalCard = ({ title, value, unit, type, status, trend, timestamp, icon: I
 
 const Vitals = () => {
   const { user } = useUser();
+  const { currentUser } = useAuth();
   const { t } = useTranslation();
-  const [demoUser] = useState({ id: 'demo_user_123', fullName: 'Demo Patient' });
-  const activeUser = user || demoUser;
+  const effectiveUserId = currentUser?.patientId || currentUser?.mobile || user?.id;
+  const activeUser = {
+    id: effectiveUserId,
+    fullName: currentUser?.patientName || user?.fullName || 'Ayush Patient'
+  };
   const [vitals, setVitals] = useState({});
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -106,13 +111,17 @@ const Vitals = () => {
   const [labTrends, setLabTrends] = useState([]);
 
   const fetchVitals = async ({ silent = false } = {}) => {
+    if (!effectiveUserId) {
+      if (!silent) setLoading(false);
+      return;
+    }
     if (!silent) setLoading(true);
     try {
       // Phase 1: load critical card/chart data first for fast first paint.
       const [latestRes, historyRes, reportRes] = await Promise.all([
-        axios.get(`${API_URL}/vitals/latest/${activeUser.id}`),
-        axios.get(`${API_URL}/vitals/${activeUser.id}`),
-        axios.get(`${API_URL}/reports/${activeUser.id}`).catch(() => ({ data: { status: 'error' } }))
+        axios.get(`${API_URL}/vitals/latest/${effectiveUserId}`),
+        axios.get(`${API_URL}/vitals/${effectiveUserId}`),
+        axios.get(`${API_URL}/reports/${effectiveUserId}`).catch(() => ({ data: { status: 'error' } }))
       ]);
 
       if (latestRes.data.status === 'success') {
@@ -158,8 +167,9 @@ const Vitals = () => {
   };
 
   useEffect(() => {
-    if (activeUser) fetchVitals();
-  }, [activeUser]);
+    if (effectiveUserId) fetchVitals();
+    else setLoading(false);
+  }, [effectiveUserId]);
 
   const handleDeleteLabResult = async (labId) => {
     if (!confirm('Are you sure you want to delete this lab result?')) return;

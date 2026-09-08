@@ -10,7 +10,8 @@
  */
 
 const { Groq } = require('groq-sdk');
-const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_');
+const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 /**
  * Generate personalized mitigation steps for abnormal vitals

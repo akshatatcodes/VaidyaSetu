@@ -9,7 +9,25 @@ const { schedulePredictiveRecompute } = require('../services/predictiveRiskRecom
 // Get current profile with metadata
 router.get('/:clerkId', async (req, res) => {
   try {
-    const profile = await UserProfile.findOne({ clerkId: req.params.clerkId });
+    const rawId = req.params.clerkId;
+    let profile = await UserProfile.findOne({ clerkId: rawId });
+
+    if (!profile) {
+      const cleanDigits = rawId.replace(/\D/g, '').slice(-10);
+      if (cleanDigits.length === 10) {
+        profile = await UserProfile.findOne({
+          $or: [
+            { clerkId: `PAT-${cleanDigits}` },
+            { 'phone.value': new RegExp(cleanDigits) }
+          ]
+        });
+      }
+    }
+
+    if (!profile && rawId.includes('-')) {
+      profile = await UserProfile.findOne({ 'abhaId.value': rawId });
+    }
+
     if (!profile) {
       return res.status(404).json({ status: 'not_found', message: 'Profile not found' });
     }

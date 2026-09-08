@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import {
   Scale, Activity, Utensils, AlertTriangle,
   History, Edit3, ArrowRight, CheckCircle2, Clock,
   Heart, Wind, Brain, Venus, X, Zap, Shield,
-  Cigarette, Wine, Salad, Apple, TrendingUp, RefreshCw, Download
+  Cigarette, Wine, Salad, Apple, TrendingUp, RefreshCw, Download, LogOut, AlertCircle
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 import { API_URL } from '../config/api';
 
@@ -88,9 +89,9 @@ const StatRow = ({ label, value, unit = '', highlight = false }) => (
   <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
     <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</span>
     <span className={`text-xs font-black px-2.5 py-0.5 rounded-lg ${
-      highlight ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-200/50 dark:bg-white/5 text-gray-900 dark:text-gray-100'
+      highlight && value ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-200/50 dark:bg-white/5 text-gray-900 dark:text-gray-100'
     }`}>
-      {value !== null && value !== undefined && value !== '' ? `${value}${unit ? ' ' + unit : ''}` : '—'}
+      {value !== null && value !== undefined && value !== '' ? `${value}${unit ? ' ' + unit : ''}` : 'Not provided'}
     </span>
   </div>
 );
@@ -130,6 +131,9 @@ const CardHeader = ({ icon: Icon, title, iconColor, lastUpdated }) => (
 ───────────────────────────────────────────── */
 const HealthProfile = () => {
   const { user } = useUser();
+  const { signOut } = useClerk();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { theme } = useTheme();
   const location = useLocation();
@@ -139,41 +143,78 @@ const HealthProfile = () => {
   const [error, setError] = useState(null);
   const [toastMessage, setToastMessage] = useState(location.state?.toast || null);
 
-  useEffect(() => {
-    if (user) {
-      axios.get(`${API_URL}/profile/${user.id}`)
-        .then(res => {
-          if (res.data.status === 'success') {
-            setProfile(res.data.data);
-            setDataQuality(res.data.dataQuality);
-          } else {
-            setError(t('profile.errors.failed_load', { defaultValue: 'Failed to synchronize bio-ledger.' }));
-          }
-        })
-        .catch(err => {
-          console.error('Error fetching profile:', err);
-          setError(t('profile.errors.connection', { defaultValue: 'Gateway connection failed.' }));
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [user]);
+  const effectiveUserId = currentUser?.patientId || currentUser?.mobile || user?.id;
 
-  if (loading || !profile) return (
+  const loadProfileData = () => {
+    if (!effectiveUserId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    axios.get(`${API_URL}/profile/${effectiveUserId}`)
+      .then(res => {
+        if (res.data.status === 'success') {
+          setProfile(res.data.data);
+          setDataQuality(res.data.dataQuality);
+        } else {
+          setError(t('profile.errors.failed_load', { defaultValue: 'Failed to synchronize bio-ledger.' }));
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching profile:', err);
+        if (err.response?.status === 404) {
+          setProfile({
+            clerkId: effectiveUserId,
+            name: { value: currentUser?.patientName || currentUser?.name || 'New Patient' },
+            phone: { value: currentUser?.mobile || '' },
+            abhaId: { value: currentUser?.abhaId || '' },
+            gender: { value: currentUser?.gender || '' },
+            age: { value: currentUser?.age || '' },
+            onboardingCompleted: false
+          });
+          setDataQuality({ score: 10, label: 'Incomplete', message: 'Complete onboarding to generate health matrix.' });
+        } else {
+          setError(t('profile.errors.connection', { defaultValue: 'Gateway connection failed.' }));
+        }
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadProfileData();
+  }, [effectiveUserId]);
+
+  if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh] bg-transparent">
       <RefreshCw className="w-10 h-10 text-emerald-500 animate-spin" />
     </div>
   );
 
+  if (error && !profile) return (
+    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center p-6">
+      <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center font-bold text-xl">!</div>
+      <p className="text-slate-600 dark:text-gray-300 font-semibold">{error || 'Unable to load profile data.'}</p>
+      <button
+        onClick={loadProfileData}
+        className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-emerald-500 cursor-pointer transition-all"
+      >
+        Retry Loading
+      </button>
+    </div>
+  );
+
+  const isOnboardingDone = Boolean(profile?.onboardingCompleted ?? profile?.onboardingComplete);
   const bmiRaw = profile?.bmi?.value;
   const bmi = (bmiRaw && !isNaN(parseFloat(bmiRaw))) ? parseFloat(bmiRaw).toFixed(1) : null;
   const bmiCat = profile?.bmiCategory?.value || '';
-  const qualityScore = dataQuality?.score || 0;
-  const dqLabel = (dataQuality?.label || 'Basic').toLowerCase();
+  const qualityScore = dataQuality?.score || (isOnboardingDone ? 60 : 10);
+  const dqLabel = (dataQuality?.label || (isOnboardingDone ? 'Basic' : 'Incomplete')).toLowerCase();
   const isFemale = profile?.gender?.value?.toString().toLowerCase() === 'female';
   
   const getInitials = () => {
     try {
-      const rawName = profile?.name?.value || user?.fullName || 'User';
+      const rawName = profile?.name?.value || currentUser?.patientName || user?.fullName || 'User';
       if (!rawName || typeof rawName !== 'string') return 'U';
       const parts = rawName.split(' ').filter(Boolean);
       return parts.length > 0 ? parts.map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'U';
@@ -242,21 +283,61 @@ const HealthProfile = () => {
               )}
             </div>
             <h1 className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tighter mb-2 italic uppercase">
-              {profile?.name?.value || user?.fullName || t('profile.errors.no_profile', { defaultValue: 'Legacy Entity' })}
+              {profile?.name?.value || currentUser?.patientName || currentUser?.name || user?.fullName || t('profile.errors.no_profile', { defaultValue: 'Patient Profile' })}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm max-w-lg leading-relaxed font-medium">
               {t('profile.health_overview_subtitle', { defaultValue: 'Real-time overview of your foundational health metrics.' })}
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 flex-shrink-0 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row md:flex-col gap-3 flex-shrink-0 w-full md:w-auto">
             <Link to="/profile/edit"
               className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95 uppercase tracking-widest text-[10px]">
               <Edit3 size={15} /> {t('profile.edit_profile', { defaultValue: 'Edit Ledger' })}
             </Link>
+            <button
+              onClick={() => {
+                if (logout) logout();
+                try { signOut(); } catch (e) {}
+                navigate('/sign-in');
+              }}
+              className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-sm font-bold shadow-md transition-all active:scale-95 uppercase tracking-widest text-[10px] cursor-pointer"
+            >
+              <LogOut size={15} /> Sign Out
+            </button>
           </div>
         </div>
       </div>
+
+      {/* ── ONBOARDING BANNER IF INCOMPLETE ── */}
+      {!isOnboardingDone && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 rounded-[2.5rem] p-6 lg:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl mb-8">
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <AlertCircle size={28} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider">
+                  Action Required
+                </span>
+                <h3 className="text-lg font-black text-gray-900 dark:text-white">
+                  Clinical Onboarding Incomplete
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xl font-medium">
+                You have not completed your comprehensive onboarding questionnaire yet. Your biometrics, vital habits, diet, and risk scores will be calibrated and displayed once submitted.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/onboarding"
+            className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-wider shrink-0"
+          >
+            Complete Onboarding Now <ArrowRight size={16} />
+          </Link>
+        </div>
+      )}
 
       {/* ── DATA QUALITY BANNER ── */}
       {dataQuality && (

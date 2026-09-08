@@ -13,23 +13,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import ThemeToggle from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 const Onboarding = () => {
   const { step, setStep, formData, updateFormData, resetOnboarding } = useOnboardingStore();
   const { theme } = useTheme();
   const { user, isLoaded } = useUser();
+  const { currentUser } = useAuth();
+
+  const effectiveUserId = currentUser?.patientId || currentUser?.mobile || user?.id;
 
   // Multi-user protection: Reset if userId has changed
   useEffect(() => {
-    if (isLoaded && user) {
-        if (formData.userId && formData.userId !== user.id) {
-            resetOnboarding();
-            updateFormData({ userId: user.id });
-        } else if (!formData.userId) {
-            updateFormData({ userId: user.id });
-        }
+    if (effectiveUserId) {
+      if (formData.userId && formData.userId !== effectiveUserId) {
+        resetOnboarding();
+        updateFormData({
+          userId: effectiveUserId,
+          firstName: currentUser?.patientName?.split(' ')[0] || '',
+          lastName: currentUser?.patientName?.split(' ').slice(1).join(' ') || '',
+          gender: currentUser?.gender || '',
+          age: currentUser?.age || ''
+        });
+      } else if (!formData.userId) {
+        updateFormData({
+          userId: effectiveUserId,
+          firstName: currentUser?.patientName?.split(' ')[0] || '',
+          lastName: currentUser?.patientName?.split(' ').slice(1).join(' ') || '',
+          gender: currentUser?.gender || '',
+          age: currentUser?.age || ''
+        });
+      }
     }
-  }, [isLoaded, user, formData.userId]);
+  }, [effectiveUserId, formData.userId]);
 
   const renderStep = () => {
     switch (step) {

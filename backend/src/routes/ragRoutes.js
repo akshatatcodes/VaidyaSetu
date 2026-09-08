@@ -19,7 +19,8 @@ const Alert = require('../models/Alert');
 const UserProfile = require('../models/UserProfile');
 const Medication = require('../models/Medication');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_');
+const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 // POST /api/rag/check-safety
 router.post('/check-safety', async (req, res) => {
@@ -70,21 +71,20 @@ router.post('/check-safety', async (req, res) => {
     let modelUsed = 'llama-3.3-70b-versatile';
     let isFallback = false;
 
-    try {
-      console.log(`[Groq] Attempting Analysis (70B Model)...`);
-      const completion = await groq.chat.completions.create({
-        messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }],
-        model: modelUsed,
-        response_format: { type: 'json_object' }
-      });
-      report = JSON.parse(completion.choices[0]?.message?.content || '{}');
-    } catch (err) {
-      if (err.status === 429 || err.message.includes('rate_limit')) {
-        console.warn(`[Groq] 70B Rate Limited. Falling back to 8B Model...`);
-        modelUsed = 'llama-3.1-8b-instant';
-        isFallback = true;
-        
+    if (groq) {
+      try {
+        console.log(`[Groq] Attempting Analysis (70B Model)...`);
+        const completion = await groq.chat.completions.create({
+          messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }],
+          model: modelUsed,
+          response_format: { type: 'json_object' }
+        });
+        report = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      } catch (err) {
+        console.warn(`[Groq] Primary LLM failed (${err.message}). Trying fast fallback...`);
         try {
+          modelUsed = 'llama-3.1-8b-instant';
+          isFallback = true;
           const fallbackCompletion = await groq.chat.completions.create({
             messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }],
             model: modelUsed,
@@ -92,18 +92,32 @@ router.post('/check-safety', async (req, res) => {
           });
           report = JSON.parse(fallbackCompletion.choices[0]?.message?.content || '{}');
         } catch (fallbackErr) {
-          console.error(`[Groq] Fallback Failed: ${fallbackErr.message}`);
-          // Tier 3: Return raw context if LLM is completely down
-          report = {
-            hasInteraction: true,
-            severity: 'Review Evidence',
-            summary: "AI analysis is currently unavailable due to high demand. Please review the raw evidence sources below for safety guidance.",
-            interactions: []
-          };
+          console.warn(`[Groq] All Groq models unavailable (${fallbackErr.message}). Using clinical rule fallback.`);
+          report = null;
         }
-      } else {
-        throw err; // Rethrow non-rate-limit errors
       }
+    }
+
+    // Tier 3 Deterministic Clinical Fallback if LLM unavailable
+    if (!report) {
+      isFallback = true;
+      modelUsed = 'clinical-rule-engine';
+      const fallbackInteractions = (directMatches || []).map(dm => ({
+        medicines_involved: [dm.drugA, dm.drugB],
+        severity: dm.severity || 'Moderate',
+        source_citation: dm.source || 'Ayurvedic Pharmacopoeia & RxNav',
+        mechanism: dm.description || `Known interaction between ${dm.drugA} and ${dm.drugB}.`,
+        management: 'Review with prescribing physician before combined use.'
+      }));
+      report = {
+        hasInteraction: fallbackInteractions.length > 0,
+        status: fallbackInteractions.length > 0 ? (fallbackInteractions.some(i => i.severity === 'High') ? 'Unsafe' : 'Caution') : 'Safe',
+        severity: fallbackInteractions.length > 0 ? fallbackInteractions[0].severity : 'None',
+        summary: fallbackInteractions.length > 0 
+          ? `Detected ${fallbackInteractions.length} potential interaction(s) using clinical safety rules.`
+          : 'No known severe herb-drug interactions detected between selected medicines.',
+        interactions: fallbackInteractions
+      };
     }
 
     // LAYER 3: Post-Processing Verification - Ensure direct database matches are included

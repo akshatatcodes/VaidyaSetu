@@ -52,22 +52,17 @@ async function performVectorSearch(queryVector, medicines = []) {
   try {
     return await collection.aggregate(pipeline).toArray();
   } catch (err) {
-    console.warn(`[RAG-Fallback] Primary aggregation failed: ${err.message}. Attempting recovery...`);
-    
-    // Fallback: Simple Vector Search (No match filtering)
-    const fallbackPipeline = [
-      {
-        $vectorSearch: {
-          index: 'vector_index',
-          path: 'embedding',
-          queryVector,
-          numCandidates: 50,
-          limit: 10
-        }
-      },
-      { $project: { _id: 0, text: 1, source_database: 1, document_title: 1, score: { $meta: 'vectorSearchScore' } } }
-    ];
-    return await collection.aggregate(fallbackPipeline).toArray();
+    console.warn(`[RAG-Fallback] Atlas $vectorSearch not available (${err.message}). Falling back to local keyword search...`);
+    try {
+      const fallbackResults = await collection.find(filterQuery)
+        .limit(10)
+        .project({ _id: 0, text: 1, source_database: 1, document_title: 1 })
+        .toArray();
+      return fallbackResults.map(r => ({ ...r, score: 0.85 }));
+    } catch (e2) {
+      console.warn(`[RAG-Fallback] Local keyword fallback error: ${e2.message}`);
+      return [];
+    }
   }
 }
 

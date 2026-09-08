@@ -18,7 +18,7 @@ router.post('/profile', async (req, res) => {
     }
 
     // Convert flat data to nested structure for onboarding
-    const nestedData = { clerkId, onboardingComplete: true };
+    const nestedData = { clerkId, onboardingComplete: true, onboardingCompleted: true };
     const excludedFields = new Set(['clerkId', 'firstName', 'lastName']);
     const fields = Object.keys(profileData).filter((key) => !excludedFields.has(key));
 
