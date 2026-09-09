@@ -34,6 +34,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import LabDashboard from './pages/LabDashboard';
 import QueueDisplay from './pages/QueueDisplay';
 import HelpSupport from './pages/HelpSupport';
+import MyConsent from './pages/MyConsent';
 
 import { API_URL } from './config/api';
 
@@ -170,6 +171,8 @@ const AppLayout = () => {
               <Route path="/history" element={<ChangeHistory />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
               <Route path="/vitals" element={<Vitals />} />
+              <Route path="/consent/my" element={<MyConsent />} />
+              <Route path="/consent" element={<MyConsent />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />

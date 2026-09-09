@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle, AlertCircle } from 'lucide-react';
+import { Home, FileText, Activity, ShieldAlert, ShieldCheck, Settings, LogOut, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle, AlertCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,7 @@ const Sidebar = () => {
     { to: '/visits', icon: ClipboardCheck, label: t('sidebar.visits', 'Visits') },
     { to: '/records', icon: FileText, label: t('sidebar.records', 'Records') },
     { to: '/medicines', icon: Pill, label: t('sidebar.medicines', 'Medicines') },
+    { to: '/consent/my', icon: ShieldCheck, label: t('sidebar.consent', 'My Consent') },
     { to: '/help', icon: HelpCircle, label: t('sidebar.help', 'Help & Guide') },
     { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'OPD MediKiosk') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'My Vitals') },
