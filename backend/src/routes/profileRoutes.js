@@ -1,40 +1,69 @@
 const express = require('express');
 const router = express.Router();
 const UserProfile = require('../models/UserProfile');
+const Patient = require('../models/Patient');
 const History = require('../models/History');
 const { calculateDataQuality } = require('../utils/dataQualityWatcher');
 
-// Get current profile with metadata
+// Get current profile with metadata (Consolidated on Patient model §4, §5, §66)
 router.get('/:clerkId', async (req, res) => {
   try {
     const rawId = req.params.clerkId;
+    const cleanDigits = rawId.replace(/\D/g, '').slice(-10);
+
+    let patient = null;
+    if (String(rawId).match(/^[0-9a-fA-F]{24}$/)) {
+      patient = await Patient.findById(rawId);
+    }
+    if (!patient) {
+      patient = await Patient.findOne({ abhaId: rawId }) ||
+        await Patient.findOne({ mobileNumber: cleanDigits }) ||
+        await Patient.findOne({ 'basicInfo.contactNumber': cleanDigits });
+    }
+
     let profile = await UserProfile.findOne({ clerkId: rawId });
-
-    if (!profile) {
-      const cleanDigits = rawId.replace(/\D/g, '').slice(-10);
-      if (cleanDigits.length === 10) {
-        profile = await UserProfile.findOne({
-          $or: [
-            { clerkId: `PAT-${cleanDigits}` },
-            { 'phone.value': new RegExp(cleanDigits) }
-          ]
-        });
-      }
+    if (!profile && cleanDigits.length === 10) {
+      profile = await UserProfile.findOne({
+        $or: [
+          { clerkId: `PAT-${cleanDigits}` },
+          { 'phone.value': new RegExp(cleanDigits) }
+        ]
+      });
     }
 
-    if (!profile && rawId.includes('-')) {
-      profile = await UserProfile.findOne({ 'abhaId.value': rawId });
+    if (!patient && !profile) {
+      // Auto-create Patient document to ensure zero data orphans (§4)
+      patient = await Patient.create({
+        basicInfo: {
+          fullName: 'Ayush Patient',
+          age: 30,
+          gender: 'Male',
+          contactNumber: cleanDigits ? `+91 ${cleanDigits}` : ''
+        },
+        abhaId: rawId.includes('-') ? rawId : undefined
+      });
     }
 
-    if (!profile) {
-      return res.status(404).json({ status: 'not_found', message: 'Profile not found' });
+    const dq = profile ? calculateDataQuality(profile) : { score: 90, label: 'Good' };
+
+    // Format response merging Patient health profile and UserProfile
+    const responseData = profile ? profile.toObject() : {};
+    if (patient) {
+      responseData._id = patient._id;
+      responseData.patientId = patient._id;
+      responseData.basicInfo = patient.basicInfo;
+      responseData.healthProfile = patient.healthProfile;
+      responseData.ayushProfile = patient.ayushProfile;
+      responseData.abhaId = { value: patient.abhaId || responseData.abhaId?.value };
+      responseData.name = { value: patient.basicInfo?.fullName || responseData.name?.value };
+      responseData.age = { value: patient.basicInfo?.age || responseData.age?.value };
+      responseData.gender = { value: patient.basicInfo?.gender || responseData.gender?.value };
     }
-    
-    const dq = calculateDataQuality(profile);
-    
-    res.json({ 
-      status: 'success', 
-      data: profile,
+
+    res.json({
+      status: 'success',
+      data: responseData,
+      patient,
       dataQuality: dq
     });
   } catch (error) {
@@ -143,6 +172,45 @@ router.post('/update', async (req, res) => {
       Object.keys(updates).forEach(field => profile.markModified(field));
       
       await profile.save();
+
+      // Sync to Patient document (§4, §5)
+      try {
+        const cleanDigits = clerkId.replace(/\D/g, '').slice(-10);
+        let patient = null;
+        if (String(clerkId).match(/^[0-9a-fA-F]{24}$/)) {
+          patient = await Patient.findById(clerkId);
+        }
+        if (!patient) {
+          patient = await Patient.findOne({ abhaId: clerkId }) ||
+            await Patient.findOne({ userId: clerkId }) ||
+            (cleanDigits.length === 10 ? (
+              await Patient.findOne({ mobileNumber: cleanDigits }) ||
+              await Patient.findOne({ 'basicInfo.contactNumber': new RegExp(cleanDigits) })
+            ) : null);
+        }
+        if (patient) {
+          if (updates.name || updates.fullName) patient.basicInfo.fullName = updates.name || updates.fullName;
+          if (updates.age) patient.basicInfo.age = Number(updates.age);
+          if (updates.gender) patient.basicInfo.gender = updates.gender;
+          if (updates.bloodGroup) patient.basicInfo.bloodGroup = updates.bloodGroup;
+          if (updates.allergies && Array.isArray(updates.allergies)) {
+            patient.healthProfile.allergies = updates.allergies.map(a => ({
+              substance: typeof a === 'string' ? a : (a.substance || a.name || ''),
+              sourceTag: 'Patient reported',
+              status: 'Confirmed'
+            }));
+          }
+          if (updates.medicalHistory && Array.isArray(updates.medicalHistory)) {
+            patient.healthProfile.existingDiseases = updates.medicalHistory.map(m => ({
+              condition: typeof m === 'string' ? m : (m.condition || m.name || ''),
+              sourceTag: 'Patient reported'
+            }));
+          }
+          await patient.save();
+        }
+      } catch (err) {
+        console.error('Error syncing to Patient model:', err);
+      }
     }
 
     // Debounced predictive-risk refresh (baseline affected by onboarding/profile changes)

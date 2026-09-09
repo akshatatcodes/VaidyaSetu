@@ -123,32 +123,8 @@ const HealthProfile = () => {
         setPatient(res.data.data);
       }
     } catch (err) {
-      // Fallback to profile route if not found in patient collection
-      try {
-        const profRes = await axios.get(`${API_URL}/profile/${targetId}`);
-        if (profRes.data.status === 'success') {
-          const p = profRes.data.data;
-          setPatient({
-            _id: p.clerkId,
-            basicInfo: {
-              fullName: p.name?.value || currentUser?.patientName || 'Patient',
-              age: p.age?.value || 30,
-              gender: p.gender?.value || 'Male',
-              contactNumber: p.phone?.value || '',
-              bloodGroup: 'Unknown'
-            },
-            healthProfile: {
-              allergies: (p.allergies?.value || []).map(a => ({ substance: a, sourceTag: 'Patient reported' })),
-              existingDiseases: (p.medicalHistory?.value || []).map(d => ({ condition: d, sourceTag: 'Patient reported' })),
-              personalHistory: { smoking: 'Not reported', alcohol: 'Not reported', diet: 'Not reported' }
-            },
-            ayushProfile: { prakriti: 'Not reported', vikriti: 'Not reported', ahara: 'Not reported', vihara: 'Not reported', agni: 'Not reported', koshtha: 'Not reported' }
-          });
-        }
-      } catch (fErr) {
-        console.error('Fallback profile load error:', fErr);
-        setError('Patient health record not found.');
-      }
+      console.error('Error loading patient data:', err);
+      setError('Patient health record not found.');
     } finally {
       setLoading(false);
     }
