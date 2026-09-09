@@ -239,6 +239,25 @@ export const AuthProvider = ({ children }) => {
     window.dispatchEvent(new Event('vaidya:auth-change'));
   };
 
+  // Login as Patient with existing session/profile object (OTP & Family selection)
+  const loginPatientSession = (patientUser, token = 'demo_patient_token') => {
+    const session = {
+      role: 'patient',
+      token,
+      user: patientUser
+    };
+    localStorage.setItem('vaidya_auth_session', JSON.stringify(session));
+    localStorage.setItem('vaidya_active_role', 'patient');
+    if (patientUser?.patientId || patientUser?._id) {
+      localStorage.setItem('vaidya_patient_id', patientUser.patientId || patientUser._id);
+    }
+    setIsAuthenticated(true);
+    setUserRole('patient');
+    setCurrentUser(patientUser);
+    window.dispatchEvent(new Event('vaidya:auth-change'));
+    return { success: true, role: 'patient', user: patientUser };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -249,6 +268,7 @@ export const AuthProvider = ({ children }) => {
         loginDoctor,
         registerDoctor,
         loginPatient,
+        loginPatientSession,
         registerPatient,
         loginLab,
         loginAdmin,

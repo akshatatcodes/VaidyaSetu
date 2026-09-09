@@ -14,6 +14,32 @@ const PatientSchema = new mongoose.Schema({
     trim: true,
     index: true
   },
+  abhaAddress: {
+    type: String,
+    trim: true
+  },
+  abhaLinkStatus: {
+    type: String,
+    enum: ['unlinked', 'pending_abdm_flow', 'linked', 'failed'],
+    default: 'unlinked'
+  },
+  mobileNumber: {
+    type: String,
+    trim: true,
+    index: true
+  },
+  familyHeadPatientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Patient'
+  },
+  relationshipToHead: {
+    type: String,
+    default: 'Self'
+  },
+  isFamilyHead: {
+    type: Boolean,
+    default: true
+  },
   basicInfo: {
     fullName: { type: String, required: true, trim: true },
     dob: { type: Date },

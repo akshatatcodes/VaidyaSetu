@@ -107,19 +107,50 @@ router.get('/family-members/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     let query = {};
+    let matchedUser = null;
+
     if (String(userId).match(/^[0-9a-fA-F]{24}$/)) {
       query.userId = userId;
+    } else {
+      // Treat as phone number or generic identifier
+      matchedUser = await User.findOne({ phone: userId });
+      if (matchedUser) {
+        query.userId = matchedUser._id;
+      }
     }
 
-    const familyMembers = await FamilyMember.find(query).populate('patientId');
+    let familyMembers = [];
+    if (query.userId) {
+      familyMembers = await FamilyMember.find(query).populate('patientId');
+    }
+
+    if (familyMembers.length > 0) {
+      return res.json({
+        status: 'success',
+        count: familyMembers.length,
+        data: familyMembers.map(fm => ({
+          familyMemberId: fm._id,
+          relation: fm.relation,
+          isPrimary: fm.isPrimary,
+          patient: fm.patientId
+        }))
+      });
+    }
+
+    // Fallback: search Patient directly by mobile number or userId
+    const patientQuery = matchedUser
+      ? { $or: [{ userId: matchedUser._id }, { mobileNumber: userId }, { 'basicInfo.contactNumber': userId }] }
+      : { $or: [{ mobileNumber: userId }, { 'basicInfo.contactNumber': userId }] };
+
+    const patients = await Patient.find(patientQuery);
     return res.json({
       status: 'success',
-      count: familyMembers.length,
-      data: familyMembers.map(fm => ({
-        familyMemberId: fm._id,
-        relation: fm.relation,
-        isPrimary: fm.isPrimary,
-        patient: fm.patientId
+      count: patients.length,
+      data: patients.map((p, idx) => ({
+        familyMemberId: p._id,
+        relation: p.relationshipToHead || (idx === 0 ? 'Self' : 'Family Member'),
+        isPrimary: idx === 0,
+        patient: p
       }))
     });
   } catch (error) {

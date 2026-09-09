@@ -31,6 +31,16 @@ router.post('/link-request', async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    // Also update Patient model if patient exists
+    const Patient = require('../models/Patient');
+    if (String(patientId).match(/^[0-9a-fA-F]{24}$/)) {
+      await Patient.findByIdAndUpdate(patientId, {
+        abhaId: cleanAbha,
+        abhaAddress: abhaAddress || '',
+        abhaLinkStatus: 'pending_abdm_flow'
+      });
+    }
+
     return res.status(202).json({
       status: 'success',
       message: 'ABHA linkage request registered. Awaiting ABDM M1/M2 OTP verification.',
