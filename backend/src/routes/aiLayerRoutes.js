@@ -39,41 +39,48 @@ router.post('/ocr', async (req, res) => {
 });
 
 /**
- * 3. POST /api/ai/history
+ * 3. POST /api/ai/history & POST /api/ai/socrates
  */
-router.post('/history', async (req, res) => {
+const handleHistory = async (req, res) => {
   try {
     const result = await processHistoryIntake(req.body);
     return res.json(result);
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
   }
-});
+};
+router.post('/history', handleHistory);
+router.post('/socrates', handleHistory);
 
 /**
- * 4. POST /api/ai/summary-pipeline
+ * 4. POST /api/ai/summary-pipeline, /summary, /soap
  * Summary pipeline (§64) with mandatory doctor review gate.
  */
-router.post('/summary-pipeline', async (req, res) => {
+const handleSummary = async (req, res) => {
   try {
     const result = await runSummaryPipeline(req.body);
     return res.json(result);
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
   }
-});
+};
+router.post('/summary-pipeline', handleSummary);
+router.post('/summary', handleSummary);
+router.post('/soap', handleSummary);
 
 /**
- * 5. POST /api/ai/risk-engine
+ * 5. POST /api/ai/risk-engine & POST /api/ai/risk
  */
-router.post('/risk-engine', async (req, res) => {
+const handleRisk = async (req, res) => {
   try {
     const result = await evaluateRiskScore(req.body);
     return res.json(result);
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
   }
-});
+};
+router.post('/risk-engine', handleRisk);
+router.post('/risk', handleRisk);
 
 /**
  * 6. POST /api/ai/routing

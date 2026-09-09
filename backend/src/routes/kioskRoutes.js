@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Encounter = require('../models/Encounter');
 const Patient = require('../models/Patient');
+const AIEvent = require('../models/AIEvent');
+const { processHistoryIntake } = require('../ai/historyAiService');
+const { evaluateRiskScore } = require('../ai/riskEngine');
+const { suggestDepartment } = require('../ai/routingService');
+const { runSummaryPipeline } = require('../ai/summaryAiService');
 const { processAdaptiveProbe, detectRedFlags } = require('../services/adaptiveSocratesService');
 const { generateSoapCaseSheet } = require('../services/soapGeneratorService');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
@@ -415,6 +420,14 @@ router.patch('/session/:id/vitals', async (req, res) => {
       }
     }
 
+    // Evaluate controlled AI Risk Engine service (§42)
+    await evaluateRiskScore({
+      symptoms: session.chiefComplaint ? [session.chiefComplaint] : [],
+      vitals: session.vitals,
+      encounterId: session._id,
+      patientId: session.patientId
+    }).catch(err => console.warn('[KioskRoutes] Controlled riskEngine evaluation warning:', err.message));
+
     await session.save();
 
     res.json({
@@ -465,7 +478,7 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
       });
     }
 
-    // Process probe through adaptive clinical engine
+    // Process probe through adaptive clinical engine & controlled AI services (§42)
     const probeResult = await processAdaptiveProbe({
       chiefComplaint: session.chiefComplaint || chiefComplaint || '',
       userSpeech,
@@ -479,6 +492,20 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
         gender: session.gender
       }
     });
+
+    // Write to controlled AI audit log layer (§42)
+    await processHistoryIntake({
+      chiefComplaint: session.chiefComplaint || chiefComplaint || '',
+      previousAnswers: (session.intakeTranscript || []).filter(t => t.speaker === 'patient').map(t => t.text),
+      encounterId: session._id,
+      patientId: session.patientId
+    }).catch(err => console.warn('[KioskRoutes] Controlled historyAI write warning:', err.message));
+
+    await suggestDepartment({
+      chiefComplaint: session.chiefComplaint || chiefComplaint || '',
+      encounterId: session._id,
+      patientId: session.patientId
+    }).catch(err => console.warn('[KioskRoutes] Controlled routing write warning:', err.message));
 
     // Update session SOCRATES fields
     session.socrates = probeResult.socrates;
@@ -636,9 +663,21 @@ const handleGenerateSoap = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Intake session not found' });
     }
 
-    // Generate SOAP note & diagnostic codes
+    // Generate SOAP note & diagnostic codes via controlled AI summary pipeline (§42, §64)
     const result = await generateSoapCaseSheet(session);
     session.soapNote = result.soapNote;
+
+    await runSummaryPipeline({
+      encounterId: session._id,
+      patientId: session.patientId,
+      asrInput: session.chiefComplaint,
+      ocrDocs: session.documentsUploaded || [],
+      vitals: session.vitals || {},
+      history: {
+        pastMedicalHistory: session.pastMedicalHistory || [],
+        allergies: session.allergies || []
+      }
+    }).catch(err => console.warn('[KioskRoutes] Controlled summaryAI pipeline warning:', err.message));
     if (session.queueStatus === 'waiting_intake') {
       session.queueStatus = 'intake_completed';
     }

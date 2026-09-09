@@ -555,6 +555,13 @@ router.post('/consultation/complete', async (req, res) => {
         encounter.diagnoses = diagnoses;
       }
       await encounter.save();
+
+      // Update AIEvent audit logs for doctor review sign-off (§42, §64)
+      const AIEvent = require('../models/AIEvent');
+      await AIEvent.updateMany(
+        { encounterId: encounter._id },
+        { $set: { reviewedByDoctor: true } }
+      ).catch(err => console.warn('[DoctorRoutes] AIEvent review status update warning:', err.message));
     }
 
     // 4. If doctor object provided, update consultationStats rolling speed (§18, §21)
