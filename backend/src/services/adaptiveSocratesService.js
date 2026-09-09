@@ -1,7 +1,47 @@
 const { Groq } = require('groq-sdk');
 
-const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_');
-const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim().length > 15;
+const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY.trim() }) : null;
+
+// Multi-model Groq fallback list optimized for speed and clinical reasoning
+const GROQ_FALLBACK_MODELS = [
+  'qwen/qwen3.8-27b',
+  'openai/gpt-oss-120b',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant'
+];
+
+/**
+ * Robust Groq caller with multi-model fallback and structured response handling
+ */
+async function callGroqWithFallback({ systemPrompt, userPrompt, json = false, temperature = 0.3 }) {
+  if (!groq) return null;
+  for (const model of GROQ_FALLBACK_MODELS) {
+    try {
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ];
+      const params = {
+        messages,
+        model,
+        temperature,
+        max_tokens: json ? 350 : 120
+      };
+      if (json) {
+        params.response_format = { type: 'json_object' };
+      }
+      const completion = await groq.chat.completions.create(params);
+      const content = completion.choices[0]?.message?.content?.trim();
+      if (content) {
+        return content;
+      }
+    } catch (err) {
+      console.warn(`[AdaptiveSocrates] Groq model ${model} bypass:`, err.message);
+    }
+  }
+  return null;
+}
 
 // Standard rapid SOCRATES steps (Capped to max 4 focused questions to prevent patient fatigue)
 const SOCRATES_STEPS = [
@@ -202,46 +242,48 @@ async function processAdaptiveProbe({
   // 2. Parse current utterance into structured field
   let updatedSocrates = updateSocratesStateDeterministic(currentStep, userSpeech, socratesState);
 
-  // 3. Optional LLM Refinement if Groq is active
+  // 3. Dynamic LLM Extraction of all stated symptom parameters
   if (groq && userSpeech) {
     try {
-      const prompt = `Extract medical symptom parameters from patient response.
-Patient Complaint: "${chiefComplaint || ''}"
+      const extractionSystem = 'You are an expert clinical NLP triage extractor at an Indian hospital. Extract symptom parameters into a single valid JSON object. Do not invent details not mentioned by the patient.';
+      const extractionUser = `Patient Complaint: "${chiefComplaint || ''}"
 Current Step: "${currentStep || ''}"
 Patient Utterance: "${userSpeech}"
-Existing SOCRATES: ${JSON.stringify(socratesState)}
+Existing SOCRATES Context: ${JSON.stringify(socratesState)}
 
-Return ONLY JSON matching:
+Return ONLY JSON:
 {
   "site": "anatomical region or null",
   "onset": "duration or onset pattern or null",
   "character": "pain description or null",
   "radiation": "radiation area or null",
-  "associations": ["symptoms"],
+  "associations": ["symptoms array"],
   "timeCourse": "timing pattern or null",
   "exacerbatingRelieving": "modifying factors or null",
   "severity": number 1-10 or null
 }`;
 
-      const completion = await groq.chat.completions.create({
-        messages: [{ role: 'system', content: prompt }],
-        model: 'llama-3.3-70b-versatile',
-        response_format: { type: 'json_object' }
+      const rawJson = await callGroqWithFallback({
+        systemPrompt: extractionSystem,
+        userPrompt: extractionUser,
+        json: true,
+        temperature: 0.1
       });
-      const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
-      
-      // Merge only non-null values
-      Object.keys(parsed).forEach(k => {
-        if (parsed[k] !== null && parsed[k] !== undefined && parsed[k] !== '') {
-          if (Array.isArray(parsed[k]) && parsed[k].length > 0) {
-            updatedSocrates[k] = parsed[k];
-          } else if (!Array.isArray(parsed[k])) {
-            updatedSocrates[k] = parsed[k];
+
+      if (rawJson) {
+        const parsed = JSON.parse(rawJson);
+        Object.keys(parsed).forEach(k => {
+          if (parsed[k] !== null && parsed[k] !== undefined && parsed[k] !== '') {
+            if (Array.isArray(parsed[k]) && parsed[k].length > 0) {
+              updatedSocrates[k] = parsed[k];
+            } else if (!Array.isArray(parsed[k])) {
+              updatedSocrates[k] = parsed[k];
+            }
           }
-        }
-      });
+        });
+      }
     } catch (llmErr) {
-      console.warn('[AdaptiveSocrates] Groq refinement bypassed:', llmErr.message);
+      console.warn('[AdaptiveSocrates] Groq extraction bypassed:', llmErr.message);
     }
   }
 
@@ -254,20 +296,78 @@ Return ONLY JSON matching:
     gender: patientContext?.gender || vitals.gender
   });
 
-  // 5. Determine next step (Max 4 steps)
+  // 5. Determine next missing step (Max 4 steps)
   const nextStep = getNextStep(updatedSocrates);
   const isComplete = nextStep === null;
 
-  // 6. Formulate next clinical question
+  // 6. Formulate smart dynamic doctor question
   let nextQuestion = null;
   if (!isComplete) {
-    nextQuestion = QUESTION_TEMPLATES[nextStep]?.[lang] || QUESTION_TEMPLATES[nextStep]?.en;
+    // Dynamic doctor follow-up probe via Groq
+    if (groq && userSpeech) {
+      try {
+        const langName = lang === 'hi' ? 'Hindi (हिन्दी)' : lang === 'mr' ? 'Marathi (मराठी)' : 'English';
+        const doctorSystem = `You are a warm, empathetic, and experienced Indian OPD Doctor conducting a voice intake at a hospital kiosk.
+Your goal is to make the patient feel heard, comfortable, and respected.
+1. Briefly acknowledge what the patient said with natural medical empathy.
+2. Ask ONE focused, natural follow-up question to probe the missing clinical dimension ("${nextStep}").
+Strict Rules:
+- Language: Respond ONLY in ${langName}.
+- Length: Maximum 1 to 2 short spoken sentences. Never overwhelm the patient.
+- No repetition: Never re-ask for details the patient already provided.
+- Output ONLY the doctor's spoken question. No preamble, no quotes, no labels.`;
+
+        const doctorUser = `Chief Complaint: "${chiefComplaint || ''}"
+Patient statement: "${userSpeech}"
+Known clinical details: ${JSON.stringify(updatedSocrates)}
+Missing dimension to probe: "${nextStep}"
+Target Spoken Language: ${langName}`;
+
+        const dynamicDoctorQuestion = await callGroqWithFallback({
+          systemPrompt: doctorSystem,
+          userPrompt: doctorUser,
+          temperature: 0.3
+        });
+
+        if (dynamicDoctorQuestion && dynamicDoctorQuestion.length > 5) {
+          nextQuestion = dynamicDoctorQuestion.replace(/^["'\s]+|["'\s]+$/g, '');
+        }
+      } catch (err) {
+        console.warn('[AdaptiveSocrates] Dynamic doctor question generation failed, falling back:', err.message);
+      }
+    }
+
+    // High quality template fallback if LLM is unavailable or takes too long
+    if (!nextQuestion) {
+      nextQuestion = QUESTION_TEMPLATES[nextStep]?.[lang] || QUESTION_TEMPLATES[nextStep]?.en;
+    }
   } else {
-    nextQuestion = {
-      en: "Thank you. Your symptom details have been recorded for the doctor.",
-      hi: "धन्यवाद। आपके लक्षणों का पूरा विवरण डॉक्टर के अवलोकन हेतु सुरक्षित कर लिया गया है।",
-      mr: "धन्यवाद. आपल्या लक्षणांचा संपूर्ण तपशील डॉक्टरांच्या तपासणीसाठी नोंदवला गेला आहे."
-    }[lang];
+    // Consultation completed
+    if (groq && userSpeech) {
+      try {
+        const langName = lang === 'hi' ? 'Hindi' : lang === 'mr' ? 'Marathi' : 'English';
+        const closingSystem = `You are a doctor at an Indian hospital concluding the initial voice triage intake. Give a 1-sentence warm closing thanking the patient and reassuring them the doctor has their full details. Respond ONLY in ${langName}. Keep it short and polite.`;
+        const closingUser = `Patient symptoms: ${JSON.stringify(updatedSocrates)}. Language: ${langName}`;
+        const dynamicClosing = await callGroqWithFallback({
+          systemPrompt: closingSystem,
+          userPrompt: closingUser,
+          temperature: 0.2
+        });
+        if (dynamicClosing && dynamicClosing.length > 5) {
+          nextQuestion = dynamicClosing.replace(/^["'\s]+|["'\s]+$/g, '');
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+
+    if (!nextQuestion) {
+      nextQuestion = {
+        en: "Thank you. Your symptom details have been recorded for the doctor.",
+        hi: "धन्यवाद। आपके लक्षणों का पूरा विवरण डॉक्टर के अवलोकन हेतु सुरक्षित कर लिया गया है।",
+        mr: "धन्यवाद. आपल्या लक्षणांचा संपूर्ण तपशील डॉक्टरांच्या तपासणीसाठी नोंदवला गेला आहे."
+      }[lang];
+    }
   }
 
   return {

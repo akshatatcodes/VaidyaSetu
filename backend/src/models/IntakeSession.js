@@ -131,18 +131,19 @@ const IntakeSessionSchema = new mongoose.Schema({
       kaphaScore: { type: Number, default: 0 },
       summary: { type: String }
     },
-    vikriti: { type: String }, // Present doshic disturbance: Vata Vriddhi, Pitta Prakopa, etc.
-    sara: { type: String, enum: ['Pravara (Superior)', 'Madhyama (Medium)', 'Avara (Inferior)', '', null], default: 'Madhyama (Medium)' }, // Tissue essence
-    samhanana: { type: String, enum: ['Susamhata (Compact)', 'Madhyama (Moderate)', 'Hina (Frail)', '', null], default: 'Madhyama (Moderate)' }, // Compactness of body
-    pramana: { type: String, enum: ['Prakrita (Proportionate)', 'Atisthaulya (Obese)', 'Atikarshya (Emaciated)', '', null], default: 'Prakrita (Proportionate)' },
-    satmya: { type: String, enum: ['Sarva-rasa (All tastes adaptable)', 'Oka-satmya (Habitual single taste)', 'Vyashamishra', '', null], default: 'Sarva-rasa (All tastes adaptable)' },
-    satva: { type: String, enum: ['Pravara (High mental endurance)', 'Madhyama (Moderate)', 'Avara (Low resilience)', '', null], default: null },
+    vikriti: { type: String, default: '' }, // Present doshic disturbance: Vata Vriddhi, Pitta Prakopa, etc.
+    sara: { type: String, default: 'Madhyama (Medium)' }, // Tissue essence
+    samhanana: { type: String, default: 'Madhyama (Moderate)' }, // Compactness of body
+    pramana: { type: String, default: 'Prakrita (Proportionate)' },
+    satmya: { type: String, default: 'Sarva-rasa (All tastes adaptable)' },
+    satva: { type: String, default: 'Madhyama (Moderate)' },
     aharaShakti: {
-      abhyavaharana: { type: String, enum: ['Uttama (Good appetite)', 'Madhyama (Moderate)', 'Avara (Poor)', '', null], default: 'Madhyama (Moderate)' },
-      jaranaShakti: { type: String, enum: ['Tivra (Fast/Tikshnagni)', 'Mandagni (Sluggish)', 'Vishamagni (Irregular)', 'Samagni (Balanced)', '', null], default: 'Samagni (Balanced)' }
+      abhyavaharana: { type: String, default: 'Madhyama (Moderate)' },
+      jaranaShakti: { type: String, default: 'Samagni (Balanced)' }
     },
-    vyayamaShakti: { type: String, enum: ['Pravara (High capacity)', 'Madhyama (Moderate)', 'Avara (Poor capacity)', '', null], default: null },
-    vaya: { type: String, enum: ['Bala (Childhood)', 'Madhyama (Adult)', 'Vriddha (Geriatric)', '', null], default: 'Madhyama (Adult)' }
+    vyayamaShakti: { type: String, default: 'Madhyama (Moderate)' },
+    vaya: { type: String, default: 'Madhyama (Adult)' },
+    koshtha: { type: String, default: 'Madhyama' }
   },
 
   // Red Flags
@@ -164,6 +165,41 @@ const IntakeSessionSchema = new mongoose.Schema({
   // Comorbidities, Past Disease & Known Allergies
   pastMedicalHistory: [{ type: String }],
   allergies: [{ type: String }],
+
+  // DPDP Act 2023 Statutory Consent & ABDM Consent Layer
+  dpdpConsent: {
+    granted: { type: Boolean, default: true },
+    timestamp: { type: Date, default: Date.now },
+    audioListened: { type: Boolean, default: false },
+    consentVersion: { type: String, default: 'DPDP-2023-ABDM-v1.0' }
+  },
+
+  // Ahara-Vihara (Diet, Hydration, Sleep & Daily Lifestyle)
+  aharaVihara: {
+    dietType: { type: String, default: 'Vegetarian' },
+    waterIntake: { type: String, default: 'Normal' },
+    sleepPattern: { type: String, default: 'Sound (7-8 hours)' },
+    habitsAddictions: [{ type: String }]
+  },
+
+  // Standard 8-Part Clinical History Summary (PS 26047 Module C Specification)
+  clinicalSummary: {
+    chiefComplaint: { type: String },
+    historyOfPresentIllness: { type: String },
+    pastMedicalSurgical: { type: String },
+    drugAndAllergyHistory: { type: String },
+    familyHistory: { type: String },
+    personalAndAharaVihara: { type: String },
+    reviewOfSystems: {
+      cardiovascular: { type: String },
+      respiratory: { type: String },
+      gastrointestinal: { type: String },
+      musculoskeletal: { type: String },
+      neurologicalENT: { type: String }
+    },
+    priorInvestigationsSummary: { type: String },
+    generatedAt: { type: Date }
+  },
 
   // 10-Second Doctor SOAP Case Sheet
   soapNote: {

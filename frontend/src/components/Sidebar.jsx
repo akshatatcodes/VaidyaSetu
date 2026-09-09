@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck } from 'lucide-react';
+import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, History } from 'lucide-react';
 import { useClerk } from '@clerk/clerk-react';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '@clerk/clerk-react';
@@ -45,6 +45,7 @@ const Sidebar = () => {
   // Dedicated Patient Sanctuary navigation items (Doctor Cockpit completely excluded)
   const patientNavItems = [
     { to: '/', icon: Home, label: t('sidebar.dashboard', 'Health Sanctuary') },
+    { to: '/medical-history', icon: History, label: t('sidebar.medicalHistory', 'Medical History') },
     { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'OPD MediKiosk') },
     { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'My Records') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'My Vitals') },
@@ -57,6 +58,7 @@ const Sidebar = () => {
   // Dedicated AIIA Doctor Cockpit navigation items (Consumer dashboard excluded)
   const doctorNavItems = [
     { to: '/doctor', icon: ClipboardCheck, label: t('sidebar.doctor', 'Doctor Cockpit') },
+    { to: '/medical-history', icon: History, label: t('sidebar.medicalHistory', 'Medical History') },
     { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kioskQueue', 'Kiosk Terminal') },
     { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Clinical Records') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Triage Telemetry') },
@@ -70,6 +72,7 @@ const Sidebar = () => {
   // Limited list for Mobile Bottom Nav
   const mobilePatientNavItems = [
     { to: '/', icon: Home, label: t('sidebar.dashboard', 'Sanctuary') },
+    { to: '/medical-history', icon: History, label: t('sidebar.medicalHistory', 'History') },
     { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'Kiosk') },
     { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Records') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Vitals') },
@@ -79,6 +82,7 @@ const Sidebar = () => {
 
   const mobileDoctorNavItems = [
     { to: '/doctor', icon: ClipboardCheck, label: t('sidebar.doctor', 'Cockpit') },
+    { to: '/medical-history', icon: History, label: t('sidebar.medicalHistory', 'History') },
     { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'Kiosk') },
     { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Records') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Vitals') },

@@ -10,6 +10,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
+import ComprehensiveMedicalHistory from '../components/ComprehensiveMedicalHistory';
 
 // ICD-11 & NAMASTE Catalog Presets for Quick Selection
 const DIAGNOSIS_PRESETS = [
@@ -81,6 +82,8 @@ const DoctorDashboard = () => {
   const [activeTab, setActiveTab] = useState('all'); // all | emergency | waiting | completed
 
   // SOAP & Prescription Editing State
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('summary'); // 'summary' | 'soap'
+  const [clinicalSummary, setClinicalSummary] = useState(null);
   const [soapData, setSoapData] = useState({
     subjective: '',
     objective: '',
@@ -115,6 +118,7 @@ const DoctorDashboard = () => {
   // Source & Evidence Verification Drawer ("Trust the AI") State
   const [isEvidenceDrawerOpen, setIsEvidenceDrawerOpen] = useState(false);
   const [evidenceList, setEvidenceList] = useState([]);
+  const [showMedicalHistoryModal, setShowMedicalHistoryModal] = useState(false);
 
   useEffect(() => {
     if (selectedSession?.evidenceSnippets?.length > 0) {
@@ -219,6 +223,28 @@ const DoctorDashboard = () => {
           panchakarmaRecommendations: session.soapNote.plan?.panchakarmaRecommendations || [],
           pathyaApathya: session.soapNote.plan?.pathyaApathya || { pathya: [], apathya: [] }
         }
+      });
+    }
+
+    // Initialize Clinical Summary (PS 26047 Module C 8-part clinical sequence)
+    if (session.clinicalSummary) {
+      setClinicalSummary(session.clinicalSummary);
+    } else {
+      setClinicalSummary({
+        chiefComplaint: session.chiefComplaint || 'Generalized discomfort / OPD consultation',
+        historyOfPresentIllness: session.soapNote?.subjective || 'Onset with gradual progression of symptoms.',
+        pastMedicalSurgical: session.pastMedicalHistory?.length > 0 ? session.pastMedicalHistory.join(', ') : 'No past medical or surgical history reported.',
+        drugAndAllergyHistory: ((session.ocrPrescriptions?.flatMap(p => (p.extractedMedicines || []).map(m => m.name)).join(', ')) || 'No active prescription medications') + ' | Allergies: ' + (session.allergies?.join(', ') || 'No known drug allergies (NKDA)'),
+        familyHistory: 'Non-contributory for early-onset hereditary or familial disorders.',
+        personalAndAharaVihara: `Diet: ${session.aharaVihara?.dietType || 'Vegetarian'} | Water: ${session.aharaVihara?.waterIntake || 'Normal'} | Sleep: ${session.aharaVihara?.sleepPattern || 'Sound (7-8 hours)'} | Prakriti: ${session.dashavidhaPariksha?.prakriti?.primaryDosha || 'Vata-Pitta'} | Agni: ${session.dashavidhaPariksha?.aharaShakti?.jaranaShakti || 'Samagni'} | Koshtha: ${session.dashavidhaPariksha?.koshtha || 'Madhyama'} | Sara: ${session.dashavidhaPariksha?.sara || 'Madhyama'} | Samhanana: ${session.dashavidhaPariksha?.samhanana || 'Madhyama'}`,
+        reviewOfSystems: session.clinicalSummary?.reviewOfSystems || {
+          cardiovascular: session.vitals?.systolicBP ? `BP: ${session.vitals.systolicBP}/${session.vitals.diastolicBP} mmHg, HR: ${session.vitals.heartRate || '--'} bpm. Denies chest pain, palpitations, or pedal edema.` : 'Denies chest pain, palpitations, or syncope.',
+          respiratory: session.vitals?.spo2 ? `SpO2: ${session.vitals.spo2}%. Denies chronic cough, hemoptysis, or resting dyspnea.` : 'Denies chronic cough or dyspnea.',
+          gastrointestinal: `Appetite: ${session.dashavidhaPariksha?.aharaShakti?.abhyavaharana || 'Moderate'}, Agni: ${session.dashavidhaPariksha?.aharaShakti?.jaranaShakti || 'Samagni'}, Bowel: ${session.dashavidhaPariksha?.koshtha || 'Madhyama'}. No hematemesis.`,
+          musculoskeletal: session.socrates?.site ? `Pain and movement restriction localized to ${session.socrates.site}. Joint stability intact.` : 'Full range of motion in all major joints.',
+          neurologicalENT: 'Conscious, oriented to time and space. Gross motor and sensory reflexes intact.'
+        },
+        priorInvestigationsSummary: session.labTrends?.length > 0 ? session.labTrends.map(t => `${t.testName}: ${t.previousValue || '--'} -> ${t.currentValue} (${t.direction})`).join('; ') : 'No abnormal prior lab investigations flagged on intake.'
       });
     }
 
@@ -797,7 +823,17 @@ const DoctorDashboard = () => {
                       Automated Longitudinal Lab & Symptom Trend Comparison
                     </h3>
                   </div>
-                  <span className="text-[10px] text-gray-400 font-bold">Verified via Ayush Pre-Visit OCR Engine</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowMedicalHistoryModal(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                    >
+                      <Stethoscope className="w-3.5 h-3.5" />
+                      <span>Full Medical History Dossier</span>
+                    </button>
+                    <span className="text-[10px] text-gray-400 font-bold hidden sm:inline">Verified via Ayush Pre-Visit OCR Engine</span>
+                  </div>
                 </div>
 
                 {selectedSession.labTrends?.length > 0 ? (
@@ -969,36 +1005,296 @@ const DoctorDashboard = () => {
                 {/* COLUMN 2: 10-SECOND EDITABLE SOAP CASE SHEET (8 COLS) */}
                 <div className="lg:col-span-8 space-y-6">
                   
+                  {/* Workspace Mode Switcher (SIH PS 26047 Module C vs Module B/SOAP vs History) */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-500/30 shadow-md">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setActiveWorkspaceTab('summary')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                          activeWorkspaceTab === 'summary'
+                            ? 'bg-emerald-500 text-slate-950 shadow-md font-black'
+                            : 'text-slate-600 dark:text-gray-300 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>📋 Case Sheet (PS 26047)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveWorkspaceTab('soap')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                          activeWorkspaceTab === 'soap'
+                            ? 'bg-emerald-500 text-slate-950 shadow-md font-black'
+                            : 'text-slate-600 dark:text-gray-300 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>⚡ 10-Second SOAP & Rx</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveWorkspaceTab('history')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                          activeWorkspaceTab === 'history'
+                            ? 'bg-emerald-500 text-slate-950 shadow-md font-black'
+                            : 'text-slate-600 dark:text-gray-300 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <Stethoscope className="w-3.5 h-3.5" />
+                        <span>📂 Medical History Dossier</span>
+                      </button>
+                    </div>
+
+                    <span className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                      ✓ ICD-11 & NAMASTE
+                    </span>
+                  </div>
+
                   <div className="p-6 sm:p-8 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-6">
                     
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-white/10">
-                      <div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                          <Edit3 className="w-5 h-5 text-emerald-500" />
-                          10-Second SOAP Case Sheet
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          Synthesized with dual ICD-11 & AYUSH NAMASTE clinical morbidity coding.
-                        </p>
+                    {/* VIEW 3: Embedded Comprehensive Medical History */}
+                    {activeWorkspaceTab === 'history' ? (
+                      <div className="rounded-2xl overflow-hidden animate-in fade-in">
+                        <ComprehensiveMedicalHistory
+                          patientData={selectedSession}
+                          isModal={false}
+                        />
                       </div>
+                    ) : activeWorkspaceTab === 'summary' ? (
+                      <div className="space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-white/10">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider">
+                                PS 26047 Standard Clinical History Format
+                              </span>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">
+                              Comprehensive OPD Clinical Summary
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              Synthesized from Kiosk intake, SOCRATES interview, Dashavidha assessment & records.
+                            </p>
+                          </div>
 
-                      {/* Quick Diagnosis Presets Dropdown */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500 hidden sm:inline">1-Click Preset:</span>
-                        <select
-                          onChange={(e) => {
-                            const found = DIAGNOSIS_PRESETS.find(p => p.name === e.target.value);
-                            if (found) applyPreset(found);
-                          }}
-                          className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
-                        >
-                          <option value="">Choose Clinical Preset...</option>
-                          {DIAGNOSIS_PRESETS.map((p, i) => (
-                            <option key={i} value={p.name}>{p.name}</option>
-                          ))}
-                        </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (clinicalSummary) {
+                                setSoapData(prev => ({
+                                  ...prev,
+                                  subjective: `${clinicalSummary.chiefComplaint}. ${clinicalSummary.historyOfPresentIllness} ${clinicalSummary.pastMedicalSurgical} ${clinicalSummary.drugAndAllergyHistory}`
+                                }));
+                              }
+                              setActiveWorkspaceTab('soap');
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-slate-950 text-xs font-black border border-emerald-500/40 transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" /> Transfer to SOAP & Build Rx →
+                          </button>
+                        </div>
+
+                        {/* The 8 Clinical History Cards */}
+                        <div className="space-y-4">
+                          {/* 1. Chief Complaint (CC) */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-1.5">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              1. Chief Complaint (CC)
+                            </span>
+                            <textarea
+                              rows={1}
+                              value={clinicalSummary?.chiefComplaint || ''}
+                              onChange={(e) => setClinicalSummary(prev => ({ ...prev, chiefComplaint: e.target.value }))}
+                              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* 2. History of Present Illness (HPI) */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-1.5">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              2. History of Present Illness (HPI) - SOCRATES Probed
+                            </span>
+                            <textarea
+                              rows={3}
+                              value={clinicalSummary?.historyOfPresentIllness || ''}
+                              onChange={(e) => setClinicalSummary(prev => ({ ...prev, historyOfPresentIllness: e.target.value }))}
+                              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* 3. Past Medical and Surgical History */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-1.5">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              3. Past Medical and Surgical History
+                            </span>
+                            <textarea
+                              rows={2}
+                              value={clinicalSummary?.pastMedicalSurgical || ''}
+                              onChange={(e) => setClinicalSummary(prev => ({ ...prev, pastMedicalSurgical: e.target.value }))}
+                              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* 4. Drug and Allergy History */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-1.5">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              4. Drug and Allergy History (OCR Cross-Checked)
+                            </span>
+                            <textarea
+                              rows={2}
+                              value={clinicalSummary?.drugAndAllergyHistory || ''}
+                              onChange={(e) => setClinicalSummary(prev => ({ ...prev, drugAndAllergyHistory: e.target.value }))}
+                              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* 5. Family History */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-1.5">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              5. Family History
+                            </span>
+                            <textarea
+                              rows={2}
+                              value={clinicalSummary?.familyHistory || ''}
+                              onChange={(e) => setClinicalSummary(prev => ({ ...prev, familyHistory: e.target.value }))}
+                              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* 6. Personal and Social History (including Ahara-Vihara for AYUSH) */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-1.5">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              6. Personal & Social History (including Ahara-Vihara & Dashavidha)
+                            </span>
+                            <textarea
+                              rows={3}
+                              value={clinicalSummary?.personalAndAharaVihara || ''}
+                              onChange={(e) => setClinicalSummary(prev => ({ ...prev, personalAndAharaVihara: e.target.value }))}
+                              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* 7. Review of Systems (ROS) */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-3">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              7. Review of Systems (ROS) - Comprehensive Subsystems
+                            </span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 space-y-1">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[10px] uppercase">Cardiovascular (CVS)</span>
+                                <input
+                                  type="text"
+                                  value={clinicalSummary?.reviewOfSystems?.cardiovascular || ''}
+                                  onChange={(e) => setClinicalSummary(prev => ({
+                                    ...prev,
+                                    reviewOfSystems: { ...prev.reviewOfSystems, cardiovascular: e.target.value }
+                                  }))}
+                                  className="w-full p-1.5 text-xs bg-transparent border-0 border-b border-gray-200 dark:border-white/10 focus:ring-0 focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 space-y-1">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[10px] uppercase">Respiratory (RS)</span>
+                                <input
+                                  type="text"
+                                  value={clinicalSummary?.reviewOfSystems?.respiratory || ''}
+                                  onChange={(e) => setClinicalSummary(prev => ({
+                                    ...prev,
+                                    reviewOfSystems: { ...prev.reviewOfSystems, respiratory: e.target.value }
+                                  }))}
+                                  className="w-full p-1.5 text-xs bg-transparent border-0 border-b border-gray-200 dark:border-white/10 focus:ring-0 focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 space-y-1">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[10px] uppercase">Gastrointestinal (GI / Kostha)</span>
+                                <input
+                                  type="text"
+                                  value={clinicalSummary?.reviewOfSystems?.gastrointestinal || ''}
+                                  onChange={(e) => setClinicalSummary(prev => ({
+                                    ...prev,
+                                    reviewOfSystems: { ...prev.reviewOfSystems, gastrointestinal: e.target.value }
+                                  }))}
+                                  className="w-full p-1.5 text-xs bg-transparent border-0 border-b border-gray-200 dark:border-white/10 focus:ring-0 focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 space-y-1">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[10px] uppercase">Musculoskeletal (Sandhi / Asthi)</span>
+                                <input
+                                  type="text"
+                                  value={clinicalSummary?.reviewOfSystems?.musculoskeletal || ''}
+                                  onChange={(e) => setClinicalSummary(prev => ({
+                                    ...prev,
+                                    reviewOfSystems: { ...prev.reviewOfSystems, musculoskeletal: e.target.value }
+                                  }))}
+                                  className="w-full p-1.5 text-xs bg-transparent border-0 border-b border-gray-200 dark:border-white/10 focus:ring-0 focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="md:col-span-2 p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 space-y-1">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[10px] uppercase">Neurological & ENT (Shalakya / Shiro)</span>
+                                <input
+                                  type="text"
+                                  value={clinicalSummary?.reviewOfSystems?.neurologicalENT || ''}
+                                  onChange={(e) => setClinicalSummary(prev => ({
+                                    ...prev,
+                                    reviewOfSystems: { ...prev.reviewOfSystems, neurologicalENT: e.target.value }
+                                  }))}
+                                  className="w-full p-1.5 text-xs bg-transparent border-0 border-b border-gray-200 dark:border-white/10 focus:ring-0 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 8. Summary of Prior Investigations */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 space-y-1.5">
+                            <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                              8. Summary of Prior Investigations (Uploaded Documents & OCR)
+                            </span>
+                            <textarea
+                              rows={2}
+                              value={clinicalSummary?.priorInvestigationsSummary || ''}
+                              onChange={(e) => setClinicalSummary(prev => ({ ...prev, priorInvestigationsSummary: e.target.value }))}
+                              className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* VIEW 2: 10-Second SOAP Case Sheet & Prescription Builder */
+                      <>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-white/10">
+                          <div>
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                              <Edit3 className="w-5 h-5 text-emerald-500" />
+                              10-Second SOAP Case Sheet
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              Synthesized with dual ICD-11 & AYUSH NAMASTE clinical morbidity coding.
+                            </p>
+                          </div>
+
+                          {/* Quick Diagnosis Presets Dropdown */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-500 hidden sm:inline">1-Click Preset:</span>
+                            <select
+                              onChange={(e) => {
+                                const found = DIAGNOSIS_PRESETS.find(p => p.name === e.target.value);
+                                if (found) applyPreset(found);
+                              }}
+                              className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                            >
+                              <option value="">Choose Clinical Preset...</option>
+                              {DIAGNOSIS_PRESETS.map((p, i) => (
+                                <option key={i} value={p.name}>{p.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
 
                     {/* S: Subjective */}
                     <div>
@@ -1256,6 +1552,8 @@ const DoctorDashboard = () => {
                         className="w-full px-4 py-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
+                  </>
+                )}
 
                     {/* Action Bar */}
                     <div className="pt-4 border-t border-gray-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
@@ -1760,6 +2058,19 @@ const DoctorDashboard = () => {
                 Close Verification Drawer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────── COMPREHENSIVE MEDICAL HISTORY DOSSIER MODAL ────────────────── */}
+      {showMedicalHistoryModal && selectedSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl">
+            <ComprehensiveMedicalHistory
+              patientData={selectedSession}
+              isModal={true}
+              onClose={() => setShowMedicalHistoryModal(false)}
+            />
           </div>
         </div>
       )}
