@@ -35,6 +35,10 @@ import LabDashboard from './pages/LabDashboard';
 import QueueDisplay from './pages/QueueDisplay';
 import HelpSupport from './pages/HelpSupport';
 import MyConsent from './pages/MyConsent';
+import FamilyMembers from './pages/FamilyMembers';
+import LiveQueueStatus from './pages/LiveQueueStatus';
+import ReferralView from './pages/ReferralView';
+import ABHALinkStatus from './pages/ABHALinkStatus';
 
 import { API_URL } from './config/api';
 
@@ -173,6 +177,11 @@ const AppLayout = () => {
               <Route path="/vitals" element={<Vitals />} />
               <Route path="/consent/my" element={<MyConsent />} />
               <Route path="/consent" element={<MyConsent />} />
+              <Route path="/family" element={<FamilyMembers />} />
+              <Route path="/queue" element={<LiveQueueStatus />} />
+              <Route path="/appointments" element={<LiveQueueStatus />} />
+              <Route path="/referrals" element={<ReferralView />} />
+              <Route path="/abha" element={<ABHALinkStatus />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />

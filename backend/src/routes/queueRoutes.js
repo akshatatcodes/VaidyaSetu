@@ -259,4 +259,55 @@ router.post('/consult-end', async (req, res) => {
   }
 });
 
+/**
+ * @route GET /api/queue/my/:patientId
+ * @desc Patient-facing live queue and follow-up slot status (§19, §33-34)
+ */
+router.get('/my/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const activeEncounter = await Encounter.findOne({
+      patientId,
+      status: { $in: ['intake_completed', 'queued', 'in_consultation', 'doctor_review'] }
+    }).sort({ createdAt: -1 });
+
+    const queue = await Queue.findOne({ date: todayStr, 'entries.patientId': patientId });
+
+    if (!queue && !activeEncounter) {
+      return res.json({
+        status: 'success',
+        data: null,
+        message: 'No active queue token found for today.'
+      });
+    }
+
+    const tokenEntry = queue?.entries.find(e => String(e.patientId) === String(patientId) || (activeEncounter && e.tokenNumber === activeEncounter.tokenNumber));
+
+    let patientsAhead = 0;
+    if (tokenEntry && queue) {
+      const tokenIdx = queue.entries.findIndex(e => e.tokenNumber === tokenEntry.tokenNumber);
+      patientsAhead = queue.entries.slice(0, tokenIdx).filter(e => e.status === 'waiting').length;
+    }
+
+    return res.json({
+      status: 'success',
+      data: {
+        tokenNumber: tokenEntry?.tokenNumber || activeEncounter?.tokenNumber || 'OPD-ACTIVE',
+        status: tokenEntry?.status || activeEncounter?.status || 'queued',
+        priority: tokenEntry?.priority || activeEncounter?.triagePriority || 'normal',
+        patientsAhead,
+        etaRange: computeEtaRange(patientsAhead, 12),
+        roomNumber: 'Room 104',
+        departmentName: 'Kayachikitsa (Internal Medicine)',
+        joinedAt: tokenEntry?.joinedAt || activeEncounter?.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching patient queue status:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 module.exports = router;

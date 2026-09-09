@@ -261,4 +261,15 @@ router.get('/referrals/department/:departmentId', async (req, res) => {
   }
 });
 
+router.get('/referrals/my/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const referrals = await Referral.find({ patientId }).sort({ createdAt: -1 }).lean();
+    return res.json({ status: 'success', count: referrals.length, data: referrals });
+  } catch (error) {
+    console.error('Error fetching patient referrals:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 module.exports = router;

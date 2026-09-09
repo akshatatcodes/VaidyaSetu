@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, ShieldCheck, Settings, LogOut, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle, AlertCircle } from 'lucide-react';
+import { Home, FileText, Activity, ShieldAlert, ShieldCheck, Settings, LogOut, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle, AlertCircle, Users, Clock, Building2, ArrowRightLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -24,13 +24,17 @@ const Sidebar = () => {
   const rm = roleMeta[activeRole] || roleMeta.patient;
   const isDoctor = activeRole === 'doctor';
 
-  // Dedicated 5-Tab Patient Sanctuary Information Architecture (Home, Visits, Records, Medicines, Help)
+  // Dedicated 5-Tab Patient Sanctuary Information Architecture
   const patientNavItems = [
     { to: '/', icon: Home, label: t('sidebar.dashboard', 'Home') },
     { to: '/visits', icon: ClipboardCheck, label: t('sidebar.visits', 'Visits') },
     { to: '/records', icon: FileText, label: t('sidebar.records', 'Records') },
     { to: '/medicines', icon: Pill, label: t('sidebar.medicines', 'Medicines') },
+    { to: '/queue', icon: Clock, label: t('sidebar.queue', 'My Queue / Appts') },
+    { to: '/family', icon: Users, label: t('sidebar.family', 'Family Members') },
+    { to: '/referrals', icon: ArrowRightLeft, label: t('sidebar.referrals', 'My Referrals') },
     { to: '/consent/my', icon: ShieldCheck, label: t('sidebar.consent', 'My Consent') },
+    { to: '/abha', icon: Building2, label: t('sidebar.abha', 'ABHA / ABDM') },
     { to: '/help', icon: HelpCircle, label: t('sidebar.help', 'Help & Guide') },
     { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'OPD MediKiosk') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'My Vitals') },

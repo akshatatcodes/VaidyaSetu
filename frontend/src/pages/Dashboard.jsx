@@ -262,10 +262,15 @@ const Dashboard = () => {
         <Tile icon={CalendarClock} label="My Visits" hint="Your consultation timeline"
               onClick={() => navigate('/visits')} />
         <Tile icon={ShieldCheck} label="Consent & Privacy" hint="See and revoke what you've shared"
-              onClick={() => navigate('/privacy')} />
-        <Tile icon={Clock} label="My Queue & Appointments" hint="" pending />
+              onClick={() => navigate('/consent/my')} />
+        <Tile icon={Clock} label="My Queue / Appointments" hint="Live token status, ETA, and follow-up slots"
+              onClick={() => navigate('/queue')} />
         <Tile icon={Users} label="Family Members" hint="Manage family account beneficiaries"
-              onClick={() => setShowFamilyModal(true)} />
+              onClick={() => navigate('/family')} />
+        <Tile icon={CalendarClock} label="My Referrals" hint="Doctor-initiated referral passes & status"
+              accent="mango" onClick={() => navigate('/referrals')} />
+        <Tile icon={ShieldCheck} label="ABHA / ABDM Link" hint="Ayushman Bharat Digital Health ID status"
+              onClick={() => navigate('/abha')} />
       </div>
 
       {/* Family Members Modal (§2) */}
