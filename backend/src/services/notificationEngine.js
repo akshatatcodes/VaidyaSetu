@@ -19,10 +19,12 @@ async function sendNotification({ recipientId, channel, template, payload = {} }
       status: 'active'
     });
 
-    const isConsented = consent && (
-      consent.purpose === channel ||
-      consent.purpose === 'all_communications' ||
-      consent.permissions?.[channel] === true
+    const isConsented = Boolean(
+      consent && (
+        consent.purpose === channel ||
+        consent.purpose === 'all_communications' ||
+        consent.permissions?.[channel] === true
+      )
     );
 
     if (!isConsented) {

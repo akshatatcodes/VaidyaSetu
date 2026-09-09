@@ -111,6 +111,20 @@ router.post('/followups/trigger-lab-check', async (req, res) => {
       }
     }
 
+    // Dispatch notification through consent-gated engine (§56)
+    if (patientId) {
+      const { sendNotification } = require('../services/notificationEngine');
+      await sendNotification({
+        recipientId: patientId,
+        channel: 'sms',
+        template: 'followup_slot_available',
+        payload: {
+          scheduledWindow: followUp.scheduledWindow,
+          message: 'A follow-up consultation slot is ready for your review.'
+        }
+      }).catch(err => console.warn('[Continuity] Notification dispatch warning:', err.message));
+    }
+
     return res.json({
       status: 'success',
       message: allVerified ? 'FollowUp slot created & schedulable' : 'FollowUp created, waiting for remaining lab results',
