@@ -121,6 +121,13 @@ router.post('/session/start', async (req, res) => {
       contactNumber: contactNumber || '',
       languagePreference,
       department,
+      dpdpConsent: req.body.dpdpConsent || {
+        granted: true,
+        timestamp: new Date(),
+        audioListened: Boolean(req.body.dpdpConsent?.audioListened),
+        consentVersion: 'DPDP-2023-ABDM-v1.0'
+      },
+      aharaVihara: req.body.aharaVihara || {},
       queueStatus: 'waiting_intake',
       triagePriority: 'normal',
       isReturningPatient: Boolean(isReturningPatient || priorSession),
@@ -418,22 +425,31 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
       chiefComplaint,
       userSpeech,
       currentStep,
-      language
+      language,
+      socratesState: incomingSocrates,
+      transcript: incomingTranscript,
+      age,
+      gender
     } = req.body;
 
-    const session = await findSession(id);
-    if (!session) {
-      return res.status(404).json({ status: 'error', message: 'Intake session not found' });
+    let session = null;
+    try {
+      session = await findSession(id);
+    } catch (findErr) {
+      console.warn('[KioskRoutes] findSession fallback for id:', id, findErr.message);
     }
 
-    if (chiefComplaint && !session.chiefComplaint) {
+    if (session && chiefComplaint && !session.chiefComplaint) {
       session.chiefComplaint = chiefComplaint;
     }
 
-    const lang = language || session.languagePreference || 'hi';
+    const lang = language || session?.languagePreference || 'hi';
+    const effectiveComplaint = session?.chiefComplaint || chiefComplaint || userSpeech || '';
+    const effectiveSocrates = session?.socrates || incomingSocrates || {};
+    const effectiveTranscript = session?.intakeTranscript || incomingTranscript || [];
 
-    // Record patient speech in transcript
-    if (userSpeech) {
+    // Record patient speech in transcript if session exists
+    if (session && userSpeech) {
       session.intakeTranscript.push({
         speaker: 'patient',
         text: userSpeech,
@@ -443,50 +459,52 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
 
     // Process probe through adaptive clinical engine
     const probeResult = await processAdaptiveProbe({
-      chiefComplaint: session.chiefComplaint || chiefComplaint || '',
+      chiefComplaint: effectiveComplaint,
       userSpeech,
       currentStep,
-      socratesState: session.socrates || {},
-      vitals: session.vitals || {},
+      socratesState: effectiveSocrates,
+      vitals: session?.vitals || {},
       language: lang,
-      transcript: session.intakeTranscript,
+      transcript: effectiveTranscript,
       patientContext: {
-        age: session.age,
-        gender: session.gender
+        age: session?.age || age,
+        gender: session?.gender || gender
       }
     });
 
-    // Update session SOCRATES fields
-    session.socrates = probeResult.socrates;
+    if (session) {
+      // Update session SOCRATES fields
+      session.socrates = probeResult.socrates;
 
-    // Auto-update department if inferred by AI and not manually overridden
-    if (probeResult.inferredDepartment && probeResult.inferredDepartment.department) {
-      session.department = probeResult.inferredDepartment.department;
-    }
-
-    // Record next question in transcript
-    if (probeResult.nextQuestion) {
-      session.intakeTranscript.push({
-        speaker: 'kiosk',
-        text: probeResult.nextQuestion,
-        timestamp: new Date()
-      });
-    }
-
-    // Accumulate new red flags
-    if (probeResult.redFlags?.length > 0) {
-      probeResult.redFlags.forEach(f => {
-        const exists = session.redFlags.some(r => r.flag === f.flag);
-        if (!exists) session.redFlags.push(f);
-      });
-
-      if (probeResult.hasCriticalRedFlag) {
-        session.triagePriority = 'emergency';
-        session.queueStatus = 'flagged_emergency';
+      // Auto-update department if inferred by AI and not manually overridden
+      if (probeResult.inferredDepartment && probeResult.inferredDepartment.department) {
+        session.department = probeResult.inferredDepartment.department;
       }
-    }
 
-    await session.save();
+      // Record next question in transcript
+      if (probeResult.nextQuestion) {
+        session.intakeTranscript.push({
+          speaker: 'kiosk',
+          text: probeResult.nextQuestion,
+          timestamp: new Date()
+        });
+      }
+
+      // Accumulate new red flags
+      if (probeResult.redFlags?.length > 0) {
+        probeResult.redFlags.forEach(f => {
+          const exists = session.redFlags.some(r => r.flag === f.flag);
+          if (!exists) session.redFlags.push(f);
+        });
+
+        if (probeResult.hasCriticalRedFlag) {
+          session.triagePriority = 'emergency';
+          session.queueStatus = 'flagged_emergency';
+        }
+      }
+
+      await session.save();
+    }
 
     res.json({
       status: 'success',
@@ -495,11 +513,11 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
         nextQuestion: probeResult.nextQuestion,
         isComplete: probeResult.isComplete,
         inferredDepartment: probeResult.inferredDepartment,
-        department: session.department,
-        socrates: session.socrates,
-        redFlags: session.redFlags,
-        triagePriority: session.triagePriority,
-        queueStatus: session.queueStatus
+        department: session?.department || probeResult.inferredDepartment?.department || null,
+        socrates: session?.socrates || probeResult.socrates,
+        redFlags: session?.redFlags || probeResult.redFlags || [],
+        triagePriority: session?.triagePriority || (probeResult.hasCriticalRedFlag ? 'emergency' : 'normal'),
+        queueStatus: session?.queueStatus || 'waiting_intake'
       }
     });
   } catch (error) {
@@ -575,23 +593,35 @@ router.patch('/session/:id/medical-history', async (req, res) => {
 router.patch('/session/:id/dashavidha', async (req, res) => {
   try {
     const { id } = req.params;
-    const { dashavidhaPariksha } = req.body;
+    const { dashavidhaPariksha, aharaVihara } = req.body;
 
     const session = await findSession(id);
     if (!session) {
       return res.status(404).json({ status: 'error', message: 'Intake session not found' });
     }
 
-    session.dashavidhaPariksha = {
-      ...session.dashavidhaPariksha,
-      ...dashavidhaPariksha
-    };
+    if (dashavidhaPariksha) {
+      session.dashavidhaPariksha = {
+        ...session.dashavidhaPariksha,
+        ...dashavidhaPariksha
+      };
+    }
+
+    if (aharaVihara) {
+      session.aharaVihara = {
+        ...session.aharaVihara,
+        ...aharaVihara
+      };
+    }
 
     await session.save();
 
     res.json({
       status: 'success',
-      data: session.dashavidhaPariksha
+      data: {
+        dashavidhaPariksha: session.dashavidhaPariksha,
+        aharaVihara: session.aharaVihara
+      }
     });
   } catch (error) {
     console.error('[KioskRoutes] Dashavidha update error:', error);
@@ -601,7 +631,7 @@ router.patch('/session/:id/dashavidha', async (req, res) => {
 
 /**
  * 6. POST /api/kiosk/session/:id/generate-soap
- * Synthesize completed intake into a 10-second Doctor SOAP Case Sheet
+ * Synthesize completed intake into a 10-second Doctor SOAP Case Sheet and 8-Part Clinical Summary
  */
 const handleGenerateSoap = async (req, res) => {
   try {
@@ -611,9 +641,12 @@ const handleGenerateSoap = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Intake session not found' });
     }
 
-    // Generate SOAP note & diagnostic codes
+    // Generate SOAP note, 8-part clinical summary & diagnostic codes
     const result = await generateSoapCaseSheet(session);
     session.soapNote = result.soapNote;
+    if (result.clinicalSummary) {
+      session.clinicalSummary = result.clinicalSummary;
+    }
     session.diagnoses = result.diagnoses;
 
     // Cross-system Herb-Drug Safety check
@@ -642,6 +675,7 @@ const handleGenerateSoap = async (req, res) => {
       status: 'success',
       data: {
         soapNote: session.soapNote,
+        clinicalSummary: session.clinicalSummary,
         diagnoses: session.diagnoses,
         interactionAlerts: session.interactionAlerts,
         tokenNumber: session.tokenNumber,

@@ -309,35 +309,6 @@ const HealthProfile = () => {
         </div>
       </div>
 
-      {/* ── ONBOARDING BANNER IF INCOMPLETE ── */}
-      {!isOnboardingDone && (
-        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 rounded-[2.5rem] p-6 lg:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl mb-8">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <AlertCircle size={28} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider">
-                  Action Required
-                </span>
-                <h3 className="text-lg font-black text-gray-900 dark:text-white">
-                  Clinical Onboarding Incomplete
-                </h3>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xl font-medium">
-                You have not completed your comprehensive onboarding questionnaire yet. Your biometrics, vital habits, diet, and risk scores will be calibrated and displayed once submitted.
-              </p>
-            </div>
-          </div>
-          <Link
-            to="/onboarding"
-            className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-wider shrink-0"
-          >
-            Complete Onboarding Now <ArrowRight size={16} />
-          </Link>
-        </div>
-      )}
 
       {/* ── DATA QUALITY BANNER ── */}
       {dataQuality && (

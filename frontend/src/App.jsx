@@ -25,7 +25,7 @@ import Prescriptions from './pages/Prescriptions';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Settings from './pages/Settings';
-import Onboarding from './pages/Onboarding';
+import MedicalHistoryPage from './pages/MedicalHistoryPage';
 import Alerts from './pages/Alerts';
 import Vitals from './pages/Vitals';
 import MedicationSchedule from './pages/MedicationSchedule';
@@ -104,25 +104,7 @@ const AppLayout = () => {
         }).catch(err => console.error('[SW] Registration failed:', err));
       });
     }
-
-    // Only run patient onboarding check for patient accounts
-    const patientId = currentUser?._id || currentUser?.id;
-    if (userRole === 'patient' && patientId && typeof patientId === 'string' && !patientId.startsWith('demo-')) {
-      axios.get(`${API_URL}/profile/${patientId}`)
-        .then((res) => {
-          if (res.data?.status === 'success') {
-            const profile = res.data.data;
-            const onboardingDone = Boolean(profile?.onboardingCompleted ?? profile?.onboardingComplete);
-            if (!onboardingDone) {
-              navigate('/onboarding', { replace: true });
-            }
-          }
-        })
-        .catch(() => {
-          // Graceful fallback
-        });
-    }
-  }, [currentUser, userRole, navigate]);
+  }, []);
 
   return (
     <div 
@@ -152,6 +134,7 @@ const AppLayout = () => {
               <Route path="/medicines" element={<PatientRoute><MyMedicines /></PatientRoute>} />
 
               {/* Shared Role Clinical Routes */}
+              <Route path="/medical-history" element={<MedicalHistoryPage />} />
               <Route path="/kiosk" element={<KioskIntake />} />
               <Route path="/profile" element={<HealthProfile />} />
               <Route path="/profile/edit" element={<ProfileEditor />} />
@@ -201,12 +184,8 @@ const AuthWrapper = () => {
         </ProtectedRoute>
       } />
 
-      {/* Patient Onboarding */}
-      <Route path="/onboarding" element={
-        <ProtectedRoute allowedRole="patient">
-          <Onboarding />
-        </ProtectedRoute>
-      } />
+      {/* Onboarding eliminated - redirect to main dashboard */}
+      <Route path="/onboarding" element={<Navigate to="/" replace />} />
 
       {/* Main Authenticated Application Shell */}
       <Route path="/*" element={
