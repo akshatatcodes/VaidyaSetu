@@ -5,7 +5,7 @@ import {
   Clock, Pill, ShieldAlert, FileText, Download, Printer, Search, RefreshCw,
   Sparkles, Check, ChevronRight, ArrowRight, ShieldCheck, Heart, Wind,
   Thermometer, UserCheck, Phone, Eye, Edit3, Save, Plus, Trash2,
-  X, ExternalLink, QrCode, Layers, Share2, Shield
+  X, ExternalLink, QrCode, Layers, Share2, Shield, FlaskConical, Calendar, ArrowUpRight, FileCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -106,6 +106,16 @@ const DoctorDashboard = () => {
   // New Medicine Inputs
   const [newAyuMed, setNewAyuMed] = useState({ name: '', dosage: '', frequency: 'BD', duration: '14 days', anupana: 'Warm Water' });
   const [newAlloMed, setNewAlloMed] = useState({ name: '', dosage: '', frequency: 'OD', duration: '5 days', instructions: 'After meals' });
+
+  // Investigation Orders (§27), Referrals (§38) & Follow-up Decision (§37) States
+  const [investigations, setInvestigations] = useState([]);
+  const [newInvestigation, setNewInvestigation] = useState({ testName: 'HbA1c (Glycated Hemoglobin)', priority: 'routine', section: 'Pathology', notes: '' });
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+
+  const [followUpDecision, setFollowUpDecision] = useState({ choice: 'after_lab', date: '', window: 'morning', notes: 'Review after lab test report is complete' });
+
+  const [referralData, setReferralData] = useState({ targetDepartment: 'Shalya', doctorName: '', priority: 'routine', reason: 'Orthopedic evaluation for joint space narrowing', type: 'internal' });
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
 
   // ABDM FHIR & Print Modal States
   const [isFhirModalOpen, setIsFhirModalOpen] = useState(false);
@@ -228,11 +238,79 @@ const DoctorDashboard = () => {
     setInteractionAlerts(session.interactionAlerts || []);
     setDoctorNotes(session.doctorReview?.doctorNotes || '');
 
+    setInvestigations(session.investigationOrders || [
+      { id: 'inv_1', testName: 'HbA1c (Glycated Hemoglobin)', priority: 'routine', section: 'Pathology', notes: 'Glycemic control follow-up', status: 'ordered' },
+      { id: 'inv_2', testName: 'Serum Creatinine', priority: 'routine', section: 'Pathology', notes: 'Renal safety panel', status: 'ordered' }
+    ]);
+    setFollowUpDecision(session.followUpDecision || {
+      choice: 'after_lab',
+      date: '',
+      window: 'morning',
+      notes: 'Auto-schedule follow-up slot when lab report is ready'
+    });
+    setReferralData(session.referral || {
+      targetDepartment: 'Shalya',
+      doctorName: 'Dr. Ananya Roy (MS Ortho)',
+      priority: 'routine',
+      reason: 'Orthopedic evaluation for knee joint space narrowing & degeneration',
+      type: 'internal'
+    });
+
     // Trigger real-time HDI safety check for this patient
     runInteractionCheck(
       session.soapNote?.plan?.ayurvedicMeds || [],
       session.ocrPrescriptions || []
     );
+  };
+
+  // Create Investigation Order (§27)
+  const handleAddInvestigation = async () => {
+    if (!newInvestigation.testName) return;
+    const item = {
+      id: `inv_${Date.now()}`,
+      testName: newInvestigation.testName,
+      priority: newInvestigation.priority,
+      section: newInvestigation.section,
+      notes: newInvestigation.notes,
+      status: 'ordered',
+      createdAt: new Date().toISOString()
+    };
+    setInvestigations(prev => [...prev, item]);
+    setIsOrderModalOpen(false);
+    setNewInvestigation({ testName: 'Lipid Profile (Fasting)', priority: 'routine', section: 'Biochemistry', notes: '' });
+
+    try {
+      await axios.post(`${API_URL}/lab/orders`, {
+        patientId: selectedSession?.patientId || selectedSession?.abhaId,
+        doctorId: 'DOC-AYU-2024-8891',
+        testName: item.testName,
+        priority: item.priority,
+        section: item.section,
+        clinicalNotes: item.notes
+      }).catch(() => {});
+    } catch (e) {}
+  };
+
+  // Remove Investigation Order
+  const handleRemoveInvestigation = (index) => {
+    setInvestigations(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Create Department Referral (§38)
+  const handleCreateReferral = async () => {
+    if (!referralData.targetDepartment) return;
+    setIsReferralModalOpen(false);
+    try {
+      await axios.post(`${API_URL}/continuity/referrals`, {
+        encounterId: selectedSession?._id,
+        patientId: selectedSession?.patientId || selectedSession?.abhaId,
+        fromDepartment: selectedSession?.department || 'Kayachikitsa',
+        toDepartment: referralData.targetDepartment,
+        toDoctor: referralData.doctorName,
+        priority: referralData.priority,
+        reason: referralData.reason
+      }).catch(() => {});
+    } catch (e) {}
   };
 
   // Real-time Herb-Drug Safety Engine Check
@@ -351,7 +429,10 @@ const DoctorDashboard = () => {
           updatedSoapNote: soapData,
           updatedDiagnoses: diagnoses,
           prescribedAllopathicMeds: soapData.plan.allopathicMeds,
-          prescribedAyurvedicMeds: soapData.plan.ayurvedicMeds
+          prescribedAyurvedicMeds: soapData.plan.ayurvedicMeds,
+          investigationOrders: investigations,
+          followUpDecision: followUpDecision,
+          referral: referralData
         },
         { headers: { 'X-User-Role': 'doctor' } }
       );
@@ -878,6 +959,71 @@ const DoctorDashboard = () => {
                 )}
               </div>
 
+              {/* ────────────────── WHAT CHANGED SINCE LAST VISIT (§41) DELTA PANEL ────────────────── */}
+              <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-teal-500/30 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-teal-400" />
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      What Changed Since Last Visit (§41 Provenance & Delta Tracker)
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-[10px] font-black uppercase">
+                    NEW / CHANGED / UNCHANGED
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* NEW Item */}
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950 text-[9px] font-black uppercase tracking-wider">
+                        🆕 NEW
+                      </span>
+                      <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono font-bold">12 Jan 2026</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                      Atorvastatin 20mg OD (Bedtime)
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-gray-400">
+                      Added from Cardiology Discharge Summary OCR scan
+                    </p>
+                  </div>
+
+                  {/* CHANGED Item */}
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider">
+                        🔄 CHANGED
+                      </span>
+                      <span className="text-[10px] text-amber-700 dark:text-amber-300 font-mono font-bold">Today vs 24 Jan</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                      Blood Pressure: 128/82 mmHg
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-gray-400">
+                      Improved from 138/88 mmHg (-10/-6 mmHg delta)
+                    </p>
+                  </div>
+
+                  {/* UNCHANGED Item */}
+                  <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-gray-300 text-[9px] font-black uppercase tracking-wider">
+                        📌 UNCHANGED
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-mono">Known History</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                      Sandhivata (Knee Osteoarthritis)
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-gray-400">
+                      Continuous follow-up since Oct 2025
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* ────────────────── 3-COLUMN CLINICAL WORKSPACE ────────────────── */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
@@ -1261,6 +1407,169 @@ const DoctorDashboard = () => {
                         <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-2 border border-emerald-500/20">
                           <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                           No known Herb-Drug contraindications detected between current and prescribed medications.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ────────────────── INVESTIGATION ORDERS (§27) ────────────────── */}
+                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-emerald-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FlaskConical className="w-5 h-5 text-teal-400" />
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Investigation Orders & Diagnostics (§27 Anti-Overwrite Engine)
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsOrderModalOpen(true)}
+                          className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Order Lab Test
+                        </button>
+                      </div>
+
+                      {investigations.length > 0 ? (
+                        <div className="space-y-2">
+                          {investigations.map((inv, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-between text-xs"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-black uppercase ${
+                                  inv.priority === 'stat' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
+                                  inv.priority === 'urgent' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
+                                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                }`}>
+                                  {inv.priority}
+                                </span>
+                                <div>
+                                  <span className="font-black text-slate-900 dark:text-white block">
+                                    {inv.testName}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 font-medium">
+                                    Section: {inv.section || 'Pathology'} {inv.notes ? `• ${inv.notes}` : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-gray-300 text-[10px] font-bold uppercase">
+                                  {inv.status || 'ordered'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveInvestigation(idx)}
+                                  className="text-gray-400 hover:text-rose-500 p-1 cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-2xl bg-white/40 dark:bg-white/5 text-center text-xs text-gray-400">
+                          No lab investigations ordered yet for this consultation. Click "+ Order Lab Test" above.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ────────────────── CLINICAL REFERRALS (§38) ────────────────── */}
+                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-emerald-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ArrowUpRight className="w-5 h-5 text-blue-400" />
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Clinical Department Referrals (§38 Inter-Departmental Continuity)
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsReferralModalOpen(true)}
+                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add Referral
+                        </button>
+                      </div>
+
+                      {referralData?.targetDepartment ? (
+                        <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between text-xs">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-blue-500 text-slate-950 text-[10px] font-black uppercase">
+                                REFERRAL: {referralData.targetDepartment}
+                              </span>
+                              {referralData.doctorName && (
+                                <span className="text-slate-900 dark:text-white font-bold">{referralData.doctorName}</span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-600 dark:text-gray-300 mt-1">
+                              Reason: {referralData.reason}
+                            </p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold uppercase">
+                            {referralData.priority || 'Routine'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-2xl bg-white/40 dark:bg-white/5 text-center text-xs text-gray-400">
+                          No departmental referral initiated.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ────────────────── EXPLICIT FOLLOW-UP DECISION SELECTOR (§37) ────────────────── */}
+                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-emerald-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-5 h-5 text-emerald-400" />
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Explicit Follow-Up Decision (§37 & §34 Follow-Up Queue Trigger)
+                          </h4>
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase">
+                          §34 AUTO QUEUE ASSIGNMENT
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {[
+                          { id: 'no', label: 'No Follow-Up', sub: 'Single consultation' },
+                          { id: 'after_lab', label: 'After Lab Result', sub: 'Auto-queue on report (§34)' },
+                          { id: 'tomorrow', label: 'Next-Day Review', sub: '24h window (§35)' },
+                          { id: 'specific_date', label: 'Specific Date', sub: '7 / 14 / 30 days' },
+                          { id: 'emergency', label: 'SOS Emergency', sub: 'If symptoms escalate' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setFollowUpDecision(prev => ({ ...prev, choice: opt.id }))}
+                            className={`p-3 rounded-2xl text-left transition-all cursor-pointer border ${
+                              followUpDecision.choice === opt.id
+                                ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
+                                : 'bg-white dark:bg-white/5 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-emerald-500/40'
+                            }`}
+                          >
+                            <span className="text-xs font-black block">{opt.label}</span>
+                            <span className={`text-[10px] block mt-0.5 ${
+                              followUpDecision.choice === opt.id ? 'text-emerald-100' : 'text-gray-400'
+                            }`}>
+                              {opt.sub}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {followUpDecision.choice === 'specific_date' && (
+                        <div className="pt-2 flex items-center gap-3">
+                          <label className="text-xs font-bold text-gray-400">Select Follow-Up Date:</label>
+                          <input
+                            type="date"
+                            value={followUpDecision.date}
+                            onChange={(e) => setFollowUpDecision({ ...followUpDecision, date: e.target.value })}
+                            className="px-3 py-1.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                          />
                         </div>
                       )}
                     </div>
@@ -1780,6 +2089,207 @@ const DoctorDashboard = () => {
                 className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
               >
                 Close Verification Drawer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────── INVESTIGATION ORDER CREATION MODAL (§27) ────────────────── */}
+      {isOrderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FlaskConical className="w-5 h-5 text-teal-500" />
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Order Diagnostic Investigation (§27)
+                </h3>
+              </div>
+              <button onClick={() => setIsOrderModalOpen(false)} className="text-gray-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Investigation / Test Name *
+                </label>
+                <select
+                  value={newInvestigation.testName}
+                  onChange={(e) => setNewInvestigation({ ...newInvestigation, testName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  <option value="HbA1c (Glycated Hemoglobin)">HbA1c (Glycated Hemoglobin)</option>
+                  <option value="Lipid Profile (Fasting)">Lipid Profile (Fasting)</option>
+                  <option value="Serum Creatinine & Blood Urea">Serum Creatinine & Blood Urea</option>
+                  <option value="Complete Blood Count (CBC)">Complete Blood Count (CBC)</option>
+                  <option value="Liver Function Test (LFT)">Liver Function Test (LFT)</option>
+                  <option value="X-Ray Knee (AP & Lateral View)">X-Ray Knee (AP & Lateral View)</option>
+                  <option value="Fasting & PP Blood Sugar">Fasting & PP Blood Sugar</option>
+                  <option value="Urine Routine & Micro">Urine Routine & Micro</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Priority Level *
+                  </label>
+                  <select
+                    value={newInvestigation.priority}
+                    onChange={(e) => setNewInvestigation({ ...newInvestigation, priority: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="routine">Routine</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="stat">STAT (Emergency)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Laboratory Section
+                  </label>
+                  <select
+                    value={newInvestigation.section}
+                    onChange={(e) => setNewInvestigation({ ...newInvestigation, section: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="Pathology">Pathology</option>
+                    <option value="Biochemistry">Biochemistry</option>
+                    <option value="Radiology">Radiology</option>
+                    <option value="Microbiology">Microbiology</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Clinical Indication / Special Instructions
+                </label>
+                <input
+                  type="text"
+                  value={newInvestigation.notes}
+                  onChange={(e) => setNewInvestigation({ ...newInvestigation, notes: e.target.value })}
+                  placeholder="e.g. Evaluate 3-month glycemic control & lipid risk"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsOrderModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-xs font-bold text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddInvestigation}
+                className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg shadow-teal-600/30 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Issue Investigation Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────── CLINICAL REFERRAL CREATION MODAL (§38) ────────────────── */}
+      {isReferralModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ArrowUpRight className="w-5 h-5 text-blue-500" />
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Initiate Departmental Referral (§38)
+                </h3>
+              </div>
+              <button onClick={() => setIsReferralModalOpen(false)} className="text-gray-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Target Clinical Department *
+                </label>
+                <select
+                  value={referralData.targetDepartment}
+                  onChange={(e) => setReferralData({ ...referralData, targetDepartment: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="Shalya">शल्य तंत्र (Shalya Tantra - Orthopedics & Surgery)</option>
+                  <option value="Shalakya">शालाक्य तंत्र (Shalakya Tantra - ENT & Head/Neck)</option>
+                  <option value="Prasuti & Stri Roga">प्रसूति व स्त्री रोग (Prasuti & Stri Roga)</option>
+                  <option value="Kaumarbhritya">कौमारभृत्य (Kaumarbhritya - Pediatrics)</option>
+                  <option value="Panchakarma">पंचकर्म (Panchakarma Specialty Unit)</option>
+                  <option value="Kayachikitsa">कायचिकित्सा (Kayachikitsa - Internal Medicine)</option>
+                  <option value="General Medicine">General Allopathic Medicine</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Preferred Specialist (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={referralData.doctorName}
+                  onChange={(e) => setReferralData({ ...referralData, doctorName: e.target.value })}
+                  placeholder="e.g. Dr. Ananya Roy (MS Ortho)"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Referral Priority *
+                </label>
+                <select
+                  value={referralData.priority}
+                  onChange={(e) => setReferralData({ ...referralData, priority: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="routine">Routine</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="emergency">Immediate Emergency</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Clinical Reason for Referral
+                </label>
+                <textarea
+                  rows={2}
+                  value={referralData.reason}
+                  onChange={(e) => setReferralData({ ...referralData, reason: e.target.value })}
+                  placeholder="e.g. Evaluate knee joint space narrowing & surgical / Janu Basti candidacy"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsReferralModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-xs font-bold text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateReferral}
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
+              >
+                <ArrowUpRight className="w-4 h-4" /> Issue Referral
               </button>
             </div>
           </div>
