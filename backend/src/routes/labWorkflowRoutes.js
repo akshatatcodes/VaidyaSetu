@@ -186,18 +186,73 @@ router.post('/results/:resultId/verify', async (req, res) => {
     resultDoc.verifiedAt = new Date();
     await resultDoc.save();
 
+    let order = null;
     if (resultDoc.investigationOrderId) {
-      const order = await InvestigationOrder.findById(resultDoc.investigationOrderId);
+      order = await InvestigationOrder.findById(resultDoc.investigationOrderId);
       if (order) {
         order.status = 'verified';
         await order.save();
       }
     }
 
+    // Automatic Continuity Trigger (§31, §36)
+    const FollowUp = require('../models/FollowUp');
+    const targetPatientId = resultDoc.patientId || order?.patientId;
+    const targetEncounterId = resultDoc.encounterId || order?.encounterId;
+
+    let followUp = null;
+    if (targetPatientId) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      followUp = await FollowUp.findOne({
+        patientId: targetPatientId,
+        originEncounterId: targetEncounterId && mongoose.Types.ObjectId.isValid(targetEncounterId) ? targetEncounterId : null
+      });
+
+      if (!followUp) {
+        followUp = await FollowUp.create({
+          originEncounterId: targetEncounterId && mongoose.Types.ObjectId.isValid(targetEncounterId) ? targetEncounterId : new mongoose.Types.ObjectId(),
+          patientId: targetPatientId,
+          reason: 'lab_result',
+          linkedOrderIds: resultDoc.investigationOrderId ? [resultDoc.investigationOrderId] : [],
+          status: 'schedulable',
+          scheduledWindow: {
+            date: tomorrow.toISOString().split('T')[0],
+            startTime: '09:30',
+            endTime: '10:00'
+          }
+        });
+      } else {
+        followUp.status = 'schedulable';
+        followUp.scheduledWindow = {
+          date: tomorrow.toISOString().split('T')[0],
+          startTime: '09:30',
+          endTime: '10:00'
+        };
+        await followUp.save();
+      }
+
+      // Update Encounter status to doctor_review if waiting for lab results (§31)
+      if (targetEncounterId && mongoose.Types.ObjectId.isValid(targetEncounterId)) {
+        const encounter = await Encounter.findById(targetEncounterId);
+        if (encounter && (encounter.status === 'lab_pending' || encounter.status === 'opened')) {
+          encounter.status = 'doctor_review';
+          encounter.queueStatus = 'lab_verified';
+          await encounter.save();
+        }
+      }
+    }
+
+    const responseData = resultDoc.toObject ? resultDoc.toObject() : { ...resultDoc };
+    if (followUp) {
+      responseData.followUp = followUp;
+    }
+
     return res.json({
       status: 'success',
-      message: 'Lab result verified successfully.',
-      data: resultDoc
+      message: 'Lab result verified successfully. Continuity follow-up triggered.',
+      data: responseData
     });
   } catch (error) {
     console.error('Error verifying lab result:', error);
