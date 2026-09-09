@@ -6,7 +6,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null); // 'patient' | 'doctor' | null
+  const [userRole, setUserRole] = useState(null); // 'patient' | 'doctor' | 'admin' | 'lab' | null
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -153,6 +153,64 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Login as Lab Technician
+  const loginLab = async ({ identifier, mobile, email, section }) => {
+    try {
+      const res = await axios.post(`${API_URL}/auth/lab/login`, {
+        identifier: identifier || mobile || email,
+        mobile,
+        email,
+        section
+      });
+
+      if (res.data.status === 'success') {
+        const { role, token, technician } = res.data.data;
+        const session = { role, token, user: technician };
+        localStorage.setItem('vaidya_auth_session', JSON.stringify(session));
+        localStorage.setItem('vaidya_active_role', 'lab');
+        setIsAuthenticated(true);
+        setUserRole('lab');
+        setCurrentUser(technician);
+        window.dispatchEvent(new Event('vaidya:auth-change'));
+        return { success: true, role: 'lab', user: technician };
+      }
+      return { success: false, message: res.data.message || 'Authentication failed' };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.response?.data?.message || err.message || 'Connection failed'
+      };
+    }
+  };
+
+  // Login as Administrator
+  const loginAdmin = async ({ identifier, adminPassword }) => {
+    try {
+      const res = await axios.post(`${API_URL}/auth/admin/login`, {
+        identifier,
+        adminPassword
+      });
+
+      if (res.data.status === 'success') {
+        const { role, token, admin } = res.data.data;
+        const session = { role, token, user: admin };
+        localStorage.setItem('vaidya_auth_session', JSON.stringify(session));
+        localStorage.setItem('vaidya_active_role', 'admin');
+        setIsAuthenticated(true);
+        setUserRole('admin');
+        setCurrentUser(admin);
+        window.dispatchEvent(new Event('vaidya:auth-change'));
+        return { success: true, role: 'admin', user: admin };
+      }
+      return { success: false, message: res.data.message || 'Authentication failed' };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.response?.data?.message || err.message || 'Connection failed'
+      };
+    }
+  };
+
   // Logout
   const logout = () => {
     localStorage.removeItem('vaidya_auth_session');
@@ -175,6 +233,8 @@ export const AuthProvider = ({ children }) => {
         registerDoctor,
         loginPatient,
         registerPatient,
+        loginLab,
+        loginAdmin,
         logout
       }}
     >

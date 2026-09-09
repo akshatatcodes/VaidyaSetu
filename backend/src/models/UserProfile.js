@@ -19,10 +19,10 @@ const UserProfileSchema = new mongoose.Schema({
     unique: true
   },
 
-  // Role-Based Access Control (RBAC): patient, doctor, reception
+  // Role-Based Access Control (RBAC): patient, doctor, reception, admin, lab
   role: {
     type: String,
-    enum: ['patient', 'doctor', 'reception'],
+    enum: ['patient', 'doctor', 'reception', 'admin', 'lab'],
     default: 'patient'
   },
 

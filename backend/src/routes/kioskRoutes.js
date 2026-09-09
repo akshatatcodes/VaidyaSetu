@@ -4,6 +4,7 @@ const IntakeSession = require('../models/IntakeSession');
 const { processAdaptiveProbe, detectRedFlags } = require('../services/adaptiveSocratesService');
 const { generateSoapCaseSheet } = require('../services/soapGeneratorService');
 const { checkDirectInteractions } = require('../utils/interactionChecker');
+const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 
 /**
  * 1. POST /api/kiosk/session/start
@@ -17,6 +18,7 @@ router.post('/session/start', async (req, res) => {
       age,
       gender,
       contactNumber,
+      enteredBy,
       languagePreference = 'hi',
       department = '',
       isReturningPatient = false,
@@ -119,6 +121,7 @@ router.post('/session/start', async (req, res) => {
       age: Number(age),
       gender: normalizedGender,
       contactNumber: contactNumber || '',
+      enteredBy: enteredBy || { type: 'patient' },
       languagePreference,
       department,
       queueStatus: 'waiting_intake',
@@ -493,6 +496,7 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
       data: {
         nextStep: probeResult.nextStep,
         nextQuestion: probeResult.nextQuestion,
+        quickReplies: probeResult.quickReplies || [],
         isComplete: probeResult.isComplete,
         inferredDepartment: probeResult.inferredDepartment,
         department: session.department,
@@ -801,8 +805,8 @@ const handleApproveSession = async (req, res) => {
   }
 };
 
-router.patch('/session/:id/approve', handleApproveSession);
-router.post('/session/:id/approve', handleApproveSession);
+router.patch('/session/:id/approve', requireAuth, requireRole('doctor', 'admin'), handleApproveSession);
+router.post('/session/:id/approve', requireAuth, requireRole('doctor', 'admin'), handleApproveSession);
 
 /**
  * 9. POST /api/kiosk/check-interactions
@@ -1238,7 +1242,7 @@ router.get('/session/:id/fhir', async (req, res) => {
  * 11. POST /api/kiosk/session/:id/sync-abdm
  * Real-time Gateway sync pushing consultation document bundle to ABDM Health Locker / ABHA
  */
-router.post('/session/:id/sync-abdm', async (req, res) => {
+router.post('/session/:id/sync-abdm', requireAuth, requireRole('doctor', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const session = await findSession(id);
@@ -1251,10 +1255,14 @@ router.post('/session/:id/sync-abdm', async (req, res) => {
     const consentId = `ABDM-CONSENT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     const transactionId = `TXN-ABDM-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const isProd = process.env.ABDM_PROD === 'true';
+    const mode = isProd ? 'production' : 'simulated';
+
     session.fhirBundle = fhirBundle;
     session.abdmSync = {
       synced: true,
       syncedAt: new Date(),
+      mode,
       careContextId,
       consentId,
       transactionId,
@@ -1266,7 +1274,10 @@ router.post('/session/:id/sync-abdm', async (req, res) => {
 
     res.json({
       status: 'success',
-      message: 'OPD Record successfully linked & synchronized with ABDM Health Locker / ABHA',
+      mode,
+      message: isProd
+        ? 'OPD Record successfully linked & synchronized with ABDM Health Locker / ABHA (Production)'
+        : 'OPD Record linked & synchronized in ABDM Sandbox / Simulated Mode (Set ABDM_PROD=true for live gateway).',
       data: {
         tokenNumber: session.tokenNumber,
         abhaId: session.abhaId,
@@ -1275,6 +1286,7 @@ router.post('/session/:id/sync-abdm', async (req, res) => {
         consentId,
         transactionId,
         hipId: 'IN-DL-AIIA-001',
+        mode,
         syncedAt: session.abdmSync.syncedAt,
         bundleSummary: {
           resourceCount: fhirBundle.entry.length,

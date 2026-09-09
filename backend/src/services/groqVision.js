@@ -1,22 +1,27 @@
 const Groq = require('groq-sdk');
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
+let groq = null;
+function getGroq() {
+  if (groq) return groq;
+  const key = process.env.GROQ_API_KEY;
+  if (!key || !String(key).startsWith('gsk_')) {
+    throw new Error('No GROQ_API_KEY for vision fallback');
+  }
+  groq = new Groq({ apiKey: key });
+  return groq;
+}
 
 /**
  * Groq Vision Fallback - Uses LLaMA Vision model to directly read the image.
  * Adapted from MediScan for VaidyaSetu.
  */
 async function extractFromImageGroq(base64Image, mediaType) {
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error("No GROQ_API_KEY for vision fallback");
-  }
+  const client = getGroq();
 
   try {
     const dataUri = `data:${mediaType};base64,${base64Image}`;
 
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await client.chat.completions.create({
       model: "llama-3.2-11b-vision-preview", // Active Groq multimodal vision model
       messages: [
         {

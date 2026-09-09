@@ -7,6 +7,7 @@ import axios from 'axios';
 // Context
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CaregiverProvider } from './context/CaregiverContext';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -35,6 +36,10 @@ import KioskIntake from './pages/KioskIntake';
 import DoctorDashboard from './pages/DoctorDashboard';
 import AuthGateway from './pages/AuthGateway';
 import AccessDenied from './pages/AccessDenied';
+import AdminDashboard from './pages/AdminDashboard';
+import LabDashboard from './pages/LabDashboard';
+import QueueDisplay from './pages/QueueDisplay';
+import HelpSupport from './pages/HelpSupport';
 
 import { API_URL } from './config/api';
 
@@ -85,6 +90,24 @@ const PatientRoute = ({ children }) => {
   const { userRole } = useAuth();
   if (userRole === 'doctor') {
     return <Navigate to="/doctor" replace />;
+  }
+  return children;
+};
+
+// Sub-route guard for admin pages
+const AdminRoute = ({ children }) => {
+  const { userRole } = useAuth();
+  if (userRole !== 'admin') {
+    return <AccessDenied requiredRole="admin" />;
+  }
+  return children;
+};
+
+// Sub-route guard for lab pages
+const LabRoute = ({ children }) => {
+  const { userRole } = useAuth();
+  if (userRole !== 'lab') {
+    return <AccessDenied requiredRole="lab" />;
   }
   return children;
 };
@@ -146,10 +169,18 @@ const AppLayout = () => {
               
               {/* Doctor Only Route: Clinical Cockpit with AI Pre-Consultation Evidence */}
               <Route path="/doctor" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
+              {/* Admin Only: Operations Console (Phase 10) */}
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              {/* Lab Only: Diagnostic Result Workbench (Phase 10) */}
+              <Route path="/lab" element={<LabRoute><LabDashboard /></LabRoute>} />
 
-              {/* Patient Dedicated Routes */}
+              {/* Patient Dedicated 5-Tab Architecture Routes */}
+              <Route path="/visits" element={<PatientRoute><ChangeHistory /></PatientRoute>} />
+              <Route path="/records" element={<PatientRoute><Prescriptions /></PatientRoute>} />
               <Route path="/medications" element={<PatientRoute><MedicationSchedule /></PatientRoute>} />
               <Route path="/medicines" element={<PatientRoute><MyMedicines /></PatientRoute>} />
+              <Route path="/help" element={<HelpSupport />} />
+              <Route path="/support" element={<HelpSupport />} />
 
               {/* Shared Role Clinical Routes */}
               <Route path="/kiosk" element={<KioskIntake />} />
@@ -185,14 +216,22 @@ const AuthWrapper = () => {
       <Route path="/auth" element={<AuthGateway />} />
       <Route path="/auth/patient" element={<AuthGateway initialPortal="patient" />} />
       <Route path="/auth/doctor" element={<AuthGateway initialPortal="doctor" />} />
+      <Route path="/auth/lab" element={<AuthGateway initialPortal="lab" />} />
+      <Route path="/auth/admin" element={<AuthGateway initialPortal="admin" />} />
 
       {/* Legacy auth route redirects to unified role gateway */}
       <Route path="/sign-in/*" element={<Navigate to="/login" replace />} />
       <Route path="/sign-up/*" element={<Navigate to="/login" replace />} />
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
-      {/* Public / Standalone Walk-in Kiosk Hardware Terminal */}
-      <Route path="/kiosk-terminal" element={<KioskIntake />} />
+      {/* Kiosk Hardware Terminal */}
+      <Route path="/kiosk-terminal" element={
+        <ProtectedRoute>
+          <KioskIntake />
+        </ProtectedRoute>
+      } />
+      <Route path="/queue-board" element={<QueueDisplay />} />
+      <Route path="/queue-board/:department" element={<QueueDisplay />} />
 
       {/* Standalone Doctor Station alias */}
       <Route path="/doctor-station" element={
@@ -228,10 +267,12 @@ function App() {
     <ThemeProvider>
       <GoogleOAuthProvider clientId={googleClientId}>
         <AuthProvider>
-          <BrowserRouter>
-            <ScrollToTop />
-            <AuthWrapper />
-          </BrowserRouter>
+          <CaregiverProvider>
+            <BrowserRouter>
+              <ScrollToTop />
+              <AuthWrapper />
+            </BrowserRouter>
+          </CaregiverProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
     </ThemeProvider>

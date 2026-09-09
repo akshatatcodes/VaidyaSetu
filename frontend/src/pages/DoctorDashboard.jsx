@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
 
+const AI_DRAFT_BANNER = 'AI-generated draft — physician verification required';
+
 // ICD-11 & NAMASTE Catalog Presets for Quick Selection
 const DIAGNOSIS_PRESETS = [
   {
@@ -327,16 +329,32 @@ const DoctorDashboard = () => {
     if (!selectedSession) return;
     setIsApproving(true);
     try {
-      const res = await axios.patch(`${API_URL}/kiosk/session/${selectedSession._id}/approve`, {
-        doctorId: 'DOC-AYU-2024-8891',
-        doctorName: 'Dr. Vikramaditya Sharma (BAMS, MD Ayur)',
-        signature: 'Digitally Signed: Dr. V. Sharma (Reg #AYU-2918)',
-        doctorNotes,
-        updatedSoapNote: soapData,
-        updatedDiagnoses: diagnoses,
-        prescribedAllopathicMeds: soapData.plan.allopathicMeds,
-        prescribedAyurvedicMeds: soapData.plan.ayurvedicMeds
-      });
+      await axios.patch(
+        `${API_URL}/kiosk/session/${selectedSession._id}/doctor-verify`,
+        {
+          doctorId: 'DOC-AYU-2024-8891',
+          doctorName: 'Dr. Vikramaditya Sharma (BAMS, MD Ayur)',
+          doctorNotes,
+          soapEdits: soapData,
+          markInConsultation: true
+        },
+        { headers: { 'X-User-Role': 'doctor' } }
+      ).catch(() => {});
+
+      const res = await axios.patch(
+        `${API_URL}/kiosk/session/${selectedSession._id}/approve`,
+        {
+          doctorId: 'DOC-AYU-2024-8891',
+          doctorName: 'Dr. Vikramaditya Sharma (BAMS, MD Ayur)',
+          signature: 'Digitally Signed: Dr. V. Sharma (Reg #AYU-2918)',
+          doctorNotes,
+          updatedSoapNote: soapData,
+          updatedDiagnoses: diagnoses,
+          prescribedAllopathicMeds: soapData.plan.allopathicMeds,
+          prescribedAyurvedicMeds: soapData.plan.ayurvedicMeds
+        },
+        { headers: { 'X-User-Role': 'doctor' } }
+      );
 
       if (res.data.status === 'success') {
         setApprovalSuccess(true);
@@ -409,6 +427,10 @@ const DoctorDashboard = () => {
 
   return (
     <div className="max-w-[1700px] mx-auto pb-20 space-y-6">
+      <div className="rounded-2xl border border-amber-500/50 bg-amber-500/15 px-4 py-3 text-amber-900 dark:text-amber-100 text-sm font-semibold flex items-center gap-2">
+        <ShieldAlert className="w-5 h-5 shrink-0" />
+        {AI_DRAFT_BANNER}
+      </div>
       
       {/* ────────────────── TOP DOCTOR CLINICAL COCKPIT HEADER ────────────────── */}
       <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-950 text-white rounded-3xl p-6 shadow-2xl border border-emerald-500/30 relative overflow-hidden backdrop-blur-3xl">
@@ -1413,13 +1435,13 @@ const DoctorDashboard = () => {
                   Care Context: <b className="text-emerald-300">AIIA-OPD-{selectedSession?.tokenNumber}</b>
                 </span>
                 <span className="text-gray-500">|</span>
-                <span>
-                  HIP Bridge ID: <b className="text-emerald-300">IN-DL-AIIA-001</b>
+                <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold">
+                  ABDM Sandbox / Simulated Sync Mode
                 </span>
               </div>
               {abdmSyncStatus.synced || selectedSession?.abdmSync?.synced ? (
                 <span className="px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> Synced to ABHA Locker
+                  <Check className="w-3.5 h-3.5" /> Synced to ABHA Locker (Simulated)
                 </span>
               ) : (
                 <button

@@ -1,4 +1,11 @@
 const { Groq } = require('groq-sdk');
+const {
+  LOCALES,
+  QUESTION_TEMPLATES,
+  COMPLETION_MESSAGES,
+  QUICK_REPLIES,
+  CHIEF_COMPLAINT_CATEGORIES
+} = require('../data/socratesQuestionTemplates');
 
 const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_');
 const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
@@ -11,49 +18,21 @@ const SOCRATES_STEPS = [
   'severity'
 ];
 
-// Multilingual Prompt Templates for instant zero-latency probing
-const QUESTION_TEMPLATES = {
-  site: {
-    en: "Where exactly in your body are you experiencing this problem or pain?",
-    hi: "आपको यह समस्या या दर्द शरीर में ठीक किस जगह पर हो रहा है?",
-    mr: "तुम्हाला हा त्रास किंवा वेदना शरीराच्या नेमक्या कोणत्या भागात जाणवत आहे?"
-  },
-  onset: {
-    en: "When did this trouble start? Did it come on suddenly or gradually over time?",
-    hi: "यह समस्या कब शुरू हुई? क्या यह अचानक शुरू हुई या धीरे-धीरे बढ़ी?",
-    mr: "हा त्रास कधी सुरू झाला? तो अचानक सुरू झाला की हळूहळू वाढला?"
-  },
-  character: {
-    en: "How would you describe the feeling? Is it sharp, burning, a dull ache, throbbing, or heaviness?",
-    hi: "यह किस प्रकार का दर्द या अनुभव है? तेज चुभन, जलन, भारीपन, या मीठा-मीठा दर्द?",
-    mr: "या वेदनेचे स्वरूप कसे आहे? तीव्र टोचल्यासारखे, जळजळ, जडपणा की धडधडणारे दुखणे?"
-  },
-  radiation: {
-    en: "Does this pain or discomfort spread anywhere else, like your back, arm, neck, or legs?",
-    hi: "क्या यह दर्द शरीर के किसी अन्य हिस्से में भी फैलता है, जैसे पीठ, कंधे, गर्दन या पैरों में?",
-    mr: "ही वेदना शरीराच्या इतर भागात पसरते का, जसे की पाठ, खांदा, मान किंवा पायांमध्ये?"
-  },
-  associations: {
-    en: "Are you noticing any other symptoms, such as fever, nausea, vomiting, dizziness, or sweating?",
-    hi: "क्या इसके साथ आपको बुखार, जी मिचलाना, उल्टी, चक्कर या पसीना आने जैसी कोई अन्य समस्या है?",
-    mr: "यासोबत तुम्हाला ताप, मळमळ, उलट्या, चक्कर येणे किंवा जास्त घाम येणे असा काही त्रास होतोय का?"
-  },
-  timeCourse: {
-    en: "Does the discomfort change during the day or night? Does it come and go, or stay constant?",
-    hi: "क्या यह दिन या रात में किसी खास समय बढ़ता है? क्या यह लगातार रहता है या रुक-रुक कर आता है?",
-    mr: "हा त्रास दिवसभरात किंवा रात्री कधी वाढतो का? तो सतत राहतो की अधूनमधून येतो?"
-  },
-  exacerbatingRelieving: {
-    en: "What makes it better (like rest, food, or warm water) and what makes it worse?",
-    hi: "किस चीज़ से आपको आराम मिलता है (जैसे आराम करने या गर्म पानी से) और किस चीज़ से यह बढ़ जाता है?",
-    mr: "कशाने तुम्हाला आराम वाटतो (उदा. विश्रांती, गरम पाणी) आणि कशामुळे त्रास वाढतो?"
-  },
-  severity: {
-    en: "On a scale of 1 to 10 (where 1 is very mild and 10 is unbearable), how severe is it right now?",
-    hi: "1 से 10 के पैमाने पर (जहाँ 1 बहुत हल्का है और 10 असहनीय), यह दर्द अभी कितना तीव्र है?",
-    mr: "१ ते १० च्या मोजपट्टीवर (जिथे १ म्हणजे अगदी कमी आणि १० म्हणजे असह्य), हा त्रास सध्या किती तीव्र आहे?"
-  }
+const LANGUAGE_NAME_MAP = {
+  english: 'en', hindi: 'hi', marathi: 'mr', tamil: 'ta', telugu: 'te',
+  bengali: 'bn', gujarati: 'gu', kannada: 'kn', malayalam: 'ml', odia: 'or',
+  punjabi: 'pa', assamese: 'as', urdu: 'ur'
 };
+
+function resolveLang(language = 'hi') {
+  if (!language) return 'en';
+  const clean = String(language).toLowerCase().trim();
+  if (LOCALES.includes(clean)) return clean;
+  if (LANGUAGE_NAME_MAP[clean]) return LANGUAGE_NAME_MAP[clean];
+  const base = clean.split('-')[0].slice(0, 2);
+  if (LOCALES.includes(base)) return base;
+  return 'en';
+}
 
 // Clinical Red Flag patterns for immediate triage escalation
 const RED_FLAG_PATTERNS = [
@@ -194,7 +173,7 @@ async function processAdaptiveProbe({
   transcript = [],
   patientContext = {}
 }) {
-  const lang = ['en', 'hi', 'mr'].includes(language) ? language : 'hi';
+  const lang = resolveLang(language);
 
   // 1. Red flag scan on incoming speech + vitals
   const redFlags = detectRedFlags(`${chiefComplaint || ''} ${userSpeech || ''}`, vitals);
@@ -263,16 +242,15 @@ Return ONLY JSON matching:
   if (!isComplete) {
     nextQuestion = QUESTION_TEMPLATES[nextStep]?.[lang] || QUESTION_TEMPLATES[nextStep]?.en;
   } else {
-    nextQuestion = {
-      en: "Thank you. Your symptom details have been recorded for the doctor.",
-      hi: "धन्यवाद। आपके लक्षणों का पूरा विवरण डॉक्टर के अवलोकन हेतु सुरक्षित कर लिया गया है।",
-      mr: "धन्यवाद. आपल्या लक्षणांचा संपूर्ण तपशील डॉक्टरांच्या तपासणीसाठी नोंदवला गेला आहे."
-    }[lang];
+    nextQuestion = COMPLETION_MESSAGES[lang] || COMPLETION_MESSAGES.en;
   }
+
+  const quickReplies = !isComplete ? (QUICK_REPLIES[nextStep]?.[lang] || QUICK_REPLIES[nextStep]?.en || []) : [];
 
   return {
     nextStep,
     nextQuestion,
+    quickReplies,
     isComplete,
     socrates: updatedSocrates,
     inferredDepartment,

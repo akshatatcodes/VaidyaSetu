@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   Stethoscope, User, Shield, Lock, Activity, CheckCircle2,
   ArrowRight, Sparkles, Building2, Eye, EyeOff, AlertCircle,
-  FileText, Heart, Phone, Mail, IdCard, Hospital, Zap, Loader2, AlertTriangle
+  FileText, Heart, Phone, Mail, IdCard, Hospital, Zap, Loader2, AlertTriangle, TestTubes
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +14,7 @@ import ThemeToggle from '../components/ThemeToggle';
 const AuthGateway = ({ initialPortal = null }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginDoctor, registerDoctor, loginPatient, registerPatient } = useAuth();
+  const { loginDoctor, registerDoctor, loginPatient, registerPatient, loginLab, loginAdmin } = useAuth();
   const { theme } = useTheme();
 
   // Active portal: 'patient' or 'doctor'
@@ -56,6 +56,19 @@ const AuthGateway = ({ initialPortal = null }) => {
     department: 'Kayachikitsa',
     qualification: 'MD (Ayurveda - Kayachikitsa)',
     hospitalName: 'All India Institute of Ayurveda (AIIA)'
+  });
+
+  // Lab Technician & Admin Form State (Phase 10)
+  const [labForm, setLabForm] = useState({
+    identifier: '',
+    mobile: '',
+    email: '',
+    section: 'Pathology',
+    techName: ''
+  });
+  const [adminForm, setAdminForm] = useState({
+    identifier: '',
+    adminPassword: ''
   });
 
   // Handle mobile number input: automatically query ABDM Registry on 10 digits
@@ -294,6 +307,45 @@ const AuthGateway = ({ initialPortal = null }) => {
     setLoading(false);
   };
 
+  // Handle Lab Technician Auth Submit (Phase 10)
+  const handleLabSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+
+    const res = await loginLab({
+      identifier: labForm.identifier || labForm.mobile || labForm.email,
+      mobile: labForm.mobile || labForm.identifier,
+      email: labForm.email || labForm.identifier,
+      section: labForm.section,
+      techName: labForm.techName
+    });
+    if (res.success) {
+      navigate('/lab', { replace: true });
+    } else {
+      setErrorMessage(res.message);
+    }
+    setLoading(false);
+  };
+
+  // Handle Administrator Auth Submit (Phase 10)
+  const handleAdminSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+
+    const res = await loginAdmin({
+      identifier: adminForm.identifier,
+      adminPassword: adminForm.adminPassword
+    });
+    if (res.success) {
+      navigate('/admin', { replace: true });
+    } else {
+      setErrorMessage(res.message);
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden transition-colors duration-500 bg-slate-50 dark:bg-[#030712] p-4 sm:p-8">
       {/* Ambient background glow spheres */}
@@ -315,6 +367,10 @@ const AuthGateway = ({ initialPortal = null }) => {
             <div className="flex-shrink-0 p-3 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-2xl shadow-xl shadow-emerald-500/20 text-white">
               {activePortal === 'doctor' ? (
                 <Stethoscope className="w-9 h-9" />
+              ) : activePortal === 'lab' ? (
+                <TestTubes className="w-9 h-9" />
+              ) : activePortal === 'admin' ? (
+                <Shield className="w-9 h-9" />
               ) : (
                 <Activity className="w-9 h-9" />
               )}
@@ -324,7 +380,10 @@ const AuthGateway = ({ initialPortal = null }) => {
                 VaidyaSetu
               </h2>
               <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                {activePortal === 'doctor' ? 'Clinical Decision Support & OPD Cockpit' : 'National Ayush Mission • Digital Health Gateway'}
+                {activePortal === 'doctor' ? 'Clinical Decision Support & OPD Cockpit'
+                  : activePortal === 'lab' ? 'Central Diagnostic Laboratory Workbench'
+                  : activePortal === 'admin' ? 'Hospital Administration & Operations Console'
+                  : 'National Ayush Mission • Digital Health Gateway'}
               </p>
             </div>
           </div>
@@ -338,6 +397,24 @@ const AuthGateway = ({ initialPortal = null }) => {
                 </h3>
                 <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-lg leading-relaxed font-medium">
                   Real-time OPD triage queue, AI-synthesized SOCRATES pre-consultations, and seamless 10-second AYUSH prescription writing.
+                </p>
+              </>
+            ) : activePortal === 'lab' ? (
+              <>
+                <h3 className="text-4xl sm:text-5xl xl:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-teal-600 via-cyan-600 to-emerald-600 dark:from-teal-400 dark:via-cyan-300 dark:to-emerald-400 leading-[1.1]">
+                  Diagnostic Lab <br /> Result Workbench.
+                </h3>
+                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-lg leading-relaxed font-medium">
+                  Enter results for ordered tests, flag critical values, verify sign-off, and push verified results straight into the patient record.
+                </p>
+              </>
+            ) : activePortal === 'admin' ? (
+              <>
+                <h3 className="text-4xl sm:text-5xl xl:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-teal-600 via-emerald-600 to-slate-600 dark:from-teal-400 dark:via-emerald-300 dark:to-slate-300 leading-[1.1]">
+                  Hospital Admin & <br /> Operations Console.
+                </h3>
+                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-lg leading-relaxed font-medium">
+                  Live OPD counters, department toggles, % AI-edited-by-doctor and full audit trail across today's sessions.
                 </p>
               </>
             ) : (
@@ -356,6 +433,10 @@ const AuthGateway = ({ initialPortal = null }) => {
           <div className="flex flex-wrap gap-2.5 pt-2">
             {(activePortal === 'doctor'
               ? ['Live OPD Queue', 'AYUSH NAMASTE & ICD-11', 'Herb-Drug Guard', 'ABDM FHIR R4']
+              : activePortal === 'lab'
+              ? ['Critical Result Flagging', 'Verified Sign-off', 'Slide to Patient Record', 'Order Workflow']
+              : activePortal === 'admin'
+              ? ['Live OPD Counters', 'Department Toggles', 'AI-Edit Audit', 'Critical Lab Visibility']
               : ['ABDM ABHA Compliant', 'AI Diagnostics', 'Real-time Alerts', 'Private & Secure']
             ).map((feature) => (
               <span
@@ -383,7 +464,7 @@ const AuthGateway = ({ initialPortal = null }) => {
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                {activePortal === 'doctor' ? 'Physician Sign In' : 'Sign In'}
+                {activePortal === 'doctor' ? 'Physician Sign In' : activePortal === 'lab' ? 'Technician Sign In' : activePortal === 'admin' ? 'Admin Sign In' : 'Sign In'}
               </button>
               <button
                 type="button"
@@ -394,7 +475,7 @@ const AuthGateway = ({ initialPortal = null }) => {
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                {activePortal === 'doctor' ? 'Register Doctor' : 'New Patient'}
+                {activePortal === 'doctor' ? 'Register Doctor' : activePortal === 'lab' ? 'Lab Access' : activePortal === 'admin' ? 'Admin Access' : 'New Patient'}
               </button>
             </div>
 
@@ -676,6 +757,144 @@ const AuthGateway = ({ initialPortal = null }) => {
               </form>
             )}
 
+            {/* ════════════ LAB TECHNICIAN FORM (Phase 10) ════════════ */}
+            {activePortal === 'lab' && (
+              <form onSubmit={handleLabSubmit} className="space-y-4">
+                {/* 1-Tap Demo Lab Tech Shortcut */}
+                {authMode === 'login' && (
+                  <div className="p-3 rounded-2xl bg-cyan-500/5 border border-cyan-500/15 mb-2">
+                    <p className="text-[10px] font-black text-cyan-700 dark:text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <Sparkles size={12} /> 1-Tap Lab Technician Demo
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setLabForm({ identifier: 'LAB-AIIA-001', mobile: '+91 9810012345', email: 'suresh.lab@aiia.gov.in', section: 'Pathology', techName: 'Suresh Kumar' }); setErrorMessage(''); }}
+                      className="w-full text-left px-3 py-2 rounded-xl bg-white dark:bg-white/5 hover:bg-cyan-50 dark:hover:bg-white/10 border border-cyan-500/20 text-xs font-bold text-gray-800 dark:text-gray-200 transition-all flex items-center justify-between group cursor-pointer"
+                    >
+                      <span>Suresh Kumar (Pathology)</span>
+                      <span className="font-mono text-[10px] text-cyan-600 dark:text-cyan-400 font-black">LAB-AIIA-001</span>
+                    </button>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Technician ID / Mobile / Email *
+                  </label>
+                  <div className="relative">
+                    <IdCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      required
+                      value={labForm.identifier}
+                      onChange={e => setLabForm({ ...labForm, identifier: e.target.value })}
+                      placeholder="LAB-AIIA-001 or +91 9810012345"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-cyan-500 outline-none text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Laboratory Section
+                  </label>
+                  <div className="relative">
+                    <TestTubes className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <select
+                      value={labForm.section}
+                      onChange={e => setLabForm({ ...labForm, section: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-cyan-500 outline-none text-gray-900 dark:text-white"
+                    >
+                      <option value="Pathology">Pathology</option>
+                      <option value="Biochemistry">Biochemistry</option>
+                      <option value="Microbiology">Microbiology</option>
+                      <option value="Hematology">Hematology</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-cyan-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer mt-2"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                  Sign In to Lab Workbench
+                </button>
+              </form>
+            )}
+
+            {/* ════════════ ADMINISTRATOR FORM (Phase 10) ════════════ */}
+            {activePortal === 'admin' && (
+              <form onSubmit={handleAdminSubmit} className="space-y-4">
+                {/* 1-Tap Demo Admin Shortcut */}
+                {authMode === 'login' && (
+                  <div className="p-3 rounded-2xl bg-slate-500/5 border border-slate-500/15 mb-2">
+                    <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <Sparkles size={12} /> 1-Tap Admin Demo
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setAdminForm({ identifier: 'ADM-AIIA-001', adminPassword: '' }); setErrorMessage(''); }}
+                      className="w-full text-left px-3 py-2 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-500/20 text-xs font-bold text-gray-800 dark:text-gray-200 transition-all flex items-center justify-between group cursor-pointer"
+                    >
+                      <span>Dr. Arun Kulkarni (Administrator)</span>
+                      <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300 font-black">ADM-AIIA-001</span>
+                    </button>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Administrator Email / ID *
+                  </label>
+                  <div className="relative">
+                    <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      required
+                      value={adminForm.identifier}
+                      onChange={e => setAdminForm({ ...adminForm, identifier: e.target.value })}
+                      placeholder="admin@aiia.gov.in"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Admin Access Key
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={adminForm.adminPassword}
+                      onChange={e => setAdminForm({ ...adminForm, adminPassword: e.target.value })}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-10 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer mt-2"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                  Sign In to Admin Console
+                </button>
+              </form>
+            )}
+
             {/* ════════════ DOCTOR FORMS ════════════ */}
             {activePortal === 'doctor' && (
               <form onSubmit={handleDoctorSubmit} className="space-y-4">
@@ -834,17 +1053,13 @@ const AuthGateway = ({ initialPortal = null }) => {
             )}
 
             {/* ────────────────── BOTTOM ROLE REDIRECT SWITCHER ────────────────── */}
-            <div className="pt-6 mt-6 border-t border-gray-200 dark:border-white/10 text-center">
+            <div className="pt-6 mt-6 border-t border-gray-200 dark:border-white/10 text-center space-y-2">
               {activePortal === 'patient' ? (
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                   Are you a Doctor or Healthcare Provider?{' '}
                   <button
                     type="button"
-                    onClick={() => {
-                      setActivePortal('doctor');
-                      setAuthMode('login');
-                      setErrorMessage('');
-                    }}
+                    onClick={() => { setActivePortal('doctor'); setAuthMode('login'); setErrorMessage(''); }}
                     className="text-emerald-600 dark:text-emerald-400 font-black hover:underline inline-flex items-center gap-1 cursor-pointer ml-1"
                   >
                     Sign in to Doctor Cockpit <ArrowRight size={13} />
@@ -855,14 +1070,22 @@ const AuthGateway = ({ initialPortal = null }) => {
                   Are you a Patient seeking care?{' '}
                   <button
                     type="button"
-                    onClick={() => {
-                      setActivePortal('patient');
-                      setAuthMode('login');
-                      setErrorMessage('');
-                    }}
+                    onClick={() => { setActivePortal('patient'); setAuthMode('login'); setErrorMessage(''); }}
                     className="text-emerald-600 dark:text-emerald-400 font-black hover:underline inline-flex items-center gap-1 cursor-pointer ml-1"
                   >
                     Go to Patient Health Sanctuary <ArrowRight size={13} />
+                  </button>
+                </p>
+              )}
+              {activePortal !== 'lab' && (
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">
+                  Staff access —{' '}
+                  <button type="button" onClick={() => { setActivePortal('lab'); setAuthMode('login'); setErrorMessage(''); }} className="text-cyan-600 dark:text-cyan-400 font-black hover:underline inline-flex items-center gap-1 cursor-pointer">
+                    Lab Workbench
+                  </button>
+                  {' '}·{' '}
+                  <button type="button" onClick={() => { setActivePortal('admin'); setAuthMode('login'); setErrorMessage(''); }} className="text-slate-600 dark:text-slate-300 font-black hover:underline inline-flex items-center gap-1 cursor-pointer">
+                    Admin Console
                   </button>
                 </p>
               )}

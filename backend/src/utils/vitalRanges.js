@@ -139,8 +139,85 @@ const VITAL_RANGES = {
     normal: { min: 0, max: 5.6 },
     borderline: { min: 5.7, max: 6.4 },
     high: { min: 6.5, max: 14 }
+  },
+
+  // Common lab parameters for kiosk OCR flagging (never diagnose — flag only)
+  hemoglobin: {
+    name: 'Hemoglobin',
+    unit: 'g/dL',
+    normal: { min: 12, max: 17 },
+    borderline: { min: 10, max: 11.9 },
+    high: { min: 17.1, max: 25 },
+    low: { min: 0, max: 9.9 }
+  },
+  fasting_glucose: {
+    name: 'Fasting Glucose',
+    unit: 'mg/dL',
+    normal: { min: 70, max: 99 },
+    borderline: { min: 100, max: 125 },
+    high: { min: 126, max: 400 },
+    low: { min: 0, max: 69 }
+  },
+  creatinine: {
+    name: 'Serum Creatinine',
+    unit: 'mg/dL',
+    normal: { min: 0.6, max: 1.2 },
+    borderline: { min: 1.21, max: 1.5 },
+    high: { min: 1.51, max: 20 },
+    low: { min: 0, max: 0.59 }
+  },
+  tsh: {
+    name: 'TSH',
+    unit: 'mIU/L',
+    normal: { min: 0.4, max: 4.0 },
+    borderline: { min: 4.01, max: 10 },
+    high: { min: 10.01, max: 100 },
+    low: { min: 0, max: 0.39 }
   }
 };
+
+/**
+ * Flag lab values outside reference — never labels as diagnosis.
+ * Returns message: "value outside reference range — clinical interpretation required"
+ */
+function flagLabValue(parameterKey, numericValue) {
+  const range = VITAL_RANGES[parameterKey];
+  if (!range || numericValue === null || numericValue === undefined || Number.isNaN(Number(numericValue))) {
+    return null;
+  }
+  const status = getVitalStatus(parameterKey, Number(numericValue));
+  if (status === 'normal') return null;
+  return {
+    parameter: range.name,
+    value: String(numericValue),
+    flag: 'value outside reference range — clinical interpretation required',
+    referenceRange: getNormalRange(parameterKey),
+    status
+  };
+}
+
+/**
+ * Heuristic: parse common lab strings from OCR text into flags
+ */
+function flagLabsFromExtractedText(text = '') {
+  const flags = [];
+  const patterns = [
+    { key: 'hba1c', re: /hba1c[:\s]*([0-9]+(?:\.[0-9]+)?)\s*%?/i },
+    { key: 'hemoglobin', re: /(?:hemoglobin|hb)[:\s]*([0-9]+(?:\.[0-9]+)?)\s*g/i },
+    { key: 'fasting_glucose', re: /(?:fasting\s*(?:blood\s*)?glucose|fbs|fbg)[:\s]*([0-9]+(?:\.[0-9]+)?)/i },
+    { key: 'creatinine', re: /creatinine[:\s]*([0-9]+(?:\.[0-9]+)?)/i },
+    { key: 'tsh', re: /tsh[:\s]*([0-9]+(?:\.[0-9]+)?)/i },
+    { key: 'cholesterol_total', re: /(?:total\s*)?cholesterol[:\s]*([0-9]+(?:\.[0-9]+)?)/i }
+  ];
+  for (const p of patterns) {
+    const m = text.match(p.re);
+    if (m) {
+      const flagged = flagLabValue(p.key, parseFloat(m[1]));
+      if (flagged) flags.push(flagged);
+    }
+  }
+  return flags;
+}
 
 /**
  * Determine the status of a vital sign based on its value
@@ -152,10 +229,8 @@ function getVitalStatus(type, value) {
   const range = VITAL_RANGES[type];
   if (!range || range.personalized) return 'normal';
 
-  // Special handling for blood pressure
   if (type === 'blood_pressure') {
     const { systolic, diastolic } = value;
-    
     if (systolic >= 181 || diastolic >= 121) return 'critical';
     if (systolic >= 140 || diastolic >= 90) return 'high';
     if (systolic >= 121 || diastolic >= 81) return 'borderline';
@@ -163,21 +238,21 @@ function getVitalStatus(type, value) {
     return 'normal';
   }
 
-  // For other vitals
-  if (value >= range.critical?.min) return 'critical';
-  if (value >= range.high?.min) return 'high';
-  if (value <= range.low?.max) return 'low';
-  if (value >= range.borderline?.min) return 'borderline';
-  if (value >= range.normal?.min && value <= range.normal?.max) return 'normal';
-  
+  if (range.critical && value >= range.critical.min && (!range.critical.max || value <= range.critical.max)) {
+    // critical low ranges like SpO2 use low end
+    if (range.critical.min === 0 && value <= range.critical.max) return 'critical';
+  }
+  if (range.critical && range.critical.max != null && value <= range.critical.max && range.critical.min === 0) {
+    return 'critical';
+  }
+  if (range.high && value >= range.high.min) return 'high';
+  if (range.low && value <= range.low.max) return 'low';
+  if (range.borderline && value >= range.borderline.min && value <= range.borderline.max) return 'borderline';
+  if (range.normal && value >= range.normal.min && value <= range.normal.max) return 'normal';
+
   return 'normal';
 }
 
-/**
- * Get the normal range description for a vital sign
- * @param {string} type - Vital sign type
- * @returns {string} Normal range description
- */
 function getNormalRange(type) {
   const range = VITAL_RANGES[type];
   if (!range) return 'Consult your doctor';
@@ -196,5 +271,8 @@ function getNormalRange(type) {
 module.exports = {
   VITAL_RANGES,
   getVitalStatus,
-  getNormalRange
+  getNormalRange,
+  flagLabValue,
+  flagLabsFromExtractedText
 };
+

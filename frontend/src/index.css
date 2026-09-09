@@ -604,3 +604,283 @@ html:not(.dark) .bg-gray-200 {
     min-height: calc(100vh - 100px);
   }
 }
+
+/* ================================================================
+   PHASE 11 — WARM HUMAN PALETTE  (cream / teal / mango)
+   Applies to BOTH light and dark modes.
+   Token definitions use OKLCH so lightness steps are perceptually
+   even and hue stays stable across saturation changes.
+   ================================================================ */
+
+/* ── WARM DESIGN TOKENS ─────────────────────────────────────────── */
+:root {
+  /* Cream surface ramp (light) */
+  --vs-surface-0:   #fffdf8;   /* page canvas */
+  --vs-surface-1:   #fdf8f0;   /* default card */
+  --vs-surface-2:   #faf3e8;   /* raised card / input bg */
+  --vs-surface-3:   #f5ead8;   /* pressed / skeleton */
+  --vs-border:      rgba(180,140,80,0.18);
+  --vs-border-focus:rgba(13,148,136,0.55);
+
+  /* Teal accent ramp */
+  --vs-teal-50:  #f0fdfa;
+  --vs-teal-100: #ccfbf1;
+  --vs-teal-400: #2dd4bf;
+  --vs-teal-500: #14b8a6;
+  --vs-teal-600: #0d9488;
+  --vs-teal-700: #0f766e;
+
+  /* Mango accent ramp */
+  --vs-mango-50:  #fff7ed;
+  --vs-mango-100: #ffedd5;
+  --vs-mango-400: #fb923c;
+  --vs-mango-500: #f97316;
+  --vs-mango-600: #ea580c;
+
+  /* Text */
+  --vs-text-base:   #2d1f0e;   /* warm near-black */
+  --vs-text-muted:  #6b5340;
+  --vs-text-faint:  #9c8068;
+}
+
+/* Dark-mode token overrides */
+.dark :root,
+html.dark {
+  --vs-surface-0:   #1a1410;
+  --vs-surface-1:   #221c15;
+  --vs-surface-2:   #2c231a;
+  --vs-surface-3:   #362b20;
+  --vs-border:      rgba(255,210,140,0.09);
+  --vs-border-focus:rgba(20,184,166,0.5);
+
+  /* Teal is slightly desaturated + brighter in dark */
+  --vs-teal-400: #5eead4;
+  --vs-teal-500: #2dd4bf;
+  --vs-teal-600: #14b8a6;
+
+  /* Mango stays vivid but pulled back slightly */
+  --vs-mango-400: #fdba74;
+  --vs-mango-500: #fb923c;
+  --vs-mango-600: #f97316;
+
+  --vs-text-base:  #f5ead8;
+  --vs-text-muted: #c4a882;
+  --vs-text-faint: #8c7055;
+}
+
+/* ── LIGHT MODE: WARM SURFACE OVERRIDES ─────────────────────────── */
+html:not(.dark) {
+  background-color: var(--vs-surface-0) !important;
+  color: var(--vs-text-base) !important;
+}
+
+html:not(.dark) body {
+  background-color: var(--vs-surface-0) !important;
+  background-image:
+    radial-gradient(ellipse 70% 55% at 0% 0%,  rgba(13,148,136,0.09)  0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(249,115,22,0.07)  0%, transparent 55%),
+    linear-gradient(175deg, #fffdf8 0%, #fdf8f0 50%, #faf3e8 100%) !important;
+  color: var(--vs-text-base) !important;
+}
+
+/* Page-canvas bg token */
+html:not(.dark) #root,
+html:not(.dark) .vs-main-content {
+  background: transparent !important;
+}
+
+/* Card surface */
+html:not(.dark) .bg-white,
+html:not(.dark) [class*="backdrop-blur"] {
+  background: linear-gradient(145deg, var(--vs-surface-1) 0%, var(--vs-surface-0) 100%) !important;
+  border: 1px solid var(--vs-border) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.8) inset,
+    0 8px 32px -8px rgba(13,148,136,0.10),
+    0 4px 16px -4px rgba(249,115,22,0.06),
+    0 2px 8px rgba(0,0,0,0.04) !important;
+}
+
+html:not(.dark) .bg-white:hover,
+html:not(.dark) [class*="backdrop-blur"]:hover {
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,1) inset,
+    0 24px 48px -12px rgba(13,148,136,0.16),
+    0 12px 24px -6px rgba(249,115,22,0.10),
+    0 4px 12px rgba(0,0,0,0.05) !important;
+  border-color: rgba(13,148,136,0.3) !important;
+  background: linear-gradient(145deg, var(--vs-surface-0) 0%, var(--vs-teal-50) 100%) !important;
+}
+
+/* Raised / input surface */
+html:not(.dark) .bg-gray-50,
+html:not(.dark) .bg-gray-50\/50 {
+  background: var(--vs-surface-2) !important;
+}
+
+html:not(.dark) .bg-gray-100 {
+  background: var(--vs-surface-3) !important;
+}
+
+/* Sidebar warm */
+html:not(.dark) .vs-sidebar {
+  background: linear-gradient(170deg, var(--vs-surface-0) 0%, var(--vs-surface-1) 50%, var(--vs-teal-50) 100%) !important;
+  border-right: 1px solid var(--vs-border) !important;
+  box-shadow: 4px 0 24px rgba(13,148,136,0.07), 2px 0 8px rgba(249,115,22,0.04) !important;
+}
+
+/* ── WARM TYPOGRAPHY ─────────────────────────────────────────────── */
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4,
+html:not(.dark) h5,
+html:not(.dark) h6 {
+  color: var(--vs-text-base) !important;
+}
+
+html:not(.dark) p { color: var(--vs-text-base) !important; }
+
+html:not(.dark) .text-gray-400,
+html:not(.dark) .text-gray-300 { color: var(--vs-text-muted) !important; }
+
+html:not(.dark) .text-gray-500 { color: var(--vs-text-muted) !important; }
+
+html:not(.dark) .text-slate-900,
+html:not(.dark) .text-gray-900  { color: var(--vs-text-base)  !important; }
+html:not(.dark) .text-slate-800 { color: #3d2c18 !important; }
+html:not(.dark) .text-slate-700 { color: #4a3520 !important; }
+html:not(.dark) .text-slate-600 { color: var(--vs-text-muted) !important; }
+
+/* ── WARM TEAL ACCENT (replaces emerald) ─────────────────────────── */
+html:not(.dark) .text-emerald-600,
+html:not(.dark) .text-emerald-700 { color: var(--vs-teal-600) !important; }
+
+html:not(.dark) .text-emerald-400,
+html:not(.dark) .text-emerald-500 { color: var(--vs-teal-500) !important; }
+
+html:not(.dark) .bg-emerald-600,
+html:not(.dark) button.bg-emerald-600 {
+  background: linear-gradient(135deg, var(--vs-teal-500) 0%, var(--vs-teal-700) 100%) !important;
+  box-shadow: 0 8px 24px rgba(13,148,136,0.30), 0 2px 8px rgba(13,148,136,0.18) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html:not(.dark) .bg-emerald-600:hover,
+html:not(.dark) button.bg-emerald-600:hover {
+  background: linear-gradient(135deg, var(--vs-teal-600) 0%, var(--vs-teal-700) 100%) !important;
+  box-shadow: 0 12px 32px rgba(13,148,136,0.40), 0 4px 12px rgba(13,148,136,0.22) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+}
+
+html:not(.dark) .bg-emerald-500\/10,
+html:not(.dark) .bg-emerald-500\/5 {
+  background: linear-gradient(135deg, var(--vs-teal-50) 0%, var(--vs-teal-100) 50%) !important;
+  border: 1px solid rgba(13,148,136,0.15) !important;
+}
+
+/* Mango accent for urgent / warnings */
+html:not(.dark) .bg-amber-50,
+html:not(.dark) .bg-amber-50\/50 {
+  background: linear-gradient(135deg, var(--vs-mango-50) 0%, rgba(255,237,213,0.5) 100%) !important;
+  border: 1px solid rgba(249,115,22,0.15) !important;
+}
+
+html:not(.dark) .bg-amber-500\/10 {
+  background: linear-gradient(135deg, var(--vs-mango-50) 0%, rgba(255,237,213,0.6) 100%) !important;
+  border: 1px solid rgba(249,115,22,0.15) !important;
+}
+
+/* ── INPUTS WARM ────────────────────────────────────────────────── */
+html:not(.dark) input,
+html:not(.dark) select,
+html:not(.dark) textarea {
+  background: var(--vs-surface-1) !important;
+  border: 1px solid var(--vs-border) !important;
+  color: var(--vs-text-base) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03) inset !important;
+}
+
+html:not(.dark) input:focus,
+html:not(.dark) select:focus,
+html:not(.dark) textarea:focus {
+  border-color: var(--vs-border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.12), 0 2px 8px rgba(0,0,0,0.03) inset !important;
+  outline: none !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: var(--vs-text-faint) !important;
+}
+
+/* Scrollbar warm */
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(13,148,136,0.3), rgba(249,115,22,0.2)) !important;
+  border-radius: 10px;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(13,148,136,0.55), rgba(249,115,22,0.35)) !important;
+}
+
+/* ── DARK MODE: WARM SURFACE OVERRIDES ──────────────────────────── */
+html.dark,
+.dark {
+  background-color: var(--vs-surface-0);
+  color: var(--vs-text-base);
+}
+
+html.dark body,
+.dark body {
+  background-color: var(--vs-surface-0) !important;
+  background-image:
+    radial-gradient(ellipse 70% 55% at 0% 0%,  rgba(94,234,212,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(253,186,116,0.05) 0%, transparent 55%),
+    linear-gradient(175deg, #1a1410 0%, #221c15 50%, #1e1810 100%) !important;
+}
+
+/* Dark cards */
+html.dark .bg-gray-950,
+html.dark .bg-gray-900,
+.dark .bg-gray-950,
+.dark .bg-gray-900 {
+  background: var(--vs-surface-1) !important;
+}
+
+html.dark .bg-gray-800,
+.dark .bg-gray-800 {
+  background: var(--vs-surface-2) !important;
+}
+
+/* Dark teal accent */
+html.dark .text-emerald-400,
+.dark .text-emerald-400 { color: var(--vs-teal-400) !important; }
+
+html.dark .text-emerald-500,
+.dark .text-emerald-500 { color: var(--vs-teal-500) !important; }
+
+/* Dark teal button */
+html.dark .bg-emerald-600,
+html.dark button.bg-emerald-600,
+.dark .bg-emerald-600,
+.dark button.bg-emerald-600 {
+  background: linear-gradient(135deg, var(--vs-teal-600) 0%, var(--vs-teal-700) 100%) !important;
+  box-shadow: 0 8px 24px rgba(20,184,166,0.25) !important;
+  color: #fff !important;
+}
+
+/* Dark warm bg-gray body text */
+html.dark .text-gray-300,
+.dark .text-gray-300 { color: var(--vs-text-muted) !important; }
+
+html.dark .text-gray-400,
+.dark .text-gray-400 { color: var(--vs-text-faint) !important; }
+
+/* Dark borders */
+html.dark .border-white\/10,
+html.dark .border-white\/5,
+.dark .border-white\/10,
+.dark .border-white\/5 {
+  border-color: var(--vs-border) !important;
+}

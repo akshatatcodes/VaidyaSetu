@@ -18,7 +18,11 @@ const MedicationItemSchema = new mongoose.Schema({
   frequency: { type: String }, // e.g., 'BD (Twice Daily)', 'TDS'
   duration: { type: String }, // e.g., '7 days'
   instructions: { type: String }, // e.g., 'After meals with warm water (Ushnodaka)'
-  anupana: { type: String } // Ayurvedic vehicle: Honey, Warm Milk, Ghee, Water
+  anupana: { type: String }, // Ayurvedic vehicle: Honey, Warm Milk, Ghee, Water
+  status: { type: String, enum: ['active', 'discontinued', 'draft', 'confirmed'], default: 'active' },
+  prescribedBy: { type: String },
+  confirmedAt: { type: Date },
+  verifiedByDoctor: { type: Boolean, default: false }
 }, { _id: false });
 
 const RedFlagSchema = new mongoose.Schema({
@@ -60,9 +64,19 @@ const IntakeSessionSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  enteredBy: {
+    type: {
+      type: String,
+      enum: ['patient', 'caregiver', 'staff'],
+      default: 'patient'
+    },
+    caregiverName: { type: String, trim: true },
+    relation: { type: String, trim: true },
+    caregiverMobile: { type: String, trim: true }
+  },
   languagePreference: {
     type: String,
-    enum: ['en', 'hi', 'mr'],
+    enum: ['en', 'hi', 'mr', 'ta', 'te', 'bn', 'gu', 'kn', 'ml', 'or', 'pa', 'as', 'ur'],
     default: 'hi'
   },
   department: {
@@ -148,7 +162,7 @@ const IntakeSessionSchema = new mongoose.Schema({
   // Red Flags
   redFlags: [RedFlagSchema],
 
-  // OCR Prescriptions Scanned at Kiosk
+  // OCR Prescriptions Scanned at Kiosk (legacy shape — prefer documents[])
   ocrPrescriptions: [{
     imageUrl: { type: String },
     scannedAt: { type: Date, default: Date.now },
@@ -160,6 +174,111 @@ const IntakeSessionSchema = new mongoose.Schema({
       description: { type: String }
     }]
   }],
+
+  // Phase 2: Digitized documents bound to intake session
+  documents: [{
+    type: { type: String, enum: ['prescription', 'lab_report', 'discharge_summary', 'other'], default: 'other' },
+    originalName: { type: String },
+    imageUrl: { type: String },
+    mimeType: { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+    documentDate: { type: Date },
+    isHandwritten: { type: Boolean, default: false },
+    verificationStatus: {
+      type: String,
+      enum: ['pending_patient_confirm', 'confirmed', 'rejected', 'needs_staff_review'],
+      default: 'pending_patient_confirm'
+    },
+    extractedFields: [{
+      field: { type: String },
+      value: { type: String },
+      confidence: { type: Number, default: 80 },
+      patientConfirmed: { type: Boolean, default: false },
+      doctorAction: { type: String, enum: ['accept', 'edit', 'reject', 'pending'], default: 'pending' },
+      editedValue: { type: String }
+    }],
+    labFlags: [{
+      parameter: { type: String },
+      value: { type: String },
+      flag: { type: String }, // outside reference — clinical interpretation required
+      referenceRange: { type: String }
+    }],
+    rawOcrText: { type: String }
+  }],
+
+  // Ayurvedic questionnaire raw answers (never auto-classified)
+  ayurvedaAnswers: {
+    agni: { type: String },
+    koshtha: { type: String },
+    aharaVihara: { type: String },
+    nidra: { type: String },
+    malaMutra: { type: String },
+    completedAt: { type: Date }
+  },
+
+  // Phase 3 / Phase 10: Lab orders + digital Rx from doctor; result attached by lab technician
+  labOrders: [{
+    testName: { type: String, required: true },
+    urgency: { type: String, enum: ['routine', 'urgent', 'stat'], default: 'routine' },
+    orderedBy: { type: String },
+    orderedAt: { type: Date, default: Date.now },
+    notes: { type: String },
+    status: { type: String, enum: ['ordered', 'collected', 'resulted', 'verified', 'cancelled'], default: 'ordered' },
+    // Phase 10: Lab result values attached by lab technician
+    result: {
+      value: { type: String },
+      unit: { type: String },
+      referenceRange: { type: String },
+      resultedAt: { type: Date },
+      resultedBy: { type: String }
+    },
+    // Phase 10: Critical-result workflow — flagged for urgent clinician attention
+    critical: { type: Boolean, default: false },
+    verified: { type: Boolean, default: false },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String }
+  }],
+
+  // Phase 5: QR token (no clinical data)
+  qrPayload: { type: String },
+  qrSvgDataUri: { type: String },
+
+  // Phase 6: Consent + audit
+  consent: {
+    dataCapture: { type: Boolean, default: false },
+    documentStorage: { type: Boolean, default: false },
+    doctorSharing: { type: Boolean, default: false },
+    audioNarrated: { type: Boolean, default: false },
+    consentedAt: { type: Date },
+    language: { type: String }
+  },
+  accessLog: [{
+    actorId: { type: String },
+    actorRole: { type: String, enum: ['doctor', 'admin', 'lab', 'kiosk', 'system'] },
+    action: { type: String },
+    field: { type: String },
+    at: { type: Date, default: Date.now }
+  }],
+
+  // Phase 9: Verified Voice Notes & Report Explanations
+  voiceNotes: [{
+    audioUrl: { type: String },
+    transcript: { type: String, required: true },
+    language: { type: String, default: 'hi' },
+    recordedBy: { type: String, enum: ['doctor', 'patient', 'caregiver', 'kiosk'], default: 'patient' },
+    clinicalSummary: { type: String },
+    verifiedByDoctor: { type: Boolean, default: false },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String },
+    createdAt: { type: Date, default: Date.now }
+  }],
+
+
+  // Department questionnaire feature flags snapshot
+  questionnaireFlags: {
+    dashavidhaEnabled: { type: Boolean, default: true },
+    ayurvedaProbeEnabled: { type: Boolean, default: true }
+  },
 
   // Comorbidities, Past Disease & Known Allergies
   pastMedicalHistory: [{ type: String }],
@@ -259,6 +378,7 @@ const IntakeSessionSchema = new mongoose.Schema({
   abdmSync: {
     synced: { type: Boolean, default: false },
     syncedAt: { type: Date },
+    mode: { type: String, default: 'simulated' },
     careContextId: { type: String },
     consentId: { type: String },
     transactionId: { type: String },

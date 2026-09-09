@@ -31,7 +31,10 @@ const diseaseRoutes = require('./src/routes/diseaseRoutes');
 const doctorRoutes = require('./src/routes/doctorRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const kioskRoutes = require('./src/routes/kioskRoutes');
+const kioskExtensionRoutes = require('./src/routes/kioskExtensionRoutes');
 const authRoutes = require('./src/routes/authRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
+const labWorkflowRoutes = require('./src/routes/labWorkflowRoutes');
 const { resolveLanguage } = require('./src/middleware/languageResolver');
 const { runReminderService } = require('./src/services/reminderService');
 const initCronJobs = require('./src/scripts/cronJobs');
@@ -41,7 +44,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
 app.use(resolveLanguage);
 
 // MongoDB Connection
@@ -59,13 +62,29 @@ if (!mongoUri) {
 // Routes Configuration
 app.use('/api/user', userRoutes);
 app.use('/api/profile', profileRoutes);
-app.use('/api/ai', aiRoutes);
+
+// Phase 9: Legacy disease-prediction / open chat — hidden unless ENABLE_LEGACY_ROUTES=true
+const enableLegacy = process.env.ENABLE_LEGACY_ROUTES === 'true';
+if (enableLegacy) {
+  app.use('/api/ai', aiRoutes);
+  app.use('/api/diseases', diseaseRoutes);
+  app.use('/api/rag', ragRoutes);
+  app.use('/api/chat', chatRoutes);
+} else {
+  const legacyGone = (req, res) => res.status(410).json({
+    status: 'error',
+    message: 'Legacy disease-prediction and open patient chat routes are disabled for MediSahayak kiosk mode. Set ENABLE_LEGACY_ROUTES=true to re-enable.'
+  });
+  app.use('/api/ai', legacyGone);
+  app.use('/api/diseases', legacyGone);
+  app.use('/api/rag', legacyGone);
+  app.use('/api/chat', legacyGone);
+}
+
 app.use('/api/reports', reportRoutes);
 app.use('/api/interaction', interactionRoutes);
 app.use('/api/interaction', realtimeInteractionRoutes);
-app.use('/api/rag', ragRoutes);
 app.use('/api/fitness', fitnessRoutes);
-app.use('/api/chat', chatRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/vitals', vitalsRoutes);
@@ -78,10 +97,12 @@ app.use('/api/preferences', preferenceRoutes);
 app.use('/api/medications', medicationRoutes);
 app.use('/api/mitigations', mitigationRoutes);
 app.use('/api/governance', governanceRoutes);
-app.use('/api/diseases', diseaseRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/kiosk', kioskRoutes);
+app.use('/api/kiosk', kioskExtensionRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/lab', labWorkflowRoutes);
 app.use('/api/auth', authRoutes);
 
 // Health Check

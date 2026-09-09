@@ -3,6 +3,10 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const UserProfile = require('../models/UserProfile');
 
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const { JWT_SECRET } = require('../middleware/authMiddleware');
+
 // Demo Doctor Presets
 const DEMO_DOCTORS = [
   {
@@ -74,6 +78,37 @@ const DEMO_PATIENTS = [
   }
 ];
 
+// Demo Lab Technician Presets
+const DEMO_LAB_TECHS = [
+  {
+    techId: 'LAB-AIIA-001',
+    techName: 'Suresh Kumar',
+    email: 'suresh.lab@aiia.gov.in',
+    mobile: '+91 9810012345',
+    labName: 'AIIA Central Diagnostic Laboratory',
+    section: 'Pathology'
+  },
+  {
+    techId: 'LAB-AIIA-002',
+    techName: 'Meena Verma',
+    email: 'meena.lab@aiia.gov.in',
+    mobile: '+91 9810054321',
+    labName: 'AIIA Central Diagnostic Laboratory',
+    section: 'Biochemistry'
+  }
+];
+
+// Demo Admin Presets
+const DEMO_ADMINS = [
+  {
+    adminId: 'ADM-AIIA-001',
+    adminName: 'Dr. Arun Kulkarni',
+    email: 'admin@aiia.gov.in',
+    role: 'admin',
+    hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi'
+  }
+];
+
 // ──────────────────────────────────────────────
 // DOCTOR AUTHENTICATION ENDPOINTS
 // ──────────────────────────────────────────────
@@ -116,7 +151,19 @@ router.post('/doctor/login', async (req, res) => {
       experienceYears: 10
     };
 
-    const sessionToken = 'doc_tok_' + Buffer.from(`${doctorProfile.doctorId}_${Date.now()}`).toString('base64');
+    // Issue JWT token with claims
+    const sessionToken = jwt.sign(
+      {
+        id: doctorProfile.doctorId,
+        role: 'doctor',
+        email: doctorProfile.email,
+        mobile: doctorProfile.mobile,
+        doctorName: doctorProfile.doctorName,
+        department: doctorProfile.department
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     return res.json({
       status: 'success',
@@ -176,6 +223,120 @@ router.post('/doctor/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Doctor registration error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/auth/lab/login
+ * @desc Authenticate Lab Technician into Lab Workbench
+ */
+router.post('/lab/login', async (req, res) => {
+  try {
+    const { identifier, mobile, email, section, techName } = req.body;
+    const cleanId = (identifier || mobile || email || '').trim();
+
+    if (!cleanId) {
+      return res.status(400).json({ status: 'error', message: 'Lab Technician ID, Mobile Number or Email ID is required' });
+    }
+
+    const cleanDigits = cleanId.replace(/\D/g, '').slice(-10);
+
+    const matchedDemo = DEMO_LAB_TECHS.find(t =>
+      t.techId.toLowerCase() === cleanId.toLowerCase() ||
+      t.email.toLowerCase() === cleanId.toLowerCase() ||
+      (cleanDigits && t.mobile.replace(/\D/g, '').slice(-10) === cleanDigits) ||
+      cleanId.toLowerCase().includes('suresh') ||
+      cleanId.toLowerCase().includes('meena') ||
+      cleanId.toLowerCase().includes('lab')
+    );
+
+    const techProfile = matchedDemo || {
+      techId: 'LAB-AIIA-' + (cleanDigits || 'CUSTOM'),
+      techName: techName || 'Lab Technician',
+      email: cleanId.includes('@') ? cleanId : `${cleanId}@aiia.gov.in`,
+      mobile: cleanDigits ? `+91 ${cleanDigits}` : '+91 9876543210',
+      labName: 'AIIA Central Diagnostic Laboratory',
+      section: section || 'Pathology'
+    };
+
+    const sessionToken = jwt.sign(
+      {
+        id: techProfile.techId,
+        role: 'lab',
+        email: techProfile.email,
+        mobile: techProfile.mobile,
+        techName: techProfile.techName,
+        section: techProfile.section
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      status: 'success',
+      message: 'Lab technician authentication verified. Welcome to AIIA Lab Workbench.',
+      data: {
+        role: 'lab',
+        token: sessionToken,
+        technician: techProfile,
+        permissions: ['lab_order_view', 'lab_result_entry', 'lab_verify_result']
+      }
+    });
+  } catch (error) {
+    console.error('Lab login error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/auth/admin/login
+ * @desc Authenticate Hospital Administrator into Admin Console
+ */
+router.post('/admin/login', async (req, res) => {
+  try {
+    const { identifier, adminPassword } = req.body;
+    const cleanId = (identifier || 'admin@aiia.gov.in').trim();
+
+    const cleanDigits = cleanId.replace(/\D/g, '').slice(-10);
+
+    const matchedDemo = DEMO_ADMINS.find(a =>
+      a.adminId.toLowerCase() === cleanId.toLowerCase() ||
+      a.email.toLowerCase() === cleanId.toLowerCase() ||
+      cleanId.toLowerCase().includes('admin')
+    );
+
+    const adminProfile = matchedDemo || {
+      adminId: 'ADM-AIIA-' + (cleanDigits || 'CUSTOM'),
+      adminName: 'Administrator',
+      email: cleanId.includes('@') ? cleanId : `${cleanId}@aiia.gov.in`,
+      role: 'admin',
+      hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi'
+    };
+
+    const sessionToken = jwt.sign(
+      {
+        id: adminProfile.adminId,
+        role: 'admin',
+        email: adminProfile.email,
+        adminName: adminProfile.adminName
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      status: 'success',
+      message: 'Administrator authentication verified. Welcome to AIIA Admin Console.',
+      data: {
+        role: 'admin',
+        token: sessionToken,
+        admin: adminProfile,
+        permissions: ['department_config', 'kpi_dashboard', 'queue_management', 'audit_log']
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
     res.status(500).json({ status: 'error', message: error.message });
   }
 });
@@ -285,7 +446,18 @@ router.post('/patient/login', async (req, res) => {
       }
     }
 
-    const sessionToken = 'pat_tok_' + Buffer.from(`${patientProfile.patientId}_${Date.now()}`).toString('base64');
+    const sessionToken = jwt.sign(
+      {
+        id: patientProfile.patientId,
+        role: 'patient',
+        email: patientProfile.email,
+        mobile: patientProfile.mobile,
+        patientName: patientProfile.patientName,
+        abhaId: patientProfile.abhaId
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     return res.json({
       status: 'success',
@@ -487,7 +659,9 @@ router.get('/presets', (req, res) => {
     status: 'success',
     data: {
       doctors: DEMO_DOCTORS,
-      patients: DEMO_PATIENTS
+      patients: DEMO_PATIENTS,
+      labTechnicians: DEMO_LAB_TECHS,
+      admins: DEMO_ADMINS
     }
   });
 });
