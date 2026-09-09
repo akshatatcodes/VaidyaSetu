@@ -22,7 +22,7 @@ const Kiosk = require('../models/Kiosk');
  *    unlike the in-memory `departmentConfig` object it replaces, losing it costs
  *    nothing.
  *
- * 2. **Legacy-tolerant department resolution.** Existing IntakeSession rows store
+ * 2. **Legacy-tolerant department resolution.** Existing Encounter rows store
  *    the department as a free-text string ('Kayachikitsa', 'Prasuti & Stri Roga').
  *    `resolveDepartment` matches those against `code`, `name` and `localName`
  *    case-insensitively so historical data keeps resolving while Phase 4 migrates
@@ -102,7 +102,7 @@ async function listDepartments(hospitalObjectId, { includeInactive = false } = {
 
 /**
  * Resolve a department from whatever the caller has — an ObjectId, a code, a
- * display name, or a legacy free-text string from an old IntakeSession.
+ * display name, or a legacy free-text string from an old Encounter.
  *
  * Returns null when it genuinely cannot be resolved. Callers must treat that as
  * "department not recorded" and must not substitute a default; guessing a

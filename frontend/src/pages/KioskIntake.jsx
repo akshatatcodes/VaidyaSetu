@@ -3143,7 +3143,7 @@ const KioskIntake = ({ isStandalone = false }) => {
               <div className="text-xs">
                 <span className="font-black text-slate-900 dark:text-white block uppercase">Doctor desk QR (no clinical data)</span>
                 <p className="text-gray-500 mt-0.5">
-                  Encodes only token / session id. Scan at the workstation to open this IntakeSession.
+                  Encodes only token / session id. Scan at the workstation to open this Encounter.
                 </p>
                 <button
                   type="button"

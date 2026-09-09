@@ -1,6 +1,6 @@
 /**
  * Hardware integration roadmap (SIH slide / architecture note)
- * Certified devices write into IntakeSession.vitals — not custom DIY sensors.
+ * Certified devices write into Encounter.vitals — not custom DIY sensors.
  *
  * USB / Bluetooth path (documented, not required for software-category demo):
  * 1. Certified BP monitor (e.g. Omron HEM series) → Web Bluetooth / vendor USB HID

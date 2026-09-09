@@ -3,7 +3,7 @@ const express = require('express');
 const { processAdaptiveProbe } = require('../src/services/adaptiveSocratesService');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const mongoose = require('mongoose');
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 
 const app = express();
 app.use(express.json());
@@ -14,7 +14,7 @@ describe('Phase 3 — "Talk, Tap, Done" Guided Intake Rebuild', () => {
 
   beforeAll(async () => {
     if (mongoose.connection.readyState === 1) {
-      const sess = await IntakeSession.create({
+      const sess = await Encounter.create({
         tokenNumber: 'OPD-TEST-PHASE3-001',
         patientName: 'Phase3 Test Patient',
         age: 38,

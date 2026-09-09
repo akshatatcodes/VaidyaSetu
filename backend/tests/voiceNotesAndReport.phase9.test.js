@@ -3,7 +3,7 @@ const express = require('express');
 const kioskRoutes = require('../src/routes/kioskRoutes');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const mongoose = require('mongoose');
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 const jwt = require('jsonwebtoken');
 
 const app = express();
@@ -23,7 +23,7 @@ describe('Phase 9: "Explain This Report" + Verified Voice Notes', () => {
 
   beforeAll(async () => {
     if (mongoose.connection.readyState === 1) {
-      const sess = await IntakeSession.create({
+      const sess = await Encounter.create({
         tokenNumber: 'OPD-TEST-PHASE9-001',
         patientName: 'Phase9 Patient',
         age: 42,
@@ -83,7 +83,7 @@ describe('Phase 9: "Explain This Report" + Verified Voice Notes', () => {
       return;
     }
 
-    const session = await IntakeSession.findById(testSessionId);
+    const session = await Encounter.findById(testSessionId);
     if (!session || !session.voiceNotes || session.voiceNotes.length === 0) {
       expect(true).toBe(true);
       return;

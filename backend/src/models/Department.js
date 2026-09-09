@@ -22,7 +22,7 @@ const {
  *    └── Queue policy
  *
  * This record replaces five disagreeing hard-coded department lists:
- *   - the `department` string enum on IntakeSession
+ *   - the `department` string enum on Encounter
  *   - `departmentConfig` in adminRoutes (an in-memory object, lost on restart)
  *   - AYURVEDA_DEPARTMENTS in dashavidhaService
  *   - DEPARTMENTS in KioskIntake.jsx
@@ -108,7 +108,7 @@ const DepartmentSchema = new mongoose.Schema({
   /**
    * Stable slug, unique within the hospital. Used in URLs, queue boards and
    * token prefixes. Legacy records use the department's English name as its
-   * code so existing IntakeSession strings still resolve.
+   * code so existing Encounter strings still resolve.
    */
   code: { type: String, required: true, trim: true },
   name: { type: String, required: true, trim: true },

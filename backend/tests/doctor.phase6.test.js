@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
 // Import model and routes
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 const kioskRoutes = require('../src/routes/kioskRoutes');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const { JWT_SECRET } = require('../src/middleware/authMiddleware');
@@ -35,7 +35,7 @@ describe('Phase 6: Doctor One-Screen Cockpit & Physician Sign-Off API', () => {
       console.warn('MongoDB connection warning:', err.message);
     }
 
-    testSession = new IntakeSession({
+    testSession = new Encounter({
       tokenNumber: 'OPD-20260909-777',
       abhaId: testAbha,
       patientName: 'Master Devansh Sharma',
@@ -57,7 +57,7 @@ describe('Phase 6: Doctor One-Screen Cockpit & Physician Sign-Off API', () => {
   afterAll(async () => {
     try {
       if (mongoose.connection.readyState !== 0) {
-        await IntakeSession.deleteMany({ abhaId: testAbha });
+        await Encounter.deleteMany({ abhaId: testAbha });
         await mongoose.connection.close();
       }
     } catch (e) {}

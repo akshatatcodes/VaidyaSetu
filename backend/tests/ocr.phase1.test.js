@@ -3,7 +3,7 @@ const express = require('express');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const ocrRoutes = require('../src/routes/ocrRoutes');
 const mongoose = require('mongoose');
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 
 const app = express();
 app.use(express.json());
@@ -16,7 +16,7 @@ describe('Phase 1 — Make OCR Real', () => {
   beforeAll(async () => {
     // Create dummy session in memory / db if connected
     if (mongoose.connection.readyState === 1) {
-      const sess = await IntakeSession.create({
+      const sess = await Encounter.create({
         tokenNumber: 'OPD-TEST-OCR-001',
         patientName: 'OCR Test Patient',
         age: 45,

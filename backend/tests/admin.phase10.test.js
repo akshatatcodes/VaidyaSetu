@@ -16,7 +16,7 @@ const adminRoutes = require('../src/routes/adminRoutes');
 const kioskRoutes = require('../src/routes/kioskRoutes');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const mongoose = require('mongoose');
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'vaidyasetu_secure_jwt_secret_key_2026';
@@ -46,7 +46,7 @@ describe('Phase 10: Admin & Lab Modules', () => {
 
   beforeAll(async () => {
     if (mongoose.connection.readyState === 1) {
-      const sess = await IntakeSession.create({
+      const sess = await Encounter.create({
         tokenNumber: 'OPD-TEST-PHASE10-001',
         patientName: 'Phase10 Test Patient',
         age: 55,
@@ -159,7 +159,7 @@ describe('Phase 10: Admin & Lab Modules', () => {
   test('PATCH /api/admin/lab-orders/:sessionId/:orderId/status transitions lab order to collected', async () => {
     if (mongoose.connection.readyState !== 1) { expect(true).toBe(true); return; }
 
-    const session = await IntakeSession.findById(testSessionId);
+    const session = await Encounter.findById(testSessionId);
     const orderId = session.labOrders[0]._id.toString();
 
     const res = await request(app)
@@ -198,7 +198,7 @@ describe('Phase 10: Admin & Lab Modules', () => {
   test('Invalid lab status transition returns 400', async () => {
     if (mongoose.connection.readyState !== 1) { expect(true).toBe(true); return; }
 
-    const session = await IntakeSession.findById(testSessionId);
+    const session = await Encounter.findById(testSessionId);
     // Find a 'collected' order (updated in previous test)
     const collectedOrder = session.labOrders.find(lo => lo.status === 'collected');
     if (!collectedOrder) { expect(true).toBe(true); return; }

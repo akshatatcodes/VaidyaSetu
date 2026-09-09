@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
 // Import model, routes, and adapter
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 const kioskRoutes = require('../src/routes/kioskRoutes');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const abdmAdapter = require('../src/services/abdmAdapter');
@@ -33,7 +33,7 @@ describe('Phase 7: Honest ABDM Gateway & Sandbox Adapter API', () => {
       console.warn('MongoDB connection warning:', err.message);
     }
 
-    testSession = new IntakeSession({
+    testSession = new Encounter({
       tokenNumber: 'OPD-20260909-555',
       abhaId: testAbha,
       patientName: 'Ananya Roy',
@@ -50,7 +50,7 @@ describe('Phase 7: Honest ABDM Gateway & Sandbox Adapter API', () => {
   afterAll(async () => {
     try {
       if (mongoose.connection.readyState !== 0) {
-        await IntakeSession.deleteMany({ abhaId: testAbha });
+        await Encounter.deleteMany({ abhaId: testAbha });
         await mongoose.connection.close();
       }
     } catch (e) {}
@@ -89,7 +89,7 @@ describe('Phase 7: Honest ABDM Gateway & Sandbox Adapter API', () => {
     expect(res.body.data.mode).toBe('simulated');
     expect(res.body.data.transactionId).toBeDefined();
 
-    const updated = await IntakeSession.findById(testSession._id);
+    const updated = await Encounter.findById(testSession._id);
     expect(updated.abdmSync.synced).toBe(true);
     expect(updated.abdmSync.mode).toBe('simulated');
   });

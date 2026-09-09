@@ -1,6 +1,6 @@
 /**
  * ABDM / FHIR adapter — Honest Sandbox / Simulated Adapter.
- * Returns FHIR R4 Bundle payloads from IntakeSession.
+ * Returns FHIR R4 Bundle payloads from Encounter.
  * Mode is explicitly labeled: "simulated" by default unless ABDM_PROD=true.
  */
 
@@ -134,7 +134,7 @@ function toFhirDocumentReferences(session) {
 }
 
 /**
- * Transform completed IntakeSession into FHIR R4 Bundle (collection).
+ * Transform completed Encounter into FHIR R4 Bundle (collection).
  */
 function sessionToFhirBundle(session) {
   const mode = getAbdmMode();

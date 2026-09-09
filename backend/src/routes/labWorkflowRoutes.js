@@ -18,7 +18,6 @@ const LabSample = require('../models/LabSample');
 const LabResult = require('../models/LabResult');
 const Encounter = require('../models/Encounter');
 const Patient = require('../models/Patient');
-const IntakeSession = require('../models/IntakeSession');
 
 /**
  * 1. POST /api/lab/orders
@@ -223,8 +222,8 @@ router.get('/dashboard-counts', async (req, res) => {
     const verified = await InvestigationOrder.countDocuments({ status: 'verified' });
     const criticalAttention = await InvestigationOrder.countDocuments({ priority: 'stat' });
 
-    // Also check IntakeSession labOrders for demo sessions
-    const sessions = await IntakeSession.find({ 'labOrders.0': { $exists: true } }).lean();
+    // Also check Encounter labOrders for demo sessions
+    const sessions = await Encounter.find({ 'labOrders.0': { $exists: true } }).lean();
     let demoPending = 0;
     let demoCompleted = 0;
     let demoVerified = 0;
@@ -264,8 +263,8 @@ router.get('/pending', async (req, res) => {
   try {
     const orders = await InvestigationOrder.find({ status: { $ne: 'verified' } }).sort({ orderedAt: -1 }).lean();
     
-    // Also aggregate from IntakeSession labOrders for demo fallback
-    const sessions = await IntakeSession.find({ 'labOrders.0': { $exists: true } }).lean();
+    // Also aggregate from Encounter labOrders for demo fallback
+    const sessions = await Encounter.find({ 'labOrders.0': { $exists: true } }).lean();
     const demoOrders = [];
     sessions.forEach(s => {
       (s.labOrders || []).forEach((lo, idx) => {

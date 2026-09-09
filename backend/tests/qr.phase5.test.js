@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
 // Import model and routes
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 const kioskRoutes = require('../src/routes/kioskRoutes');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const { buildTokenPayload, parseTokenPayload } = require('../src/services/qrService');
@@ -35,7 +35,7 @@ describe('Phase 5: Secure QR Access-Request Model & Privacy Gate API', () => {
     }
 
     // Create test intake session
-    testSession = new IntakeSession({
+    testSession = new Encounter({
       tokenNumber: 'OPD-20260909-999',
       abhaId: testAbha,
       patientName: 'Sunita Devi',
@@ -57,7 +57,7 @@ describe('Phase 5: Secure QR Access-Request Model & Privacy Gate API', () => {
   afterAll(async () => {
     try {
       if (mongoose.connection.readyState !== 0) {
-        await IntakeSession.deleteMany({ abhaId: testAbha });
+        await Encounter.deleteMany({ abhaId: testAbha });
         await mongoose.connection.close();
       }
     } catch (e) {}
@@ -128,7 +128,7 @@ describe('Phase 5: Secure QR Access-Request Model & Privacy Gate API', () => {
     expect(res.body.data.patientName).toBe('Sunita Devi');
 
     // Check accessLog entry
-    const updated = await IntakeSession.findById(testSession._id);
+    const updated = await Encounter.findById(testSession._id);
     const lastLog = updated.accessLog[updated.accessLog.length - 1];
     expect(lastLog).toBeDefined();
     expect(lastLog.action).toBe('qr_scan');

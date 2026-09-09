@@ -13,7 +13,6 @@ const Symptom = require('../models/Symptom');
 const InvestigationOrder = require('../models/InvestigationOrder');
 const Prescription = require('../models/Prescription');
 const Doctor = require('../models/Doctor');
-const IntakeSession = require('../models/IntakeSession');
 const OCRExtraction = require('../models/OCRExtraction');
 
 /**
@@ -33,29 +32,19 @@ router.get('/summary/:encounterId', async (req, res) => {
   try {
     const { encounterId } = req.params;
 
-    // Check Encounter or fallback to IntakeSession
+    // Check Encounter by ObjectId or tokenNumber
     let encounter = null;
-    let intakeSession = null;
     let patient = null;
 
     if (mongoose.Types.ObjectId.isValid(encounterId)) {
       encounter = await Encounter.findById(encounterId).lean();
     }
+    if (!encounter) {
+      encounter = await Encounter.findOne({ tokenNumber: encounterId }).lean();
+    }
 
-    if (encounter) {
+    if (encounter && encounter.patientId) {
       patient = await Patient.findById(encounter.patientId).lean();
-    } else {
-      // Fallback search in IntakeSession or by token Number
-      intakeSession = await IntakeSession.findOne({
-        $or: [
-          { _id: mongoose.Types.ObjectId.isValid(encounterId) ? encounterId : null },
-          { tokenNumber: encounterId }
-        ]
-      }).lean();
-
-      if (intakeSession && intakeSession.patientId) {
-        patient = await Patient.findById(intakeSession.patientId).lean();
-      }
     }
 
     const targetPatientId = patient?._id || encounter?.patientId || intakeSession?.patientId;
@@ -133,7 +122,10 @@ router.get('/summary/:encounterId', async (req, res) => {
 
     // 3. Red Flags scoring (§24)
     const redFlags = [];
-    const sysBp = latestVitals.blood_pressure?.value?.systolic || parseInt(latestVitals.blood_pressure?.value?.split?.('/')[0]) || 0;
+    const bpVal = latestVitals.blood_pressure?.value;
+    const sysBp = (typeof bpVal === 'object' && bpVal !== null)
+      ? (bpVal.systolic || 0)
+      : (typeof bpVal === 'number' ? bpVal : (parseInt(String(bpVal || '').split('/')[0]) || 0));
     const spo2Val = latestVitals.oxygen_saturation?.value || 100;
 
     if (sysBp >= 180) {
@@ -142,8 +134,8 @@ router.get('/summary/:encounterId', async (req, res) => {
     if (spo2Val < 92) {
       redFlags.push({ flag: 'Hypoxia Warning (SpO2 < 92%)', severity: 'critical', source: 'Pulse Oximeter Peripheral' });
     }
-    if (intakeSession?.redFlags?.length > 0) {
-      intakeSession.redFlags.forEach(rf => {
+    if (encounter?.redFlags?.length > 0) {
+      encounter.redFlags.forEach(rf => {
         redFlags.push({ flag: rf.flag || rf, severity: rf.severity || 'high', source: 'Clinical Rules Engine' });
       });
     }
@@ -231,19 +223,19 @@ router.get('/summary/:encounterId', async (req, res) => {
         });
       });
     }
-    if (intakeSession?.changesSinceLastVisit) {
+    if (encounter?.changesSinceLastVisit) {
       newInformation.push({
-        info: intakeSession.changeDetails || 'Patient reported new changes since last visit',
+        info: encounter.changeDetails || 'Patient reported new changes since last visit',
         sourceTag: { source: 'Patient reported at MediKiosk', confidence: 'patient_reported' }
       });
     }
 
     const summary = {
-      encounterId: encounter?._id || intakeSession?._id,
+      encounterId: encounter?._id,
       patientId: targetPatientId,
-      patientName: patient ? `${patient.firstName} ${patient.lastName}` : (intakeSession?.patientName || 'Patient'),
-      age: patient?.age || intakeSession?.age || '--',
-      gender: patient?.gender || intakeSession?.gender || '--',
+      patientName: patient ? `${patient.basicInfo?.fullName || patient.firstName || 'Patient'}` : (encounter?.patientName || 'Patient'),
+      age: patient?.basicInfo?.age || patient?.age || encounter?.age || '--',
+      gender: patient?.basicInfo?.gender || patient?.gender || encounter?.gender || '--',
       currentComplaint,
       redFlags,
       newInformation,
@@ -278,17 +270,12 @@ router.get('/diff/:encounterId', async (req, res) => {
     if (mongoose.Types.ObjectId.isValid(encounterId)) {
       currentEncounter = await Encounter.findById(encounterId).lean();
     }
+    if (!currentEncounter) {
+      currentEncounter = await Encounter.findOne({ tokenNumber: encounterId }).lean();
+    }
 
     if (currentEncounter) {
       patientId = currentEncounter.patientId;
-    } else {
-      intakeSession = await IntakeSession.findOne({
-        $or: [
-          { _id: mongoose.Types.ObjectId.isValid(encounterId) ? encounterId : null },
-          { tokenNumber: encounterId }
-        ]
-      }).lean();
-      patientId = intakeSession?.patientId;
     }
 
     const diffResult = {
@@ -498,22 +485,15 @@ router.post('/consultation/complete', async (req, res) => {
     }
 
     let encounter = null;
-    let intakeSession = null;
 
     if (mongoose.Types.ObjectId.isValid(encounterId)) {
       encounter = await Encounter.findById(encounterId);
     }
-
     if (!encounter) {
-      intakeSession = await IntakeSession.findOne({
-        $or: [
-          { _id: mongoose.Types.ObjectId.isValid(encounterId) ? encounterId : null },
-          { tokenNumber: encounterId }
-        ]
-      });
+      encounter = await Encounter.findOne({ tokenNumber: encounterId });
     }
 
-    const patientId = encounter?.patientId || intakeSession?.patientId;
+    const patientId = encounter?.patientId;
 
     // 1. Create Investigation Orders if requested
     const createdOrders = [];
@@ -557,28 +537,24 @@ router.post('/consultation/complete', async (req, res) => {
 
     if (encounter) {
       encounter.status = nextStatus;
+      encounter.queueStatus = nextStatus === 'closed' ? 'completed' : 'lab_pending';
       if (nextStatus === 'closed') {
         encounter.closedAt = new Date();
       }
-      await encounter.save();
-    }
-
-    if (intakeSession) {
-      intakeSession.queueStatus = 'completed';
-      intakeSession.doctorReview = {
+      encounter.doctorReview = {
         reviewedBy: doctorId || 'DOC-DEFAULT',
-        doctorNotes: advice || examinationNotes,
+        doctorNotes: advice || '',
         reviewedAt: new Date(),
         soapEdits: {
           diagnoses,
-          examinationNotes,
+          advice,
           followUpDecision
         }
       };
-      if (diagnoses.length > 0) {
-        intakeSession.diagnoses = diagnoses;
+      if (diagnoses && diagnoses.length > 0) {
+        encounter.diagnoses = diagnoses;
       }
-      await intakeSession.save();
+      await encounter.save();
     }
 
     // 4. If doctor object provided, update consultationStats rolling speed (§18, §21)

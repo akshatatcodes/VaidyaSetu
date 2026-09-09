@@ -4,7 +4,7 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const IntakeSession = require('../models/IntakeSession');
+const Encounter = require('../models/Encounter');
 const { extractFromImage } = require('../services/visionOcr');
 const { flagLabsFromExtractedText } = require('../utils/vitalRanges');
 const { processAyurvedaProbe, isAyurvedaDepartment } = require('../services/dashavidhaService');
@@ -25,14 +25,18 @@ const upload = multer({
 const findSession = (id) => {
   if (!id) return null;
   if (typeof id === 'string' && (id.startsWith('OPD-') || id.includes('-'))) {
-    return IntakeSession.findOne({ tokenNumber: id });
+    return Encounter.findOne({ tokenNumber: id });
   }
-  return IntakeSession.findById(id);
+  if (typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/)) {
+    return Encounter.findById(id);
+  }
+  return null;
 };
 
 function appendAccessLog(session, entry) {
   if (!session.accessLog) session.accessLog = [];
   session.accessLog.push({ at: new Date(), ...entry });
+  if (typeof session.markModified === 'function') session.markModified('accessLog');
 }
 
 /**
@@ -502,8 +506,8 @@ router.post('/scan-qr', requireAuth, async (req, res) => {
     if (!parsed) return res.status(400).json({ status: 'error', message: 'Invalid QR payload format' });
 
     const session = parsed.sessionId
-      ? await IntakeSession.findById(parsed.sessionId)
-      : await IntakeSession.findOne({ tokenNumber: parsed.tokenNumber });
+      ? await Encounter.findById(parsed.sessionId)
+      : await Encounter.findOne({ tokenNumber: parsed.tokenNumber });
 
     if (!session) return res.status(404).json({ status: 'error', message: 'Intake session not found for this QR token' });
 
@@ -560,7 +564,7 @@ router.get('/queue/:department', async (req, res) => {
       filter.department = new RegExp(department.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     }
 
-    const sessions = await IntakeSession.find(filter)
+    const sessions = await Encounter.find(filter)
       .select('tokenNumber patientName department queueStatus triagePriority chiefComplaint createdAt languagePreference age gender')
       .sort({ createdAt: 1 })
       .limit(100);
@@ -681,6 +685,11 @@ router.patch('/session/:id/doctor-verify', requireAuth, async (req, res) => {
       session.doctorReview.doctorId = doctorId;
       if (doctorName) session.doctorReview.doctorName = doctorName;
     }
+    if (typeof session.markModified === 'function') {
+      session.markModified('doctorReview');
+      session.markModified('evidenceSnippets');
+      session.markModified('labOrders');
+    }
 
     if (triagePriority) session.triagePriority = triagePriority;
     if (queueStatus) session.queueStatus = queueStatus;
@@ -719,6 +728,44 @@ router.patch('/session/:id/doctor-verify', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('[DoctorVerify]', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * POST /session/:id/approve — doctor digital sign & complete session
+ */
+router.post('/session/:id/approve', requireAuth, async (req, res) => {
+  try {
+    const session = await findSession(req.params.id);
+    if (!session) return res.status(404).json({ status: 'error', message: 'Session not found' });
+
+    const { doctorId = 'DOC-DEFAULT', doctorName, signature, prescribedAyurvedicMeds = [], prescribedAllopathicMeds = [] } = req.body;
+
+    session.queueStatus = 'completed';
+    session.status = 'closed';
+    session.doctorReview = session.doctorReview || {};
+    session.doctorReview.approved = true;
+    session.doctorReview.doctorId = doctorId;
+    if (doctorName) session.doctorReview.doctorName = doctorName;
+    session.doctorReview.signature = signature || `Digitally Signed via VaidyaSetu PKI by ${doctorId}`;
+    session.doctorReview.approvedAt = new Date();
+
+    if (prescribedAyurvedicMeds.length || prescribedAllopathicMeds.length) {
+      session.soapNote = session.soapNote || {};
+      session.soapNote.plan = session.soapNote.plan || {};
+      if (prescribedAyurvedicMeds.length) session.soapNote.plan.ayurvedicMeds = prescribedAyurvedicMeds;
+      if (prescribedAllopathicMeds.length) session.soapNote.plan.allopathicMeds = prescribedAllopathicMeds;
+    }
+
+    if (typeof session.markModified === 'function') {
+      session.markModified('doctorReview');
+      session.markModified('soapNote');
+    }
+    await session.save();
+
+    res.json({ status: 'success', data: session });
+  } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 });
@@ -771,6 +818,30 @@ router.post('/session/:id/push-his', async (req, res) => {
       hipId: 'IN-DL-AIIA-001'
     };
     session.fhirBundle = result.bundle;
+    session.markModified('abdmSync');
+    await session.save();
+    res.json({ status: 'success', data: result });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+router.post('/session/:id/sync-abdm', requireAuth, async (req, res) => {
+  try {
+    const session = await findSession(req.params.id);
+    if (!session) return res.status(404).json({ status: 'error', message: 'Session not found' });
+    const result = abdmAdapter.pushToHIS(session);
+    session.abdmSync = {
+      synced: true,
+      mode: result.mode,
+      syncedAt: new Date(),
+      careContextId: result.careContextId,
+      consentId: session.consent?.consentedAt ? `CONSENT-${session._id}` : null,
+      transactionId: result.transactionId,
+      hipId: 'IN-DL-AIIA-001'
+    };
+    session.fhirBundle = result.bundle;
+    session.markModified('abdmSync');
     await session.save();
     res.json({ status: 'success', data: result });
   } catch (error) {
@@ -804,7 +875,7 @@ router.post('/caregiver/link', requireAuth, async (req, res) => {
       ]
     };
 
-    const sessions = await IntakeSession.find(query);
+    const sessions = await Encounter.find(query);
     if (!sessions.length) {
       return res.status(404).json({ status: 'error', message: 'No patient intake sessions found matching criteria.' });
     }
@@ -852,7 +923,7 @@ router.get('/caregiver/:mobile/patients', requireAuth, async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Caregiver mobile number is required.' });
     }
 
-    const sessions = await IntakeSession.find({
+    const sessions = await Encounter.find({
       $or: [
         { 'enteredBy.caregiverMobile': mobile },
         { contactNumber: mobile }

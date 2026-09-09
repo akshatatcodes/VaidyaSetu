@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
-const IntakeSession = require('../models/IntakeSession');
+const Encounter = require('../models/Encounter');
 
 /**
  * Initializes all CRON routines for the VaidyaSetu / MediSahayak platform.
@@ -37,7 +37,7 @@ const initCronJobs = () => {
         const hours = Number(process.env.INTAKE_PURGE_HOURS || 24);
         const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
         try {
-            const stale = await IntakeSession.find({
+            const stale = await Encounter.find({
                 queueStatus: 'waiting_intake',
                 updatedAt: { $lt: cutoff },
                 tokenNumber: { $not: /^OPD-DEMO/ }

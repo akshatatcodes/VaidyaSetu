@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const IntakeSession = require('../models/IntakeSession');
+const Encounter = require('../models/Encounter');
+const Patient = require('../models/Patient');
 const { processAdaptiveProbe, detectRedFlags } = require('../services/adaptiveSocratesService');
 const { generateSoapCaseSheet } = require('../services/soapGeneratorService');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
@@ -38,7 +39,7 @@ router.post('/session/start', async (req, res) => {
     const cleanAbha = (abhaId || '').trim();
     if (cleanAbha && !cleanAbha.startsWith('ABHA-DEMO') && !cleanAbha.startsWith('14-0000')) {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const recentSession = await IntakeSession.findOne({
+      const recentSession = await Encounter.findOne({
         abhaId: cleanAbha,
         createdAt: { $gte: oneHourAgo }
       }).sort({ createdAt: -1 });
@@ -55,12 +56,29 @@ router.post('/session/start', async (req, res) => {
     }
 
     const normalizedGender = gender ? (gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase()) : 'Other';
-    const tokenNumber = await IntakeSession.generateNextToken();
+    const tokenNumber = await Encounter.generateNextToken();
+
+    // Check or create Patient
+    let patient = null;
+    if (cleanAbha) {
+      patient = await Patient.findOne({ abhaId: cleanAbha });
+    }
+    if (!patient && patientName) {
+      patient = await Patient.create({
+        abhaId: cleanAbha || `ABHA-${Math.floor(10000000000000 + Math.random() * 90000000000000)}`,
+        basicInfo: {
+          fullName: patientName,
+          age: Number(age),
+          gender: normalizedGender,
+          contactNumber: contactNumber || ''
+        }
+      });
+    }
 
     // Check for prior visits if returning patient flag is true or by ABHA
     let priorSession = null;
     if (isReturningPatient || abhaId) {
-      priorSession = await IntakeSession.findOne({
+      priorSession = await Encounter.findOne({
         $or: [
           ...(abhaId ? [{ abhaId }] : []),
           { patientName: new RegExp(`^${patientName.trim()}$`, 'i') }
@@ -113,7 +131,8 @@ router.post('/session/start', async (req, res) => {
       }
     ] : [];
 
-    const newSession = new IntakeSession({
+    const newSession = new Encounter({
+      patientId: patient ? patient._id : undefined,
       tokenNumber,
       abhaId: abhaId || `ABHA-${Math.floor(10000000000000 + Math.random() * 90000000000000)}`,
       patientName,
@@ -165,7 +184,7 @@ router.post('/check-patient-history', async (req, res) => {
       ]
     };
 
-    const pastSessions = await IntakeSession.find(query).sort({ createdAt: -1 }).limit(3);
+    const pastSessions = await Encounter.find(query).sort({ createdAt: -1 }).limit(3);
 
     if (pastSessions.length > 0) {
       const latest = pastSessions[0];
@@ -304,9 +323,12 @@ router.get('/session/:id/evidence', async (req, res) => {
 const findSession = (id) => {
   if (!id) return null;
   if (typeof id === 'string' && (id.startsWith('OPD-') || id.includes('-'))) {
-    return IntakeSession.findOne({ tokenNumber: id });
+    return Encounter.findOne({ tokenNumber: id });
   }
-  return IntakeSession.findById(id);
+  if (typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/)) {
+    return Encounter.findById(id);
+  }
+  return null;
 };
 
 /**
@@ -651,7 +673,7 @@ router.get('/queue', async (req, res) => {
     const { status, department, isDemo, limit = 50 } = req.query;
 
     if (isDemo === 'true') {
-      const demoSessions = await IntakeSession.find({
+      const demoSessions = await Encounter.find({
         tokenNumber: { $in: ['OPD-DEMO-001', 'OPD-DEMO-002', 'OPD-DEMO-003'] }
       }).limit(3);
 
@@ -685,7 +707,7 @@ router.get('/queue', async (req, res) => {
     // Sort order: Emergency first, then Urgent, then Normal, then by arrival time
     const priorityWeight = { emergency: 0, urgent: 1, normal: 2 };
 
-    const sessions = await IntakeSession.find(filter)
+    const sessions = await Encounter.find(filter)
       .sort({ createdAt: -1 })
       .limit(Number(limit));
 

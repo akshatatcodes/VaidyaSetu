@@ -3,7 +3,7 @@ const express = require('express');
 const kioskRoutes = require('../src/routes/kioskRoutes');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const mongoose = require('mongoose');
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 
 const app = express();
 app.use(express.json());
@@ -15,7 +15,7 @@ describe('Phase 8: Patient App 5-Tab Information Architecture Rebuild', () => {
 
   beforeAll(async () => {
     if (mongoose.connection.readyState === 1) {
-      const sess = await IntakeSession.create({
+      const sess = await Encounter.create({
         tokenNumber: 'OPD-TEST-PHASE8-001',
         patientName: 'IA Test Patient',
         age: 35,

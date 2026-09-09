@@ -13,7 +13,7 @@ const Department = require('../models/Department');
 const Doctor = require('../models/Doctor');
 const Kiosk = require('../models/Kiosk');
 const Laboratory = require('../models/Laboratory');
-const IntakeSession = require('../models/IntakeSession');
+const Encounter = require('../models/Encounter');
 const AuditLog = require('../models/AuditLog');
 const { logAuditEvent } = require('../middleware/auditMiddleware');
 
@@ -268,7 +268,7 @@ router.get('/stats', adminOnly, async (req, res) => {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const todaySessions = await IntakeSession.find({ createdAt: { $gte: startOfToday } });
+    const todaySessions = await Encounter.find({ createdAt: { $gte: startOfToday } });
     return res.json({
       status: 'success',
       data: {

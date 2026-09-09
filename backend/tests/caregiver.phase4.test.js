@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
 // Import model and routes
-const IntakeSession = require('../src/models/IntakeSession');
+const Encounter = require('../src/models/Encounter');
 const kioskRoutes = require('../src/routes/kioskRoutes');
 const kioskExtensionRoutes = require('../src/routes/kioskExtensionRoutes');
 const { JWT_SECRET } = require('../src/middleware/authMiddleware');
@@ -39,7 +39,7 @@ describe('Phase 4: Caregiver Mode & Auth Gated Records API', () => {
   afterAll(async () => {
     try {
       if (mongoose.connection.readyState !== 0) {
-        await IntakeSession.deleteMany({ abhaId: testAbha });
+        await Encounter.deleteMany({ abhaId: testAbha });
         await mongoose.connection.close();
       }
     } catch (e) {}

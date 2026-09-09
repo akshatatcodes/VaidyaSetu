@@ -5,7 +5,7 @@
  * configuration entities (§53, §54) and everything downstream of them.
  *
  * Why this file exists: before the refactor the department list was written out
- * five separate times — the IntakeSession enum, an in-memory object in
+ * five separate times — the Encounter enum, an in-memory object in
  * adminRoutes, AYURVEDA_DEPARTMENTS in dashavidhaService, DEPARTMENTS in
  * KioskIntake.jsx and DEPT_LABELS in AdminDashboard.jsx — and the five copies
  * disagreed with each other. §54 is explicit that hospital structure must not be

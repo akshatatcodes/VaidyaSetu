@@ -4,3 +4,7 @@ node_modules
 dist
 .next
 *.log
+full_source_code.*
+*.7z
+*.rar
+

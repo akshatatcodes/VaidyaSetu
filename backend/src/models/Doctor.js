@@ -28,7 +28,7 @@ const {
  * This replaces the DEMO_DOCTORS array in authRoutes, the embedded
  * `UserProfile.doctorProfile` (which defaulted every clinician to
  * 'Kayachikitsa' / 'Room 104'), and the free-text `doctorId` / `doctorName`
- * strings on `IntakeSession.doctorReview`.
+ * strings on `Encounter.doctorReview`.
  */
 
 /**
