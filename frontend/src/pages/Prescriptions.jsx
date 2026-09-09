@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import {
   FileText, ScanSearch, Upload, Search, AlertCircle,
@@ -11,11 +10,13 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { addHeader, addSection, addDisclaimer } from '../utils/pdfGenerator';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 
 import { API_URL } from '../config/api';
 
 const Prescriptions = () => {
-  const { user } = useUser();
+  const { currentUser } = useAuth();
+  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || 'demo_user';
   const { t } = useTranslation();
   const [inputText, setInputText] = useState('');
   const [scanning, setScanning] = useState(false);
@@ -46,16 +47,16 @@ const Prescriptions = () => {
   const voiceAudioUrl = null; // No longer needed — using real SpeechRecognition
 
   useEffect(() => {
-    if (user) {
+    if (effectiveUserId) {
       fetchHistory();
       const syncInterval = setInterval(fetchHistory, 30000); // Step 85: Sync Polling
       return () => clearInterval(syncInterval);
     }
-  }, [user]);
+  }, [effectiveUserId]);
 
   const fetchHistory = async () => {
     try {
-      const res = await axios.get(`${API_URL}/interaction/history/${user.id}`);
+      const res = await axios.get(`${API_URL}/interaction/history/${effectiveUserId}`);
       if (res.data.status === 'success') setHistory(res.data.data);
     } catch (err) {
       console.error("Fetch history failed:", err);
@@ -65,7 +66,7 @@ const Prescriptions = () => {
   const handleFeedback = async (context, rating, query, response) => {
     try {
       await axios.post(`${API_URL}/feedback`, {
-        clerkId: user.id,
+        clerkId: effectiveUserId,
         context,
         query,
         response,
@@ -289,7 +290,7 @@ const Prescriptions = () => {
     try {
       // Use the new RAG-safety endpoint
       const res = await axios.post(`${API_URL}/rag/check-safety`, {
-        clerkId: user.id,
+        clerkId: effectiveUserId,
         medicines: confirmedMeds,
         language: language  // Pass selected language to AI analysis
       });
@@ -331,7 +332,7 @@ const Prescriptions = () => {
         );
         criticalAlerts.forEach(interaction => {
            axios.post(`${API_URL}/alerts`, {
-              clerkId: user.id,
+              clerkId: effectiveUserId,
               type: 'INTERACTION',
               priority: 'critical',
               title: `Critical Risk: ${interaction.allopathy_drug}`,
@@ -371,7 +372,7 @@ const Prescriptions = () => {
   // 9.6 PDF Generation
   const downloadReport = async () => {
     const doc = new jsPDF();
-    let y = addHeader(doc, 'Drug Interaction Safety Report', user?.fullName || 'User', `Medicines Analyzed: ${confirmedMeds.join(', ')}`);
+    let y = addHeader(doc, 'Drug Interaction Safety Report', currentUser?.patientName || 'User', `Medicines Analyzed: ${confirmedMeds.join(', ')}`);
 
     // Overall status
     if (lastReportData?.overallStatus) {

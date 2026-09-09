@@ -2,9 +2,6 @@ const express = require('express');
 const router = express.Router();
 const UserProfile = require('../models/UserProfile');
 const History = require('../models/History');
-const Report = require('../models/Report');
-const InteractionHistory = require('../models/InteractionHistory');
-const Feedback = require('../models/Feedback');
 const { calculateDataQuality } = require('../utils/dataQualityWatcher');
 
 // Initial Profile Save (Onboarding)
@@ -81,10 +78,7 @@ router.delete('/:clerkId', async (req, res) => {
     const clerkId = req.params.clerkId;
     await Promise.all([
       UserProfile.deleteOne({ clerkId }),
-      History.deleteMany({ clerkId }),
-      Report.deleteMany({ clerkId }),
-      InteractionHistory.deleteMany({ clerkId }),
-      Feedback.deleteMany({ clerkId })
+      History.deleteMany({ clerkId })
     ]);
     res.json({ status: 'success', message: 'All user data successfully purged' });
   } catch (error) {

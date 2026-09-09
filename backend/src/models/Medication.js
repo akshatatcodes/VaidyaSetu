@@ -1,45 +1,61 @@
 const mongoose = require('mongoose');
 
+/**
+ * Medication Schema — Long-lived patient medication record (§6)
+ * Bucket status: CURRENT, PREVIOUS, STOPPED, NEEDS CONFIRMATION
+ */
 const MedicationSchema = new mongoose.Schema({
+  patientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Patient',
+    index: true
+  },
   clerkId: {
     type: String,
-    required: true,
     index: true
   },
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
+  },
+  system: {
+    type: String,
+    enum: ['modern', 'ayurvedic', 'other'],
+    default: 'modern'
   },
   dosage: {
     type: String,
-    required: true
+    default: ''
   },
   frequency: {
     type: String,
-    enum: ['daily', 'twice_daily', 'thrice_daily', 'as_needed', 'custom'],
     default: 'daily'
   },
-  timings: [{
-    type: String // HH:mm
-  }],
-  startDate: {
-    type: Date,
-    default: Date.now
+  status: {
+    type: String,
+    enum: ['CURRENT', 'PREVIOUS', 'STOPPED', 'NEEDS CONFIRMATION'],
+    default: 'CURRENT',
+    required: true,
+    index: true
   },
-  endDate: {
-    type: Date
+  sourceDocId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Document'
+  },
+  sourceTag: {
+    type: String,
+    default: 'Patient reported'
   },
   active: {
     type: Boolean,
     default: true
   },
-  lastTaken: {
-    type: Date
-  },
-  adherence: {
-    totalDoses: { type: Number, default: 0 },
-    takenDoses: { type: Number, default: 0 }
-  }
+  timings: [{ type: String }],
+  startDate: { type: Date, default: Date.now },
+  endDate: { type: Date }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Medication', MedicationSchema);
+MedicationSchema.index({ patientId: 1, status: 1 });
+
+module.exports = mongoose.models.Medication || mongoose.model('Medication', MedicationSchema);

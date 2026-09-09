@@ -1,7 +1,6 @@
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
-const Alert = require('../models/Alert');
 const IntakeSession = require('../models/IntakeSession');
 
 /**
@@ -9,25 +8,6 @@ const IntakeSession = require('../models/IntakeSession');
  */
 const initCronJobs = () => {
     console.log('[CRON] Initializing background job schedules...');
-
-    cron.schedule('0 7 * * *', () => {
-        console.log('[CRON Worker] Firing Daily Health Tip generation queue.');
-    });
-
-    cron.schedule('0 */12 * * *', async () => {
-        console.log('[CRON Worker] Executing Alert Expiry Processing.');
-        try {
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const result = await Alert.deleteMany({
-                status: 'dismissed',
-                updatedAt: { $lt: thirtyDaysAgo }
-            });
-            console.log(`[CRON Worker] Purged ${result.deletedCount} expired alerts.`);
-        } catch (e) {
-            console.error('[CRON Worker Error]', e);
-        }
-    });
 
     cron.schedule('0 * * * *', () => {
         const directoryPath = path.join(__dirname, '../../../uploads');

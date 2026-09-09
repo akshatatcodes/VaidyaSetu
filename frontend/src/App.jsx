@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -11,7 +10,6 @@ import { CaregiverProvider } from './context/CaregiverContext';
 
 // Components
 import Sidebar from './components/Sidebar';
-import Chatbot from './components/Chatbot';
 import DisclaimerBanner from './components/DisclaimerBanner';
 import ThemeToggle from './components/ThemeToggle';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -26,11 +24,7 @@ import Prescriptions from './pages/Prescriptions';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Settings from './pages/Settings';
-import Onboarding from './pages/Onboarding';
-import Alerts from './pages/Alerts';
 import Vitals from './pages/Vitals';
-import MedicationSchedule from './pages/MedicationSchedule';
-import AlertSettings from './pages/AlertSettings';
 import MyMedicines from './pages/MyMedicines';
 import KioskIntake from './pages/KioskIntake';
 import DoctorDashboard from './pages/DoctorDashboard';
@@ -91,6 +85,12 @@ const PatientRoute = ({ children }) => {
   if (userRole === 'doctor') {
     return <Navigate to="/doctor" replace />;
   }
+  if (userRole === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+  if (userRole === 'lab') {
+    return <Navigate to="/lab" replace />;
+  }
   return children;
 };
 
@@ -119,31 +119,13 @@ const AppLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Step 63: Register Push Service Worker Foundation
+    // Register Push Service Worker Foundation
     if ('serviceWorker' in navigator && import.meta.env.PROD) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(reg => {
           console.log('[SW] Service Worker Registered:', reg.scope);
         }).catch(err => console.error('[SW] Registration failed:', err));
       });
-    }
-
-    // Only run patient onboarding check for patient accounts
-    const patientId = currentUser?._id || currentUser?.id;
-    if (userRole === 'patient' && patientId && typeof patientId === 'string' && !patientId.startsWith('demo-')) {
-      axios.get(`${API_URL}/profile/${patientId}`)
-        .then((res) => {
-          if (res.data?.status === 'success') {
-            const profile = res.data.data;
-            const onboardingDone = Boolean(profile?.onboardingCompleted ?? profile?.onboardingComplete);
-            if (!onboardingDone) {
-              navigate('/onboarding', { replace: true });
-            }
-          }
-        })
-        .catch(() => {
-          // Graceful fallback
-        });
     }
   }, [currentUser, userRole, navigate]);
 
@@ -167,17 +149,16 @@ const AppLayout = () => {
               {/* Patient Only Route: Root lands on Health Sanctuary for patients */}
               <Route path="/" element={<PatientRoute><Dashboard /></PatientRoute>} />
               
-              {/* Doctor Only Route: Clinical Cockpit with AI Pre-Consultation Evidence */}
+              {/* Doctor Only Route: Clinical Cockpit */}
               <Route path="/doctor" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
-              {/* Admin Only: Operations Console (Phase 10) */}
+              {/* Admin Only: Operations Console */}
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              {/* Lab Only: Diagnostic Result Workbench (Phase 10) */}
+              {/* Lab Only: Diagnostic Result Workbench */}
               <Route path="/lab" element={<LabRoute><LabDashboard /></LabRoute>} />
 
-              {/* Patient Dedicated 5-Tab Architecture Routes */}
+              {/* Patient Dedicated Routes */}
               <Route path="/visits" element={<PatientRoute><ChangeHistory /></PatientRoute>} />
               <Route path="/records" element={<PatientRoute><Prescriptions /></PatientRoute>} />
-              <Route path="/medications" element={<PatientRoute><MedicationSchedule /></PatientRoute>} />
               <Route path="/medicines" element={<PatientRoute><MyMedicines /></PatientRoute>} />
               <Route path="/help" element={<HelpSupport />} />
               <Route path="/support" element={<HelpSupport />} />
@@ -189,8 +170,6 @@ const AppLayout = () => {
               <Route path="/history" element={<ChangeHistory />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
               <Route path="/vitals" element={<Vitals />} />
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="/alerts/settings" element={<AlertSettings />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
@@ -199,8 +178,6 @@ const AppLayout = () => {
           
           <DisclaimerBanner />
         </main>
-        
-        <Chatbot />
       </div>
 
       <ThemeToggle />
@@ -240,13 +217,6 @@ const AuthWrapper = () => {
         </ProtectedRoute>
       } />
 
-      {/* Patient Onboarding */}
-      <Route path="/onboarding" element={
-        <ProtectedRoute allowedRole="patient">
-          <Onboarding />
-        </ProtectedRoute>
-      } />
-
       {/* Main Authenticated Application Shell */}
       <Route path="/*" element={
         <ProtectedRoute>
@@ -258,23 +228,16 @@ const AuthWrapper = () => {
 };
 
 function App() {
-  const googleClientId =
-    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-    import.meta.env.GOOGLE_CLIENT_ID ||
-    "YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER";
-
   return (
     <ThemeProvider>
-      <GoogleOAuthProvider clientId={googleClientId}>
-        <AuthProvider>
-          <CaregiverProvider>
-            <BrowserRouter>
-              <ScrollToTop />
-              <AuthWrapper />
-            </BrowserRouter>
-          </CaregiverProvider>
-        </AuthProvider>
-      </GoogleOAuthProvider>
+      <AuthProvider>
+        <CaregiverProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <AuthWrapper />
+          </BrowserRouter>
+        </CaregiverProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

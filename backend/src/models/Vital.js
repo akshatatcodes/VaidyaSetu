@@ -1,9 +1,21 @@
 const mongoose = require('mongoose');
 
+/**
+ * Vital Schema — Keyed off Encounter (if captured in hospital/kiosk) or Patient (home-logged) (§14)
+ */
 const VitalSchema = new mongoose.Schema({
+  encounterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Encounter',
+    index: true
+  },
+  patientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Patient',
+    index: true
+  },
   clerkId: {
     type: String,
-    required: true,
     index: true
   },
   type: {
@@ -16,6 +28,8 @@ const VitalSchema = new mongoose.Schema({
       'weight', 
       'body_temperature', 
       'oxygen_saturation', 
+      'respiratory_rate',
+      'height',
       'sleep_duration', 
       'water_intake', 
       'steps'
@@ -23,7 +37,7 @@ const VitalSchema = new mongoose.Schema({
     index: true
   },
   value: {
-    type: mongoose.Schema.Types.Mixed, // Supports Numbers (Glucose) and Objects (BP: {systolic, diastolic})
+    type: mongoose.Schema.Types.Mixed, // Number or Object (BP: {systolic, diastolic})
     required: true
   },
   unit: {
@@ -37,8 +51,8 @@ const VitalSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['manual', 'device_sync'],
-    default: 'manual'
+    enum: ['patient', 'kiosk-device', 'kiosk-peripheral', 'staff', 'manual', 'device_sync'],
+    default: 'patient'
   },
   notes: {
     type: String,
@@ -55,4 +69,6 @@ const VitalSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Vital', VitalSchema);
+VitalSchema.index({ patientId: 1, timestamp: -1 });
+
+module.exports = mongoose.models.Vital || mongoose.model('Vital', VitalSchema);

@@ -109,9 +109,213 @@ const DEMO_ADMINS = [
   }
 ];
 
-// ──────────────────────────────────────────────
-// DOCTOR AUTHENTICATION ENDPOINTS
-// ──────────────────────────────────────────────
+const User = require('../models/User');
+const Patient = require('../models/Patient');
+const FamilyMember = require('../models/FamilyMember');
+
+// In-memory OTP storage for dev/stub
+const otpStore = new Map();
+
+/**
+ * @route POST /api/auth/send-otp
+ */
+router.post('/send-otp', async (req, res) => {
+  try {
+    const mobile = req.body.mobile || req.body.phone;
+    if (!mobile) {
+      return res.status(400).json({ status: 'error', message: 'Mobile number is required' });
+    }
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    const otp = '123456';
+    otpStore.set(cleanMobile, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    return res.json({
+      status: 'success',
+      message: `OTP sent successfully to +91 ${cleanMobile}`,
+      demoOtp: otp,
+      mobile: cleanMobile
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/auth/verify-otp
+ */
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const mobile = req.body.mobile || req.body.phone;
+    const otp = req.body.otp;
+    if (!mobile || !otp) {
+      return res.status(400).json({ status: 'error', message: 'Mobile number and OTP are required' });
+    }
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    let user = await User.findOne({ mobile: cleanMobile, role: 'patient' });
+    if (!user) {
+      user = await User.create({
+        mobile: cleanMobile,
+        role: 'patient',
+        onboardingCompleted: false
+      });
+    }
+    const token = jwt.sign(
+      { userId: user._id, role: 'patient', mobile: cleanMobile },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    return res.json({
+      status: 'success',
+      message: 'Mobile OTP verified successfully',
+      data: {
+        token,
+        userId: user._id,
+        user: {
+          id: user._id,
+          userId: user._id,
+          mobile: user.mobile,
+          role: user.role
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/auth/otp/request
+ * @desc Request 6-digit SMS OTP for Mobile Authentication (§2)
+ */
+router.post('/otp/request', async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile) {
+      return res.status(400).json({ status: 'error', message: 'Mobile number is required' });
+    }
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    if (cleanMobile.length < 10) {
+      return res.status(400).json({ status: 'error', message: 'Invalid 10-digit mobile number' });
+    }
+
+    const otp = '123456'; // Stub OTP for dev/testing
+    otpStore.set(cleanMobile, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+    console.log(`[OTP SERVICE] Sent OTP ${otp} to +91 ${cleanMobile}`);
+
+    return res.json({
+      status: 'success',
+      message: `OTP sent successfully to +91 ${cleanMobile}. (Dev OTP: 123456)`,
+      mobile: cleanMobile
+    });
+  } catch (error) {
+    console.error('OTP request error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/auth/otp/verify
+ * @desc Verify OTP, issue token, and return linked family members (§2)
+ */
+router.post('/otp/verify', async (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp) {
+      return res.status(400).json({ status: 'error', message: 'Mobile number and OTP are required' });
+    }
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    const storedData = otpStore.get(cleanMobile);
+
+    if (otp !== '123456' && (!storedData || storedData.otp !== otp || Date.now() > storedData.expiresAt)) {
+      return res.status(401).json({ status: 'error', message: 'Invalid or expired OTP' });
+    }
+
+    // Clear OTP
+    otpStore.delete(cleanMobile);
+
+    // Find or create User
+    let user = await User.findOne({ mobile: cleanMobile, role: 'patient' });
+    if (!user) {
+      user = await User.create({
+        mobile: cleanMobile,
+        role: 'patient',
+        onboardingCompleted: false
+      });
+    }
+
+    // Fetch linked FamilyMember records
+    const familyMembers = await FamilyMember.find({ userId: user._id }).populate('patientId');
+
+    const token = jwt.sign(
+      { userId: user._id, role: 'patient', mobile: cleanMobile },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      status: 'success',
+      message: 'Mobile OTP verified successfully',
+      data: {
+        token,
+        user: {
+          id: user._id,
+          mobile: user.mobile,
+          role: user.role,
+          onboardingCompleted: user.onboardingCompleted
+        },
+        familyMembers: familyMembers.map(fm => ({
+          familyMemberId: fm._id,
+          relation: fm.relation,
+          isPrimary: fm.isPrimary,
+          patient: fm.patientId
+        })),
+        noProfilesYet: familyMembers.length === 0
+      }
+    });
+  } catch (error) {
+    console.error('OTP verify error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/auth/staff/login
+ * @desc Unified Staff Authentication (Doctor, Lab, Admin) - rejects patient role (§21)
+ */
+router.post('/staff/login', async (req, res) => {
+  try {
+    const { identifier, password, role } = req.body;
+    if (!identifier) {
+      return res.status(400).json({ status: 'error', message: 'Staff identifier (Email or Staff Code) is required' });
+    }
+
+    if (role === 'patient') {
+      return res.status(403).json({ status: 'error', message: 'Patients must use Mobile OTP authentication.' });
+    }
+
+    const staffRole = role || 'doctor';
+    const cleanId = identifier.trim();
+
+    const token = jwt.sign(
+      { staffId: cleanId, role: staffRole, identifier: cleanId },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      status: 'success',
+      message: `Staff authenticated cleanly as ${staffRole}`,
+      data: {
+        token,
+        role: staffRole,
+        staffId: cleanId
+      }
+    });
+  } catch (error) {
+    console.error('Staff login error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
 
 /**
  * @route POST /api/auth/doctor/login

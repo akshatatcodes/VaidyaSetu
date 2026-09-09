@@ -1,0 +1,326 @@
+# MediKiosk Rebuild Blueprint
+### Audit of the current `full_source_code.rar` codebase against `docs/MEDIKIOSK_ARCHITECTURE.md`, a removal list, and a phase-by-phase implementation plan to hand to your coding agent.
+
+> Give this whole file to your vibe-coding agent (Claude Code / Cursor) as its working brief. Each phase is self-contained: goal → files to delete → files to create/modify → data shapes → API contracts → acceptance checks. Do the phases in order; do not skip Phase 0.
+
+---
+
+## PART A — WHERE YOUR PROJECT ACTUALLY STANDS TODAY
+
+Your repo is **two projects overlapping in one codebase**:
+
+1. **"VaidyaSetu"** — an earlier hackathon prototype: a consumer wellness app + herb-drug interaction checker (Groq LLM risk reports, PHQ-2/GAD-2 mental-health screening, thyroid/PCOS/kidney screening quiz, Google Fit steps, Practo doctor-finder, jsPDF reports).
+2. **"MediKiosk"** — the hospital platform described in your architecture doc, which a previous build pass already started migrating toward (it even added `docs/MEDIKIOSK_ARCHITECTURE.md` as the "north star" and disabled the old `/api/ai` risk-report route in `server.js` with a comment citing §15).
+
+The migration was **started but not finished**. Some parts are genuinely already well-built and match the architecture closely; other parts are 100% legacy VaidyaSetu and don't belong; and the most important structural piece — **Encounter as the central object (§61)** — was never actually built, so a lot of clinical data still hangs off one giant `IntakeSession` document instead of a normalized `Encounter` graph.
+
+### A.1 — What's already good and should be KEPT and extended (not rebuilt from scratch)
+
+| Area | File(s) | Verdict |
+|---|---|---|
+| Hospital/Department/Kiosk/Laboratory configuration | `models/Hospital.js`, `Department.js`, `Kiosk.js`, `Laboratory.js` | Genuinely well designed — already has queue policy, follow-up window config, offline policy, accessibility flags, ABDM config block, clinical mode (Mode1/Mode2) per department, dashavidha/ayurveda toggles. This is §53–§54 already largely done. **Extend, don't rewrite.** |
+| Doctor professional profile | `models/Doctor.js` | Has registration/verification block, clinic sessions, rolling consultation-speed stats. Matches §21–§23 well. **Keep.** |
+| AYUSH Dashavidha Pariksha capture | `models/IntakeSession.js` (`dashavidhaPariksha` block), `services/dashavidhaService.js` | Matches §13 closely — already a real 10-fold assessment, not a placeholder. **Keep the schema shape, move it under Encounter.** |
+| Adaptive questioning engine | `services/adaptiveSocratesService.js`, `data/socratesQuestionTemplates.js` | This is your §11 "Known → Missing → Ask only what's needed" engine, already implemented for SOCRATES-style history. **Keep, generalize beyond pain-only complaints.** |
+| SOAP note / doctor case-sheet generation | `services/soapGeneratorService.js` | Matches §26 consultation workspace output. **Keep.** |
+| ABDM integration isolation | `services/abdmAdapter.js`, `Hospital.js: abdm` block | Already isolated as its own adapter, not scattered through the app. Matches §63's "keep this isolated" rule. **Keep, expand for real ABHA/consent APIs later.** |
+| OCR pipeline | `services/visionOcr.js`, `groqVision.js`, `image.js`, `ocrRoutes.js` | Matches §7 pipeline stages (partially — see gaps below). **Keep, restructure output into `OCRExtraction` entity.** |
+| QR token generation | `services/qrService.js` | Matches §20/§27. **Keep.** |
+| Multilingual UI | `frontend/src/locales/*` (12 Indian languages), `i18n.js` | Matches §44 language coverage. **Keep.** |
+| Kiosk-specific components | `components/kiosk/BodyMapSvg.jsx`, `SymptomIconPicker.jsx`, `ConsentScreen.jsx`, `DocumentVerification.jsx` | Matches §10 (body map + quick symptoms) and §46 (consent screen). **Keep, wire into new Consent model.** |
+| Test scaffolding | `tests/*.phaseN.test.js` | Someone already organized tests by phase name (`security.phase0`, `multilingual.phase2`, `socrates.phase3`, `caregiver.phase4`, `qr.phase5`, `doctor.phase6`, `abdm.phase7`, `patientIa.phase8`, `voiceNotesAndReport.phase9`, `admin.phase10`). **Keep this convention** — the new phase numbers below are renumbered to match the architecture's own section order, so re-map old test files into the new phases as you go (a mapping table is in Part D). |
+
+### A.2 — What's structurally broken and must be rebuilt (not cosmetic — this is the core fix)
+
+1. **No `Encounter` entity exists.** §61 is explicit: *"Do not connect clinical data randomly to Patient... route it through Encounter."* Instead everything — vitals, documents, lab orders, SOAP note, consent, access log, diagnoses, red flags, ABDM sync, voice notes — is crammed into one 400-line `IntakeSession` Mongoose schema. This is the single biggest gap. It works for a single OPD visit but cannot support §31–§37 (follow-up encounters), §38 (referrals), or a real longitudinal timeline (§40), because there is no clean parent/child relationship between a patient's *encounters* over time.
+2. **No `Patient` / `FamilyMember` model.** `UserProfile.js` is one collection for every role (patient, doctor, reception, admin, lab) and has no concept of a mobile account managing multiple beneficiaries (§2). There is no way today for "Rajesh" to register his mother as a separate health identity under his mobile number.
+3. **No `Consent` model.** Consent is captured only as a small embedded object inside `IntakeSession.consent` (4 booleans). §46–§48 requires granular, traceable, per-purpose, revocable consent records with their own ID, method, language, and status — visible on a "My Consent" screen. This does not exist.
+4. **No `AuditLog` model.** There's an `accessLog` array embedded per `IntakeSession`, which cannot answer "show me everything Dr. Sharma accessed today" — audit must be its own collection, indexed by actor, not nested per-document.
+5. **No `Referral` model or routes.** §38 (referral, same-hospital or cross-hospital) is entirely unimplemented — no model, no route, no UI.
+6. **No `FollowUp` model or follow-up queue.** §31–§37 (the "Continuity Engine," which your architecture doc calls the headline differentiator) is only partially represented as flags (`isReturningPatient`, `changesSinceLastVisit`) inside `IntakeSession`. There is no actual follow-up entity, no follow-up time-window assignment, no "Linked Care Task" for multiple pending tests, no second queue.
+7. **No `Notification` model/engine.** `reminderService.js` exists but is wired to the old medication-reminder feature, not to the §56 notification set (SMS/WhatsApp/push/kiosk printout/voice for queue status, report-ready, follow-up slot).
+8. **No `ABHAIdentity` model.** `abhaId` is a bare string field on `UserProfile`/`IntakeSession`. §2's requirement — treat ABHA creation/linking as an ABDM-governed flow with its own state — has no home to live in.
+9. **No `Appointment`/`Queue` as real entities.** Queue state is scattered as fields on `IntakeSession.queueStatus` plus config on `Department`/`Kiosk`. There is no queryable "live queue" collection that the Live Queue screen (§19) or doctor dashboard (§22) can subscribe to cleanly.
+10. **Auth is three different half-built systems at once.** `frontend/package.json` has both `@clerk/clerk-react` and `@react-oauth/google` installed; `frontend/src/auth/clerkAdapter.jsx` exists but `App.jsx` wires up Google OAuth directly; the backend has its own `authRoutes.js` + `authMiddleware.js` (JWT). None of these match §2's actual requirement: **mobile number → OTP → identity resolution**, with a **separate, professional-verified identity path for doctors** (§21). This needs to be consolidated into one intentional auth design, not patched further.
+11. **`UserProfile.js` is 90% off-architecture.** It carries the entire old wellness-app screening quiz: thyroid, PCOS/women's health, PHQ-2/GAD-2 mental health screen, kidney/liver screening, waist circumference, "saved doctors" with Practo integration, `dataQualityScore`. None of this is in your architecture (§4's Health Profile is basic info + medical info + AYUSH fields, not a diagnostic screening instrument). This must be stripped down and replaced with the real Health Profile shape from §4.
+
+### A.3 — What is 100% legacy and out of scope of the architecture (candidates for removal)
+
+The old core product was a **herb-drug interaction checker** (VaidyaSetu's original hackathon USP). Your MediKiosk architecture document never mentions interaction-checking as a feature — it is a different product concept. All of the following exist only to serve that old feature and have no home in the 72-section spec:
+
+- `backend/knowledge-base/` (entire folder — DrugBank/IMPPAT mock data, embedding/RAG scripts for the interaction checker's vector search)
+- `backend/reference_data/` (AYUSH herb nomenclature, ICMR diabetes/anemia guideline text files, herb-drug interaction CSV — all inputs to the old interaction checker)
+- `backend/src/models/DrugMapping.js`, `InteractionHistory.js`, `Alert.js`, `AlertPreference.js`
+- `backend/src/routes/interactionRoutes.js`, `realtimeInteractionRoutes.js`, `alertRoutes.js`
+- `backend/src/services/alertService.js`, `medicineInfoService.js`, `normalizationService.js`
+- `backend/src/utils/interactionChecker.js`, `interactionEngine.js`, `openfda.js`, `rxnav.js`
+- `backend/src/models/Report.js`, `backend/src/routes/reportRoutes.js` (the old Groq "AI risk report" — already disabled at the route level in `server.js`, just needs the dead code removed)
+- `backend/src/models/Feedback.js`, `backend/src/routes/feedbackRoutes.js` (👍/👎 on AI reports — tied to the removed report feature)
+- `backend/src/routes/governanceRoutes.js`, `preferenceRoutes.js` if they only serve the old dashboard/report features (verify contents before deleting — keep if they contain the real consent/governance logic you're about to build in Phase 11, otherwise delete)
+- `backend/src/services/reminderService.js`, `backend/src/scripts/cronJobs.js` **only** the medication-reminder logic — replace with the real §56 Notification engine (don't blindly delete cron infrastructure, repurpose it)
+- `backend/src/models/ApiCache.js` only if it exists solely to cache OpenFDA/RxNav calls — check before deleting
+- `backend/tests/ad-hoc/test_lisinopril_tulsi.js`, `test_significant_change.js`, `test_medicine_breakdown.js`, `test_vitals_mitigation.js`, `ragTestSuite.js`, `resilienceTest.js` and anything else testing the interaction checker/RAG
+- `frontend/src/pages/Alerts.jsx`, `AlertSettings.jsx`, `MedicationSchedule.jsx` (medication reminders tied to `Alert` model)
+- `frontend/src/components/BodyScan3D.jsx` + the `three`/`@react-three/fiber`/`@react-three/drei`/`lottie-react` dependencies (the old Lottie/3D "body scan" showpiece animation on the wellness dashboard — not the same thing as the kiosk's 2D `BodyMapSvg.jsx`, which you keep)
+- `frontend/src/pages/onboarding/Step1Biometrics.jsx` through `Step7History.jsx`, `Onboarding.jsx`, `store/useOnboardingStore.js` (the old multi-step wellness quiz — replaced in Phase 3 by the real Health Profile + Family Member flow)
+- `frontend/src/utils/locationService.js`, `pdfGenerator.js` if only used for the old doctor-finder/PDF report (check usage; PDF generation may be legitimately reused for the §20 printable token or discharge summaries — audit before deleting)
+- `Mediscan-Safety-main/` (an entire second, separate leftover project folder bundled inside your repo by mistake — delete the whole directory)
+- Root-level legacy docs: `VAIDYASETU_ALGORITHMS.txt`, `VAIDYASETU_IMPLEMENTATION_PLAN.md`, `ALGORITHM_DETAILS.md`, `DATA_SOURCES.md`, `DEMO_SCRIPT.md`, `GOOGLE_FIT_SETUP.md`, `PREDICTIVE_RISK_CALCULATION_EXPLAINED.md`, `SAFETY_BRIDGE_ISSUE_ANALYSIS.md` (archive these outside the repo if you want them for reference; they describe the old product, not MediKiosk)
+- Google Fit integration entirely (OAuth scopes, step-count fetching) — not mentioned anywhere in the architecture
+- `@clerk/clerk-react`, `@clerk/themes`, `frontend/src/auth/clerkAdapter.jsx` **or** `@react-oauth/google` — pick exactly one auth path in Phase 2 and delete the other
+
+> **Note on the herb-drug interaction checker specifically:** if you personally still want it, it is not forbidden — it just isn't part of the architecture your project owner wrote. Your instruction was to remove what isn't in the architecture, so it's listed for removal. If you want to keep it, don't delete it — instead re-scope it as a small optional "Safety Check" sub-step inside the Doctor's prescription screen (§26) in a later phase, fed by the AYUSH medicine list already on the patient's profile, rather than as a standalone product surface.
+
+---
+
+## PART B — THE NORMALIZED DATA MODEL YOU'RE BUILDING TOWARD
+
+This replaces the current `UserProfile` + giant `IntakeSession` design. Give your agent this exact shape as the Phase 1 target. Names match §59's 25-entity list plus `Symptom` and `Appointment` where they clarify things.
+
+```
+User                 — login identity only: mobile OR staff credentials, role, hashed OTP/password ref
+Patient              — 1:1 with a health identity (self or a family beneficiary)
+FamilyMember         — links a Patient record to the User "head of account" + relation
+ABHAIdentity         — abhaId, linkStatus, linkedAt, consentArtifactRef (ABDM-governed, not editable locally)
+Consent              — consentId, patientId, purpose (enum), dataScope, recipient, method, language, status, grantedAt, revokedAt
+Hospital             — (already built — extend, don't replace)
+Department           — (already built — extend)
+Doctor               — (already built — extend)
+Laboratory           — (already built — extend)
+Kiosk                — (already built — extend)
+Appointment          — patientId, hospitalId, departmentId, doctorId, scheduledFor, type(walk-in/follow-up/booked), status
+Queue                — hospitalId, departmentId, doctorId, date, entries:[{patientId, tokenNumber, priority, joinedAt, status}]
+Encounter            — THE CENTRAL OBJECT. patientId, hospitalId, departmentId, doctorId, kioskId, type(opd/followup/emergency), status, openedAt, closedAt
+Symptom              — encounterId, captureMode(voice/text/touch/bodymap), rawInput, structuredComplaint, bodyRegion
+History              — encounterId, mode(modern/ayush), sections:{...per §12/§13}, sourceTags per field
+Vital                — encounterId (nullable → also standalone home-logged), values, source(patient/kiosk-device/staff), capturedAt
+Medication           — patientId (long-lived, not per-encounter), name, system, status(current/previous/stopped/needs_confirmation), sourceDocId
+Prescription         — encounterId, doctorId, items:[MedicationItem], signedAt
+Document             — patientId, encounterId (nullable), type, originalFileUrl, uploadedAt, verificationStatus
+OCRExtraction        — documentId, rawOcrText, extractedFields:[{field,value,confidence}], languageDetected
+InvestigationOrder   — encounterId, doctorId, testName, priority, status, qrPayload
+LabSample            — investigationOrderId, collectedAt, collectedBy, sampleId, status
+LabResult            — labSampleId, parameters:[{name,value,unit,referenceRange,flag}], verifiedBy, verifiedAt, originalValuePreserved:true
+Referral             — encounterId, fromDoctorId, toHospitalId/toDepartmentId/toDoctorId, reason, priority, status
+FollowUp             — originEncounterId, reason(lab_result/imaging/review/referral_return), linkedOrderIds:[], status, scheduledWindow, newEncounterId(once created)
+Notification          — recipientId, channel(sms/whatsapp/push/kiosk_print/voice), template, payload, sentAt, status
+AuditLog             — actorId, actorRole, action, targetType, targetId, patientId, reason, at
+AIEvent              — encounterId, service(asr/ocr/historyAI/summaryAI/riskEngine/routing/queuePrediction), input, output, confidence, reviewedByDoctor
+```
+
+**Migration note for the agent:** `IntakeSession` becomes `Encounter` plus five child collections (`Document`, `InvestigationOrder`→`LabSample`→`LabResult`, `Vital`, `History`, `Prescription`). Write a one-time migration script (`scripts/migrate_intakesession_to_encounter.js`) that reads every existing `IntakeSession` and fans it out into the new collections, rather than hand-deleting real data — do this even in a demo/hackathon codebase so old QA data isn't lost.
+
+---
+
+## PART C — PHASE-BY-PHASE IMPLEMENTATION PLAN
+
+Each phase below is written so you can paste it directly to your coding agent one at a time. Do not start Phase N+1 until Phase N's acceptance checks pass.
+
+### Phase 0 — Cleanup, Removal & Repo Reset
+**Goal:** Get the repo to a clean baseline that contains only architecture-aligned code before anything new is built on top of it.
+
+1. Delete, in full: `backend/knowledge-base/`, `backend/reference_data/`, `Mediscan-Safety-main/`, and the eight legacy root-level docs listed in Part A.3.
+2. Delete these backend files: `models/DrugMapping.js`, `InteractionHistory.js`, `Alert.js`, `AlertPreference.js`, `Report.js`, `Feedback.js`; `routes/interactionRoutes.js`, `realtimeInteractionRoutes.js`, `alertRoutes.js`, `reportRoutes.js`, `feedbackRoutes.js`; `services/alertService.js`, `medicineInfoService.js`, `normalizationService.js`; `utils/interactionChecker.js`, `interactionEngine.js`, `openfda.js`, `rxnav.js`; `data/interactions.json`.
+3. Remove their `require`/route registrations from `server.js`. Delete the already-dead `/api/ai` 410-stub block entirely (it's served its purpose as a migration marker — remove now that the underlying route file is gone).
+4. Delete legacy tests: everything under `tests/ad-hoc/` related to interactions/RAG/vitals-mitigation, plus `ragTestSuite.js`, `resilienceTest.js`.
+5. Frontend: delete `pages/Alerts.jsx`, `AlertSettings.jsx`, `MedicationSchedule.jsx`, `components/BodyScan3D.jsx`, `pages/onboarding/*`, `pages/Onboarding.jsx`, `store/useOnboardingStore.js`. Remove their imports/routes from `App.jsx`.
+6. Uninstall unused packages from both `package.json`s: `three`, `@react-three/fiber`, `@react-three/drei`, `lottie-react` (frontend), and confirm nothing else references `openfda`/`rxnav`/interaction utilities server-side.
+7. Decide and document the ONE auth strategy (see Phase 2) and remove the other now: if going mobile-OTP-first, delete `@clerk/clerk-react`, `@clerk/themes`, `@react-oauth/google`, `frontend/src/auth/clerkAdapter.jsx` now, and plan to replace `authRoutes.js`/`authMiddleware.js` content in Phase 2 rather than deleting the files themselves.
+8. Run the existing test suite (`npm test`) and fix any breakage caused purely by the deletions (missing requires) — don't fix logic yet, just get to a green "nothing references deleted code" state.
+
+**Acceptance check:** `npm run start` boots with no missing-module errors; `npm test` shows only failures in files you intend to rewrite in later phases (document which ones); `grep -ri "interaction\|clerk\|googlefit\|lottie" -R backend/src frontend/src` returns nothing outside intentionally-kept files.
+
+---
+
+### Phase 1 — Core Data Model Rebuild (Encounter-centric)
+**Goal:** Implement the 25-entity model from Part B. This is the foundation everything else sits on.
+
+1. Create `backend/src/models/` files for: `Patient.js`, `FamilyMember.js`, `ABHAIdentity.js`, `Consent.js`, `Appointment.js`, `Queue.js`, `Encounter.js`, `Symptom.js`, `Prescription.js`, `Document.js`, `OCRExtraction.js`, `InvestigationOrder.js`, `LabSample.js`, `Referral.js`, `FollowUp.js`, `Notification.js`, `AuditLog.js`, `AIEvent.js`. Use the field lists in Part B as the schema starting point; extend with timestamps + indexes on `patientId`/`encounterId` everywhere.
+2. Rewrite `History.js`, `Vital.js`, `Medication.js`, `LabResult.js` to key off `encounterId`/`patientId` instead of the old `IntakeSession` shape; port over the good sub-schemas you already have (`DiagnosisSchema`, `MedicationItemSchema`, `RedFlagSchema`, the `dashavidhaPariksha` block) unchanged into their new home models.
+3. Slim `UserProfile.js` down to `User.js`: mobile/credential identity, role, `onboardingCompleted` only. Everything else in the old file (thyroid, PCOS, mental health, kidney/liver screening, `savedDoctors`, `dataQualityScore`) is deleted — those questions get asked, if ever, inside a real clinical `History` document during an encounter with proper source-tagging, never as a standing wellness-quiz record.
+4. Write `scripts/migrate_intakesession_to_encounter.js` per the migration note in Part B. Run it against your dev database and verify row counts match (1 old `IntakeSession` → 1 `Encounter` + N child docs).
+5. Delete `models/IntakeSession.js` only after the migration script has been run and verified against a full dev-DB copy.
+
+**Acceptance check:** every new model has a matching `mongoose.model()` export and at least one Jest test that creates + fetches a document; the migration script run produces `Encounter` documents whose `patientId + openedAt` count matches the original `IntakeSession` count exactly.
+
+---
+
+### Phase 2 — Identity, Family Accounts, Consent & Access Control
+**Goal:** Implement §2 (mobile+OTP identity, family beneficiaries), §21 (separate doctor identity), and the skeleton of §46–§49 (consent + RBAC).
+
+1. Pick and implement ONE patient auth path: `POST /api/auth/otp/request {mobile}` → SMS OTP (stub provider in dev) → `POST /api/auth/otp/verify {mobile, otp}` → issues session token + returns list of `FamilyMember` profiles linked to that mobile, or "no profiles yet" → new-patient flow.
+2. Build `POST /api/patients/family-member` to add a beneficiary (self/father/mother/child/other) — each gets its own `Patient` document and its own `Consent` scope; never share a single `Patient` record across people.
+3. Doctor/lab/admin auth stays credential-based (not OTP) — `authRoutes.js` keeps a separate `/api/auth/staff/login`, validated against `Doctor.account`/staff records, not against the patient OTP flow. Wire `roleGuard.js` middleware to check role + (later, in Phase 11) purpose-based scope, not just role.
+4. Implement `Consent` CRUD: `POST /api/consent/grant`, `POST /api/consent/revoke`, `GET /api/consent/my` (patient-facing "My Consent" list, §48). Every grant call must populate all §47 fields (purpose, data scope, recipient, method, language, timestamp).
+5. Wire `components/kiosk/ConsentScreen.jsx` to call the new endpoints per-purpose (clinical history, document scanning, doctor sharing, lab sharing, ABDM exchange, optional secondary uses) instead of one blanket checkbox.
+6. Stub `ABHAIdentity`: `POST /api/abha/link-request` just records intent + status `pending_abdm_flow` — do not fabricate ABHA numbers locally; this is explicitly forbidden by §2's "important correction."
+
+**Acceptance check:** a fresh mobile number can OTP-login, add 2 family members, each with distinct `Patient._id`; consent list correctly shows/hides recipients after grant/revoke; a doctor cannot log in through the OTP endpoint and vice versa.
+
+---
+
+### Phase 3 — Patient Health Profile & Medicines Module
+**Goal:** Build the real §4/§6 Health Profile and Medicines screens on top of the new `Patient` model, replacing the deleted onboarding quiz.
+
+1. `Patient.healthProfile` sub-document: basic info (name, DOB, gender, contact, address, blood group, emergency contact) + medical info (allergies, existing diseases, surgeries, hospitalizations, family/personal history, current meds) + `ayushProfile` (Prakriti, Vikriti, Ahara, Vihara, Agni, Koshtha — reuse the existing `dashavidhaPariksha` shape).
+2. Every field write must carry a **source + confidence** tag per §5/§66 (`Confirmed` / `Patient reported` / `Document derived` / `Uncertain` / `Conflicting` / `Not reported`) — never silently store "No" for something never actually asked; store `Not reported` as the true default.
+3. Rebuild `pages/HealthProfile.jsx` and `pages/ProfileEditor.jsx` against this shape (drop every thyroid/PCOS/mental-health/kidney-liver field from the UI).
+4. Rebuild `pages/MyMedicines.jsx` around the four buckets from §6 (`CURRENT` / `PREVIOUS` / `STOPPED` / `NEEDS CONFIRMATION`), reading/writing the new `Medication` model, with "needs confirmation" items re-surfaced automatically at the next OPD registration (Phase 5 will call this hook).
+5. Build the family-member switcher on the dashboard (§3 "HELLO, RAJESH" header + family list) so the logged-in mobile account can flip between `Patient` records.
+
+**Acceptance check:** a caregiver-entered value shows `Source: Caregiver` (not `Patient reported`) end-to-end from UI to DB; an unanswered allergy field renders as "Not reported," never "No"; switching family members changes every screen's data scope correctly.
+
+---
+
+### Phase 4 — Document Intelligence Pipeline
+**Goal:** Formalize §7/§8 — OCR pipeline with `Document` + `OCRExtraction` as real entities, source-linked to the medical timeline.
+
+1. Rebuild the OCR flow (`ocrRoutes.js`, `visionOcr.js`, `groqVision.js`, `image.js`) to write a `Document` row on upload, then an `OCRExtraction` row per processed page, following the exact pipeline order in §7: quality check → pre-processing → OCR → language detection → medical entity extraction → validation → classification → date extraction → timeline insert.
+2. Every extracted field must attach `sourceDocName`, `docDate`, and `confidence` — this is the Evidence-Linked Clinical Record principle (§8); port the existing `evidenceSnippets` idea from the old `IntakeSession` into this new per-field shape on `OCRExtraction`.
+3. Handwritten prescriptions (§39): keep both the original image URL and the structured extraction; require an explicit doctor-confirmation step before the extraction is trusted (`verificationStatus`).
+4. Build the Medical Timeline aggregation endpoint `GET /api/patients/:id/timeline` that threads `Encounter`, `LabResult`, and `Document` chronologically (§40).
+
+**Acceptance check:** uploading a prescription image produces one `Document` + one or more `OCRExtraction` rows, each extracted field individually traceable to that document and date; the timeline endpoint returns a correctly time-ordered feed across at least documents + encounters.
+
+---
+
+### Phase 5 — OPD Registration & Adaptive Clinical Intake
+**Goal:** Implement §9–§13 on top of the new `Encounter`/`Symptom`/`History` models — this is where a new `Encounter` gets opened.
+
+1. `POST /api/encounters` opens a new `Encounter` for a chosen `Patient` + hospital/department (or auto-uses kiosk's bound hospital, §9).
+2. Symptom capture (§10): implement all four input modes (`components/kiosk/SymptomIconPicker.jsx`, `BodyMapSvg.jsx`, voice, free text) writing to one shared `Symptom.structuredComplaint` shape — no mode should produce a differently-shaped record.
+3. Generalize `adaptiveSocratesService.js` beyond pain-only complaints into the real §11 engine: input = patient profile + prior `History` + current `Symptom` + `Medication` + prior `Document`s; output = only the missing relevant questions. Keep the "known fields aren't re-asked" behavior it already has.
+4. Implement Mode 1 / Mode 2 switch (§12/§13) driven by `Department.intakeConfig.clinicalMode` (already exists on your `Department` model — just make the frontend intake screen actually branch on it). Mode 2's exact question set must read from a per-hospital configurable list, not a hard-coded array.
+5. Build the Clinical Knowledge ontology layer (§43) as a static, versioned config (`backend/src/data/clinicalOntology.js`): complaint → required attributes → red-flag triggers. The LLM only fills in natural-language understanding against this structure; it must never invent new required questions.
+6. Vitals capture (§14): patient-entered (home, with timestamp+source) vs kiosk-peripheral-captured (auto, no manual typing) — two distinct `Vital.source` values.
+7. Red-flag engine (§15/§16): `utils/emergencyScorer.js` becomes a pure function over `Symptom`+`Vital`+`History` → `normal | potential_emergency`; a positive hit always routes to human triage, never an autonomous diagnosis claim. Escalation for suspected misuse follows the warning → manual verification → staff review ladder (§16) — never an automatic lockout from emergency evaluation.
+
+**Acceptance check:** the same knee-pain scenario produces the same `Symptom.structuredComplaint` shape regardless of which of the 4 input modes was used; switching a department's `clinicalMode` from modern to AYUSH changes the question flow live; a red-flag hit always creates a triage task, never a standalone "diagnosis."
+
+---
+
+### Phase 6 — Queue, Department Routing & Token Engine
+**Goal:** Implement §17–§20 with real `Queue`/`Appointment` entities instead of scattered status fields.
+
+1. Department routing (§17): `POST /api/routing/suggest` takes complaint+history+vitals+records → suggested department, explicitly labeled "AI-assisted routing," never framed as diagnosis.
+2. Live `Queue` collection per hospital+department+date; `Queue.entries` updated on token issue/consult-start/consult-end. ETA calculation (§18) = patients ahead + doctor's rolling consultation speed (already tracked on `Doctor.consultationStats`) + priority cases + follow-up capacity — always output as a **range**, never false-precision seconds.
+3. `pages/QueueDisplay.jsx` and the patient-facing live queue screen consume this via polling or SSE, matching the §19 layout (token, doctor, room, currently-serving, patients ahead, ETA range, status).
+4. Token document (§20): render + printable + QR, generated from `qrService.js` at `Encounter` open, containing token/department/doctor/room/patients-ahead/ETA/QR — verify no clinical data is embedded in the QR payload (matches the existing "no clinical data" comment already in your old `IntakeSession.qrPayload`).
+
+**Acceptance check:** ETA always renders as a range string; a completed consultation updates the doctor's rolling average and the next patient's ETA recalculates; scanning the token QR resolves to the correct `Encounter` with zero clinical fields exposed in the QR payload itself.
+
+---
+
+### Phase 7 — Doctor System
+**Goal:** Implement §21–§26 fully: dashboard, 30-second summary, consultation workspace, evidence display.
+
+1. `pages/DoctorDashboard.jsx`: normal queue / emergency / follow-up / checked-today counts + "open patient" action, sourced from `Queue` + `FollowUp` (Phase 9) collections.
+2. 30-second summary view (§24): current complaint, red flags, new information, known conditions, current medicines, latest vitals, recent investigations — computed server-side from the current `Encounter` + prior `Encounter`s for that `Patient`, not hand-assembled per screen.
+3. Source + confidence badges everywhere (§25): every value shown to the doctor must render its provenance chip (`Confirmed by patient` / `Prescription dated X` / `Lab report dated X` / `Recorded by Dr. X`) — reuse the confidence-state enum from Phase 1's `AIEvent`/`OCRExtraction` models.
+4. Consultation workspace (§26): symptoms, examination, diagnosis (ICD-11/NAMASTE via the existing `DiagnosisSchema`), investigations (creates `InvestigationOrder`), prescription (`Prescription` model), advice, referral (Phase 9), follow-up decision (§37 explicit enum: No / After lab result / Tomorrow / Specific date / Emergency return), sign & complete.
+5. "What changed since last visit" (§41): server-computed diff between current and prior `Encounter`/`Medication`/`LabResult` sets, categorized NEW / CHANGED / UNCHANGED, shown directly on the dashboard.
+6. Conflict detection (§65): when a new patient statement contradicts an existing `History`/`Medication` record, surface both values with a `Doctor verification required` flag — never silently overwrite.
+
+**Acceptance check:** opening a returning patient's encounter shows an accurate NEW/CHANGED/UNCHANGED block computed from real prior data, not placeholder text; a deliberately conflicting allergy answer produces a visible conflict flag instead of overwriting the old value.
+
+---
+
+### Phase 8 — Laboratory System
+**Goal:** Implement §27–§30 with `InvestigationOrder` → `LabSample` → `LabResult` as three distinct, linked entities (not one blob).
+
+1. Doctor orders a test → `InvestigationOrder` created (patient, doctor, encounter, test, priority) → QR generated (§27).
+2. `pages/LabDashboard.jsx` columns matching §28 exactly: today's samples / pending / in progress / completed / verified / critical-attention / follow-up required.
+3. Full workflow state machine (§29) on `InvestigationOrder.status` → `LabSample.status`: ordered → QR-scanned → queued → collected → processing → resulted → verified → reported → doctor-notified → (Phase 9) follow-up triggered.
+4. Result entry (§30): full parameter table (test, parameter, result, unit, reference range, sample/result datetime, technician, verification, remarks). **Never overwrite `LabResult` in place** — amendments create a new versioned `LabResult` row referencing the original, per the "never silently overwrite" rule.
+
+**Acceptance check:** a full order→collect→result→verify cycle correctly transitions every state; attempting to "edit" a verified result instead creates a new linked version, with the original still readable.
+
+---
+
+### Phase 9 — Continuity Engine: Follow-up & Referral
+**Goal:** Implement §31–§38, the feature your architecture doc calls the headline differentiator (§70.5). This is the payoff of doing Phase 1's `Encounter` model correctly.
+
+1. On `LabResult.verified = true`, a background job checks whether the parent `InvestigationOrder`'s encounter is flagged `doctorReviewRequired` → auto-creates a `FollowUp` document (§31) referencing the origin encounter; **never require the patient to re-register from scratch.**
+2. Second logical `Queue` type = `followup` (§32), separate from normal OPD, assigned via time windows (§34) computed from report completion + doctor availability + priority + existing queue + hospital capacity — not a first-come free-for-all.
+3. Next-day review (§35): doctor marks "Review: Next day" during consult → `FollowUp` gets a date + time window + doctor + room + reason, with **no new token and no repeated intake**.
+4. Linked Care Task (§36): when a doctor orders multiple tests, the `FollowUp` waits in a `waiting_for_results` state referencing all `InvestigationOrder` ids, and only becomes schedulable once all linked orders are `verified`.
+5. Referral (§38): `Referral` model supporting same-hospital (department→doctor→reason→priority) and cross-hospital (hospital→department→reason→note→QR) paths; receiving side can fetch referral details subject to the same consent/authorization rules from Phase 2.
+6. Update the Medical Timeline (Phase 4) to thread `FollowUp` and `Referral` events alongside visits/labs/documents.
+
+**Acceptance check:** completing a lab result for a flagged encounter auto-produces a `FollowUp` with no manual step; a patient with 3 pending tests only gets a follow-up slot once the 3rd result is verified; a same-hospital referral correctly restricts visibility to the receiving department until authorized.
+
+---
+
+### Phase 10 — AI Layer as Separate Controlled Services
+**Goal:** Implement §42–§45/§64 — stop treating "the AI" as one call; split into named services with a documented contract each.
+
+1. Create `backend/src/ai/` with one file per service: `asrService.js`, `ocrService.js` (already exists, relocate), `historyAiService.js` (wraps `adaptiveSocratesService.js`), `summaryAiService.js`, `riskEngine.js` (red-flag scoring only — never disease declaration), `routingService.js` (department suggestion), `queuePredictionService.js`. Each writes its calls/outputs to `AIEvent` for auditability.
+2. Summary pipeline (§64) as an explicit function chain: ASR → structured facts, OCR entities merged in → clinical merge → conflict detection (Phase 7) → evidence validation → structured summary → **required doctor review step** → final encounter write. No step is allowed to skip the doctor-review gate before the encounter is marked complete.
+3. Multilingual layer (§44): translate the *interaction* (ASR/TTS/UI strings), keep the *structured clinical record* in controlled medical terminology regardless of the patient's spoken language — i.e., translation happens at the presentation layer, never inside the ontology-driven `History` fields from Phase 5.
+4. Low-literacy mode (§45): a real, toggleable `Kiosk`/`User` setting (Listen/Speak/Tap/Repeat/Help) — verify this is an actual mode switch in the UI, not just icon decoration.
+
+**Acceptance check:** every AI-service call in the system produces one `AIEvent` row with input/output/confidence; disabling "auto-complete encounter" forces the doctor-review gate before any `Encounter.status = closed`; switching UI language does not alter the underlying stored medical terms in `History`.
+
+---
+
+### Phase 11 — Consent, Security, Access Control & Audit (hardening pass)
+**Goal:** Finish §46–§52 beyond the Phase 2 skeleton — this phase assumes real users are about to touch the system.
+
+1. Full `AuditLog` write on every sensitive read (`Doctor viewed CBC report for Encounter ENC-127` style entries, §50) — wrap this as Express middleware on protected routes rather than hand-adding calls everywhere.
+2. Purpose-based access control (§49) on top of the role check from Phase 2: a doctor can read a patient's data only for an *assigned/current* encounter or explicitly permitted history — enforce with a query-time scope check, not just a route-level role gate.
+3. Security checklist pass: encryption in transit (HTTPS everywhere), encryption at rest (Mongo Atlas encryption or field-level for `ABHAIdentity`/OTP secrets), session timeout, RBAC audit, secure deletion (a real "delete my data" endpoint that cascades across `Patient`+children, not just `User`).
+4. Kiosk session cleanup (§52): on `Encounter` submit, wipe the kiosk's temporary local cache/state (`utils/kioskOffline.js`) so the next patient starts clean — write an explicit reset function and call it from the "submit & sync" action, not implicitly.
+
+**Acceptance check:** any protected read produces exactly one `AuditLog` row; a doctor querying a patient with no assigned encounter is denied even though their role is `doctor`; ending a kiosk session and starting a new one shows zero residual data from the previous patient.
+
+---
+
+### Phase 12 — Hospital Admin & Configuration Engine
+**Goal:** Finish §53–§54 — you already have strong `Hospital`/`Department`/`Kiosk`/`Laboratory` schemas; this phase is mostly UI + a few missing endpoints.
+
+1. Build `pages/AdminDashboard.jsx` sections matching §53 exactly: Hospitals, Departments, Doctors, Labs, Rooms, Kiosks, Queues, Schedules, Services, Reports, Audit (reading from Phase 11's `AuditLog`).
+2. Ensure nothing is hard-coded per §54 — every department's doctor count, room list, working hours, queue policy must come from the `Department`/`Hospital` documents you already have, never a fixed array in frontend code.
+3. Admin CRUD endpoints for departments/doctors/kiosks/labs where missing (`facilityRoutes.js`/`facilityService.js` likely already cover much of this — audit and fill gaps rather than rewrite).
+
+**Acceptance check:** adding a new department via the admin UI immediately becomes selectable in OPD registration with zero code changes.
+
+---
+
+### Phase 13 — Offline Mode & Notifications
+**Goal:** §55–§56.
+
+1. Kiosk offline cache (`utils/kioskOffline.js`): language packs, UI shell, basic workflow, non-sensitive queue state — sync securely on reconnect. Explicitly do **not** cache ABDM/external health-record data offline (§55's "don't pretend the ABDM ecosystem works offline").
+2. Real `Notification` engine: SMS + WhatsApp (only where consented, per Phase 2's `Consent.purpose` scopes) + app/web push + kiosk printout + voice announcement, for the exact event set in §56 (report ready, "doctor now seeing token X," "proceed to room," follow-up slot).
+
+**Acceptance check:** disconnecting the kiosk mid-session still allows completing the local workflow; reconnecting syncs queued submissions without duplication; a WhatsApp notification is never sent to a patient who hasn't granted that specific consent scope.
+
+---
+
+### Phase 14 — Testing, QA & Deployment
+1. Re-map every old `tests/*.phaseN.test.js` file to the new phase numbering above (see Part D mapping table) and update assertions to hit the new models/routes.
+2. Add end-to-end coverage for the two flows your architecture doc treats as proof-of-concept: (a) full OPD visit with a lab order that auto-generates a next-day `FollowUp`, and (b) a family-account flow where a caregiver registers a parent and the provenance is correctly tagged `Source: Caregiver` throughout.
+3. Deploy per your existing setup (`frontend/vercel.json`, whatever backend host you use) — no architecture-specific changes needed here beyond confirming env vars for the new auth/OTP provider and any real ABDM sandbox credentials if you move past the stub in Phase 2.
+
+---
+
+## PART D — OLD TEST FILE → NEW PHASE MAPPING
+
+| Old file | Maps to new phase |
+|---|---|
+| `security.phase0.test.js` | Phase 11 (Consent/Security/Audit) |
+| `multilingual.phase2.test.js` | Phase 10 (AI layer / multilingual) |
+| `socrates.phase3.test.js` | Phase 5 (Adaptive intake) |
+| `caregiver.phase4.test.js` | Phase 3 (Health Profile / caregiver source-tagging) |
+| `qr.phase5.test.js` | Phase 6 (Queue & Token) |
+| `doctor.phase6.test.js` | Phase 7 (Doctor system) |
+| `abdm.phase7.test.js` | Phase 2 (ABHA stub) + Phase 12 (ABDM integration layer) |
+| `patientIa.phase8.test.js` | Phase 3 (Patient info architecture / dashboard) |
+| `voiceNotesAndReport.phase9.test.js` | Phase 10 (ASR/Summary AI) |
+| `admin.phase10.test.js` | Phase 12 (Hospital Admin) |
+| `medisahayak.phases.test.js`, `vitals.test.js`, `alerts.test.js` | Split: vitals content → Phase 5; delete alert-specific assertions per Phase 0 |
+
+---
+
+## PART E — ONE-LINE BRIEF FOR YOUR AGENT
+
+> *"We are converting an existing Node/Express + MongoDB + React codebase (currently a mix of an old wellness-app prototype called VaidyaSetu and a partially-built hospital platform called MediKiosk) into a strict implementation of `docs/MEDIKIOSK_ARCHITECTURE.md`. Work through `MEDIKIOSK_REBUILD_BLUEPRINT.md` phase by phase, starting at Phase 0. Do not invent features not listed in the architecture doc or this blueprint. Every clinical data write must trace back to an `Encounter`, never directly to `Patient`. Run the acceptance check at the end of each phase before starting the next."*

@@ -71,131 +71,23 @@ export function addSection(doc, y, title) {
 }
 
 /**
- * Generate comprehensive Dashboard PDF (risk scores + mitigations)
+ * NOTE (MediKiosk refactor):
+ * `generateDashboardPDF` — which exported AI disease risk scores and per-disease
+ * mitigation tables — was removed along with the rest of the wellness/risk product.
+ * It had no remaining callers once the risk dashboard was replaced by the §3
+ * patient home screen, and §15 forbids the system scoring or declaring disease.
+ * Clinical PDF export is rebuilt in a later phase around Encounter → Diagnosis →
+ * LabResult, using the §66 confidence states.
  */
-export function generateDashboardPDF(userName, report, profile, medications) {
-  const doc = new jsPDF();
-  let y = addHeader(doc, 'AI Health Risk Report', userName, 'Comprehensive Disease Risk Analysis with Mitigations');
-
-  // Profile summary
-  if (profile) {
-    y = addSection(doc, y, 'Patient Profile');
-    const profileData = [];
-    if (profile.age?.value) profileData.push(['Age', `${profile.age.value} years`]);
-    if (profile.gender?.value) profileData.push(['Gender', profile.gender.value]);
-    if (profile.height?.value) profileData.push(['Height', `${profile.height.value} cm`]);
-    if (profile.weight?.value) profileData.push(['Weight', `${profile.weight.value} kg`]);
-    if (profile.diet?.value) profileData.push(['Diet', profile.diet.value]);
-    if (profile.allergies?.value?.length) profileData.push(['Allergies', profile.allergies.value.join(', ')]);
-    if (profile.medicalHistory?.value?.length) profileData.push(['Conditions', profile.medicalHistory.value.join(', ')]);
-
-    if (profileData.length > 0) {
-      autoTable(doc, {
-        startY: y,
-        head: [['Parameter', 'Value']],
-        body: profileData,
-        headStyles: { fillColor: EMERALD },
-        margin: { left: 20, right: 20 },
-        theme: 'striped',
-      });
-      y = doc.lastAutoTable.finalY + 10;
-    }
-  }
-
-  // Active medications
-  if (medications?.length > 0) {
-    y = addSection(doc, y, 'Active Medications');
-    autoTable(doc, {
-      startY: y,
-      head: [['Medicine', 'Dosage', 'Frequency']],
-      body: medications.map(m => [m.name, m.dosage, m.frequency]),
-      headStyles: { fillColor: EMERALD },
-      margin: { left: 20, right: 20 },
-      theme: 'striped',
-    });
-    y = doc.lastAutoTable.finalY + 10;
-  }
-
-  // Risk scores
-  if (report?.risk_scores) {
-    y = addSection(doc, y, 'AI Risk Scores');
-    const riskData = Object.entries(report.risk_scores)
-      .sort(([, a], [, b]) => b - a)
-      .map(([disease, score]) => {
-        const level = score > 60 ? 'HIGH' : score > 30 ? 'MODERATE' : 'LOW';
-        return [disease.replace(/_/g, ' ').toUpperCase(), `${score}%`, level];
-      });
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Disease', 'Risk Score', 'Risk Level']],
-      body: riskData,
-      headStyles: { fillColor: EMERALD },
-      margin: { left: 20, right: 20 },
-      theme: 'striped',
-      didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 2) {
-          if (data.cell.raw === 'HIGH') data.cell.styles.textColor = RED;
-          else if (data.cell.raw === 'MODERATE') data.cell.styles.textColor = [245, 158, 11];
-          else data.cell.styles.textColor = EMERALD;
-        }
-      },
-    });
-    y = doc.lastAutoTable.finalY + 10;
-  }
-
-  // AI Summary
-  if (report?.summary) {
-    y = addSection(doc, y, 'AI Summary');
-    doc.setFontSize(10);
-    doc.setTextColor(...DARK);
-    const lines = doc.splitTextToSize(report.summary, 170);
-    doc.text(lines, 20, y);
-    y += lines.length * 5 + 8;
-  }
-
-  // Mitigations
-  if (report?.mitigations) {
-    Object.entries(report.mitigations).forEach(([disease, mits]) => {
-      if (y > 240) { doc.addPage(); y = 20; }
-      y = addSection(doc, y, `Mitigations: ${disease.replace(/_/g, ' ').toUpperCase()}`);
-      const mitData = [];
-      if (mits.exercise?.length) mits.exercise.forEach(e => mitData.push(['Exercise', e]));
-      if (mits.diet?.length) mits.diet.forEach(d => mitData.push(['Diet', d]));
-      if (mits.lifestyle?.length) mits.lifestyle.forEach(l => mitData.push(['Lifestyle', l]));
-      if (mits.precautions?.length) mits.precautions.forEach(p => mitData.push(['Precaution', p]));
-
-      if (mitData.length > 0) {
-        autoTable(doc, {
-          startY: y,
-          head: [['Category', 'Recommendation']],
-          body: mitData,
-          headStyles: { fillColor: EMERALD },
-          margin: { left: 20, right: 20 },
-          theme: 'striped',
-          columnStyles: { 1: { cellWidth: 130 } },
-        });
-        y = doc.lastAutoTable.finalY + 8;
-      }
-    });
-  }
-
-  addDisclaimer(doc);
-  doc.save(`VaidyaSetu-Risk-Report-${Date.now()}.pdf`);
-}
 
 /**
- * Generate Vitals PDF with history + lab results
- */
-/**
- * Generate Vitals PDF with current records and personalized mitigations
- * Shows only latest readings with mitigation steps (no backlog history)
+ * Generate Vitals PDF — latest readings only (no backlog history)
  */
 export function generateVitalsPDF(userName, currentVitals, formatValue, getStatus) {
   const doc = new jsPDF();
-  let y = addHeader(doc, 'Current Vitals Report', userName, 'Latest Readings with Personalized Mitigation Steps');
+  let y = addHeader(doc, 'Current Vitals Report', userName, 'Latest Recorded Readings');
 
-  // Current vitals with mitigations
+  // Current vitals
   if (currentVitals && currentVitals.length > 0) {
     y = addSection(doc, y, 'Current Vital Readings');
     
@@ -252,129 +144,52 @@ export function generateVitalsPDF(userName, currentVitals, formatValue, getStatu
     });
     y = doc.lastAutoTable.finalY + 10;
 
-    // Detailed mitigations for abnormal vitals
+    // Flag abnormal readings for clinical attention. Per §15 an out-of-range
+    // reading is a triage trigger — we list what needs review, we do not
+    // prescribe self-care. (The old per-vital mitigation sections were removed
+    // with the wellness module.)
     const abnormalVitals = currentVitals.filter(v => {
       const status = (v.status || 'normal').toLowerCase();
-      return status !== 'normal' && v.mitigations;
+      return status !== 'normal';
     });
-    
+
     if (abnormalVitals.length > 0) {
-      y = addSection(doc, y, 'Personalized Mitigation Steps');
-      
-      abnormalVitals.forEach((vital, idx) => {
-        if (y > 230) { doc.addPage(); y = 20; }
-        
-        // Vital header
-        doc.setFontSize(12);
-        doc.setTextColor(...EMERALD);
+      if (y > 230) { doc.addPage(); y = 20; }
+      y = addSection(doc, y, 'Readings Outside The Usual Range');
+
+      doc.setFontSize(9);
+      doc.setTextColor(...GRAY);
+      doc.text('These readings need review by a clinician. They are not a diagnosis.', 20, y);
+      y += 8;
+
+      abnormalVitals.forEach((vital) => {
+        if (y > 265) { doc.addPage(); y = 20; }
         const vitalName = vital.type.replace(/_/g, ' ').toUpperCase();
-        const currentValue = typeof formatValue === 'function' 
-          ? formatValue(vital.type, vital.value) 
+        const value = typeof formatValue === 'function'
+          ? formatValue(vital.type, vital.value)
           : String(vital.value);
-        doc.text(`${vitalName}: ${currentValue} (${vital.status.toUpperCase()})`, 20, y);
-        y += 8;
-
-        // Mitigations
-        if (vital.mitigations) {
-          // Immediate Actions
-          if (vital.mitigations.immediateActions?.length > 0) {
-            if (y > 250) { doc.addPage(); y = 20; }
-            doc.setFontSize(10);
-            doc.setTextColor(...RED);
-            doc.text('Immediate Actions:', 25, y);
-            y += 6;
-            doc.setFontSize(8);
-            doc.setTextColor(...GRAY);
-            vital.mitigations.immediateActions.forEach((action, i) => {
-              if (y > 270) { doc.addPage(); y = 20; }
-              doc.text(`${i + 1}. ${action}`, 30, y);
-              y += 5;
-            });
-            y += 3;
-          }
-
-          // Lifestyle Changes
-          if (vital.mitigations.lifestyleChanges?.length > 0) {
-            if (y > 250) { doc.addPage(); y = 20; }
-            doc.setFontSize(10);
-            doc.setTextColor(59, 130, 246); // Blue
-            doc.text('Lifestyle Changes:', 25, y);
-            y += 6;
-            doc.setFontSize(8);
-            doc.setTextColor(...GRAY);
-            vital.mitigations.lifestyleChanges.forEach((change, i) => {
-              if (y > 270) { doc.addPage(); y = 20; }
-              doc.text(`${i + 1}. ${change}`, 30, y);
-              y += 5;
-            });
-            y += 3;
-          }
-
-          // Dietary Advice
-          if (vital.mitigations.dietaryAdvice?.length > 0) {
-            if (y > 250) { doc.addPage(); y = 20; }
-            doc.setFontSize(10);
-            doc.setTextColor(...EMERALD);
-            doc.text('Dietary Advice:', 25, y);
-            y += 6;
-            doc.setFontSize(8);
-            doc.setTextColor(...GRAY);
-            vital.mitigations.dietaryAdvice.forEach((advice, i) => {
-              if (y > 270) { doc.addPage(); y = 20; }
-              doc.text(`${i + 1}. ${advice}`, 30, y);
-              y += 5;
-            });
-            y += 3;
-          }
-
-          // Precautions
-          if (vital.mitigations.precautions?.length > 0) {
-            if (y > 250) { doc.addPage(); y = 20; }
-            doc.setFontSize(10);
-            doc.setTextColor(245, 158, 11); // Amber
-            doc.text('Precautions:', 25, y);
-            y += 6;
-            doc.setFontSize(8);
-            doc.setTextColor(...GRAY);
-            vital.mitigations.precautions.forEach((precaution, i) => {
-              if (y > 270) { doc.addPage(); y = 20; }
-              doc.text(`${i + 1}. ${precaution}`, 30, y);
-              y += 5;
-            });
-            y += 3;
-          }
-
-          // When to see doctor
-          if (vital.mitigations.whenToSeeDoctor) {
-            if (y > 260) { doc.addPage(); y = 20; }
-            doc.setFontSize(9);
-            doc.setTextColor(147, 51, 234); // Purple
-            doc.text(`When to See Doctor: ${vital.mitigations.whenToSeeDoctor}`, 25, y);
-            y += 8;
-          }
+        doc.setFontSize(10);
+        doc.setTextColor(...RED);
+        doc.text(`${vitalName}: ${value} (${String(vital.status).toUpperCase()})`, 25, y);
+        y += 6;
+        if (vital.normalRange) {
+          doc.setFontSize(8);
+          doc.setTextColor(...GRAY);
+          doc.text(`Usual range: ${vital.normalRange}`, 30, y);
+          y += 6;
         }
-        
-        y += 5;
       });
+      y += 4;
     } else {
-      // Check if there are ANY abnormal vitals (even without mitigations)
-      const anyAbnormal = currentVitals.some(v => {
-        const status = (v.status || 'normal').toLowerCase();
-        return status !== 'normal';
-      });
-      
-      if (!anyAbnormal) {
-        // All vitals normal
-        if (y > 250) { doc.addPage(); y = 20; }
-        doc.setFontSize(12);
-        doc.setTextColor(...EMERALD);
-        doc.text('All vitals are within normal range. Great job!', 20, y);
-        y += 10;
-        doc.setFontSize(9);
-        doc.setTextColor(...GRAY);
-        doc.text('Continue maintaining your healthy lifestyle and regular monitoring.', 20, y);
-        y += 15;
-      }
+      if (y > 250) { doc.addPage(); y = 20; }
+      doc.setFontSize(12);
+      doc.setTextColor(...EMERALD);
+      doc.text('All recorded vitals are within the usual range.', 20, y);
+      y += 10;
+      doc.setFontSize(9);
+      doc.setTextColor(...GRAY);
+      doc.text('Keep monitoring as advised by your doctor.', 20, y);
+      y += 15;
     }
   }
 
@@ -383,9 +198,7 @@ export function generateVitalsPDF(userName, currentVitals, formatValue, getStatu
   const precautions = [
     'Monitor your vitals regularly as advised by your healthcare provider',
     'Report any unusual symptoms or readings to your doctor immediately',
-    'Maintain a healthy diet, regular exercise, and adequate sleep',
     'Take prescribed medications on time and do not skip doses',
-    'Stay hydrated and manage stress through relaxation techniques',
     'Keep all scheduled follow-up appointments with your healthcare team'
   ];
   
@@ -477,39 +290,18 @@ export function generateArchivePDF(userName, data) {
     y = doc.lastAutoTable.finalY + 10;
   }
 
-  // AI Report
-  if (data.report) {
+  // Clinical summary (the risk-score table that used to follow was removed \u2014
+  // see the note above `generateVitalsPDF`).
+  if (data.report?.summary) {
     if (y > 200) { doc.addPage(); y = 20; }
-    y = addSection(doc, y, 'Latest AI Report');
-    if (data.report.summary) {
-      doc.setFontSize(10);
-      doc.setTextColor(...DARK);
-      const lines = doc.splitTextToSize(data.report.summary, 170);
-      doc.text(lines, 20, y);
-      y += lines.length * 5 + 8;
-    }
-    if (data.report.risk_scores) {
-      const riskData = Object.entries(data.report.risk_scores).map(([d, s]) => [d.replace(/_/g, ' '), `${s}%`]);
-      autoTable(doc, {
-        startY: y, head: [['Disease', 'Risk']], body: riskData,
-        headStyles: { fillColor: EMERALD }, margin: { left: 20, right: 20 }, theme: 'striped',
-      });
-      y = doc.lastAutoTable.finalY + 10;
-    }
+    y = addSection(doc, y, 'Clinical Summary');
+    doc.setFontSize(10);
+    doc.setTextColor(...DARK);
+    const lines = doc.splitTextToSize(data.report.summary, 170);
+    doc.text(lines, 20, y);
+    y += lines.length * 5 + 8;
   }
 
   addDisclaimer(doc);
   doc.save(`VaidyaSetu-Health-Archive-${Date.now()}.pdf`);
-}
-
-// Helper: check if a lab result is in reference range
-function checkInRange(lab) {
-  if (!lab.referenceRange || typeof lab.resultValue !== 'number') return null;
-  const range = lab.referenceRange.match(/([\d.]+)\s*[-\u2013]\s*([\d.]+)/);
-  if (range) return lab.resultValue >= parseFloat(range[1]) && lab.resultValue <= parseFloat(range[2]);
-  const lt = lab.referenceRange.match(/<\s*([\d.]+)/);
-  if (lt) return lab.resultValue < parseFloat(lt[1]);
-  const gt = lab.referenceRange.match(/>\s*([\d.]+)/);
-  if (gt) return lab.resultValue > parseFloat(gt[1]);
-  return null;
 }

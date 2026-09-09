@@ -4,7 +4,6 @@ const UserProfile = require('./src/models/UserProfile');
 const Vital = require('./src/models/Vital');
 const Medication = require('./src/models/Medication');
 const LabResult = require('./src/models/LabResult');
-const Report = require('./src/models/Report');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vaidyasetu';
 
@@ -178,30 +177,6 @@ async function seedData() {
     ];
     await LabResult.insertMany(labData);
     console.log('✅ Seeded LabResults');
-
-    // 5. Seed Initial AI Health Report
-    await Report.deleteMany({ clerkId: demoClerkId });
-    await Report.create({
-      clerkId: demoClerkId,
-      summary: 'Patient exhibits mild pre-hypertension and pre-diabetic indicators. Good cardiovascular reserve and regular physical activity noted.',
-      advice: {
-        hypertension: 'Monitor BP weekly. Continue low-sodium diet and daily brisk walking.',
-        diabetes: 'Target HbA1c below 5.7%. Limit processed sugars and carbohydrates in the evening.'
-      },
-      general_tips: 'Maintain hydration, prioritize 7-8 hours of quality sleep, and follow integrative dietary principles.',
-      disclaimer: 'This AI health assessment is for informational and triage support only and does not replace medical consultation.',
-      risk_scores: {
-        diabetes: 35,
-        hypertension: 28,
-        anemia: 10,
-        cardiovascular: 22
-      },
-      risk_score_meta: {
-        diabetes: { category: 'Moderate Risk', basis: 'ICMR IDRS Guidelines' },
-        hypertension: { category: 'Mild Risk', basis: 'JNC-8 Classification' }
-      }
-    });
-    console.log('✅ Seeded Report');
 
     console.log('🎉 All demo data successfully seeded!');
     process.exit(0);

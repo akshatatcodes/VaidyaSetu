@@ -7,24 +7,8 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
-  // Prevent duplicate module instances that can break React Three Fiber context.
-  resolve: {
-    alias: {
-      '@clerk/clerk-react': new URL('./src/auth/clerkAdapter.jsx', import.meta.url).pathname
-    },
-    dedupe: [
-      'react',
-      'react-dom',
-      'three',
-      '@react-three/fiber',
-      '@react-three/drei'
-    ]
-  },
-  optimizeDeps: {
-    include: [
-      'three',
-      '@react-three/fiber',
-      '@react-three/drei'
-    ]
+  server: {
+    port: 5173,
+    host: true
   }
-})
+});

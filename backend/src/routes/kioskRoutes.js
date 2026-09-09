@@ -3,7 +3,6 @@ const router = express.Router();
 const IntakeSession = require('../models/IntakeSession');
 const { processAdaptiveProbe, detectRedFlags } = require('../services/adaptiveSocratesService');
 const { generateSoapCaseSheet } = require('../services/soapGeneratorService');
-const { checkDirectInteractions } = require('../utils/interactionChecker');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 
 /**
@@ -618,24 +617,6 @@ const handleGenerateSoap = async (req, res) => {
     // Generate SOAP note & diagnostic codes
     const result = await generateSoapCaseSheet(session);
     session.soapNote = result.soapNote;
-    session.diagnoses = result.diagnoses;
-
-    // Cross-system Herb-Drug Safety check
-    const plannedAyushMeds = (session.soapNote.plan?.ayurvedicMeds || []).map(m => m.name);
-    const existingPatientMeds = (session.ocrPrescriptions || []).flatMap(p => (p.extractedMedicines || []).map(m => m.name));
-    const allMedsToCheck = [...new Set([...plannedAyushMeds, ...existingPatientMeds])];
-
-    if (allMedsToCheck.length >= 2) {
-      const directInteractions = checkDirectInteractions(allMedsToCheck);
-      session.interactionAlerts = directInteractions.map(dm => ({
-        herb: dm.drugA,
-        drug: dm.drugB,
-        severity: dm.severity,
-        mechanism: dm.description,
-        clinicalAdvice: 'Review before administering co-regimen.'
-      }));
-    }
-
     if (session.queueStatus === 'waiting_intake') {
       session.queueStatus = 'intake_completed';
     }

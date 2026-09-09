@@ -10,9 +10,6 @@ app.use('/api/vitals', vitalsRoutes);
 
 // Mock the Mongoose schema interaction
 jest.mock('../src/models/Vital');
-jest.mock('../src/models/AlertPreference', () => {
-    return { findOne: jest.fn().mockResolvedValue(null) };
-});
 
 describe('Vitals API Integration Suite (Step 87)', () => {
     

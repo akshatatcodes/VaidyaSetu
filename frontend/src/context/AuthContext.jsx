@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Restore session from localStorage on boot
+  // Restore session from localStorage on boot (or initialize default demo patient)
   useEffect(() => {
     try {
       const savedSessionStr = localStorage.getItem('vaidya_auth_session');
@@ -20,8 +20,25 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true);
           setUserRole(session.role);
           setCurrentUser(session.user);
+          return;
         }
       }
+
+      // Default demo patient profile for instant zero-friction first load
+      const defaultDemoPatient = {
+        patientId: 'PAT-14112',
+        abhaId: '14-1122-3344-5566',
+        patientName: 'Rahul Sharma',
+        age: 58,
+        gender: 'Male',
+        mobile: '+91 9811223344',
+        email: 'rahul.sharma@gmail.com',
+        primaryCondition: 'Knee Osteoarthritis + Dyslipidemia Follow-up'
+      };
+
+      setIsAuthenticated(true);
+      setUserRole('patient');
+      setCurrentUser(defaultDemoPatient);
     } catch (e) {
       console.warn('Session restore error:', e);
       localStorage.removeItem('vaidya_auth_session');

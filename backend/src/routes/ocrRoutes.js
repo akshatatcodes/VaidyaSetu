@@ -48,25 +48,4 @@ router.post('/scan', upload.single('image'), async (req, res) => {
   }
 });
 
-const { normalizeMedicineNames } = require('../services/normalizationService');
-
-/**
- * POST /api/ocr/normalize
- * Normalizes brand names to generics using fuzzy matching.
- */
-router.post('/normalize', async (req, res) => {
-  try {
-    const { medicines } = req.body;
-    if (!medicines || !Array.isArray(medicines)) {
-      return res.status(400).json({ status: 'error', message: 'Medicines array is required.' });
-    }
-
-    const normalized = await normalizeMedicineNames(medicines);
-    return res.json({ status: 'success', normalized });
-  } catch (error) {
-    console.error('[Normalization] Error:', error.message);
-    return res.status(500).json({ status: 'error', message: 'Standardization failed.' });
-  }
-});
-
 module.exports = router;

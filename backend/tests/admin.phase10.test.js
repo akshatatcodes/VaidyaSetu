@@ -87,6 +87,7 @@ describe('Phase 10: Admin & Lab Modules', () => {
   test('GET /api/admin/departments returns all AYUSH department configs', async () => {
     const res = await request(app)
       .get('/api/admin/departments')
+      .set('Authorization', `Bearer ${adminToken}`)
       .set('X-User-Role', 'admin');
 
     expect(res.statusCode).toBe(200);
@@ -99,11 +100,13 @@ describe('Phase 10: Admin & Lab Modules', () => {
   test('PATCH /api/admin/departments/:name toggles Dashavidha feature flag', async () => {
     const before = await request(app)
       .get('/api/admin/departments')
+      .set('Authorization', `Bearer ${adminToken}`)
       .set('X-User-Role', 'admin');
     const original = before.body.data.Shalya.dashavidhaEnabled;
 
     const res = await request(app)
       .patch('/api/admin/departments/Shalya')
+      .set('Authorization', `Bearer ${adminToken}`)
       .set('X-User-Role', 'admin')
       .send({ dashavidhaEnabled: !original });
 
@@ -113,6 +116,7 @@ describe('Phase 10: Admin & Lab Modules', () => {
     // Restore
     await request(app)
       .patch('/api/admin/departments/Shalya')
+      .set('Authorization', `Bearer ${adminToken}`)
       .set('X-User-Role', 'admin')
       .send({ dashavidhaEnabled: original });
   });
@@ -120,6 +124,7 @@ describe('Phase 10: Admin & Lab Modules', () => {
   test('PATCH /api/admin/departments/Unknown returns 404', async () => {
     const res = await request(app)
       .patch('/api/admin/departments/UnknownDept99')
+      .set('Authorization', `Bearer ${adminToken}`)
       .set('X-User-Role', 'admin')
       .send({ enabled: false });
 
@@ -229,7 +234,7 @@ describe('Phase 10: Admin & Lab Modules', () => {
       .set('X-User-Role', 'patient'); // patients cannot access admin
 
     // Role guard should either 403 or if ADMIN_OPEN is set, return data
-    expect([200, 403]).toContain(res.statusCode);
+    expect([200, 401, 403]).toContain(res.statusCode);
 
     process.env.REQUIRE_ADMIN_AUTH = originalEnv;
   });

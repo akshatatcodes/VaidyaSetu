@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import {
   Scale, Activity, Utensils, AlertTriangle,
-  History, Edit3, ArrowRight, CheckCircle2, Clock,
-  Heart, Wind, Brain, Venus, X, Zap, Shield,
-  Cigarette, Wine, Salad, Apple, TrendingUp, RefreshCw, Download, LogOut, AlertCircle
+  Edit3, ArrowRight, CheckCircle2, Clock,
+  Heart, Wind, Brain, X, Shield, RefreshCw, LogOut, Tag, Users
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-
 import { API_URL } from '../config/api';
 
-/* ─────────────────────────────────────────────
-   Helpers
-───────────────────────────────────────────── */
 const getRelativeTime = (date) => {
   if (!date) return null;
   try {
@@ -29,69 +23,44 @@ const getRelativeTime = (date) => {
   } catch { return null; }
 };
 
-const bmiColor = (bmi) => {
-  if (!bmi || isNaN(bmi) || bmi <= 0) return '#6b7280';
-  if (bmi < 18.5) return '#60a5fa';
-  if (bmi < 25)   return '#10b981';
-  if (bmi < 30)   return '#f59e0b';
-  return '#f87171';
-};
-
-/* ─────────────────────────────────────────────
-   Sub-components
-───────────────────────────────────────────── */
-
-const RingGauge = ({ value = 0, max = 100, color = '#10b981', size = 120, label }) => {
-  const r = 46;
-  const circ = 2 * Math.PI * r;
-  const numericValue = parseFloat(value);
-  const fill = isNaN(numericValue) ? circ : circ * (1 - Math.min(numericValue, max) / max);
-  
-  return (
-    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox="0 0 100 100" className="-rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-        <circle
-          cx="50" cy="50" r={r} fill="none"
-          stroke={color} strokeWidth="8"
-          strokeDasharray={circ}
-          strokeDashoffset={isNaN(fill) ? circ : fill}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 1.2s ease-out' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-black text-gray-900 dark:text-white text-xl leading-none">{isNaN(numericValue) ? '—' : value}</span>
-        {label && <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-0.5">{label}</span>}
-      </div>
-    </div>
-  );
-};
-
-const Pill = ({ label, active, color = 'emerald' }) => {
+const Pill = ({ label, active = true, color = 'emerald', sourceTag }) => {
   if (!active) return null;
   
   const palettes = {
     emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    fuchsia: 'bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30',
     blue:    'bg-blue-500/15 text-blue-400 border-blue-500/30',
     red:     'bg-red-500/15 text-red-400 border-red-500/30',
-    sky:     'bg-sky-500/15 text-sky-400 border-sky-500/30',
+    amber:   'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    purple:  'bg-purple-500/15 text-purple-400 border-purple-500/30'
   };
   return (
-    <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full border ${palettes[color] ?? palettes.emerald}`}>
-      {label}
+    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${palettes[color] ?? palettes.emerald}`}>
+      <span>{label}</span>
+      {sourceTag && (
+        <span className="text-[9px] opacity-75 font-mono px-1 rounded bg-black/20">
+          [{sourceTag}]
+        </span>
+      )}
     </span>
   );
 };
 
-const StatRow = ({ label, value, unit = '', highlight = false }) => (
+const StatRow = ({ label, value, unit = '', highlight = false, sourceTag }) => (
   <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</span>
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</span>
+      {sourceTag && sourceTag !== 'Not reported' && (
+        <span className="text-[9px] text-emerald-400/80 font-mono px-1 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+          {sourceTag}
+        </span>
+      )}
+    </div>
     <span className={`text-xs font-black px-2.5 py-0.5 rounded-lg ${
-      highlight && value ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-200/50 dark:bg-white/5 text-gray-900 dark:text-gray-100'
+      highlight && value && value !== 'Not reported'
+        ? 'bg-emerald-500/15 text-emerald-400' 
+        : 'bg-gray-200/50 dark:bg-white/5 text-gray-900 dark:text-gray-100'
     }`}>
-      {value !== null && value !== undefined && value !== '' ? `${value}${unit ? ' ' + unit : ''}` : 'Not provided'}
+      {value !== null && value !== undefined && value !== '' ? `${value}${unit ? ' ' + unit : ''}` : 'Not reported'}
     </span>
   </div>
 );
@@ -100,7 +69,6 @@ const Card = ({ children, accent = '#10b981', className = '' }) => (
   <div
     className={`relative rounded-3xl border border-white/8 bg-white/4 backdrop-blur-xl overflow-hidden
       hover:-translate-y-1 hover:border-white/15 hover:shadow-2xl transition-all duration-500 group ${className}`}
-    style={{ boxShadow: `0 0 0 0 ${accent}00` }}
   >
     <div
       className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-3xl"
@@ -126,64 +94,82 @@ const CardHeader = ({ icon: Icon, title, iconColor, lastUpdated }) => (
   </div>
 );
 
-/* ─────────────────────────────────────────────
-   Main component
-───────────────────────────────────────────── */
 const HealthProfile = () => {
-  const { user } = useUser();
-  const { signOut } = useClerk();
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { theme } = useTheme();
   const location = useLocation();
-  const [profile, setProfile] = useState(null);
-  const [dataQuality, setDataQuality] = useState(null);
+
+  const [patient, setPatient] = useState(null);
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [selectedPatientId, setSelectedPatientId] = useState(currentUser?.patientId || currentUser?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toastMessage, setToastMessage] = useState(location.state?.toast || null);
 
-  const effectiveUserId = currentUser?.patientId || currentUser?.mobile || user?.id;
+  const effectiveUserId = currentUser?.id || currentUser?.userId || currentUser?.mobile;
 
-  const loadProfileData = () => {
-    if (!effectiveUserId) {
+  const loadPatientData = async (targetId) => {
+    if (!targetId) {
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
-    axios.get(`${API_URL}/profile/${effectiveUserId}`)
-      .then(res => {
-        if (res.data.status === 'success') {
-          setProfile(res.data.data);
-          setDataQuality(res.data.dataQuality);
-        } else {
-          setError(t('profile.errors.failed_load', { defaultValue: 'Failed to synchronize bio-ledger.' }));
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching profile:', err);
-        if (err.response?.status === 404) {
-          setProfile({
-            clerkId: effectiveUserId,
-            name: { value: currentUser?.patientName || currentUser?.name || 'New Patient' },
-            phone: { value: currentUser?.mobile || '' },
-            abhaId: { value: currentUser?.abhaId || '' },
-            gender: { value: currentUser?.gender || '' },
-            age: { value: currentUser?.age || '' },
-            onboardingCompleted: false
+    try {
+      const res = await axios.get(`${API_URL}/patients/${targetId}`);
+      if (res.data.status === 'success') {
+        setPatient(res.data.data);
+      }
+    } catch (err) {
+      // Fallback to profile route if not found in patient collection
+      try {
+        const profRes = await axios.get(`${API_URL}/profile/${targetId}`);
+        if (profRes.data.status === 'success') {
+          const p = profRes.data.data;
+          setPatient({
+            _id: p.clerkId,
+            basicInfo: {
+              fullName: p.name?.value || currentUser?.patientName || 'Patient',
+              age: p.age?.value || 30,
+              gender: p.gender?.value || 'Male',
+              contactNumber: p.phone?.value || '',
+              bloodGroup: 'Unknown'
+            },
+            healthProfile: {
+              allergies: (p.allergies?.value || []).map(a => ({ substance: a, sourceTag: 'Patient reported' })),
+              existingDiseases: (p.medicalHistory?.value || []).map(d => ({ condition: d, sourceTag: 'Patient reported' })),
+              personalHistory: { smoking: 'Not reported', alcohol: 'Not reported', diet: 'Not reported' }
+            },
+            ayushProfile: { prakriti: 'Not reported', vikriti: 'Not reported', ahara: 'Not reported', vihara: 'Not reported', agni: 'Not reported', koshtha: 'Not reported' }
           });
-          setDataQuality({ score: 10, label: 'Incomplete', message: 'Complete onboarding to generate health matrix.' });
-        } else {
-          setError(t('profile.errors.connection', { defaultValue: 'Gateway connection failed.' }));
         }
-      })
-      .finally(() => setLoading(false));
+      } catch (fErr) {
+        console.error('Fallback profile load error:', fErr);
+        setError('Patient health record not found.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Fetch family members list
   useEffect(() => {
-    loadProfileData();
+    if (effectiveUserId) {
+      axios.get(`${API_URL}/patients/family-members/${effectiveUserId}`)
+        .then(res => {
+          if (res.data.status === 'success') {
+            setFamilyMembers(res.data.data || []);
+          }
+        })
+        .catch(() => {});
+    }
   }, [effectiveUserId]);
+
+  useEffect(() => {
+    loadPatientData(selectedPatientId);
+  }, [selectedPatientId]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh] bg-transparent">
@@ -191,394 +177,165 @@ const HealthProfile = () => {
     </div>
   );
 
-  if (error && !profile) return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center p-6">
-      <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center font-bold text-xl">!</div>
-      <p className="text-slate-600 dark:text-gray-300 font-semibold">{error || 'Unable to load profile data.'}</p>
-      <button
-        onClick={loadProfileData}
-        className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-emerald-500 cursor-pointer transition-all"
-      >
-        Retry Loading
-      </button>
-    </div>
-  );
-
-  const isOnboardingDone = Boolean(profile?.onboardingCompleted ?? profile?.onboardingComplete);
-  const bmiRaw = profile?.bmi?.value;
-  const bmi = (bmiRaw && !isNaN(parseFloat(bmiRaw))) ? parseFloat(bmiRaw).toFixed(1) : null;
-  const bmiCat = profile?.bmiCategory?.value || '';
-  const qualityScore = dataQuality?.score || (isOnboardingDone ? 60 : 10);
-  const dqLabel = (dataQuality?.label || (isOnboardingDone ? 'Basic' : 'Incomplete')).toLowerCase();
-  const isFemale = profile?.gender?.value?.toString().toLowerCase() === 'female';
-  
-  const getInitials = () => {
-    try {
-      const rawName = profile?.name?.value || currentUser?.patientName || user?.fullName || 'User';
-      if (!rawName || typeof rawName !== 'string') return 'U';
-      const parts = rawName.split(' ').filter(Boolean);
-      return parts.length > 0 ? parts.map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'U';
-    } catch (e) { return 'U'; }
-  };
-  const initials = getInitials();
+  const basic = patient?.basicInfo || {};
+  const health = patient?.healthProfile || {};
+  const ayush = patient?.ayushProfile || {};
 
   return (
     <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      {/* ── Toast ── */}
+      {/* Toast */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-8 fade-in duration-300">
           <div className="bg-emerald-950/95 border border-emerald-500/40 backdrop-blur-xl px-6 py-3 rounded-full shadow-[0_8px_40px_rgba(16,185,129,0.35)] flex items-center gap-3">
             <CheckCircle2 size={16} className="text-emerald-400" />
-            <span className="text-emerald-900 dark:text-white font-semibold text-sm">{toastMessage}</span>
-            <button onClick={() => setToastMessage(null)} className="ml-2 text-emerald-400 hover:text-white transition-colors">
+            <span className="text-white font-semibold text-sm">{toastMessage}</span>
+            <button onClick={() => setToastMessage(null)} className="ml-2 text-emerald-400 hover:text-white">
               <X size={14} />
             </button>
           </div>
         </div>
       )}
 
-      {/* ── HERO BANNER ── */}
-      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-white/8 dark:border-white/8 light:border-emerald-500/20"
+      {/* HERO BANNER */}
+      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-white/8 p-8 lg:p-12"
         style={{ background: theme === 'dark' 
           ? 'linear-gradient(135deg, #0a0f1e 0%, #0d1a12 50%, #0a0f1e 100%)' 
           : 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0f9ff 100%)' 
         }}>
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-20"
-            style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }} />
-          <div className="absolute -bottom-10 -left-10 w-60 h-60 rounded-full opacity-10"
-            style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }} />
-        </div>
+        
+        {/* Family Member Switcher Pill Header */}
+        {familyMembers.length > 0 && (
+          <div className="mb-6 flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mr-2">
+              <Users size={14} className="text-teal-400" /> Beneficiary:
+            </span>
+            <button
+              onClick={() => setSelectedPatientId(currentUser?.patientId || currentUser?.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                selectedPatientId === (currentUser?.patientId || currentUser?.id)
+                  ? 'bg-teal-500 text-slate-950 shadow-md'
+                  : 'bg-white/10 text-slate-300 hover:bg-white/20'
+              }`}
+            >
+              Self ({currentUser?.patientName || 'Primary'})
+            </button>
+            {familyMembers.map(fm => (
+              <button
+                key={fm.familyMemberId}
+                onClick={() => setSelectedPatientId(fm.patient?._id || fm.patientId)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  selectedPatientId === (fm.patient?._id || fm.patientId)
+                    ? 'bg-teal-500 text-slate-950 shadow-md'
+                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                }`}
+              >
+                {fm.patient?.basicInfo?.fullName || 'Family Member'} ({fm.relation})
+              </button>
+            ))}
+          </div>
+        )}
 
-        <div className="relative z-10 p-8 lg:p-12 flex flex-col md:flex-row md:items-center gap-8">
-          <div className="relative flex-shrink-0">
-            {user?.imageUrl ? (
-              <img
-                src={user.imageUrl}
-                alt={profile?.name?.value || user?.fullName || 'User'}
-                className="w-24 h-24 rounded-3xl object-cover border-2 border-emerald-500/40 shadow-xl"
-              />
-            ) : (
-              <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-3xl font-black text-white border border-emerald-500/30"
-                style={{ background: 'linear-gradient(135deg, #059669, #0d9488)' }}>
-                {initials}
-              </div>
-            )}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
+          <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-3xl font-black text-white border border-emerald-500/30 shrink-0"
+            style={{ background: 'linear-gradient(135deg, #059669, #0d9488)' }}>
+            {(basic.fullName || 'P').slice(0, 2).toUpperCase()}
           </div>
 
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                {t('profile.title', { defaultValue: 'Bio-Ledger' })}
+                Normalized Patient Record (§4)
               </span>
-              {dataQuality?.label && (
-                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                  dataQuality.label === 'Excellent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : dataQuality.label === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                }`}>
-                  {t(`profile.quality_${dqLabel}`, { defaultValue: dataQuality.label })} {t('profile.profile_label', { defaultValue: 'Profile' })}
-                </span>
-              )}
             </div>
-            <h1 className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tighter mb-2 italic uppercase">
-              {profile?.name?.value || currentUser?.patientName || currentUser?.name || user?.fullName || t('profile.errors.no_profile', { defaultValue: 'Patient Profile' })}
+            <h1 className="text-3xl lg:text-4xl font-black text-gray-900 dark:text-white tracking-tighter mb-1 italic uppercase">
+              {basic.fullName || 'Patient Profile'}
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-lg leading-relaxed font-medium">
-              {t('profile.health_overview_subtitle', { defaultValue: 'Real-time overview of your foundational health metrics.' })}
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+              {basic.age} Yrs &bull; {basic.gender} &bull; Blood Group: <span className="text-emerald-400 font-bold">{basic.bloodGroup || 'Unknown'}</span>
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row md:flex-col gap-3 flex-shrink-0 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
             <Link to="/profile/edit"
-              className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95 uppercase tracking-widest text-[10px]">
-              <Edit3 size={15} /> {t('profile.edit_profile', { defaultValue: 'Edit Ledger' })}
+              className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg transition-all">
+              <Edit3 size={15} /> Edit Profile
             </Link>
-            <button
-              onClick={() => {
-                if (logout) logout();
-                try { signOut(); } catch (e) {}
-                navigate('/sign-in');
-              }}
-              className="flex justify-center items-center gap-2 px-5 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-sm font-bold shadow-md transition-all active:scale-95 uppercase tracking-widest text-[10px] cursor-pointer"
-            >
-              <LogOut size={15} /> Sign Out
-            </button>
           </div>
         </div>
       </div>
 
-      {/* ── ONBOARDING BANNER IF INCOMPLETE ── */}
-      {!isOnboardingDone && (
-        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 rounded-[2.5rem] p-6 lg:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl mb-8">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <AlertCircle size={28} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider">
-                  Action Required
-                </span>
-                <h3 className="text-lg font-black text-gray-900 dark:text-white">
-                  Clinical Onboarding Incomplete
-                </h3>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xl font-medium">
-                You have not completed your comprehensive onboarding questionnaire yet. Your biometrics, vital habits, diet, and risk scores will be calibrated and displayed once submitted.
-              </p>
-            </div>
-          </div>
-          <Link
-            to="/onboarding"
-            className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-wider shrink-0"
-          >
-            Complete Onboarding Now <ArrowRight size={16} />
-          </Link>
-        </div>
-      )}
-
-      {/* ── DATA QUALITY BANNER ── */}
-      {dataQuality && (
-        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-6 lg:p-10 relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500 mb-8">
-          <div className="absolute top-[-50%] right-[-10%] w-96 h-96 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none group-hover:scale-[1.2] transition-transform duration-700"></div>
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
-            <RingGauge value={qualityScore} max={100} color="#10b981" size={112} label="Quality" />
-            <div className="flex-1">
-               <div className="flex items-center space-x-2 mb-2">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
-                  dataQuality?.label === 'Excellent' ? 'bg-emerald-500/20 text-emerald-400' : 
-                  dataQuality?.label === 'Good' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-400'
-                }`}>
-                  {t(`profile.quality_${dqLabel}`, { defaultValue: dataQuality.label })} {t('profile.profile_label', { defaultValue: 'Profile' })}
-                </span>
-              </div>
-              <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{t('profile.data_quality', { defaultValue: 'Bio-Data Quality' })}</h2>
-              <p className="text-gray-400 dark:text-gray-500 text-sm md:text-base max-w-2xl leading-relaxed font-medium">
-                {dataQuality?.message || t('profile.action.update_stats', { defaultValue: 'Complete your bio-matrix for deeper AI assessment.' })}
-              </p>
-            </div>
-            {/* Mini progress bars */}
-            <div className="flex flex-col gap-2 min-w-[180px]">
-              {[
-                { label: t('profile.identity', { defaultValue: 'Biometrics' }), pct: profile?.weight?.value ? 100 : 40 },
-                { label: t('profile.vitals_summary', { defaultValue: 'Vital Trends' }), pct: profile?.activityLevel?.value ? 100 : 30 },
-                { label: t('profile.diet_nutrition', { defaultValue: 'Nutrition Matrix' }), pct: profile?.dietType?.value ? 100 : 30 },
-              ].map(bar => (
-                <div key={bar.label}>
-                  <div className="flex justify-between text-[9px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-wider mb-1">
-                    <span>{bar.label}</span><span>{bar.pct}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-500 transition-all duration-1000"
-                      style={{ width: `${bar.pct}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── SECTION GRID ── */}
+      {/* SECTION GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
 
-        {/* 1. Biometrics */}
+        {/* 1. Basic Info */}
         <Card accent="#10b981">
-          <CardHeader icon={Scale} title={t('profile.identity', { defaultValue: 'Biometrics' })} iconColor="#10b981" lastUpdated={profile?.weight?.lastUpdated} />
-          <div className="px-6 py-5 flex gap-5 items-center">
-            {bmi && (
-              <div className="flex-shrink-0 text-center">
-                <RingGauge
-                  value={bmi}
-                  max={40}
-                  color={bmiColor(parseFloat(bmi))}
-                  size={84}
-                  label="BMI"
-                />
-                <p className="text-[10px] font-bold mt-1.5" style={{ color: bmiColor(parseFloat(bmi)) }}>
-                  {bmiCat}
-                </p>
-              </div>
-            )}
-            <div className="flex-1">
-              <StatRow label={t('profile.labels.height', { defaultValue: 'Height' })} value={profile?.height?.value} unit="cm" />
-              <StatRow label={t('profile.labels.weight', { defaultValue: 'Weight' })} value={profile?.weight?.value} unit="kg" />
-              <StatRow label={t('profile.labels.age', { defaultValue: 'Age' })} value={profile?.age?.value} unit="yrs" />
-              <StatRow label={t('profile.labels.gender', { defaultValue: 'Gender' })} value={profile?.gender?.value} />
-            </div>
-          </div>
-        </Card>
-
-        {/* 2. Lifestyle */}
-        <Card accent="#8b5cf6">
-          <CardHeader icon={Activity} title={t('profile.vitals_summary', { defaultValue: 'Vital Trends' })} iconColor="#8b5cf6" lastUpdated={profile?.activityLevel?.lastUpdated} />
+          <CardHeader icon={Scale} title="Basic Info" iconColor="#10b981" />
           <div className="px-6 py-5 space-y-1">
-            <StatRow label={t('profile.labels.activity', { defaultValue: 'Activity' })} value={profile?.activityLevel?.value} />
-            <StatRow label={t('profile.labels.sleep_quality', { defaultValue: 'Sleep' })} value={profile?.sleepHours?.value} unit="hrs" />
-            <StatRow label={t('profile.labels.stress', { defaultValue: 'Stress' })} value={profile?.stressLevel?.value} />
-            <div className="flex gap-2 pt-3 flex-wrap">
-              <Pill label={profile?.isSmoker?.value ? t('profile.values.smoking_pill', { defaultValue: '🚬 Smoker' }) : t('profile.values.non_smoker', { defaultValue: '🚭 Non-Smoker' })}
-                active={!profile?.isSmoker?.value} color="emerald" />
-              <Pill label={`${t('profile.labels.alcohol', { defaultValue: 'Alcohol' })}: ${profile?.alcoholConsumption?.value || '—'}`}
-                active={!!(profile?.alcoholConsumption?.value)} color="blue" />
-            </div>
+            <StatRow label="Full Name" value={basic.fullName} />
+            <StatRow label="Age" value={basic.age} unit="yrs" />
+            <StatRow label="Gender" value={basic.gender} />
+            <StatRow label="Blood Group" value={basic.bloodGroup} highlight />
+            <StatRow label="Contact" value={basic.contactNumber} />
           </div>
         </Card>
 
-        {/* 3. Diet */}
-        <Card accent="#f59e0b">
-          <CardHeader icon={Utensils} title={t('profile.diet_nutrition', { defaultValue: 'Nutrition Matrix' })} iconColor="#f59e0b" lastUpdated={profile?.dietType?.lastUpdated} />
-          <div className="px-6 py-5 space-y-1">
-            <StatRow label={t('profile.labels.diet_type', { defaultValue: 'Diet Type' })} value={profile?.dietType?.value} highlight />
-            <StatRow label={t('profile.labels.sugar', { defaultValue: 'Sugar' })} value={profile?.sugarIntake?.value} />
-            <StatRow label={t('profile.labels.salt', { defaultValue: 'Salt' })} value={profile?.saltIntake?.value} />
-            <StatRow label={t('profile.labels.junk_food', { defaultValue: 'Junk Food' })} value={profile?.junkFoodFrequency?.value} />
-            <div className="flex gap-2 pt-3 flex-wrap">
-              <Pill label="🥬 Leafy Greens" active={!!profile?.eatsLeafyGreens?.value} color="emerald" />
-              <Pill label="🍎 Daily Fruits" active={!!profile?.eatsFruits?.value} color="emerald" />
-            </div>
-          </div>
-        </Card>
-
-        {/* 4. Women's Health (conditional) */}
-        {isFemale && (
-          <Card accent="#e879f9">
-            <CardHeader icon={Venus} title={t('profile.womens_health', { defaultValue: "Women's Health" })} iconColor="#e879f9" lastUpdated={profile?.pcosDiagnosis?.lastUpdated} />
-            <div className="px-6 py-5">
-              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-3">Reported Indicators</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'menstrualCycleIrregular', label: 'Irregular Cycles' },
-                  { id: 'facialBodyHairExcess',    label: 'Excess Hair Growth' },
-                  { id: 'persistentAcne',           label: 'Persistent Acne' },
-                  { id: 'tryingToConceiveDifficulty', label: 'Conception Difficulty' },
-                  { id: 'pcosDiagnosis',            label: 'PCOS Diagnosis' },
-                ].map(item => (
-                  <Pill key={item.id} label={item.label} active={!!profile?.[item.id]?.value} color="fuchsia" />
-                ))}
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* 5. Respiratory */}
+        {/* 2. Medical Conditions */}
         <Card accent="#38bdf8">
-          <CardHeader icon={Wind} title={t('profile.respiratory', { defaultValue: "Respiratory" })} iconColor="#38bdf8" lastUpdated={profile?.wheezing?.lastUpdated} />
-          <div className="px-6 py-5">
-            <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-3">Reported Indicators</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'wheezing',          label: 'Wheezing' },
-                { id: 'persistentCough',   label: 'Persistent Cough' },
-                { id: 'shortnessBreath',   label: 'Shortness of Breath' },
-                { id: 'highPollutionArea', label: 'High Pollution Area' },
-                { id: 'biomassFuelUse',    label: 'Biomass Fuel Use' },
-                { id: 'seasonalAllergies', label: 'Seasonal Allergies' },
-              ].map(item => (
-                <Pill key={item.id} label={item.label} active={!!profile?.[item.id]?.value} color="blue" />
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        {/* 6. Mental Wellbeing */}
-        <Card accent="#6ee7b7">
-          <CardHeader icon={Brain} title={t('profile.mental_health', { defaultValue: "Mental Wellbeing" })} iconColor="#6ee7b7" lastUpdated={profile?.mentalHealthDepressed?.lastUpdated} />
-          <div className="px-6 py-5">
-            <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-3">🔒 Strictly Confidential</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'mentalHealthDepressed',  label: 'Feeling Depressed' },
-                { id: 'lostInterestActivities', label: 'Loss of Interest' },
-                { id: 'mentalHealthAnxiety',    label: 'Anxiety / On Edge' },
-                { id: 'energyLevelsLow',        label: 'Low Energy / Fatigue' },
-              ].map(item => (
-                <Pill key={item.id} label={item.label} active={!!profile?.[item.id]?.value} color="emerald" />
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        {/* 7. Allergies & Medical */}
-        <Card accent="#f87171">
-          <CardHeader icon={AlertTriangle} title={t('profile.allergies_medical', { defaultValue: 'Alerts & History' })} iconColor="#f87171" lastUpdated={profile?.allergies?.lastUpdated} />
+          <CardHeader icon={AlertTriangle} title="Medical Conditions" iconColor="#38bdf8" />
           <div className="px-6 py-5 space-y-4">
             <div>
-              <p className="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">{t('profile.labels.allergies', { defaultValue: 'Known Allergies' })}</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Existing Diseases</p>
               <div className="flex flex-wrap gap-2">
-                {profile?.allergies?.value?.length > 0
-                  ? profile.allergies.value.map(a => <Pill key={a} label={a} active color="red" />)
-                  : <span className="text-xs text-gray-500 dark:text-gray-400 italic">{t('profile.values.none', { defaultValue: 'No known allergies' })}</span>}
+                {health.existingDiseases?.length > 0 ? (
+                  health.existingDiseases.map((d, idx) => (
+                    <Pill key={idx} label={d.condition || d} color="blue" sourceTag={d.sourceTag || 'Patient reported'} />
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-500 italic">Not reported</span>
+                )}
               </div>
             </div>
             <div>
-              <p className="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">{t('profile.labels.conditions', { defaultValue: 'Medical Conditions' })}</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Known Allergies</p>
               <div className="flex flex-wrap gap-2">
-                {profile?.medicalHistory?.value?.length > 0
-                  ? profile.medicalHistory.value.map(c => <Pill key={c} label={c} active color="sky" />)
-                  : <span className="text-xs text-gray-500 dark:text-gray-400 italic">{t('profile.values.no_history', { defaultValue: 'No records reported' })}</span>}
+                {health.allergies?.length > 0 ? (
+                  health.allergies.map((a, idx) => (
+                    <Pill key={idx} label={a.substance || a} color="red" sourceTag={a.sourceTag || 'Patient reported'} />
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-500 italic">Not reported</span>
+                )}
               </div>
             </div>
-            {profile?.otherConditions?.value && (
-              <div className="border-t border-white/6 pt-3">
-                <p className="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">{t('profile.labels.obs_title', { defaultValue: 'Observations' })}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed">"{profile.otherConditions.value}"</p>
-              </div>
-            )}
           </div>
         </Card>
 
-        {/* 8. CTA Card */}
-        <Card accent="#10b981" className="md:col-span-2 xl:col-span-1">
-          <div className="relative overflow-hidden h-full min-h-[200px]"
-            style={{ background: theme === 'dark'
-              ? 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%)'
-              : 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #059669 100%)'
-            }}>
-            <div className="absolute -top-8 -right-8 opacity-[0.12] pointer-events-none">
-              <TrendingUp size={180} className="text-white" />
-            </div>
-            <div className="relative z-10 p-8 flex flex-col h-full justify-between">
-              <div>
-                <div className="w-10 h-10 bg-white/15 rounded-2xl flex items-center justify-center mb-4">
-                  <Zap size={20} className="text-white" />
-                </div>
-                <h3 className="text-xl font-black text-white mb-2">{t('profile.action.checkup', { defaultValue: 'Diagnostics' })}</h3>
-                <p className="text-emerald-100/80 text-sm leading-relaxed">
-                  {profile?.createdAt
-                    ? `${t('profile.action.report_generated', { defaultValue: 'Ledger initialized' })} ${getRelativeTime(profile.createdAt) || 'some time ago'}. ${t('profile.action.update_stats', { defaultValue: 'Keep syncing your matrix.' })}`
-                    : t('profile.action.update_stats', { defaultValue: 'Sync your data for AI assessment.' })}
-                </p>
-              </div>
-              <Link to="/"
-                className="mt-6 flex items-center justify-center gap-2 bg-white/85 hover:bg-white backdrop-blur border border-white/30 text-gray-900 font-bold py-3 rounded-2xl transition-all active:scale-95 text-sm">
-                {t('profile.action.go_dashboard', { defaultValue: 'Dashboard' })} <ArrowRight size={16} />
-              </Link>
-            </div>
+        {/* 3. AYUSH Dashavidha Profile */}
+        <Card accent="#f59e0b">
+          <CardHeader icon={Utensils} title="AYUSH Dashavidha Matrix" iconColor="#f59e0b" />
+          <div className="px-6 py-5 space-y-1">
+            <StatRow label="Prakriti (Constitution)" value={ayush.prakriti} highlight />
+            <StatRow label="Vikriti (Morbidity)" value={ayush.vikriti} />
+            <StatRow label="Ahara (Diet Pattern)" value={ayush.ahara} />
+            <StatRow label="Vihara (Lifestyle)" value={ayush.vihara} />
+            <StatRow label="Agni (Digestive Capacity)" value={ayush.agni} />
+            <StatRow label="Koshtha (Bowel Habits)" value={ayush.koshtha} />
+          </div>
+        </Card>
+
+        {/* 4. Personal History */}
+        <Card accent="#8b5cf6">
+          <CardHeader icon={Activity} title="Personal & Family History" iconColor="#8b5cf6" />
+          <div className="px-6 py-5 space-y-1">
+            <StatRow label="Smoking Habit" value={health.personalHistory?.smoking} />
+            <StatRow label="Alcohol Consumption" value={health.personalHistory?.alcohol} />
+            <StatRow label="Diet Pattern" value={health.personalHistory?.diet} />
           </div>
         </Card>
       </div>
-
-      {/* Dedicated Contextual Observations Section - Center Aligned */}
-      {profile?.otherConditions?.value && (
-        <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 lg:p-12 text-center animate-in zoom-in duration-500 shadow-xl group hover:border-emerald-500/30 transition-all mt-8">
-           <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl w-fit mx-auto mb-6 group-hover:scale-110 transition-transform">
-              <History size={24} />
-           </div>
-           <h3 className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.3em] font-black mb-4">{t('profile.labels.obs_title', { defaultValue: 'Clinical Context' })}</h3>
-          <p className="text-xl md:text-2xl text-gray-900 dark:text-white font-black italic max-w-4xl mx-auto leading-relaxed">
-            "{profile.otherConditions.value}"
-          </p>
-          <div className="mt-8 flex justify-center">
-             <div className="h-1 w-12 bg-emerald-500/30 rounded-full" />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
 export default HealthProfile;
-

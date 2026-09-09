@@ -1,22 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, AlertCircle, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle } from 'lucide-react';
-import { useClerk } from '@clerk/clerk-react';
+import { Home, FileText, Activity, ShieldAlert, Settings, LogOut, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle, AlertCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useUser } from '@clerk/clerk-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
-
-import { API_URL } from '../config/api';
 
 const Sidebar = () => {
   const { theme, toggleTheme } = useTheme();
-  const { user } = useUser();
   const { userRole, currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [unreadCount, setUnreadCount] = React.useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const activeRole = userRole || localStorage.getItem('vaidya_active_role') || 'patient';
 
@@ -29,28 +23,6 @@ const Sidebar = () => {
   };
   const rm = roleMeta[activeRole] || roleMeta.patient;
   const isDoctor = activeRole === 'doctor';
-
-  React.useEffect(() => {
-    const userId = currentUser?._id || currentUser?.id || user?.id;
-    if (userId) {
-      const fetchCount = async () => {
-        try {
-          const res = await axios.get(`${API_URL}/alerts/${userId}/count`);
-          if (res.data.status === 'success') setUnreadCount(res.data.data.count);
-        } catch (err) {
-          // Silent fallback for demo mode
-        }
-      };
-      fetchCount();
-      const interval = setInterval(fetchCount, 30000);
-      const onRefresh = () => fetchCount();
-      window.addEventListener('vaidya:alerts-refresh', onRefresh);
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('vaidya:alerts-refresh', onRefresh);
-      };
-    }
-  }, [currentUser, user]);
 
   // Dedicated 5-Tab Patient Sanctuary Information Architecture (Home, Visits, Records, Medicines, Help)
   const patientNavItems = [
@@ -70,7 +42,6 @@ const Sidebar = () => {
     { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kioskQueue', 'Kiosk Terminal') },
     { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Clinical Records') },
     { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Triage Telemetry') },
-    { to: '/alerts', icon: AlertCircle, label: t('sidebar.alerts', 'Safety & HDI Guard') },
     { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Physician Profile') },
     { to: '/settings', icon: Settings, label: t('sidebar.settings', 'Settings') }
   ];

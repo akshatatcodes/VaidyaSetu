@@ -1,215 +1,49 @@
 const mongoose = require('mongoose');
 
-const FieldSchema = {
-  value: mongoose.Schema.Types.Mixed,
-  lastUpdated: { type: Date, default: Date.now },
-  updateType: {
-    type: String,
-    enum: ['initial', 'correction', 'real_change', 'auto_add', 'auto_remove', 'sync'],
-    default: 'initial'
-  },
-  previousValue: mongoose.Schema.Types.Mixed,
-  unit: String
-};
-
+/**
+ * UserProfile (Slimmed down to User identity model per §4 / Phase 1)
+ * Stripped of diagnostic screening quiz fields.
+ */
 const UserProfileSchema = new mongoose.Schema({
   clerkId: {
     type: String,
-    required: true,
-    unique: true
+    index: true
   },
-
-  // Role-Based Access Control (RBAC): patient, doctor, reception, admin, lab
+  mobile: {
+    type: String,
+    trim: true,
+    index: true
+  },
   role: {
     type: String,
     enum: ['patient', 'doctor', 'reception', 'admin', 'lab'],
-    default: 'patient'
+    default: 'patient',
+    required: true
   },
-
   onboardingCompleted: {
     type: Boolean,
     default: false
   },
-  abhaId: FieldSchema,
-
-  // Clinician details if role is doctor
-  doctorProfile: {
-    doctorId: { type: String },
-    doctorName: { type: String },
-    registrationNumber: { type: String }, // e.g. CCIM-DEL-2018-9844
-    department: { type: String, default: 'Kayachikitsa' },
-    roomNumber: { type: String, default: 'Room 104' },
-    hospitalName: { type: String, default: 'All India Institute of Ayurveda (AIIA)' }
-  },
-
-  // Step 1: Biometrics
-  name: FieldSchema,
-  phone: FieldSchema,
-  dob: FieldSchema,
-  age: FieldSchema,
-  gender: FieldSchema,
-  height: FieldSchema, // value in cm
-  weight: FieldSchema, // value in kg
-  bmi: FieldSchema,
-  bmiCategory: FieldSchema,
-
-  // Step 2: Lifestyle
-  activityLevel: FieldSchema,
-  sleepHours: FieldSchema,
-  stressLevel: FieldSchema,
-  isSmoker: FieldSchema,
-  alcoholConsumption: FieldSchema,
-
-  // Step 3: Diet
-  dietType: FieldSchema,
-  sugarIntake: FieldSchema,
-  saltIntake: FieldSchema,
-  eatsLeafyGreens: FieldSchema,
-  eatsFruits: FieldSchema,
-  junkFoodFrequency: FieldSchema,
-
-  // Step 4: Medical
-  // For arrays, value will be the array [String]
-  allergies: FieldSchema,
-  medicalHistory: FieldSchema,
-  otherConditions: FieldSchema,
-
   onboardingComplete: {
     type: Boolean,
     default: true
   },
-
-  // Data Quality Score (Phase B)
-  dataQualityScore: {
-    type: Number,
-    default: 0
+  doctorProfile: {
+    doctorId: String,
+    doctorName: String,
+    registrationNumber: String,
+    department: { type: String, default: 'Kayachikitsa' },
+    roomNumber: { type: String, default: 'Room 104' },
+    hospitalName: { type: String, default: 'All India Institute of Ayurveda (AIIA)' }
   },
-  dataQualityLabel: {
-    type: String,
-    default: 'Basic'
-  },
-
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-
-  // Step 5: Platform Settings (Phase 1)
   settings: {
     language: { type: String, default: 'English' },
     theme: { type: String, enum: ['light', 'dark', 'system'], default: 'dark' },
     fontSize: { type: String, enum: ['small', 'medium', 'large'], default: 'medium' },
     highContrast: { type: Boolean, default: false },
     reduceAnimations: { type: Boolean, default: false },
-    voiceGuidance: { type: Boolean, default: false },
-    measurementUnits: { type: String, enum: ['metric', 'imperial'], default: 'metric' },
-    glucoseUnits: { type: String, enum: ['mg/dL', 'mmol/L'], default: 'mg/dL' },
-    defaultReminderTime: { type: String, default: '08:00 AM' },
-    reminderSound: { type: String, default: 'Chime' },
-    snoozeDuration: { type: Number, default: 10 }, // minutes
-    refillAlertThreshold: { type: Number, default: 7 }, // days
-    doctorSearchFilters: {
-      type: Map,
-      of: Boolean,
-      default: { ayushman: false, janAushadhi: false, govt: false, online: true }
-    }
-  },
-
-  // --- EXPANDED SCREENING FIELDS (Phase 2 & 7) ---
-
-  // Emergency Symptoms (Step 58)
-  chestPain: FieldSchema,
-  visionChanges: FieldSchema,
-  severeHeadache: FieldSchema,
-  abdominalPain: FieldSchema,
-  vomiting: FieldSchema,
-  suicidalThoughts: FieldSchema,
-  difficultyBreathing: FieldSchema,
-  confusion: FieldSchema,
-
-  // Thyroid & Metabolic (Step 4/5)
-  weightChangeUnexplained: FieldSchema,
-  fatiguePersistent: FieldSchema,
-  drySkinHairLoss: FieldSchema,
-  coldIntolerance: FieldSchema,
-  familyHistoryThyroid: FieldSchema,
-  autoimmuneHistory: FieldSchema,
-
-  // Women's Health (Step 4 - Female Only)
-  menstrualCycleIrregular: FieldSchema,
-  facialBodyHairExcess: FieldSchema,
-  persistentAcne: FieldSchema,
-  tryingToConceiveDifficulty: FieldSchema,
-  pcosDiagnosis: FieldSchema,
-
-  // Respiratory & Environment (Step 5)
-  wheezing: FieldSchema,
-  persistentCough: FieldSchema,
-  shortnessBreath: FieldSchema,
-  highPollutionArea: FieldSchema,
-  biomassFuelUse: FieldSchema,
-  seasonalAllergies: FieldSchema,
-
-  // Mental Health (Step 6)
-  mentalHealthDepressed: FieldSchema, // PHQ-2
-  mentalHealthAnxiety: FieldSchema,    // GAD-2
-  energyLevelsLow: FieldSchema,
-  lostInterestActivities: FieldSchema,
-
-  // Kidney & Liver (Step 7)
-  swellingAnkles: FieldSchema,
-  frequentUrination: FieldSchema,
-  foamyUrine: FieldSchema,
-  nsaidOveruse: FieldSchema,
-  liverPain: FieldSchema,
-  fattyLiverDiagnosis: FieldSchema,
-  alcoholFrequency: FieldSchema,
-
-  // --- NEW FIELDS FOR PHASE 2 ---
-  waistCircumference: FieldSchema,
-  familyHistoryDiabetes: FieldSchema,
-  familyHistoryHypertension: FieldSchema,
-  gestationalDiabetesHistory: FieldSchema,
-  frequentThirst: FieldSchema,
-  blurredVision: FieldSchema,
-  slowHealingWounds: FieldSchema,
-  tinglingExtremities: FieldSchema,
-  chestPainActivity: FieldSchema,
-  frequentSevereHeadaches: FieldSchema,
-  nosebleedsHistory: FieldSchema,
-  weeklyExerciseDays: FieldSchema,
-  paleSkinObservation: FieldSchema,
-  brittleNails: FieldSchema,
-  dizzinessOnStanding: FieldSchema,
-  heavyMenstrualFlow: FieldSchema,
-  vegetarianVeganDiet: FieldSchema,
-  recentBloodDonation: FieldSchema,
-  ironSupplementation: FieldSchema,
-  occupationalDustExposure: FieldSchema,
-  // --- PHASE 6: DOCTOR FINDER ---
-  savedDoctors: [{
-    name: String,
-    specialty: String,
-    address: String,
-    rating: Number,
-    placeId: String,
-    isPracto: Boolean,
-    notes: String,
-    savedAt: { type: Date, default: Date.now }
-  }],
-
-  currentLocation: {
-    city: String,
-    state: String,
-    lastDetected: Date
-  },
-
-  // UI Persistence (Step 61)
-  cardMeta: {
-    type: Map,
-    of: mongoose.Schema.Types.Mixed,
-    default: {}
+    voiceGuidance: { type: Boolean, default: false }
   }
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('UserProfile', UserProfileSchema);
+module.exports = mongoose.models.UserProfile || mongoose.model('UserProfile', UserProfileSchema);

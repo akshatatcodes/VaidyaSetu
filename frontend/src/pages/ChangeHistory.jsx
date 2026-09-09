@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -9,6 +8,7 @@ import {
   Tag, Edit2, X, RefreshCw, Activity, BarChart2, Shield
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 import { API_URL } from '../config/api';
 
@@ -28,7 +28,8 @@ const formatValue = (v) => {
 };
 
 const ChangeHistory = () => {
-  const { user } = useUser();
+  const { currentUser } = useAuth();
+  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || 'demo_user';
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -38,18 +39,18 @@ const ChangeHistory = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    if (user) {
-      axios.get(`${API_URL}/profile/history/${user.id}`)
+    if (effectiveUserId) {
+      axios.get(`${API_URL}/profile/history/${effectiveUserId}`)
         .then(res => { if (res.data.status === 'success') setHistory(res.data.data); })
         .catch(err => console.error('Error fetching history:', err))
         .finally(() => setLoading(false));
     }
-  }, [user]);
+  }, [effectiveUserId]);
 
   /* ── PDF export ── */
   const handleExport = () => {
     const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
-    const userName = user?.fullName || user?.firstName || 'User';
+    const userName = currentUser?.patientName || currentUser?.name || 'User';
     const sorted = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const rows = sorted.map((item, idx) => {
       const date = new Date(item.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });

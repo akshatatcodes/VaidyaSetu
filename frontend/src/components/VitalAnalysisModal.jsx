@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, AlertCircle, CheckCircle2, Activity, ArrowUp, ArrowDown, Heart, Utensils, Shield, Eye, Clock, FileText } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Activity, ArrowUp, ArrowDown, Eye, Clock } from 'lucide-react';
 import axios from 'axios';
 
 import { API_URL } from '../config/api';
@@ -142,96 +142,34 @@ const VitalAnalysisModal = ({ isOpen, onClose, vitalType, currentValue, clerkId 
                 </div>
               </div>
 
-              {/* Mitigations */}
-              {analysis.status !== 'normal' && analysis.mitigations && (
-                <div className="grid grid-cols-1 gap-6">
-                  {/* Immediate Actions */}
-                  {Array.isArray(analysis.mitigations.immediateActions) && analysis.mitigations.immediateActions.length > 0 && (
-                    <div className="bg-red-500/5 border border-red-500/10 p-8 rounded-[2rem]">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 mb-6 flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5 shrink-0" />
-                        Urgent Stabilization Matrix
-                      </h3>
-                      <div className="space-y-3">
-                        {analysis.mitigations.immediateActions.map((action, idx) => (
-                          <div key={idx} className="flex items-start gap-3 p-4 bg-white dark:bg-gray-950/50 rounded-2xl text-sm font-bold text-gray-800 dark:text-gray-200 shadow-sm border border-red-500/10">
-                            <span className="w-2 h-2 bg-red-500 rounded-full mt-1.5 shrink-0" />
-                            {action}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Lifestyle & Dietary */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {Array.isArray(analysis.mitigations.lifestyleChanges) && analysis.mitigations.lifestyleChanges.length > 0 && (
-                      <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-[2rem]">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
-                          <Activity className="w-5 h-5" />
-                          Lifestyle Protocol
-                        </h3>
-                        <div className="space-y-2">
-                          {analysis.mitigations.lifestyleChanges.map((change, idx) => (
-                            <div key={idx} className="text-xs font-bold text-gray-700 dark:text-gray-300 flex gap-2">
-                              <span className="text-blue-500">•</span>
-                              {change}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {Array.isArray(analysis.mitigations.dietaryAdvice) && analysis.mitigations.dietaryAdvice.length > 0 && (
-                      <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-[2rem]">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
-                          <Utensils className="w-5 h-5" />
-                          Nutritional Strategy
-                        </h3>
-                        <div className="space-y-2">
-                          {analysis.mitigations.dietaryAdvice.map((advice, idx) => (
-                            <div key={idx} className="text-xs font-bold text-gray-700 dark:text-gray-300 flex gap-2">
-                              <span className="text-emerald-500">•</span>
-                              {advice}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Risks & Precautions */}
-                  {Array.isArray(analysis.mitigations.precautions) && analysis.mitigations.precautions.length > 0 && (
-                    <div className="bg-amber-500/5 border border-amber-500/10 p-6 rounded-[2rem]">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
-                        <Shield className="w-5 h-5" />
-                        Preventative Guardrails
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                         {analysis.mitigations.precautions.map((precaution, idx) => (
-                           <span key={idx} className="px-3 py-1.5 bg-white dark:bg-gray-800 rounded-xl text-[10px] font-black text-gray-700 dark:text-gray-200 shadow-sm border border-amber-500/10 tracking-tight">
-                             {precaution}
-                           </span>
-                         ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Healthcare Guidance */}
-                  <div className="bg-emerald-50 dark:bg-gray-800/70 p-8 rounded-[2.5rem] text-gray-900 dark:text-gray-100 shadow-xl border border-emerald-100 dark:border-gray-700">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-4 flex items-center gap-2">
-                      <Eye className="w-5 h-5" />
-                      Professional Guidance
-                    </h3>
-                    <p className="text-lg font-black tracking-tight leading-tight">
-                      {analysis.mitigations.whenToSeeDoctor}
+              {/*
+                Removed (MediKiosk refactor): the mitigation coaching panels
+                (immediate actions, lifestyle protocol, nutritional strategy,
+                preventative guardrails). Those came from the wellness product's
+                mitigation library, which has been deleted from the backend.
+                §15 makes an out-of-range reading a TRIAGE trigger, not a cue for
+                the system to prescribe self-care. So an abnormal reading now
+                points the patient at a clinician instead.
+              */}
+              {analysis.status !== 'normal' && (
+                <div className="bg-amber-500/5 border border-amber-500/20 p-8 rounded-[2rem]">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
+                    <Eye className="w-5 h-5 shrink-0" />
+                    What this means
+                  </h3>
+                  <p className="text-lg font-black tracking-tight leading-snug text-gray-900 dark:text-white">
+                    This reading is outside the usual range. It is not a diagnosis.
+                  </p>
+                  <p className="text-sm font-bold text-gray-600 dark:text-gray-300 mt-3 leading-relaxed">
+                    A single reading can be affected by timing, activity, stress or
+                    the device itself. Please show this to a doctor rather than
+                    changing any medicine on your own.
+                  </p>
+                  <div className="mt-6 pt-6 border-t border-amber-500/20 flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <p className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                      It will be shared with your doctor at your next visit.
                     </p>
-                    {analysis.mitigations.monitoring && (
-                       <div className="mt-6 pt-6 border-t border-emerald-200 dark:border-gray-700 flex items-center gap-3">
-                          <Clock className="w-5 h-5 opacity-60" />
-                          <p className="text-sm font-bold opacity-80">{analysis.mitigations.monitoring}</p>
-                       </div>
-                    )}
                   </div>
                 </div>
               )}

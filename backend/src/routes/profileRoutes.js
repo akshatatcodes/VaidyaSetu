@@ -2,9 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserProfile = require('../models/UserProfile');
 const History = require('../models/History');
-const Report = require('../models/Report');
 const { calculateDataQuality } = require('../utils/dataQualityWatcher');
-const { schedulePredictiveRecompute } = require('../services/predictiveRiskRecomputeScheduler');
 
 // Get current profile with metadata
 router.get('/:clerkId', async (req, res) => {
@@ -148,7 +146,6 @@ router.post('/update', async (req, res) => {
     }
 
     // Debounced predictive-risk refresh (baseline affected by onboarding/profile changes)
-    schedulePredictiveRecompute({ clerkId });
 
     res.json({
       status: 'success',
@@ -236,8 +233,6 @@ router.patch('/settings/:clerkId', async (req, res) => {
 
 const Vital = require('../models/Vital');
 const LabResult = require('../models/LabResult');
-const HealthGoal = require('../models/HealthGoal');
-const Alert = require('../models/Alert');
 
 /**
  * @route GET /api/profile/export/:clerkId
@@ -246,24 +241,18 @@ const Alert = require('../models/Alert');
 router.get('/export/:clerkId', async (req, res) => {
   try {
     const clerkId = req.params.clerkId;
-    const [profile, history, reports, vitals, labResults, goals, alerts] = await Promise.all([
+    const [profile, history, vitals, labResults] = await Promise.all([
       UserProfile.findOne({ clerkId }),
       History.find({ clerkId }),
-      Report.find({ clerkId }),
       Vital.find({ clerkId }),
-      LabResult.find({ clerkId }),
-      HealthGoal.find({ clerkId }),
-      Alert.find({ clerkId })
+      LabResult.find({ clerkId })
     ]);
 
     const exportData = {
       profile,
       medicalHistory: history,
-      aiReports: reports,
       vitals,
       labResults,
-      goals,
-      alerts,
       exportedAt: new Date()
     };
 
@@ -285,13 +274,8 @@ router.delete('/account/:clerkId', async (req, res) => {
     await Promise.all([
       UserProfile.deleteOne({ clerkId }),
       History.deleteMany({ clerkId }),
-      Report.deleteMany({ clerkId }),
       Vital.deleteMany({ clerkId }),
-      LabResult.deleteMany({ clerkId }),
-      HealthGoal.deleteMany({ clerkId }),
-      Alert.deleteMany({ clerkId }),
-      require('../models/AlertPreference').deleteOne({ clerkId }),
-      require('../models/InteractionHistory').deleteMany({ clerkId })
+      LabResult.deleteMany({ clerkId })
     ]);
 
     res.json({ status: 'success', message: 'Account and all health records deleted permanently.' });
@@ -300,89 +284,13 @@ router.delete('/account/:clerkId', async (req, res) => {
   }
 });
 
-// STEP 55: Save Doctor Feature
-router.post('/saved-doctors', async (req, res) => {
-  try {
-    const { clerkId, doctor } = req.body;
-    if (!clerkId || !doctor) {
-      return res.status(400).json({ status: 'error', message: 'clerkId and doctor data are required' });
-    }
-
-    const profile = await UserProfile.findOne({ clerkId });
-    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
-
-    // Check if duplicate
-    const exists = profile.savedDoctors.some(d => d.placeId === doctor.placeId || d.name === doctor.name);
-    if (exists) return res.status(409).json({ status: 'error', message: 'Doctor already saved' });
-
-    profile.savedDoctors.push(doctor);
-    await profile.save();
-
-    res.json({ status: 'success', data: profile.savedDoctors });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-});
-
-router.delete('/saved-doctors/:clerkId/:placeId', async (req, res) => {
-  try {
-    const { clerkId, placeId } = req.params;
-    const profile = await UserProfile.findOne({ clerkId });
-    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
-
-    profile.savedDoctors = profile.savedDoctors.filter(d => d.placeId !== placeId);
-    await profile.save();
-
-    res.json({ status: 'success', data: profile.savedDoctors });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-});
-
-// Update Doctor Notes
-router.patch('/saved-doctors/:clerkId/:placeId/notes', async (req, res) => {
-  try {
-    const { clerkId, placeId } = req.params;
-    const { notes } = req.body;
-    
-    const profile = await UserProfile.findOne({ clerkId });
-    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
-
-    const doctor = profile.savedDoctors.find(d => d.placeId === placeId);
-    if (!doctor) return res.status(404).json({ status: 'error', message: 'Doctor not found in your network' });
-
-    doctor.notes = notes;
-    await profile.save();
-
-    res.json({ status: 'success', data: profile.savedDoctors });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-});
-
-// STEP 61: Card Persistence
-router.patch('/card-meta/:clerkId', async (req, res) => {
-  try {
-    const { clerkId } = req.params;
-    const { updates } = req.body; // { 'diabetes': { reviewed: true, dismissed: ['waist'] } }
-
-    const profile = await UserProfile.findOne({ clerkId });
-    if (!profile) return res.status(404).json({ status: 'error', message: 'Profile not found' });
-
-    // Deep merge or replace depending on needs. Here we replace keys to keep it simple.
-    Object.entries(updates).forEach(([diseaseId, meta]) => {
-      const current = profile.cardMeta.get(diseaseId) || {};
-      profile.cardMeta.set(diseaseId, { ...current, ...meta });
-    });
-
-    profile.markModified('cardMeta');
-    await profile.save();
-
-    res.json({ status: 'success', data: profile.cardMeta });
-  } catch (error) {
-    console.error('Card meta error:', error);
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-});
+/**
+ * NOTE (MediKiosk refactor):
+ * The `saved-doctors` endpoints (a Google-Places "find a nearby doctor" consumer
+ * feature) and the `card-meta` disease-card persistence endpoint were removed here.
+ * Neither exists in the MediKiosk architecture — see docs/MEDIKIOSK_ARCHITECTURE.md.
+ * `Doctor` is a hospital-configured entity (§53) reachable through Department and
+ * Encounter, not a bookmark on the patient profile.
+ */
 
 module.exports = router;

@@ -28,15 +28,6 @@ describe('Phase 1 — Make OCR Real', () => {
     }
   });
 
-  test('POST /api/ocr/normalize normalizes medicine names', async () => {
-    const res = await request(app)
-      .post('/api/ocr/normalize')
-      .send({ medicines: ['Metformin 500mg', 'Crocin 650mg'] });
-
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('success');
-    expect(Array.isArray(res.body.normalized)).toBe(true);
-  });
 
   test('PATCH /api/kiosk/session/:id/documents updates session with real OCR results', async () => {
     if (mongoose.connection.readyState !== 1) {

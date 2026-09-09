@@ -1,91 +1,83 @@
 /**
- * EMERGENCY SCORER (PHASE 7)
- * Detects critical symptom combinations that require immediate medical intervention.
- * Aligned with Indian emergency protocols.
+ * RED-FLAG & EMERGENCY TRIAGE ENGINE (§15, §16)
+ * Pure function over Symptom + Vital + History -> { status, redFlags, triagePriority }
+ * IMPORTANT: Always routes to human triage / staff review; NEVER claims autonomous diagnosis.
  */
 
 const EMERGENCY_PROTOCOLS = {
   cardiac: {
     id: 'cardiac_emergency',
-    title: 'CARDIAC EMERGENCY DETECTED',
-    message: 'Chest pain combined with shortness of breath is a major warning of a heart event.',
-    instructions: '1. Stop all physical activity immediately.\n2. Do NOT drive yourself to the hospital.\n3. Chew 300mg of Aspirin if available and not allergic.\n4. CALL AMBULANCE (108).',
-    callContact: '108',
-    helplineName: 'Ambulance (Dial 108)'
+    title: 'CARDIAC EMERGENCY ALERT',
+    message: 'Chest pain / pressure combined with dyspnea or radiation.',
+    instructions: 'Route immediately to Human Triage / Staff Review. Prepare ECG.',
+    severity: 'critical'
   },
   stroke: {
     id: 'stroke_alert',
-    title: 'STROKE ALERT DETECTED',
-    message: 'Severe headache with vision changes or confusion indicates a possible stroke.',
-    instructions: '1. Note the time when symptoms first started.\n2. Check for face drooping or slurred speech.\n3. CALL AMBULANCE (108) IMMEDIATELY.',
-    callContact: '108',
-    helplineName: 'Ambulance (Dial 108)'
-  },
-  mental_health: {
-    id: 'mental_health_crisis',
-    title: 'MENTAL HEALTH CRISIS',
-    message: 'We are concerned about your safety and well-being.',
-    instructions: '1. Reach out to a trusted friend or family member right now.\n2. You are not alone. Professional help is available 24/7.\n3. CALL KIRAN HELPLINE (1800-599-0019).',
-    callContact: '18005990019',
-    helplineName: 'KIRAN Helpline'
-  },
-  surgical: {
-    id: 'surgical_emergency',
-    title: 'SURGICAL EMERGENCY ALERT',
-    message: 'Severe abdominal pain with vomiting can indicate acute appendicitis or obstruction.',
-    instructions: '1. Do NOT eat or drink anything (NPO).\n2. Do NOT take pain medication as it may mask symptoms.\n3. Proceed to the nearest Emergency Department.',
-    callContact: '108',
-    helplineName: 'Ambulance (Dial 108)'
+    title: 'STROKE / NEUROLOGICAL ALERT',
+    message: 'Severe headache with altered sensorium, facial droop, or focal weakness.',
+    instructions: 'Route immediately to Urgent Triage / Physician Assessment.',
+    severity: 'critical'
   },
   respiratory: {
     id: 'respiratory_emergency',
-    title: 'RESPIRATORY EMERGENCY',
-    message: 'Difficulty breathing at rest is a critical clinical indicator.',
-    instructions: '1. Sit upright to help airway opening.\n2. If you have a rescue inhaler, use it now.\n3. CALL AMBULANCE (108) if breathing does not improve in 5 minutes.',
-    callContact: '108',
-    helplineName: 'Ambulance (Dial 108)'
+    title: 'RESPIRATORY DISTRESS ALERT',
+    message: 'SpO2 < 92% or severe difficulty breathing.',
+    instructions: 'Administer Oxygen therapy under nursing triage supervision.',
+    severity: 'critical'
+  },
+  hypertensive_crisis: {
+    id: 'hypertensive_crisis',
+    title: 'HYPERTENSIVE CRISIS ALERT',
+    message: 'Systolic BP >= 180 mmHg or Diastolic BP >= 120 mmHg.',
+    instructions: 'Physician evaluation required immediately.',
+    severity: 'critical'
   }
 };
 
 /**
- * Evaluates the profile for emergency triggers.
- * @param {Object} profile User profile object with symptom fields
- * @returns {Array} List of active emergency protocols
+ * Pure evaluation function per §15/§16
  */
-function calculateEmergencyAlerts(profile) {
-  const alerts = [];
-  
-  const getValue = (field) => {
-    const val = profile[field]?.value || profile[field];
-    return val === true || val === 'Yes';
+function evaluateEmergencyTriage(symptoms = {}, vitals = {}, history = {}) {
+  const redFlags = [];
+
+  const text = JSON.stringify(symptoms).toLowerCase();
+
+  // 1. Cardiac triggers
+  if (text.includes('chest pain') || text.includes('chest pressure') || text.includes('left arm')) {
+    redFlags.push(EMERGENCY_PROTOCOLS.cardiac);
+  }
+
+  // 2. Stroke / Neuro triggers
+  if (text.includes('thunderclap') || text.includes('facial droop') || text.includes('slurred speech')) {
+    redFlags.push(EMERGENCY_PROTOCOLS.stroke);
+  }
+
+  // 3. Vital triggers
+  if (vitals.spo2 && Number(vitals.spo2) < 92) {
+    redFlags.push(EMERGENCY_PROTOCOLS.respiratory);
+  }
+  if (vitals.systolicBP && Number(vitals.systolicBP) >= 180) {
+    redFlags.push(EMERGENCY_PROTOCOLS.hypertensive_crisis);
+  }
+
+  const hasCritical = redFlags.some(r => r.severity === 'critical');
+  const hasHigh = redFlags.length > 0;
+
+  const triagePriority = hasCritical ? 'emergency' : (hasHigh ? 'urgent' : 'normal');
+
+  return {
+    status: hasHigh ? 'potential_emergency' : 'normal',
+    redFlags,
+    triagePriority,
+    escalationLadder: hasHigh ? ['warning', 'manual_verification', 'staff_review'] : ['standard_queue'],
+    recommendation: hasHigh ? 'Escalated to staff triage review (§16)' : 'Routine OPD consultation queue'
   };
-
-  // Cardiac: Chest pain + Shortness of breath
-  if (getValue('chestPain') && getValue('shortnessBreath')) {
-    alerts.push(EMERGENCY_PROTOCOLS.cardiac);
-  }
-
-  // Stroke: Severe headache + (Vision changes OR Confusion)
-  if (getValue('severeHeadache') && (getValue('visionChanges') || getValue('confusion'))) {
-    alerts.push(EMERGENCY_PROTOCOLS.stroke);
-  }
-
-  // Mental Health: Suicidal thoughts
-  if (getValue('suicidalThoughts')) {
-    alerts.push(EMERGENCY_PROTOCOLS.mental_health);
-  }
-
-  // Surgical: Abdominal pain + Vomiting
-  if (getValue('abdominalPain') && getValue('vomiting')) {
-    alerts.push(EMERGENCY_PROTOCOLS.surgical);
-  }
-
-  // Respiratory: Difficulty breathing (at rest implied if separate from exertion)
-  if (getValue('difficultyBreathing')) {
-    alerts.push(EMERGENCY_PROTOCOLS.respiratory);
-  }
-
-  return alerts;
 }
 
-module.exports = { calculateEmergencyAlerts, EMERGENCY_PROTOCOLS };
+function calculateEmergencyAlerts(profile) {
+  const res = evaluateEmergencyTriage(profile, profile.vitals || {}, {});
+  return res.redFlags;
+}
+
+module.exports = { evaluateEmergencyTriage, calculateEmergencyAlerts, EMERGENCY_PROTOCOLS };

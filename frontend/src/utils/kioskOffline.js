@@ -1,6 +1,7 @@
 /**
  * Offline-first cache for kiosk — survives ~2 min Wi-Fi blip.
  * IndexedDB when available; localStorage fallback.
+ * Includes explicit kiosk session cleanup function clearKioskLocalCache() (§52).
  */
 const DB_NAME = 'medisahayak-kiosk';
 const STORE = 'intake_drafts';
@@ -46,7 +47,7 @@ export async function loadKioskDraft(id) {
       const tx = db.transaction(STORE, 'readonly');
       const req = tx.objectStore(STORE).get(id);
       req.onsuccess = () => resolve(req.result?.draft || null);
-      req.onerror = () => resolve(null);
+      req.onerror = resolve(null);
     });
   }
   try {
@@ -54,6 +55,36 @@ export async function loadKioskDraft(id) {
     return raw ? JSON.parse(raw).draft : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Kiosk Session Cleanup (§52)
+ * Explicitly wipes the kiosk's temporary local cache and session state on Encounter submit
+ * so the next patient starts 100% clean with zero residual data.
+ */
+export async function clearKioskLocalCache() {
+  try {
+    const db = await openDb();
+    if (db) {
+      await new Promise((resolve) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).clear();
+        tx.oncomplete = resolve;
+        tx.onerror = resolve;
+      });
+    }
+    // Clear localStorage kiosk items
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('kiosk_') || key.startsWith('medisahayak_') || key.startsWith('intake_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    console.log('[Kiosk] Local session cache wiped cleanly (§52).');
+    return { success: true };
+  } catch (err) {
+    console.warn('[Kiosk] Local cache clear warning:', err.message);
+    return { success: false, error: err.message };
   }
 }
 

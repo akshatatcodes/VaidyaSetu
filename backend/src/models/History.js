@@ -1,43 +1,67 @@
 const mongoose = require('mongoose');
 
+/**
+ * History Schema — Clinical History record keyed off Encounter & Patient (§12-13)
+ * Supports Mode 1 (Modern) and Mode 2 (AYUSH) clinical intake
+ */
 const HistorySchema = new mongoose.Schema({
-  clerkId: {
-    type: String,
+  encounterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Encounter',
     required: true,
     index: true
   },
-  field: {
+  patientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Patient',
+    required: true,
+    index: true
+  },
+  mode: {
     type: String,
+    enum: ['modern', 'ayush'],
+    default: 'modern',
     required: true
   },
-  oldValue: mongoose.Schema.Types.Mixed,
-  newValue: mongoose.Schema.Types.Mixed,
-  changeType: {
-    type: String,
-    enum: ['initial', 'correction', 'real_change', 'auto_add', 'auto_remove', 'sync'],
-    required: true
+  sections: {
+    chiefComplaint: { type: String },
+    hpi: { type: String },
+    pastMedicalHistory: [String],
+    pastSurgicalHistory: [String],
+    drugHistory: [String],
+    allergies: [String],
+    familyHistory: [String],
+    personalHistory: { type: String },
+    reviewOfSystems: { type: String },
+    // Mode 2 AYUSH specific assessment block (§13)
+    dashavidhaPariksha: {
+      duchya: { type: String },
+      desha: { type: String },
+      bala: { type: String },
+      kala: { type: String },
+      anala: { type: String },
+      prakriti: { type: String },
+      vaya: { type: String },
+      sattva: { type: String },
+      satmya: { type: String },
+      ahara: { type: String }
+    },
+    aharaVihara: {
+      dietDetails: { type: String },
+      lifestyleDetails: { type: String },
+      agniStatus: { type: String },
+      koshthaStatus: { type: String }
+    }
   },
-  intent: {
-    type: String,
-    default: ''
-  },
-  notes: {
-    type: String,
-    default: ''
-  },
-  source: {
-    type: String,
-    enum: ['user', 'google_fit', 'ai', 'system'],
-    default: 'user'
-  },
-  unit: String,
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
+  sourceTags: [{
+    field: String,
+    source: String, // e.g., 'Patient reported', 'Prescription dated 03 Sep 2026', 'Caregiver'
+    confidence: String
+  }]
+}, {
+  timestamps: true
 });
 
-// Index for timeline queries
-HistorySchema.index({ clerkId: 1, timestamp: -1 });
+HistorySchema.index({ patientId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('History', HistorySchema);
+module.exports = mongoose.models.History || mongoose.model('History', HistorySchema);

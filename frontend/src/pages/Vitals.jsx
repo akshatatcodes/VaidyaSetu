@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
 import axios from 'axios';
 import { 
   Plus, Heart, Activity, Scale, Footprints, 
@@ -17,10 +16,7 @@ import {
 } from '../components/VitalsCharts';
 import VitalsModals from '../components/VitalsModals';
 import LabResultsModals from '../components/LabResultsModals';
-import GoalsModals from '../components/GoalsModals';
 import VitalAnalysisModal from '../components/VitalAnalysisModal';
-import LabAnalysisModal from '../components/LabAnalysisModal';
-import { useGoogleLogin } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
@@ -83,16 +79,19 @@ const VitalCard = ({ title, value, unit, type, status, trend, timestamp, icon: I
 };
 
 const Vitals = () => {
-  const { user } = useUser();
   const { currentUser } = useAuth();
   const { t } = useTranslation();
-  const effectiveUserId = currentUser?.patientId || currentUser?.mobile || user?.id;
+  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || 'demo_user';
   const activeUser = {
     id: effectiveUserId,
-    fullName: currentUser?.patientName || user?.fullName || 'Ayush Patient'
+    fullName: currentUser?.patientName || 'Ayush Patient'
   };
   const [vitals, setVitals] = useState({});
-  const [report, setReport] = useState(null);
+  // Patient profile — needed for height so BMI can be computed from a REAL
+  // measurement. (This used to read `report.userProfile.height`, a field the
+  // legacy Report schema never had, so BMI was always calculated against a
+  // hardcoded 170 cm. See the BMI mapping below.)
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -100,11 +99,9 @@ const Vitals = () => {
 
   const [currentVitalsWithAnalysis, setCurrentVitalsWithAnalysis] = useState([]);
   const [labResults, setLabResults] = useState([]);
-  const [goals, setGoals] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [modal, setModal] = useState({ open: false, type: '' });
   const [labModalOpen, setLabModalOpen] = useState(false);
-  const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [analysisModal, setAnalysisModal] = useState({ open: false, vitalType: null, currentValue: null });
   const [labAnalysisModal, setLabAnalysisModal] = useState({ open: false });
   const [labTrendsModal, setLabTrendsModal] = useState({ open: false, testName: null });
@@ -118,10 +115,13 @@ const Vitals = () => {
     if (!silent) setLoading(true);
     try {
       // Phase 1: load critical card/chart data first for fast first paint.
-      const [latestRes, historyRes, reportRes] = await Promise.all([
+      // The third call is the health profile — the only thing this screen needs
+      // from it is the recorded height, so BMI is computed from a real
+      // measurement rather than an assumed one.
+      const [latestRes, historyRes, profileRes] = await Promise.all([
         axios.get(`${API_URL}/vitals/latest/${effectiveUserId}`),
         axios.get(`${API_URL}/vitals/${effectiveUserId}`),
-        axios.get(`${API_URL}/reports/${effectiveUserId}`).catch(() => ({ data: { status: 'error' } }))
+        axios.get(`${API_URL}/profile/${effectiveUserId}`).catch(() => ({ data: { status: 'error' } }))
       ]);
 
       if (latestRes.data.status === 'success') {
@@ -133,22 +133,18 @@ const Vitals = () => {
         setCurrentVitalsWithAnalysis(latestRes.data.data || []);
       }
       if (historyRes.data.status === 'success') setHistory(historyRes.data.data || []);
-      if (reportRes.data.status === 'success') setReport(reportRes.data.data);
+      if (profileRes.data.status === 'success') setProfile(profileRes.data.data);
 
       if (!silent) setLoading(false);
 
       // Phase 2: non-critical data in background.
-      const [labRes, goalRes, currentAnalysisRes] = await Promise.allSettled([
+      const [labRes, currentAnalysisRes] = await Promise.allSettled([
         axios.get(`${API_URL}/lab-results/${activeUser.id}`),
-        axios.get(`${API_URL}/goals/${activeUser.id}`),
         axios.get(`${API_URL}/vitals/latest-with-analysis/${activeUser.id}`)
       ]);
 
       if (labRes.status === 'fulfilled' && labRes.value?.data?.status === 'success') {
         setLabResults(labRes.value.data.data || []);
-      }
-      if (goalRes.status === 'fulfilled' && goalRes.value?.data?.status === 'success') {
-        setGoals(goalRes.value.data.data || []);
       }
       if (
         currentAnalysisRes.status === 'fulfilled' &&
@@ -321,36 +317,16 @@ const Vitals = () => {
     return val;
   }
 
-  const syncGoogleFit = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setSyncing(true);
-      try {
-        const res = await axios.post(`${API_URL}/fitness/sync-extended`, { 
-          clerkId: activeUser.id, 
-          accessToken: tokenResponse.access_token 
-        });
-        // Fallback explicit step aggregate to ensure today's steps get persisted.
-        await axios.post(`${API_URL}/fitness/steps`, {
-          clerkId: activeUser.id,
-          accessToken: tokenResponse.access_token
-        }).catch(() => null);
-        if (res.data.status === 'success') {
-          alert("Successfully synced health data from Google Fit!");
-          fetchVitals({ silent: true });
-          window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
-        }
-      } catch (err) {
-        console.error("Fitness sync failed:", err);
-        alert("Sync failed. Ensure you granted all permissions.");
-      } finally {
-        setSyncing(false);
-      }
-    },
-    scope: 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.heart_rate.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.sleep.read'
-  });
-
-  const handleSync = () => {
-    syncGoogleFit();
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await fetchVitals({ silent: true });
+      window.dispatchEvent(new CustomEvent('vaidya:alerts-refresh'));
+    } catch (err) {
+      console.error("Vitals refresh failed:", err);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleVitalCardClick = (vitalType, value) => {
@@ -426,36 +402,11 @@ const Vitals = () => {
     );
   }
 
-  const calculateGoalProgress = (goal) => {
-    const typeMapping = {
-       weight_goal: 'weight',
-       daily_steps: 'steps',
-       bp_target: 'blood_pressure',
-       glucose_control: 'blood_glucose',
-       daily_water: 'water'
-    };
-    const vitalKey = typeMapping[goal.goalType] || goal.goalType;
-    const latestValue = vitals[vitalKey]?.value;
-    if (!latestValue) return 0;
-    
-    // For weight/glucose/pressure, we usually want to LOWER the value 
-    // For steps/water we want to INCREASE it.
-    if (['daily_steps', 'daily_water'].includes(goal.goalType)) {
-       return Math.min(100, (latestValue / goal.targetValue) * 100);
-    } else {
-       // Calculation for "descending" goals (weight/BP)
-       const valueToCompare = typeof latestValue === 'object' ? latestValue.systolic : latestValue;
-       const diff = Math.abs(valueToCompare - goal.targetValue);
-       return Math.max(0, 100 - (diff / goal.targetValue) * 100);
-    }
-  };
   const hba1c = calculateHbA1c();
 
   const filteredHistory = activeTab === 'all' 
     ? history 
     : history.filter(h => h.type === activeTab);
-
-  const risks = report?.risk_scores || { diabetes: 0, hypertension: 0, anemia: 0 };
 
   return (
     <div className="max-w-7xl mx-auto w-full pb-20 space-y-12 animate-in fade-in duration-1000">
@@ -497,51 +448,13 @@ const Vitals = () => {
         </div>
       )}
 
-      {/* Condition-Specific Tracker Cards (Step 30) */}
-      {(risks.diabetes > 60 || risks.hypertension > 60) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-in slide-in-from-top-6 duration-700">
-           {risks.diabetes > 60 && (
-             <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 p-6 md:p-8 rounded-[2.5rem] relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/5 blur-3xl rounded-full" />
-                <div className="flex items-center gap-4 mb-4 relative z-10">
-                   <div className="p-2 md:p-3 bg-fuchsia-500/20 rounded-2xl">
-                      <Activity className="w-5 h-5 md:w-6 md:h-6 text-fuchsia-500" />
-                   </div>
-                   <div>
-                      <h4 className="text-base md:text-lg font-black text-gray-900 dark:text-white">{t('vitals.risk_protocols.diabetes')}</h4>
-                      <p className="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
-                   </div>
-                </div>
-                <button 
-                  onClick={() => setModal({open: true, type: 'glucose'})}
-                  className="w-full py-4 bg-fuchsia-500 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-fuchsia-500/20 active:scale-95 transition-all"
-                >
-                  {t('vitals.log_prefix')} {t('vitals.labels.blood_glucose')}
-                </button>
-             </div>
-           )}
-           {risks.hypertension > 60 && (
-             <div className="bg-amber-500/10 border border-amber-500/20 p-6 md:p-8 rounded-[2.5rem] relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full" />
-                <div className="flex items-center gap-4 mb-4 relative z-10">
-                   <div className="p-2 md:p-3 bg-amber-500/20 rounded-2xl">
-                      <Heart className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
-                   </div>
-                   <div>
-                      <h4 className="text-base md:text-lg font-black text-gray-900 dark:text-white">{t('vitals.risk_protocols.hypertension')}</h4>
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest leading-relaxed">{t('vitals.risk_protocols.monitoring_active')}</p>
-                   </div>
-                </div>
-                <button 
-                  onClick={() => setModal({open: true, type: 'bp'})}
-                  className="w-full py-4 bg-amber-500 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
-                >
-                  {t('vitals.log_prefix')} {t('vitals.labels.blood_pressure')}
-                </button>
-             </div>
-           )}
-        </div>
-      )}
+      {/*
+        Removed (MediKiosk refactor): the "condition-specific tracker" cards that
+        appeared when a computed diabetes/hypertension risk score exceeded 60.
+        Risk scoring is not part of the MediKiosk architecture and §15 forbids the
+        system autonomously declaring or scoring disease. Logging blood glucose and
+        blood pressure is still available from the vitals grid above.
+      */}
 
       {/* Quick Entry Layout — manual vitals */}
       <div className="py-2 animate-in slide-in-from-bottom-4 duration-700">
@@ -669,35 +582,9 @@ const Vitals = () => {
                 />
              </div>
 
-             {/* Steps 45, 47: Goals & Devices (Overview) */}
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                {/* Active Goals Section (Step 45) */}
-                <div className="space-y-6">
-                   <div className="flex justify-between items-center px-4">
-                      <h3 className="text-xs font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest flex items-center gap-2">
-                        <Trophy className="w-4 h-4 text-emerald-500" /> {t('vitals.active_milestones')}
-                      </h3>
-                      <button onClick={() => setGoalModalOpen(true)} className="text-[10px] font-black text-emerald-500 uppercase hover:underline">{t('vitals.customize_goals')}</button>
-                   </div>
-                    <div className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.1)] transition-all duration-500 space-y-6">
-                      {goals.length > 0 ? goals.map(g => (
-                        <div key={g._id} className="space-y-3">
-                           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
-                              <span>{(g.goalType || 'Goal').replace('_', ' ')} {t('vitals.target')}</span>
-                              <span className="text-emerald-500">{g.targetValue} {g.unit}</span>
-                           </div>
-                           <div className="w-full h-2 bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${calculateGoalProgress(g)}%` }} />
-                           </div>
-                           <div className="text-[8px] font-bold text-gray-600 dark:text-gray-300 text-right uppercase tracking-widest">{calculateGoalProgress(g).toFixed(0)}% {t('vitals.complete')}</div>
-                        </div>
-                      )) : (
-                        <div className="text-center py-4">
-                           <p className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest">{t('vitals.no_goals')}</p>
-                        </div>
-                      )}
-                   </div>
-                </div>
+             {/* Connected devices. The wellness "goals / milestones" block was removed
+                 in the MediKiosk refactor — goal-setting is not part of the spec. */}
+             <div className="grid grid-cols-1 gap-10">
 
                 {/* Connected Devices (Sync Intelligence) */}
                 <div className="space-y-6">
@@ -817,10 +704,17 @@ const Vitals = () => {
                   subtitle={t('vitals.trends.weight_sub')}
                   icon={Scale}
                   color="blue"
-                  data={history.filter(h => h.type === 'weight').map(h => ({
-                    ...h, 
-                    bmi: (h.value / (( (report?.userProfile?.height?.value || 170) /100)**2)).toFixed(1) 
-                  })).reverse()}
+                  data={history.filter(h => h.type === 'weight').map(h => {
+                    // BMI needs a recorded height. If the profile has none we
+                    // emit null rather than assuming a default — §5: unknown is
+                    // "not reported", never a made-up value. The BMI line has
+                    // connectNulls, so the weight bars still render.
+                    const heightCm = Number(profile?.height?.value);
+                    const bmi = heightCm > 0
+                      ? (h.value / ((heightCm / 100) ** 2)).toFixed(1)
+                      : null;
+                    return { ...h, bmi };
+                  }).reverse()}
                   Chart={WeightBMIChart}
                   labels={{
                     average: t('vitals.trends.average', { defaultValue: 'Average' }),
@@ -982,13 +876,6 @@ const Vitals = () => {
         clerkId={activeUser.id}
       />
 
-      <GoalsModals
-         isOpen={goalModalOpen}
-         onClose={() => setGoalModalOpen(false)}
-         onSave={fetchVitals}
-         clerkId={activeUser.id}
-      />
-            
       <VitalAnalysisModal
         isOpen={analysisModal.open}
         onClose={() => setAnalysisModal({ open: false, vitalType: null, currentValue: null })}
