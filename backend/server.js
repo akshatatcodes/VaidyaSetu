@@ -44,6 +44,8 @@ app.use(resolveLanguage);
 
 // MongoDB Connection
 const mongoUri = process.env.MONGODB_URI;
+mongoose.set('bufferTimeoutMS', 3000); // Prevent 10,000ms request hangs if MongoDB is unreachable or IP is not whitelisted
+
 if (!mongoUri) {
   console.error('❌ MONGODB_URI is not set in environment variables! Please configure it in Render/cloud settings.');
 } else {

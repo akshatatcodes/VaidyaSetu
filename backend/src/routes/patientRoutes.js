@@ -174,7 +174,7 @@ router.get('/:patientId', async (req, res) => {
     }
     if (!patient) {
       patient = await Patient.findOne({ abhaId: patientId }) ||
-        await Patient.findOne({ userId: patientId }) ||
+        (String(patientId).match(/^[0-9a-fA-F]{24}$/) ? await Patient.findOne({ userId: patientId }) : null) ||
         (cleanDigits.length === 10 ? (
           await Patient.findOne({ mobileNumber: cleanDigits }) ||
           await Patient.findOne({ 'basicInfo.contactNumber': new RegExp(cleanDigits) })

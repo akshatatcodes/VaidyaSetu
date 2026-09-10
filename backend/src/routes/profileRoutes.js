@@ -182,7 +182,7 @@ router.post('/update', async (req, res) => {
         }
         if (!patient) {
           patient = await Patient.findOne({ abhaId: clerkId }) ||
-            await Patient.findOne({ userId: clerkId }) ||
+            (String(clerkId).match(/^[0-9a-fA-F]{24}$/) ? await Patient.findOne({ userId: clerkId }) : null) ||
             (cleanDigits.length === 10 ? (
               await Patient.findOne({ mobileNumber: cleanDigits }) ||
               await Patient.findOne({ 'basicInfo.contactNumber': new RegExp(cleanDigits) })

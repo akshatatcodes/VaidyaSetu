@@ -177,6 +177,32 @@ router.post('/followups/next-day', async (req, res) => {
   }
 });
 
+async function findPatientSafely(patientId) {
+  if (!patientId) return null;
+  const isObjId = mongoose.Types.ObjectId.isValid(patientId);
+  let patient = null;
+
+  if (isObjId) {
+    patient = await Patient.findById(patientId);
+    if (patient) return patient;
+  }
+
+  patient = await Patient.findOne({ abhaId: patientId });
+  if (!patient && isObjId) {
+    patient = await Patient.findOne({ userId: patientId });
+  }
+
+  if (!patient) {
+    const cleanDigits = String(patientId).replace(/\D/g, '').slice(-10);
+    if (cleanDigits.length === 10) {
+      patient = await Patient.findOne({ mobileNumber: cleanDigits }) ||
+        await Patient.findOne({ 'basicInfo.contactNumber': new RegExp(cleanDigits) });
+    }
+  }
+
+  return patient;
+}
+
 /**
  * 3. GET /api/continuity/followups
  * Lists follow-ups filtered by patient or status (§32).
@@ -185,9 +211,20 @@ router.get('/followups', async (req, res) => {
   try {
     const { patientId, status, doctorId } = req.query;
     const filter = {};
-    if (patientId) filter.patientId = patientId;
+    if (patientId) {
+      if (mongoose.Types.ObjectId.isValid(patientId)) {
+        filter.patientId = patientId;
+      } else {
+        const patient = await findPatientSafely(patientId);
+        if (patient) {
+          filter.patientId = patient._id;
+        } else {
+          return res.json({ status: 'success', count: 0, data: [] });
+        }
+      }
+    }
     if (status) filter.status = status;
-    if (doctorId) filter.doctorId = doctorId;
+    if (doctorId && mongoose.Types.ObjectId.isValid(doctorId)) filter.doctorId = doctorId;
 
     const followUps = await FollowUp.find(filter).sort({ createdAt: -1 }).lean();
     return res.json({ status: 'success', count: followUps.length, data: followUps });
@@ -219,11 +256,21 @@ router.post('/referrals', async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'patientId, toDepartmentId, and reason are required' });
     }
 
+    let targetPatientId = patientId;
+    if (!mongoose.Types.ObjectId.isValid(patientId)) {
+      const p = await findPatientSafely(patientId);
+      if (p) {
+        targetPatientId = p._id;
+      } else {
+        targetPatientId = new mongoose.Types.ObjectId();
+      }
+    }
+
     const qrPayload = `REF-${referralScope.toUpperCase()}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const referral = await Referral.create({
       encounterId: encounterId && mongoose.Types.ObjectId.isValid(encounterId) ? encounterId : new mongoose.Types.ObjectId(),
-      patientId,
+      patientId: targetPatientId,
       fromDoctorId: fromDoctorId && mongoose.Types.ObjectId.isValid(fromDoctorId) ? fromDoctorId : new mongoose.Types.ObjectId(),
       referralScope,
       toHospitalId: toHospitalId && mongoose.Types.ObjectId.isValid(toHospitalId) ? toHospitalId : null,
@@ -264,7 +311,18 @@ router.get('/referrals/department/:departmentId', async (req, res) => {
 router.get('/referrals/my/:patientId', async (req, res) => {
   try {
     const { patientId } = req.params;
-    const referrals = await Referral.find({ patientId }).sort({ createdAt: -1 }).lean();
+    let query = {};
+    if (mongoose.Types.ObjectId.isValid(patientId)) {
+      query.patientId = patientId;
+    } else {
+      const patient = await findPatientSafely(patientId);
+      if (patient) {
+        query.patientId = patient._id;
+      } else {
+        return res.json({ status: 'success', count: 0, data: [] });
+      }
+    }
+    const referrals = await Referral.find(query).sort({ createdAt: -1 }).lean();
     return res.json({ status: 'success', count: referrals.length, data: referrals });
   } catch (error) {
     console.error('Error fetching patient referrals:', error);
