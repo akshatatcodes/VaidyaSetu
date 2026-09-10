@@ -17,6 +17,7 @@ import {
 import VitalsModals from '../components/VitalsModals';
 import LabResultsModals from '../components/LabResultsModals';
 import VitalAnalysisModal from '../components/VitalAnalysisModal';
+import LabAnalysisModal from '../components/LabAnalysisModal';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 

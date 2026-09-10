@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
  * Queue Schema — Live OPD / Follow-up queue tracking collection (§18-19)
  */
 const QueueEntrySchema = new mongoose.Schema({
-  patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },
+  patientId: { type: mongoose.Schema.Types.Mixed, ref: 'Patient', required: true },
   encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter' },
   tokenNumber: { type: String, required: true },
   priority: { type: String, enum: ['normal', 'urgent', 'emergency'], default: 'normal' },

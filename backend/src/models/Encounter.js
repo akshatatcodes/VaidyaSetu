@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
  */
 const EncounterSchema = new mongoose.Schema({
   patientId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed,
     ref: 'Patient',
     required: false,
     index: true

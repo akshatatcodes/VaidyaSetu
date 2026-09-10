@@ -24,24 +24,16 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // Default demo patient profile for instant zero-friction first load
-      const defaultDemoPatient = {
-        patientId: 'PAT-14112',
-        abhaId: '14-1122-3344-5566',
-        patientName: 'Rahul Sharma',
-        age: 58,
-        gender: 'Male',
-        mobile: '+91 9811223344',
-        email: 'rahul.sharma@gmail.com',
-        primaryCondition: 'Knee Osteoarthritis + Dyslipidemia Follow-up'
-      };
-
-      setIsAuthenticated(true);
-      setUserRole('patient');
-      setCurrentUser(defaultDemoPatient);
+      // No active session — require authentication
+      setIsAuthenticated(false);
+      setUserRole(null);
+      setCurrentUser(null);
     } catch (e) {
       console.warn('Session restore error:', e);
       localStorage.removeItem('vaidya_auth_session');
+      setIsAuthenticated(false);
+      setUserRole(null);
+      setCurrentUser(null);
     } finally {
       setAuthLoading(false);
     }

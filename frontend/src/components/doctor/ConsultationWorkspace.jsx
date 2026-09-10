@@ -82,7 +82,19 @@ const ConsultationWorkspace = ({
   abdmSyncStatus,
   handleDownloadFhir
 }) => {
-  if (!selectedSession) return null;
+  const pastIllnesses = Array.from(new Set([
+    ...(selectedSession.pastMedicalHistory || []),
+    ...(selectedSession.pastDiseases || []),
+    ...(selectedSession.medicalHistory?.pastMedicalHistory || []),
+    ...(selectedSession.medicalHistory?.pastDiseases || []),
+    ...(selectedSession.extractedHistory?.illnesses || [])
+  ])).filter(Boolean);
+
+  const patientAllergies = Array.from(new Set([
+    ...(selectedSession.allergies || []),
+    ...(selectedSession.medicalHistory?.allergies || []),
+    ...(selectedSession.extractedHistory?.allergies || [])
+  ])).filter(Boolean);
 
   const applyPreset = (preset) => {
     const newDiagnoses = [
@@ -185,9 +197,9 @@ const ConsultationWorkspace = ({
               <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
                 Comorbidities & Past Illnesses
               </span>
-              {selectedSession.pastMedicalHistory?.length > 0 ? (
+              {pastIllnesses.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
-                  {selectedSession.pastMedicalHistory.map((item, idx) => (
+                  {pastIllnesses.map((item, idx) => (
                     <span
                       key={idx}
                       className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-500/30"
@@ -205,12 +217,12 @@ const ConsultationWorkspace = ({
               <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
                 Drug & Substance Allergies
               </span>
-              {selectedSession.allergies?.length > 0 ? (
+              {patientAllergies.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
-                  {selectedSession.allergies.map((item, idx) => (
+                  {patientAllergies.map((item, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-500/30"
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-700 dark:text-rose-300 text-xs font-black border border-rose-500/40"
                     >
                       ⚠️ {item}
                     </span>

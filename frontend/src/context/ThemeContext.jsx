@@ -3,16 +3,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
-  const [fontSize, setFontSize] = useState(localStorage.getItem('fontSize') || 'base'); // base, large, x-large
+  // Pure light mode per hackathon requirements
+  const theme = 'light';
+  const [fontSize, setFontSize] = useState(localStorage.getItem('fontSize') || 'base');
   const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
   const [reducedMotion, setReducedMotion] = useState(localStorage.getItem('reducedMotion') === 'true');
 
   useEffect(() => {
     const root = window.document.documentElement;
-    // Theme
-    if (theme === 'dark') root.classList.add('dark');
-    else root.classList.remove('dark');
+    // Permanent light mode: guarantee dark class is removed
+    root.classList.remove('dark');
     
     // Accessibility Classes
     if (highContrast) root.classList.add('high-contrast');
@@ -23,19 +23,19 @@ export const ThemeProvider = ({ children }) => {
     
     root.setAttribute('data-font-size', fontSize);
 
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('theme', 'light');
     localStorage.setItem('fontSize', fontSize);
     localStorage.setItem('highContrast', highContrast);
     localStorage.setItem('reducedMotion', reducedMotion);
-  }, [theme, fontSize, highContrast, reducedMotion]);
+  }, [fontSize, highContrast, reducedMotion]);
 
-  const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  const toggleTheme = () => {}; // No-op, light mode only
   const toggleContrast = () => setHighContrast(prev => !prev);
   const toggleMotion = () => setReducedMotion(prev => !prev);
 
   return (
     <ThemeContext.Provider value={{ 
-      theme, toggleTheme, 
+      theme: 'light', toggleTheme, 
       fontSize, setFontSize, 
       highContrast, toggleContrast,
       reducedMotion, toggleMotion 

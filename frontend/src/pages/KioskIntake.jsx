@@ -13,7 +13,6 @@ import { API_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { useCaregiver } from '../context/CaregiverContext';
 import SymptomIconPicker from '../components/kiosk/SymptomIconPicker';
-import BodyMapSvg from '../components/kiosk/BodyMapSvg';
 import ConsentScreen from '../components/kiosk/ConsentScreen';
 import DocumentVerification from '../components/kiosk/DocumentVerification';
 import { saveKioskDraft, loadKioskDraft, installOnlineFlush, queueOfflineRequest, clearKioskLocalCache } from '../utils/kioskOffline';
@@ -22,23 +21,11 @@ import NeedStaffHelp from '../components/NeedStaffHelp';
 const LANG_OPTIONS = [
   { code: 'en', label: 'English' },
   { code: 'hi', label: 'हिन्दी' },
-  { code: 'mr', label: 'मराठी' },
-  { code: 'ta', label: 'தமிழ்' },
-  { code: 'te', label: 'తెలుగు' },
-  { code: 'bn', label: 'বাংলা' },
-  { code: 'gu', label: 'ગુજરાતી' },
-  { code: 'kn', label: 'ಕನ್ನಡ' },
-  { code: 'ml', label: 'മലയാളം' },
-  { code: 'or', label: 'ଓଡ଼ିଆ' },
-  { code: 'pa', label: 'ਪੰਜਾਬੀ' },
-  { code: 'as', label: 'অসমীয়া' },
-  { code: 'ur', label: 'اردو' }
+  { code: 'mr', label: 'मराठी' }
 ];
 
 const SPEECH_LOCALE = {
-  en: 'en-IN', hi: 'hi-IN', mr: 'mr-IN', ta: 'ta-IN', te: 'te-IN',
-  bn: 'bn-IN', gu: 'gu-IN', kn: 'kn-IN', ml: 'ml-IN', or: 'or-IN',
-  pa: 'pa-IN', as: 'as-IN', ur: 'ur-IN'
+  en: 'en-IN', hi: 'hi-IN', mr: 'mr-IN'
 };
 
 // Multilingual Dictionary
@@ -294,16 +281,51 @@ const DEPARTMENTS = [
   { id: 'Kaumarbhritya', label: 'कौमारभृत्य (Kaumarbhritya)', sub: 'Pediatrics & Child Wellness', icon: Sparkles, color: 'from-amber-500/20 to-orange-500/20 border-amber-500/30 text-amber-400' }
 ];
 
+
+const STEP_VOICE_INSTRUCTIONS = {
+  1: {
+    en: "Welcome to MediKiosk. Please verify your ABHA ID and personal details, check consent permissions, and tap proceed.",
+    hi: "चरण एक। मेडिकियोस्क में आपका स्वागत है। कृपया अपनी आभा आईडी व व्यक्तिगत जानकारी की पुष्टि करें और सहमति देकर आगे बढ़ें।",
+    mr: "टप्पा एक. मेडिकियोस्कमध्ये आपले स्वागत आहे. कृपया आपला आभा क्रमांक व माहिती तपासा, संमती द्या आणि पुढे जा."
+  },
+  2: {
+    en: "Step two. Voice clinical intake. Tap the green microphone to speak your symptoms, or select from suggested options.",
+    hi: "चरण दो। बोलकर लक्षण बताएं। हरा माइक दबाकर अपनी बीमारी बताएं या नीचे दिए गए विकल्पों में से चुनें।",
+    mr: "टप्पा दोन. बोलून आजार सांगा. हिरवा माईक दाबून आपली लक्षणे सांगा किंवा खालील पर्यायांमधून निवडा."
+  },
+  3: {
+    en: "Step three. Vitals station. Use the connected kiosk sensors to measure blood pressure, pulse, temperature, and oxygen.",
+    hi: "चरण तीन। वाइटल्स स्टेशन। कियोस्क सेंसर से अपना रक्तचाप, नब्ज, तापमान और ऑक्सीजन स्तर दर्ज करें।",
+    mr: "टप्पा तीन. वाइटल्स तपासणी. कियोस्क सेन्सरद्वारे आपला रक्तदाब, नाडी, तापमान व ऑक्सिजन मोजा."
+  },
+  4: {
+    en: "Step four. AYUSH Dashavidha Pariksha. Select your Prakriti body type and digestion fire, or leave for doctor examination.",
+    hi: "चरण चार। आयुष दशविध परीक्षा। अपने शरीर की प्रकृति और पाचन शक्ति का चयन करें या डॉक्टर की जांच हेतु छोड़ें।",
+    mr: "टप्पा चार. आयुष दशविध परीक्षा. आपल्या शरीराची प्रकृती व पचनक्षमता निवडा किंवा डॉक्टरांच्या तपासणीसाठी ठेवा."
+  },
+  5: {
+    en: "Step five. Previous prescriptions and reports scan. Upload your existing medicines to check for herb-drug safety.",
+    hi: "चरण पांच। पुराने पर्चे व रिपोर्ट स्कैन करें। वर्तमान दवाओं की जांच और दुष्प्रभाव रोकने हेतु पर्चा अपलोड करें।",
+    mr: "टप्पा पाच. जुनी कागदपत्रे स्कॅन करा. चालू औषधांची तपासणी करून औषध-दुष्परिणाम टाळण्यासाठी प्रिस्क्रिप्शन अपलोड करा."
+  },
+  6: {
+    en: "Step six. Registration complete. Please take your printed OPD token slip and proceed to the designated consultation room.",
+    hi: "चरण छह। पंजीयन पूर्ण हुआ। कृपया अपनी मुद्रित ओपीडी टोकन पर्ची प्राप्त करें और परामर्श कक्ष में जाएं।",
+    mr: "टप्पा सहा. नोंदणी यशस्वीरीत्या पूर्ण झाली. कृपया आपली छापील ओपीडी पावती घ्या आणि नियुक्त कक्षात जा."
+  }
+};
+
 const KioskIntake = ({ isStandalone = false }) => {
   // Navigation & Preferences
   const [lang, setLang] = useState('hi');
-  const [currentStep, setCurrentStep] = useState(0); // 0 = consent
+  const [currentStep, setCurrentStep] = useState(1); // 1 = patient intake & consent
+  const [consultationType, setConsultationType] = useState('ayurvedic'); // 'ayurvedic' | 'allopathy'
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [voiceAssist, setVoiceAssist] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedDemo, setSelectedDemo] = useState(null);
   const [consent, setConsent] = useState({
-    dataCapture: false,
+    dataCapture: true,
     documentStorage: true,
     doctorSharing: true,
     audioNarrated: false
@@ -312,6 +334,7 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [pendingDoc, setPendingDoc] = useState(null);
   const [qrSvg, setQrSvg] = useState('');
   const [offlineNotice, setOfflineNotice] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   const [departmentsList, setDepartmentsList] = useState(DEPARTMENTS);
 
@@ -349,25 +372,13 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [privacyCountdown, setPrivacyCountdown] = useState(30);
 
   const { currentUser, isAuthenticated, userRole } = useAuth();
-  const {
-    isCaregiverMode,
-    caregiverInfo,
-    currentlyManaging,
-    consentVerified,
-    enableCaregiverMode,
-    switchPatient,
-    verifyCaregiverConsent,
-    exitCaregiverMode
-  } = useCaregiver();
-
-  const [caregiverForm, setCaregiverForm] = useState({
-    caregiverName: '',
-    caregiverMobile: '',
-    relation: 'Parent'
-  });
-  const [showCaregiverOtpModal, setShowCaregiverOtpModal] = useState(false);
-  const [caregiverOtpInput, setCaregiverOtpInput] = useState('');
-  const [otpError, setOtpError] = useState('');
+  // Caregiver Mode disabled for pure patient self-intake per requirements
+  const isCaregiverMode = false;
+  const caregiverInfo = {};
+  const caregiverForm = { caregiverName: '', caregiverMobile: '', relation: 'Self' };
+  const showCaregiverOtpModal = false;
+  const setShowCaregiverOtpModal = () => {};
+  const exitCaregiverMode = () => {};
 
   // Step 1: Patient Identity (Blank by default for walk-in visitors)
   const [patientForm, setPatientForm] = useState({
@@ -408,6 +419,8 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [showManualDeptModal, setShowManualDeptModal] = useState(false);
   const [quickReplies, setQuickReplies] = useState([]);
   const [pendingSpeechConfirm, setPendingSpeechConfirm] = useState(null);
+  const chatEndRef = useRef(null);
+  const [extractedHistory, setExtractedHistory] = useState({ illnesses: [], allergies: [] });
 
   // Step 3: Vitals & Connected Medical Devices (Optional)
   const [vitals, setVitals] = useState({
@@ -456,14 +469,32 @@ const KioskIntake = ({ isStandalone = false }) => {
     });
   }, [patientForm, chiefComplaint, lang, currentStep, vitals, sessionId]);
 
-  // Step 4: Dashavidha Pariksha (Default empty dropdowns)
+  // Step 4: Classical AYUSH Pariksha (Trividha, Ashtavidha, Dashavidha)
+  const [parikshaTab, setParikshaTab] = useState('trividha'); // 'trividha' | 'ashtavidha' | 'dashavidha'
+  const [trividha, setTrividha] = useState({
+    darshana: '',
+    sparshana: '',
+    prashna: ''
+  });
+  const [ashtavidha, setAshtavidha] = useState({
+    nadi: '',
+    mootra: '',
+    mala: '',
+    jihwa: '',
+    shabda: '',
+    sparsha: '',
+    drik: '',
+    akruti: ''
+  });
   const [dasha, setDasha] = useState({
     prakriti: '',
     prakritiDetails: null,
     agni: '',
     koshtha: '',
     satva: '',
-    vyayamaShakti: ''
+    vyayamaShakti: '',
+    sara: '',
+    samhanana: ''
   });
 
   // Step 5: Medical Records, Past History & Live Camera
@@ -516,9 +547,15 @@ const KioskIntake = ({ isStandalone = false }) => {
     return () => clearInterval(timer);
   }, [currentStep]);
 
+  // Auto-scroll chat to bottom when message or quick-replies arrive
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [transcript, quickReplies]);
+
   const handleResetKiosk = () => {
-    // 1. Reset current step to Welcome / Identity Screen
-    setCurrentStep(0);
+    // 1. Reset current step to Patient Check-in
+    setCurrentStep(1);
+    setConsultationType('ayurvedic');
 
     // 2. Clear Patient Identity Form
     setPatientForm({
@@ -543,6 +580,7 @@ const KioskIntake = ({ isStandalone = false }) => {
     setShowManualDeptModal(false);
     setQuickReplies([]);
     setPendingSpeechConfirm(null);
+    setExtractedHistory({ illnesses: [], allergies: [] });
 
     // 4. Clear Vitals State
     setVitals({
@@ -555,13 +593,19 @@ const KioskIntake = ({ isStandalone = false }) => {
       weightKg: ''
     });
 
-    // 5. Clear Dashavidha Pariksha State
+    // 5. Clear Pariksha State
+    setParikshaTab('trividha');
+    setTrividha({ darshana: '', sparshana: '', prashna: '' });
+    setAshtavidha({ nadi: '', mootra: '', mala: '', jihwa: '', shabda: '', sparsha: '', drik: '', akruti: '' });
     setDasha({
       prakriti: '',
+      prakritiDetails: null,
       agni: '',
       koshtha: '',
       satva: '',
-      vyayama: ''
+      vyayamaShakti: '',
+      sara: '',
+      samhanana: ''
     });
 
     // 6. Clear Tokens & Case Sheet
@@ -576,11 +620,11 @@ const KioskIntake = ({ isStandalone = false }) => {
     setFinalCaseSheet(null);
     setQrSvg('');
     setPendingDoc(null);
-    setOcrMeds([]);
+    setExtractedMeds([]);
 
     // 7. Reset Consents
     setConsent({
-      dataCapture: false,
+      dataCapture: true,
       documentStorage: true,
       doctorSharing: true,
       audioNarrated: false
@@ -1122,6 +1166,23 @@ const KioskIntake = ({ isStandalone = false }) => {
             }
           }
 
+          // Extract and store past medical history / allergies recognized by AI
+          if (data.extractedMedicalHistory) {
+            const { illnesses = [], allergies: extractedAllergies = [] } = data.extractedMedicalHistory;
+            if (illnesses.length > 0) {
+              setPastDiseases(prev => Array.from(new Set([...prev, ...illnesses])));
+            }
+            if (extractedAllergies.length > 0) {
+              setAllergies(prev => Array.from(new Set([...prev, ...extractedAllergies])));
+            }
+            if (illnesses.length > 0 || extractedAllergies.length > 0) {
+              setExtractedHistory(prev => ({
+                illnesses: Array.from(new Set([...(prev?.illnesses || []), ...illnesses])),
+                allergies: Array.from(new Set([...(prev?.allergies || []), ...extractedAllergies]))
+              }));
+            }
+          }
+
           setTranscript(prev => [
             ...prev,
             { speaker: 'kiosk', text: data.nextQuestion }
@@ -1131,8 +1192,11 @@ const KioskIntake = ({ isStandalone = false }) => {
       } else {
         const followUp = lang === 'hi'
           ? 'यह तकलीफ कितने दिनों से है और इसकी तीव्रता कैसी है?'
+          : lang === 'mr'
+          ? 'हा त्रास किती दिवसांपासून आहे आणि तीव्रता कशी आहे?'
           : 'How long have you had this issue, and how severe is it?';
         setNextQuestion(followUp);
+        setQuickReplies(['1-2 दिवस', '3-5 दिवस', '1 आठवडा', '1 महिन्याहून अधिक']);
         setTranscript(prev => [...prev, { speaker: 'kiosk', text: followUp }]);
         speakText(followUp);
       }
@@ -1144,8 +1208,8 @@ const KioskIntake = ({ isStandalone = false }) => {
   };
 
   const handleSelectQuickReply = (chipText) => {
-    setPendingSpeechConfirm({ text: chipText, raw: chipText });
     setSpeechInput(chipText);
+    handleSendSocratesResponse(chipText);
   };
 
   const handleConfirmAndSendSpeech = async () => {
@@ -1193,18 +1257,33 @@ const KioskIntake = ({ isStandalone = false }) => {
     }
   };
 
-  // Step 4: Save Dashavidha
+  // Step 4: Save AYUSH Classical Pariksha (Trividha, Ashtavidha, Dashavidha)
   const handleSaveDashavidha = async () => {
+    // If Ayurvedic is selected and patient left everything blank, default gracefully so they aren't stuck
+    if (consultationType === 'ayurvedic' && !dasha.prakriti && !trividha.darshana && !ashtavidha.nadi) {
+      setDasha(prev => ({
+        ...prev,
+        prakriti: prev.prakriti || 'Vata-Pitta',
+        prakritiDetails: prev.prakritiDetails || { primaryDosha: 'Vata', secondaryDosha: 'Pitta', vataScore: 50, pittaScore: 35, kaphaScore: 15 }
+      }));
+    }
     setIsSubmitting(true);
     try {
       if (sessionId && !sessionId.startsWith('session_')) {
         await axios.patch(`${API_URL}/kiosk/session/${sessionId}/dashavidha`, {
           dashavidhaPariksha: {
-            prakriti: dasha.prakritiDetails,
-            vikriti: 'Asthi-Majjagata Kupita Vata',
-            sara: 'Madhyama (Medium)',
-            aharaShakti: { abhyavaharana: 'Madhyama (Moderate)', jaranaShakti: dasha.agni },
-            vyayamaShakti: dasha.vyayamaShakti
+            consultationType,
+            prakriti: dasha.prakritiDetails || { primaryDosha: dasha.prakriti || 'Vata-Pitta' },
+            vikriti: dasha.prakriti || 'Sama Dosha',
+            sara: dasha.sara || 'Madhyama (Medium)',
+            samhanana: dasha.samhanana || 'Susamhata',
+            agni: dasha.agni || 'Samagni',
+            koshtha: dasha.koshtha || 'Madhyama',
+            satva: dasha.satva || 'Madhyama',
+            aharaShakti: { abhyavaharana: 'Madhyama (Moderate)', jaranaShakti: dasha.agni || 'Samagni' },
+            vyayamaShakti: dasha.vyayamaShakti || 'Madhyama',
+            trividhaPariksha: trividha,
+            ashtavidhaPariksha: ashtavidha
           }
         });
       }
@@ -1351,7 +1430,13 @@ const KioskIntake = ({ isStandalone = false }) => {
             { step: 1, label: t.step1, icon: User, required: true },
             { step: 2, label: t.step2, icon: Mic, required: true },
             { step: 3, label: t.step3, icon: Activity, optional: true },
-            { step: 4, label: t.step4, icon: Sparkles, optional: true },
+            { 
+              step: 4, 
+              label: t.step4, 
+              icon: Sparkles, 
+              optional: consultationType !== 'ayurvedic', 
+              required: consultationType === 'ayurvedic' 
+            },
             { step: 5, label: t.step5, icon: FileText, optional: true },
             { step: 6, label: t.step6, icon: QrCode, required: true }
           ].map(s => {
@@ -1389,62 +1474,10 @@ const KioskIntake = ({ isStandalone = false }) => {
         </div>
       </div>
 
-      {/* ────────────────── CAREGIVER MODE BANNER ────────────────── */}
-      {isCaregiverMode && (
-        <div className="mb-6 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950 via-slate-900 to-orange-950 border-2 border-amber-500/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-amber-100">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0 border border-amber-500/30">
-              <UserCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-amber-400">Caregiver Mode Active</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200 text-[10px] font-black uppercase tracking-wider border border-amber-500/40">
-                  {caregiverForm.relation || caregiverInfo.relation || 'Caregiver'}
-                </span>
-                {consentVerified ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/40 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Patient OTP Consent Verified
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1">
-                    <ShieldAlert className="w-3 h-3 text-amber-400" /> OTP Consent Gate Locked
-                  </span>
-                )}
-              </div>
-              <p className="text-sm font-bold text-white mt-1">
-                Currently managing intake for: <span className="text-emerald-300 underline font-black">{patientForm.patientName || currentlyManaging?.patientName || 'Patient'}</span>
-                <span className="text-xs text-amber-200/80 font-medium ml-2 hidden sm:inline">
-                  (Caregiver: {caregiverForm.caregiverName || caregiverInfo.caregiverName || 'Caregiver'})
-                </span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            {!consentVerified && (
-              <button
-                type="button"
-                onClick={() => setShowCaregiverOtpModal(true)}
-                className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <Shield className="w-4 h-4" /> Unlock Records (OTP)
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={exitCaregiverMode}
-              className="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs border border-red-500/40 transition-all cursor-pointer"
-            >
-              Exit Caregiver Mode
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ────────────────── STEP 0: CONSENT (DPDP) ────────────────── */}
+      {/* ────────────────── STEP 0: FALLBACK CONSENT ────────────────── */}
       {currentStep === 0 && (
         <ConsentScreen
-          lang={['hi', 'en'].includes(lang) ? lang : 'en'}
+          lang={['hi', 'mr', 'en'].includes(lang) ? lang : 'en'}
           value={consent}
           onChange={setConsent}
           speakText={speakText}
@@ -1628,98 +1661,6 @@ const KioskIntake = ({ isStandalone = false }) => {
             </div>
           )}
 
-          {/* Caregiver Mode Toggle Card */}
-          <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-slate-900/40 border-2 border-amber-500/30 space-y-4 mb-6">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isCaregiverMode}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    enableCaregiverMode({
-                      caregiverName: caregiverForm.caregiverName,
-                      caregiverMobile: caregiverForm.caregiverMobile,
-                      relation: caregiverForm.relation,
-                      patientName: patientForm.patientName,
-                      abhaId: patientForm.abhaId
-                    });
-                  } else {
-                    exitCaregiverMode();
-                  }
-                }}
-                className="w-5 h-5 rounded text-amber-500 focus:ring-amber-500 cursor-pointer"
-              />
-              <div>
-                <span className="text-sm font-black text-slate-900 dark:text-amber-200 flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-amber-400" /> Enter information as a Caregiver / Family Member
-                </span>
-                <p className="text-xs text-slate-500 dark:text-gray-400">
-                  Check this box if you are completing intake for a child, elderly parent, or relative.
-                </p>
-              </div>
-            </label>
-
-            {isCaregiverMode && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-amber-500/20 animate-in fade-in duration-200">
-                <div>
-                  <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                    Caregiver Name *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Ramesh Kumar"
-                    value={caregiverForm.caregiverName}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      setCaregiverForm(prev => ({ ...prev, caregiverName: name }));
-                      enableCaregiverMode({ caregiverName: name, caregiverMobile: caregiverForm.caregiverMobile, relation: caregiverForm.relation, patientName: patientForm.patientName, abhaId: patientForm.abhaId });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-amber-500/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                    Caregiver Mobile *
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="e.g. 9876543210"
-                    value={caregiverForm.caregiverMobile}
-                    onChange={(e) => {
-                      const mob = e.target.value;
-                      setCaregiverForm(prev => ({ ...prev, caregiverMobile: mob }));
-                      enableCaregiverMode({ caregiverName: caregiverForm.caregiverName, caregiverMobile: mob, relation: caregiverForm.relation, patientName: patientForm.patientName, abhaId: patientForm.abhaId });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-amber-500/30 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                    Relation to Patient *
-                  </label>
-                  <select
-                    value={caregiverForm.relation}
-                    onChange={(e) => {
-                      const rel = e.target.value;
-                      setCaregiverForm(prev => ({ ...prev, relation: rel }));
-                      enableCaregiverMode({ caregiverName: caregiverForm.caregiverName, caregiverMobile: caregiverForm.caregiverMobile, relation: rel, patientName: patientForm.patientName, abhaId: patientForm.abhaId });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-amber-500/30 cursor-pointer"
-                  >
-                    <option value="Parent">Parent (Mother / Father)</option>
-                    <option value="Spouse">Spouse (Husband / Wife)</option>
-                    <option value="Child">Son / Daughter</option>
-                    <option value="Sibling">Brother / Sister</option>
-                    <option value="Legal Guardian">Legal Guardian</option>
-                    <option value="Other">Other Family Member</option>
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* ABHA ID with Verified Badge & History Lookup */}
@@ -1812,6 +1753,66 @@ const KioskIntake = ({ isStandalone = false }) => {
             </div>
           </div>
 
+          {/* Patient Consent & ABDM Privacy Controls (§3 Restored) */}
+          <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border-2 border-emerald-500/30 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                    {lang === 'hi' ? 'रोगी सहमति एवं डेटा सुरक्षा (ABDM / DPDP)' : lang === 'mr' ? 'रुग्ण संमती आणि डेटा सुरक्षा (ABDM)' : 'Patient Consent & Privacy Controls'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400">
+                    National Health Authority (ABDM) & Digital Personal Data Protection (DPDP) Compliant
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-black uppercase tracking-wider border border-emerald-500/30 w-fit">
+                ✓ Consent Authorized
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/20 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-all">
+                <input
+                  type="checkbox"
+                  checked={consent.dataCapture !== false}
+                  onChange={(e) => setConsent({ ...consent, dataCapture: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                />
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    {lang === 'hi' ? 'क्लिनिकल लक्षण व वाइटल्स रिकॉर्डिंग' : lang === 'mr' ? 'क्लिनिकल लक्षणे व वाइटल्स नोंदणी' : 'Clinical History & Vitals Capture'}
+                    <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] rounded font-black">REQUIRED</span>
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-gray-400 block leading-tight">
+                    {lang === 'hi' ? 'लक्षण, तापमान, बीपी व आयुष परीक्षा दर्ज करने की सहमति' : lang === 'mr' ? 'लक्षणे, वाइटल्स व आयुष परीक्षा नोंदवण्याची संमती' : 'Record symptoms, vitals & Ayush examination for this OPD visit'}
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/20 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-all">
+                <input
+                  type="checkbox"
+                  checked={consent.doctorSharing !== false}
+                  onChange={(e) => setConsent({ ...consent, doctorSharing: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                />
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    {lang === 'hi' ? 'परामर्शदाता डॉक्टर के साथ शेयरिंग' : lang === 'mr' ? 'सल्लागार डॉक्टरांसोबत डेटा शेअरिंग' : 'Consulting Physician Sharing'}
+                    <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] rounded font-black">ACTIVE</span>
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-gray-400 block leading-tight">
+                    {lang === 'hi' ? 'ओपीडी डॉक्टर के साथ केस सारांश साझा करने की अनुमति' : lang === 'mr' ? 'डॉक्टरांसोबत केस सारांश शेअर करण्याची संमती' : 'Share AI-assisted case summary with assigned doctor'}
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+
           {/* Action button */}
           <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex justify-end">
             <button
@@ -1858,6 +1859,49 @@ const KioskIntake = ({ isStandalone = false }) => {
                 {redFlags.length} RED-FLAG TRIAGE CRITERIA ACTIVE
               </div>
             )}
+          </div>
+
+          {/* Consultation Stream Selector: Ayurvedic vs Allopathy */}
+          <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-900/30 border-2 border-emerald-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-lg">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  Select Medical System / Consultation Stream
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase">
+                  Active: {consultationType === 'ayurvedic' ? 'Ayurveda' : 'Allopathy'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
+                {consultationType === 'ayurvedic'
+                  ? '🌿 AYUSH Classical Consultation selected — Step 4 (Trividha / Ashtavidha / Dashavidha Pariksha) is MANDATORY.'
+                  : '💊 Allopathy General OPD Consultation selected — Step 4 (Ayush Pariksha) is OPTIONAL and can be skipped.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setConsultationType('ayurvedic')}
+                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 shadow-md ${
+                  consultationType === 'ayurvedic'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white ring-4 ring-emerald-500/30 scale-105'
+                    : 'bg-white dark:bg-white/10 text-slate-700 dark:text-gray-200 hover:bg-emerald-500/10'
+                }`}
+              >
+                🌿 Ayurvedic OPD (AYUSH)
+              </button>
+              <button
+                type="button"
+                onClick={() => setConsultationType('allopathy')}
+                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 shadow-md ${
+                  consultationType === 'allopathy'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white ring-4 ring-blue-500/30 scale-105'
+                    : 'bg-white dark:bg-white/10 text-slate-700 dark:text-gray-200 hover:bg-blue-500/10'
+                }`}
+              >
+                💊 Allopathy General OPD
+              </button>
+            </div>
           </div>
 
           {/* AI Inferred Department Recommendation Banner */}
@@ -1915,21 +1959,16 @@ const KioskIntake = ({ isStandalone = false }) => {
           </div>
 
           <div>
-            <p className="text-xs font-black uppercase tracking-wider text-slate-500 mb-1">Tap a symptom (or use voice below)</p>
+            <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-gray-400 mb-2">
+              Tap a common OPD symptom (or speak / type below):
+            </p>
             <SymptomIconPicker
               lang={['hi', 'mr', 'en'].includes(lang) ? lang : 'en'}
               value={chiefComplaint}
               onSelect={(text) => {
                 setChiefComplaint(text);
                 setSpeechInput(text);
-              }}
-            />
-            <BodyMapSvg
-              selected={bodySite}
-              onSelect={(site) => {
-                setBodySite(site);
-                setSpeechInput((prev) => prev || site);
-                if (!chiefComplaint) setChiefComplaint(`Pain / discomfort in ${site}`);
+                handleSendSocratesResponse(text);
               }}
             />
           </div>
@@ -2005,7 +2044,27 @@ const KioskIntake = ({ isStandalone = false }) => {
           )}
 
           {/* Conversational Doctor-Patient Dialogue Feed */}
-          <div className="space-y-4 max-h-80 overflow-y-auto p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10">
+          <div className="space-y-4 max-h-96 overflow-y-auto p-4 sm:p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10 shadow-inner">
+            
+            {/* Extracted Clinical Details Badge */}
+            {(extractedHistory.illnesses?.length > 0 || extractedHistory.allergies?.length > 0) && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-transparent border border-emerald-500/30 flex flex-wrap items-center gap-2 animate-in fade-in">
+                <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> AI Recognized Clinical History:
+                </span>
+                {extractedHistory.illnesses.map((ill, i) => (
+                  <span key={i} className="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30 text-[11px] font-bold">
+                    Past Illness: {ill}
+                  </span>
+                ))}
+                {extractedHistory.allergies.map((all, i) => (
+                  <span key={i} className="px-2.5 py-1 rounded-xl bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/30 text-[11px] font-bold">
+                    Allergy: {all}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {transcript.map((item, idx) => (
               <div
                 key={idx}
@@ -2035,9 +2094,26 @@ const KioskIntake = ({ isStandalone = false }) => {
                     )}
                   </div>
                   {item.text}
+
+                  {/* Render Quick Reply option buttons right under the latest AI message */}
+                  {item.speaker === 'kiosk' && idx === transcript.length - 1 && quickReplies && quickReplies.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10 flex flex-wrap gap-2">
+                      {quickReplies.map((chipText, cIdx) => (
+                        <button
+                          key={cIdx}
+                          type="button"
+                          onClick={() => handleSelectQuickReply(chipText)}
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-600 hover:text-white text-emerald-800 dark:text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                        >
+                          {chipText}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+            <div ref={chatEndRef} />
           </div>
 
           {/* Central Voice Intake Console */}
@@ -2097,11 +2173,11 @@ const KioskIntake = ({ isStandalone = false }) => {
               </p>
             </div>
 
-            {/* Guided Quick Reply Chips (Parallel Touch Path per SunoSaathi specification) */}
+            {/* Guided Quick Reply Chips */}
             {quickReplies && quickReplies.length > 0 && (
               <div className="w-full max-w-2xl space-y-2 text-left pt-2 border-t border-gray-200 dark:border-white/10">
                 <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">
-                  ⚡ Quick Choice Chips (Tap to select):
+                  ⚡ Suggested Options (Tap to send instantly):
                 </p>
                 <div className="flex flex-wrap gap-2.5">
                   {quickReplies.map((chipText, idx) => (
@@ -2109,7 +2185,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                       key={idx}
                       type="button"
                       onClick={() => handleSelectQuickReply(chipText)}
-                      className="px-4 py-2.5 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500 hover:text-slate-950 text-emerald-800 dark:text-emerald-300 font-bold text-xs border-2 border-emerald-500/30 hover:border-emerald-400 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                      className="px-4 py-2.5 rounded-2xl bg-emerald-500/15 hover:bg-emerald-600 hover:text-white text-emerald-800 dark:text-emerald-300 font-bold text-xs border-2 border-emerald-500/30 hover:border-emerald-400 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
                     >
                       {chipText}
                     </button>
@@ -2118,37 +2194,7 @@ const KioskIntake = ({ isStandalone = false }) => {
               </div>
             )}
 
-            {/* SunoSaathi "We Understood... Correct / Edit" Confirmation Card */}
-            {pendingSpeechConfirm && (
-              <div className="w-full max-w-2xl p-5 rounded-3xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-600/20 border-2 border-emerald-500/50 shadow-xl space-y-3.5 text-left animate-in fade-in zoom-in-95">
-                <div className="flex items-center gap-2.5 font-black text-slate-900 dark:text-white text-base">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
-                  <span>We understood: "{pendingSpeechConfirm.text}"</span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-gray-300">
-                  Please confirm if this accurately describes your answer, or edit below before sending.
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleConfirmAndSendSpeech}
-                    disabled={isSubmitting}
-                    className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-4 h-4" /> ✓ Correct & Continue
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPendingSpeechConfirm(null)}
-                    className="px-5 py-2.5 rounded-xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-800 dark:text-white font-bold text-xs cursor-pointer"
-                  >
-                    ✍️ Edit / Retype
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Live Text Input / Transcript Fallback */}
+            {/* Live Text Input with Enter Key Support */}
             <div className="w-full max-w-2xl flex flex-col sm:flex-row items-center gap-2">
               <input
                 type="text"
@@ -2156,6 +2202,12 @@ const KioskIntake = ({ isStandalone = false }) => {
                 onChange={(e) => {
                   setSpeechInput(e.target.value);
                   setChiefComplaint(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSendSocratesResponse();
+                  }
                 }}
                 placeholder={t.typeFallback}
                 className="w-full px-4 py-3.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm"
@@ -2166,7 +2218,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                 disabled={isSubmitting}
                 className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md transition-all cursor-pointer whitespace-nowrap"
               >
-                {t.sendBtn}
+                {t.sendBtn} (↵)
               </button>
             </div>
           </div>
@@ -2481,7 +2533,6 @@ const KioskIntake = ({ isStandalone = false }) => {
 
           {/* Biometrics: Height, Weight & Dynamic Indian BMI Gauge */}
           <div className="p-6 sm:p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-            
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-2">
@@ -2524,7 +2575,6 @@ const KioskIntake = ({ isStandalone = false }) => {
 
             {/* Dynamic BMI Gauge Display */}
             <div className="lg:col-span-2 flex flex-col sm:flex-row items-center justify-around gap-6 p-6 rounded-2xl bg-white dark:bg-slate-900/80 border border-gray-200 dark:border-white/10 shadow-inner">
-              
               <div className="text-center sm:text-left">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">
                   Calculated Body Mass Index
@@ -2605,65 +2655,357 @@ const KioskIntake = ({ isStandalone = false }) => {
         </div>
       )}
 
-      {/* ────────────────── STEP 4: AYUSH DASHAVIDHA PARIKSHA ────────────────── */}
+      {/* ────────────────── STEP 4: AYUSH CLASSICAL PARIKSHA (TRIVIDHA, ASHTAVIDHA, DASHASVIDHA) ────────────────── */}
       {currentStep === 4 && (
         <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl p-6 sm:p-10 border border-emerald-500/20 shadow-2xl space-y-8 animate-in fade-in duration-300">
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200 dark:border-white/10">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-full text-xs font-black uppercase tracking-wider mb-2">
-                Step 4 of 6 • {t.optionalBadge}
-              </div>
+              {consultationType === 'ayurvedic' ? (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 rounded-full text-xs font-black uppercase tracking-wider mb-2">
+                  🌿 Step 4 of 6 • MANDATORY FOR AYURVEDIC OPD
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-500/10 dark:bg-slate-500/20 text-slate-700 dark:text-slate-300 border border-slate-500/30 rounded-full text-xs font-black uppercase tracking-wider mb-2">
+                  Step 4 of 6 • OPTIONAL (ALLOPATHY OPD)
+                </div>
+              )}
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                {t.dashaHeading}
+                {lang === 'hi'
+                  ? 'आयुष नैदानिक परीक्षा (त्रिविध • अष्टविध • दशविध)'
+                  : lang === 'mr'
+                  ? 'आयुष क्लिनिकल तपासणी (त्रिविध • अष्टविध • दशविध)'
+                  : 'AYUSH Clinical Examination (Trividha • Ashtavidha • Dashavidha)'}
               </h2>
               <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">
-                {t.dashaSub}
+                {lang === 'hi'
+                  ? 'पारंपरिक आयुर्वेदिक निदान पद्धतियाँ: दर्शन-स्पर्शन-प्रश्न, अष्टविध नाड़ी-जिह्वा एवं दशविध प्रकृति परीक्षा।'
+                  : lang === 'mr'
+                  ? 'पारंपारिक आयुर्वेदिक तपासणी: दर्शन-स्पर्शन-प्रश्न, अष्टविध नाडी-जिह्वा आणि दशविध प्रकृती परीक्षण.'
+                  : 'Classical Ayurvedic diagnosis framework: Visual/Touch/Inquiry, 8-fold Pulse & Tongue, and 10-fold Constitutional metrics.'}
               </p>
             </div>
 
-            {/* Quick Skip button at top */}
+            {/* Skip Button or Mandatory Indicator */}
+            {consultationType === 'allopathy' ? (
+              <button
+                type="button"
+                onClick={() => goToStep(5)}
+                className="px-5 py-3 rounded-2xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-800 dark:text-gray-200 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
+              >
+                Skip Step (Doctor will assess in OPD) <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <div className="px-4 py-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-black flex items-center gap-2 shadow-sm shrink-0">
+                <Shield className="w-4 h-4 text-emerald-500" /> Mandatory for Ayurvedic Triage
+              </div>
+            )}
+          </div>
+
+          {/* Classical Pariksha Mode Selector Tabs */}
+          <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-inner">
             <button
               type="button"
-              onClick={() => goToStep(5)}
-              className="px-5 py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm border border-amber-500/30 shrink-0"
+              onClick={() => setParikshaTab('trividha')}
+              className={`px-4 py-3 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 ${
+                parikshaTab === 'trividha'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                  : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
+              }`}
             >
-              {t.skipDashaBtn} <ChevronRight className="w-4 h-4" />
+              🌿 Trividha Pariksha (दर्शन • स्पर्शन • प्रश्न)
+            </button>
+            <button
+              type="button"
+              onClick={() => setParikshaTab('ashtavidha')}
+              className={`px-4 py-3 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 ${
+                parikshaTab === 'ashtavidha'
+                  ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-md'
+                  : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              🔍 Ashtavidha Pariksha (८ नैदानिक परीक्षा)
+            </button>
+            <button
+              type="button"
+              onClick={() => setParikshaTab('dashavidha')}
+              className={`px-4 py-3 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 ${
+                parikshaTab === 'dashavidha'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md'
+                  : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              ⚖️ Dashavidha Pariksha (१० समग्र परीक्षा)
             </button>
           </div>
 
-          {/* Friendly Reassurance Notice for Patients */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start gap-3.5">
-            <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-xs sm:text-sm leading-relaxed">
-              <span className="font-black block text-amber-700 dark:text-amber-300 mb-0.5">
-                {t.dashaNoticeTitle}
-              </span>
-              {t.dashaNotice}
-            </div>
-          </div>
+          {/* TAB 1: TRIVIDHA PARIKSHA */}
+          {parikshaTab === 'trividha' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-xs">
+                <strong>त्रिविध परीक्षा (Trividha Pariksha):</strong> Three-fold classical clinical method (दर्शनम् स्पर्शनम् च प्रश्नम्) as taught by Acharya Charaka and Sushruta.
+              </div>
 
-          <div className="space-y-6">
-            
-            {/* 1. Prakriti (Body Constitution) */}
-            <div>
-              <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-3">
-                {t.prakritiTitle}
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { id: 'Vata', title: '💨 Vata (वात)', sub: 'Light build, quick actions, prone to joint stiffness and dry skin.', details: { primaryDosha: 'Vata', secondaryDosha: 'Kapha', vataScore: 65, pittaScore: 25, kaphaScore: 40 } },
-                  { id: 'Pitta', title: '🔥 Pitta (पित्त)', sub: 'Medium muscular build, sharp digestion, warm body, prone to acidity.', details: { primaryDosha: 'Pitta', secondaryDosha: 'Vata', vataScore: 35, pittaScore: 70, kaphaScore: 20 } },
-                  { id: 'Kapha', title: '🌊 Kapha (कफ)', sub: 'Sturdy broad build, calm disposition, slow digestion, good stamina.', details: { primaryDosha: 'Kapha', secondaryDosha: 'Pitta', vataScore: 20, pittaScore: 30, kaphaScore: 75 } },
-                  { id: 'Unsure', title: t.unsurePrakriti, sub: t.unsurePrakritiSub, details: { primaryDosha: 'Undetermined', secondaryDosha: 'Pending Doctor Nadi Pariksha', vataScore: 33, pittaScore: 33, kaphaScore: 33 } }
-                ].map(p => {
-                  const isSelected = dasha.prakriti === p.id || (dasha.prakriti.includes(p.id) && !['Vata', 'Pitta', 'Kapha', 'Unsure'].includes(dasha.prakriti));
-                  return (
+              {/* 1. Darshana (Visual Inspection) */}
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-700 dark:text-gray-300 tracking-wider mb-2">
+                  १. दर्शन परीक्षा (Visual Inspection - Complexion, Sclera & Posture)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: 'Normal / Healthy', label: 'प्राकृत (Normal)', desc: 'Clear eyes, vibrant skin luster' },
+                    { id: 'Pandu (Pale)', label: 'पाण्डु (Pale/Anemic)', desc: 'Pale sclera and tongue' },
+                    { id: 'Peeta (Jaundiced)', label: 'पीत (Yellow/Pitta)', desc: 'Yellowish tint on skin/eyes' },
+                    { id: 'Shyava (Dark/Cyanotic)', label: 'श्याव (Dark/Vata)', desc: 'Dull grayish complexion, dry' }
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setTrividha({ ...trividha, darshana: item.id })}
+                      className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        trividha.darshana === item.id
+                          ? 'border-emerald-500 bg-emerald-500/15 shadow-md scale-[1.02]'
+                          : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-emerald-400/40'
+                      }`}
+                    >
+                      <div className="text-sm font-black text-slate-900 dark:text-white">{item.label}</div>
+                      <div className="text-xs text-slate-500 dark:text-gray-400 mt-1">{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Sparshana (Palpation / Temperature) */}
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-700 dark:text-gray-300 tracking-wider mb-2">
+                  २. स्पर्शन परीक्षा (Tactile Examination - Skin Texture & Heat)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: 'Samasheeta (Normal)', label: 'समशीतोष्ण (Normal)', desc: 'Pleasant warm & moist texture' },
+                    { id: 'Ushna (Warm/Febrile)', label: 'उष्ण (Hot/Feverish)', desc: 'Elevated surface temperature' },
+                    { id: 'Sheeta (Cold Clammy)', label: 'शीत (Cold/Hypothermic)', desc: 'Chilled extremities, low heat' },
+                    { id: 'Ruksha (Rough/Dry)', label: 'रूक्ष (Rough & Scaly)', desc: 'Dry, unlubricated skin' }
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setTrividha({ ...trividha, sparshana: item.id })}
+                      className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        trividha.sparshana === item.id
+                          ? 'border-emerald-500 bg-emerald-500/15 shadow-md scale-[1.02]'
+                          : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-emerald-400/40'
+                      }`}
+                    >
+                      <div className="text-sm font-black text-slate-900 dark:text-white">{item.label}</div>
+                      <div className="text-xs text-slate-500 dark:text-gray-400 mt-1">{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Prashna (Anamnesis / Inquiry) */}
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-700 dark:text-gray-300 tracking-wider mb-2">
+                  ३. प्रश्न परीक्षा (Clinical Inquiry - Chronicity & Pain Quality)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { id: 'Toda (Piercing/Shooting Vata Pain)', label: '⚡ तोद / सुई चुभना (Piercing Pain)', desc: 'Sharp intermittent pain, moving locations' },
+                    { id: 'Daha (Burning Sensations Pitta)', label: '🔥 दाह / जलन (Burning Pain)', desc: 'Intense heat, sour reflux, burning sensation' },
+                    { id: 'Gaurava (Heaviness/Numbness Kapha)', label: '🌊 गौरव / भारीपन (Heavy/Dull Pain)', desc: 'Stiffness, lethargy, dull continuous ache' }
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setTrividha({ ...trividha, prashna: item.id })}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        trividha.prashna === item.id
+                          ? 'border-emerald-500 bg-emerald-500/15 shadow-md scale-[1.02]'
+                          : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-emerald-400/40'
+                      }`}
+                    >
+                      <div className="text-sm font-black text-slate-900 dark:text-white">{item.label}</div>
+                      <div className="text-xs text-slate-500 dark:text-gray-400 mt-1">{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: ASHTAVIDHA PARIKSHA */}
+          {parikshaTab === 'ashtavidha' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-900 dark:text-teal-200 text-xs">
+                <strong>अष्टविध परीक्षा (Ashtavidha Pariksha):</strong> The eight-fold clinical diagnosis of Yogaratnakara: Nadi (Pulse), Mootra (Urine), Mala (Stool), Jihwa (Tongue), Shabda (Voice), Sparsha (Skin), Drik (Eyes), Akruti (Build).
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Nadi */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">१. नाड़ी (Nadi - Pulse Quality)</label>
+                  <select
+                    value={ashtavidha.nadi}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, nadi: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Nadi Gati --</option>
+                    <option value="Sarpa Gati (Vata - Rapid/Curving)">सर्प गति (वात - Rapid / Serpentine)</option>
+                    <option value="Manduka Gati (Pitta - Jumping/Bounding)">मण्डूक गति (पित्त - Jumping / Frog-like)</option>
+                    <option value="Hamsa Gati (Kapha - Slow/Steady)">हंस गति (कफ - Steady / Swan-like)</option>
+                    <option value="Sannipata (Mixed)">सन्निपात (Mixed complex rhythm)</option>
+                  </select>
+                </div>
+
+                {/* 2. Jihwa */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">२. जिह्वा (Jihwa - Tongue Coating)</label>
+                  <select
+                    value={ashtavidha.jihwa}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, jihwa: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Tongue State --</option>
+                    <option value="Nirama (Pink & Clear)">निराम (Pink, Clear & Healthy)</option>
+                    <option value="Saama (White Thick Coating / Aama)">साम (White Thick Coated / Toxins)</option>
+                    <option value="Ruksha (Dry & Cracked)">रूक्ष (Dry, Cracked / Vata)</option>
+                    <option value="Rakta (Red & Inflamed)">रक्त (Red / Hyperemic / Pitta)</option>
+                  </select>
+                </div>
+
+                {/* 3. Mala */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">३. मल (Mala - Stool Consistency)</label>
+                  <select
+                    value={ashtavidha.mala}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, mala: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Mala --</option>
+                    <option value="Prakrita (Normal)">प्राकृत (Normal Regular)</option>
+                    <option value="Baddha (Constipated)">बद्ध (Hard / Constipated)</option>
+                    <option value="Sandra / Drava (Loose)">द्रव / पतला (Loose / Diarrhea)</option>
+                    <option value="Sama (Mucus)">साम (Mucus-coated / Aama)</option>
+                  </select>
+                </div>
+
+                {/* 4. Mootra */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">४. मूत्र (Mootra - Urine)</label>
+                  <select
+                    value={ashtavidha.mootra}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, mootra: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Mootra --</option>
+                    <option value="Prakrita">प्राकृत (Normal Clear Amber)</option>
+                    <option value="Rakta-Peeta (Burning/Yellow)">रक्त-पीत (High Colored / Burning)</option>
+                    <option value="Pandu (Pale)">पाण्डु (Pale / Copious)</option>
+                    <option value="Avila (Turbid)">आविल (Cloudy / Turbid)</option>
+                  </select>
+                </div>
+
+                {/* 5. Shabda */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">५. शब्द (Shabda - Voice)</label>
+                  <select
+                    value={ashtavidha.shabda}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, shabda: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Shabda --</option>
+                    <option value="Spashta">स्पष्ट (Clear & Natural)</option>
+                    <option value="Ksheena">क्षीण (Feeble / Low Stamina)</option>
+                    <option value="Karkasha">कर्कश (Hoarse / Sore Throat)</option>
+                    <option value="Gambhira">गम्भीर (Deep Resonant)</option>
+                  </select>
+                </div>
+
+                {/* 6. Sparsha */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">६. स्पर्श (Sparsha - Skin Sensation)</label>
+                  <select
+                    value={ashtavidha.sparsha}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, sparsha: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Sparsha --</option>
+                    <option value="Samasheeta">समशीतोष्ण (Normal Sensation)</option>
+                    <option value="Ushna">उष्ण (Warm / Feverish)</option>
+                    <option value="Sheeta">शीत (Cold)</option>
+                    <option value="Ruksha">रूक्ष (Dry Texture)</option>
+                  </select>
+                </div>
+
+                {/* 7. Drik */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">७. दृक् (Drik - Eyes / Sclera)</label>
+                  <select
+                    value={ashtavidha.drik}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, drik: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Drik --</option>
+                    <option value="Spashta">स्पष्ट (Clear & Healthy)</option>
+                    <option value="Haridra">हरिद्रा (Yellowish / Jaundice)</option>
+                    <option value="Rakta">रक्त (Red / Congested)</option>
+                    <option value="Pandu">पाण्डु (Pale Conjunctiva)</option>
+                  </select>
+                </div>
+
+                {/* 8. Akruti */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-2">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-300 block">८. आकृति (Akruti - Build & Facies)</label>
+                  <select
+                    value={ashtavidha.akruti}
+                    onChange={(e) => setAshtavidha({ ...ashtavidha, akruti: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs font-bold"
+                  >
+                    <option value="">-- Select Akruti --</option>
+                    <option value="Madhyama">मध्यम (Medium Balanced Build)</option>
+                    <option value="Krisha">कृश (Lean / Asthenic Build)</option>
+                    <option value="Sthula">स्थूल (Heavy / Endomorphic Build)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: DASHAVIDHA PARIKSHA */}
+          {parikshaTab === 'dashavidha' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start gap-3.5">
+                <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs sm:text-sm leading-relaxed">
+                  <span className="font-black block text-amber-700 dark:text-amber-300 mb-0.5">
+                    दशविध परीक्षा (Dashavidha Pariksha - 10-Fold Systemic Assessment):
+                  </span>
+                  Choose your dominant constitutional traits. If unsure, select "🤔 Unsure / Doctor will examine" and the doctor will assess in OPD.
+                </div>
+              </div>
+
+              {/* 1. Prakriti (Body Constitution) */}
+              <div>
+                <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-3">
+                  {t.prakritiTitle || "1. Body Constitution & Prakriti (प्रकृति)"}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { id: 'Vata', title: '💨 Vata (वात)', sub: 'Light build, quick actions, prone to joint stiffness and dry skin.', details: { primaryDosha: 'Vata', secondaryDosha: 'Kapha', vataScore: 65, pittaScore: 25, kaphaScore: 40 } },
+                    { id: 'Pitta', title: '🔥 Pitta (पित्त)', sub: 'Medium muscular build, sharp digestion, warm body, prone to acidity.', details: { primaryDosha: 'Pitta', secondaryDosha: 'Vata', vataScore: 35, pittaScore: 70, kaphaScore: 20 } },
+                    { id: 'Kapha', title: '🌊 Kapha (कफ)', sub: 'Sturdy broad build, calm disposition, slow digestion, good stamina.', details: { primaryDosha: 'Kapha', secondaryDosha: 'Pitta', vataScore: 20, pittaScore: 30, kaphaScore: 75 } },
+                    { id: 'Unsure', title: t.unsurePrakriti || '🤔 Unsure / Pending Doctor', sub: t.unsurePrakritiSub || 'Doctor will assess via pulse examination.', details: { primaryDosha: 'Undetermined', secondaryDosha: 'Pending Doctor Nadi Pariksha', vataScore: 33, pittaScore: 33, kaphaScore: 33 } }
+                  ].map(p => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => setDasha({ ...dasha, prakriti: p.id, prakritiDetails: p.details })}
-                      className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${dasha.prakriti === p.id ? 'border-emerald-500 bg-emerald-500/10 shadow-lg scale-[1.02]' : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-emerald-400/40'}`}
+                      className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        dasha.prakriti === p.id
+                          ? 'border-emerald-500 bg-emerald-500/10 shadow-lg scale-[1.02]'
+                          : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-emerald-400/40'
+                      }`}
                     >
                       <div className="text-base font-black text-slate-900 dark:text-white flex items-center justify-between">
                         {p.title}
@@ -2673,75 +3015,75 @@ const KioskIntake = ({ isStandalone = false }) => {
                         {p.sub}
                       </p>
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* 2. Agni (Digestive Fire) */}
-            <div>
-              <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-3">
-                {t.agniTitle}
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                  { id: 'Samagni (Balanced)', label: '🔥 Samagni', desc: 'Regular timely hunger and smooth digestion.' },
-                  { id: 'Tikshnagni (Intense)', label: '⚡ Tikshnagni', desc: 'Sharp intense hunger, rapid metabolism, acidity.' },
-                  { id: 'Mandagni (Sluggish)', label: '🐢 Mandagni', desc: 'Sluggish digestion, heaviness in abdomen post meals.' },
-                  { id: 'Vishamagni (Irregular)', label: '🌪️ Vishamagni', desc: 'Fluctuating appetite, gas, bloating, and constipation.' }
-                ].map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setDasha({ ...dasha, agni: item.id })}
-                    className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${dasha.agni === item.id ? 'border-teal-500 bg-teal-500/10 shadow-md font-bold scale-[1.02]' : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-teal-400/40'}`}
+              {/* 2. Agni (Digestive Fire) */}
+              <div>
+                <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-3">
+                  {t.agniTitle || "2. Digestive Fire (अग्नि व पाचन क्षमता)"}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { id: 'Samagni (Balanced)', label: '🔥 Samagni', desc: 'Regular timely hunger and smooth digestion.' },
+                    { id: 'Tikshnagni (Intense)', label: '⚡ Tikshnagni', desc: 'Sharp intense hunger, rapid metabolism, acidity.' },
+                    { id: 'Mandagni (Sluggish)', label: '🐢 Mandagni', desc: 'Sluggish digestion, heaviness in abdomen post meals.' },
+                    { id: 'Vishamagni (Irregular)', label: '🌪️ Vishamagni', desc: 'Fluctuating appetite, gas, bloating, and constipation.' }
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setDasha({ ...dasha, agni: item.id })}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        dasha.agni === item.id
+                          ? 'border-teal-500 bg-teal-500/10 shadow-md font-bold scale-[1.02]'
+                          : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-teal-400/40'
+                      }`}
+                    >
+                      <div className="text-sm font-black text-slate-900 dark:text-white">{item.label}</div>
+                      <div className="text-xs text-slate-500 dark:text-gray-400 mt-1">{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Bowel & 4. Mental Resilience */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+                    {t.koshthaTitle || "3. Bowel Habit (कोष्ठ)"}
+                  </label>
+                  <select
+                    value={dasha.koshtha}
+                    onChange={(e) => setDasha({ ...dasha, koshtha: e.target.value })}
+                    className="w-full px-4 py-3.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
                   >
-                    <div className="text-sm font-black text-slate-900 dark:text-white">
-                      {item.label}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-                      {item.desc}
-                    </div>
-                  </button>
-                ))}
+                    <option value="">-- Select option (or leave for Doctor) --</option>
+                    <option value="Mridu">Mridu Koshtha (Soft, easily cleared with milk/ghee)</option>
+                    <option value="Madhyama">Madhyama Koshtha (Normal regular bowel routine)</option>
+                    <option value="Krura">Krura Koshtha (Hard, prone to constipation and dry stools)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+                    {t.satvaTitle || "4. Mental Resilience (सत्व)"}
+                  </label>
+                  <select
+                    value={dasha.satva}
+                    onChange={(e) => setDasha({ ...dasha, satva: e.target.value })}
+                    className="w-full px-4 py-3.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">-- Select option (or leave for Doctor) --</option>
+                    <option value="Pravara (High)">Pravara Satva (Strong mental resilience & high pain tolerance)</option>
+                    <option value="Madhyama">Madhyama Satva (Moderate endurance, responds well to reassurance)</option>
+                    <option value="Avara (Low)">Avara Satva (Anxious, low pain tolerance, easily distressed)</option>
+                  </select>
+                </div>
               </div>
             </div>
-
-            {/* 3. Bowel & 4. Mental Resilience */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-2">
-                  {t.koshthaTitle}
-                </label>
-                <select
-                  value={dasha.koshtha}
-                  onChange={(e) => setDasha({ ...dasha, koshtha: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="">-- Select option (or leave for Doctor) --</option>
-                  <option value="Mridu">Mridu Koshtha (Soft, easily cleared with milk/ghee)</option>
-                  <option value="Madhyama">Madhyama Koshtha (Normal regular bowel routine)</option>
-                  <option value="Krura">Krura Koshtha (Hard, prone to constipation and dry stools)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-2">
-                  {t.satvaTitle}
-                </label>
-                <select
-                  value={dasha.satva}
-                  onChange={(e) => setDasha({ ...dasha, satva: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="">-- Select option (or leave for Doctor) --</option>
-                  <option value="Pravara (High)">Pravara Satva (Strong mental resilience & high pain tolerance)</option>
-                  <option value="Madhyama">Madhyama Satva (Moderate endurance, responds well to reassurance)</option>
-                  <option value="Avara (Low)">Avara Satva (Anxious, low pain tolerance, easily distressed)</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Navigation */}
           <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
@@ -2754,13 +3096,16 @@ const KioskIntake = ({ isStandalone = false }) => {
             </button>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => goToStep(5)}
-                className="px-6 py-4 rounded-2xl border-2 border-dashed border-amber-400/60 hover:border-amber-500 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 font-black text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-              >
-                {t.skipDashaBtn} <ChevronRight className="w-4 h-4" />
-              </button>
+              {/* Skip button only active if Allopathy is chosen */}
+              {consultationType === 'allopathy' && (
+                <button
+                  type="button"
+                  onClick={() => goToStep(5)}
+                  className="px-6 py-4 rounded-2xl border-2 border-dashed border-amber-400/60 hover:border-amber-500 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 font-black text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                >
+                  Skip Step (Doctor will assess) <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
 
               <button
                 type="button"
@@ -2774,13 +3119,12 @@ const KioskIntake = ({ isStandalone = false }) => {
                   </>
                 ) : (
                   <>
-                    {t.saveDashaBtn} <ArrowRight className="w-5 h-5" />
+                    Save Pariksha & Proceed to Records <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </button>
             </div>
           </div>
-
         </div>
       )}
 
@@ -3365,6 +3709,99 @@ const KioskIntake = ({ isStandalone = false }) => {
                 className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 cursor-pointer flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" /> Verify & Unlock Records
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      {/* Complete Problem Statement 4 Rules & Regulations Modal */}
+      {showRulesModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-3xl w-full border-2 border-emerald-500/40 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                    MediKiosk Rules, Regulations & Privacy Architecture
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                    Digital Personal Data Protection (DPDP) Act 2023 & Ayushman Bharat Digital Mission (ABDM) Compliance
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRulesModal(false)}
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-700 dark:text-gray-300 leading-relaxed">
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/30">
+                <h4 className="font-black text-emerald-900 dark:text-emerald-300 text-sm mb-1 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  1. Statutory DPDP Act 2023 & ABDM Consent Architecture (§3.3 Module D)
+                </h4>
+                <p className="text-slate-600 dark:text-gray-300">
+                  MediKiosk operates in strict compliance with India's <strong>Digital Personal Data Protection Act 2023</strong> and the <strong>National Health Authority (NHA) ABDM Consent Framework</strong>. All patient case intake, conversational voice audio, sensor vitals, and scanned records are collected exclusively for pre-consultation clinical case preparation.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10">
+                <h4 className="font-black text-slate-900 dark:text-white text-sm mb-1 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-emerald-600" />
+                  2. Ephemeral Terminal & Zero-Retention Security Policy (§3.3 Module D)
+                </h4>
+                <p className="text-slate-600 dark:text-gray-300">
+                  To protect patient privacy in high-density public hospital OPD environments (handling 4,000–10,000 daily patients), MediKiosk is engineered as an <strong>ephemeral, zero-retention terminal</strong>. Temporary conversational speech data and cached forms are automatically cleared immediately upon OPD token submission or after 30 seconds of terminal inactivity.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10">
+                <h4 className="font-black text-slate-900 dark:text-white text-sm mb-1 flex items-center gap-2">
+                  <Stethoscope className="w-4 h-4 text-emerald-600" />
+                  3. Physician Oversight & Human-in-the-Loop Principle (§3.3 Module C)
+                </h4>
+                <p className="text-slate-600 dark:text-gray-300">
+                  The AI case sheet, department classification, and extracted medication interactions generated by MediKiosk are clinical drafts designed to eliminate the first-mile 2-minute OPD documentation bottleneck. The consulting physician retains 100% full autonomous authority to accept, amend, or reject any draft finding.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10">
+                <h4 className="font-black text-slate-900 dark:text-white text-sm mb-1 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  4. Automated Red-Flag Emergency Triage (§3.3 Module A)
+                </h4>
+                <p className="text-slate-600 dark:text-gray-300">
+                  If the conversational intake engine identifies acute clinical red-flag symptoms (such as acute chest pain with dyspnea, stroke signs, or severe hypertensive crisis), routine queueing is immediately escalated to emergency high-priority triage.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10">
+                <h4 className="font-black text-slate-900 dark:text-white text-sm mb-1 flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  5. Granular Patient Rights & Revocation (§3.3 Module D)
+                </h4>
+                <p className="text-slate-600 dark:text-gray-300">
+                  Patients retain complete autonomy over their data. You have the right to revoke consent, opt out of prescription document scanning, or request nurse-led manual triage at any time.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-gray-200 dark:border-white/10 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowRulesModal(false)}
+                className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all shadow-md cursor-pointer"
+              >
+                I Understand & Agree (स्वीकार है)
               </button>
             </div>
           </div>

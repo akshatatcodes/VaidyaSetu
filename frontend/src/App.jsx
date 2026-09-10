@@ -103,6 +103,13 @@ const AppLayout = () => {
   const { theme } = useTheme();
   const { currentUser, userRole } = useAuth();
   const navigate = useNavigate();
+  const [isFullscreen, setIsFullscreen] = React.useState(Boolean(document.fullscreenElement));
+
+  React.useEffect(() => {
+    const handleFs = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', handleFs);
+    return () => document.removeEventListener('fullscreenchange', handleFs);
+  }, []);
 
   useEffect(() => {
     // Register Push Service Worker Foundation
@@ -118,18 +125,18 @@ const AppLayout = () => {
   return (
     <div 
       className="flex flex-col md:flex-row h-screen w-full relative transition-colors duration-700 overflow-hidden"
-      style={theme === 'dark' ? { background: '#030712' } : {
+      style={{
         background: 'linear-gradient(180deg, #f0f9ff 0%, #ffffff 40%, #f0fdf4 100%)'
       }}
     >
       {/* Premium Ambient Background Glows */}
-      <div className="fixed top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full dark:bg-emerald-500/15 blur-[140px] pointer-events-none z-0" style={{background: theme === 'dark' ? '' : 'radial-gradient(ellipse, rgba(59,130,246,0.15) 0%, transparent 70%)'}} />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full dark:bg-blue-500/15 blur-[140px] pointer-events-none z-0" style={{background: theme === 'dark' ? '' : 'radial-gradient(ellipse, rgba(16,185,129,0.12) 0%, transparent 70%)'}} />
+      <div className="fixed top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[140px] pointer-events-none z-0" style={{background: 'radial-gradient(ellipse, rgba(59,130,246,0.15) 0%, transparent 70%)'}} />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[140px] pointer-events-none z-0" style={{background: 'radial-gradient(ellipse, rgba(16,185,129,0.12) 0%, transparent 70%)'}} />
       
-      <Sidebar />
-      {/* md:ml-72 offsets fixed sidebar (w-72); min-w-0 prevents flex overflow under sidebar */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 md:ml-72 h-full md:h-screen overflow-y-auto overflow-x-hidden scrollbar-hide">
-        <main className="flex-1 p-4 pt-20 sm:p-6 md:pt-6 md:p-12 w-full max-w-[100vw] min-w-0 vs-main-content bg-transparent dark:bg-transparent pb-24 md:pb-12 text-slate-900 dark:text-white">
+      {!isFullscreen && <Sidebar />}
+      {/* md:ml-72 offsets fixed sidebar (w-72) unless fullscreen */}
+      <div className={`flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 ${!isFullscreen ? 'md:ml-72' : ''} h-full md:h-screen overflow-y-auto overflow-x-hidden scrollbar-hide`}>
+        <main className={`flex-1 ${isFullscreen ? 'p-0' : 'p-4 pt-20 sm:p-6 md:pt-6 md:p-12'} w-full max-w-[100vw] min-w-0 vs-main-content bg-transparent pb-24 md:pb-12 text-slate-900`}>
           <ErrorBoundary>
             <Routes>
               {/* Patient Only Route: Root lands on Health Sanctuary for patients */}
@@ -152,11 +159,11 @@ const AppLayout = () => {
               <Route path="/patient/settings" element={<PatientRoute><Settings /></PatientRoute>} />
               <Route path="/patient/help" element={<PatientRoute><HelpSupport /></PatientRoute>} />
               
-              {/* Doctor Only Routes: Modular Page Components per Phase 36 */}
-              <Route path="/doctor" element={<DoctorRoute><DoctorHome /></DoctorRoute>} />
+              {/* Doctor Only Routes: Seamless Doctor Dashboard & Cockpit */}
+              <Route path="/doctor" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
               <Route path="/doctor/queue" element={<DoctorRoute><DoctorQueue /></DoctorRoute>} />
-              <Route path="/doctor/queue/:encounterId" element={<DoctorRoute><DoctorQueue /></DoctorRoute>} />
-              <Route path="/doctor/consultation/:encounterId" element={<DoctorRoute><DoctorConsultation /></DoctorRoute>} />
+              <Route path="/doctor/queue/:encounterId" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
+              <Route path="/doctor/consultation/:encounterId" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
               <Route path="/doctor/patients" element={<DoctorRoute><DoctorPatients /></DoctorRoute>} />
               <Route path="/doctor/patients/:patientId" element={<DoctorRoute><DoctorPatients /></DoctorRoute>} />
               <Route path="/doctor/followups" element={<DoctorRoute><DoctorFollowUps /></DoctorRoute>} />
