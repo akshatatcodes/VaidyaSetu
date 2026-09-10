@@ -569,6 +569,22 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
         }
       }
 
+      if (probeResult.extractedMedicalHistory) {
+        if (!session.pastHistory) session.pastHistory = {};
+        if (probeResult.extractedMedicalHistory.pastIllnesses?.length > 0) {
+          session.pastHistory.chronicConditions = [
+            ...(session.pastHistory.chronicConditions || []),
+            ...probeResult.extractedMedicalHistory.pastIllnesses
+          ];
+        }
+        if (probeResult.extractedMedicalHistory.allergies?.length > 0) {
+          session.pastHistory.allergies = [
+            ...(session.pastHistory.allergies || []),
+            ...probeResult.extractedMedicalHistory.allergies
+          ];
+        }
+      }
+
       await session.save();
     }
 
@@ -578,6 +594,7 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
         nextStep: probeResult.nextStep,
         nextQuestion: probeResult.nextQuestion,
         quickReplies: probeResult.quickReplies || [],
+        extractedMedicalHistory: probeResult.extractedMedicalHistory || null,
         isComplete: probeResult.isComplete,
         inferredDepartment: probeResult.inferredDepartment,
         department: session?.department || probeResult.inferredDepartment?.department || null,

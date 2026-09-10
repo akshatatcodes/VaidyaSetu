@@ -291,12 +291,42 @@ router.get('/my/:patientId', async (req, res) => {
     const { patientId } = req.params;
     const todayStr = new Date().toISOString().slice(0, 10);
 
-    const activeEncounter = await Encounter.findOne({
-      patientId,
-      status: { $in: ['intake_completed', 'queued', 'in_consultation', 'doctor_review'] }
-    }).sort({ createdAt: -1 });
+    // Resolve patientId: patientId may be a MongoDB ObjectId, a phone number, or a custom string like "PAT-7383963235"
+    let resolvedObjectId = null;
+    if (mongoose.Types.ObjectId.isValid(patientId) && String(new mongoose.Types.ObjectId(patientId)) === String(patientId)) {
+      resolvedObjectId = new mongoose.Types.ObjectId(patientId);
+    } else {
+      // Try resolving by matching Patient model if available
+      try {
+        const Patient = mongoose.models.Patient || require('../models/Patient');
+        const cleanMobile = patientId.replace(/^PAT-/, '').replace(/\D/g, '');
+        const matchedPatient = await Patient.findOne({
+          $or: [
+            { mobileNumber: cleanMobile },
+            { abhaId: patientId },
+            { contactNumber: cleanMobile }
+          ]
+        }).select('_id');
+        if (matchedPatient) {
+          resolvedObjectId = matchedPatient._id;
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    }
 
-    const queue = await Queue.findOne({ date: todayStr, 'entries.patientId': patientId });
+    let activeEncounter = null;
+    if (resolvedObjectId) {
+      activeEncounter = await Encounter.findOne({
+        patientId: resolvedObjectId,
+        status: { $in: ['intake_completed', 'queued', 'in_consultation', 'doctor_review'] }
+      }).sort({ createdAt: -1 });
+    }
+
+    let queue = null;
+    if (resolvedObjectId) {
+      queue = await Queue.findOne({ date: todayStr, 'entries.patientId': resolvedObjectId });
+    }
 
     if (!queue && !activeEncounter) {
       return res.json({
@@ -306,7 +336,10 @@ router.get('/my/:patientId', async (req, res) => {
       });
     }
 
-    const tokenEntry = queue?.entries.find(e => String(e.patientId) === String(patientId) || (activeEncounter && e.tokenNumber === activeEncounter.tokenNumber));
+    const tokenEntry = queue?.entries.find(e => 
+      (resolvedObjectId && String(e.patientId) === String(resolvedObjectId)) || 
+      (activeEncounter && e.tokenNumber === activeEncounter.tokenNumber)
+    );
 
     let patientsAhead = 0;
     if (tokenEntry && queue) {
@@ -328,8 +361,8 @@ router.get('/my/:patientId', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching patient queue status:', error);
-    return res.status(500).json({ status: 'error', message: error.message });
+    console.warn('[Queue] Non-critical queue status check notice:', error.message);
+    return res.json({ status: 'success', data: null, message: 'No active queue token found.' });
   }
 });
 

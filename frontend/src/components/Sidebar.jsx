@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, FileText, Activity, ShieldCheck, Settings, LogOut, UserCircle,
@@ -19,7 +19,15 @@ const Sidebar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const location = useLocation();
-  if (location.pathname.startsWith('/kiosk') || location.pathname === '/patient/opd') {
+  const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
+
+  useEffect(() => {
+    const handleFs = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', handleFs);
+    return () => document.removeEventListener('fullscreenchange', handleFs);
+  }, []);
+
+  if (isFullscreen) {
     return null;
   }
 

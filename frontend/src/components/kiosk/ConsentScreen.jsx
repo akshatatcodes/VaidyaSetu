@@ -17,6 +17,13 @@ const COPY = {
     audio: 'सहमति बोलकर सुनें',
     continue: 'सहमति सुरक्षित करें एवं आगे बढ़ें',
     required: 'आगे बढ़ने के लिए क्लिनिकल डेटा कैप्चर की सहमति अनिवार्य है'
+  },
+  mr: {
+    title: 'रुग्ण संमती आणि गोपनीयता नियंत्रणे',
+    subtitle: 'या तपासणीसाठी आपल्या डेटा सामायिकरणाच्या अनुमती निवडा. आपण सर्व संमती कधीही डॅशबोर्डवरून रद्द करू शकता.',
+    audio: 'संमती ऐका',
+    continue: 'संमती जतन करा आणि पुढे चला',
+    required: 'पुढे जाण्यासाठी क्लिनिकल डेटा नोंदणीची संमती आवश्यक आहे'
   }
 };
 
@@ -25,8 +32,10 @@ const PURPOSES = [
     key: 'clinical_history',
     titleEn: 'Clinical History & Vitals Capture',
     titleHi: 'क्लिनिकल इतिहास एवं वाइटल्स कैप्चर',
+    titleMr: 'क्लिनिकल इतिहास आणि वाइटल्स नोंदणी',
     descEn: 'Capture symptoms, vitals & Ayush Pariksha details for this OPD visit',
     descHi: 'इस ओपीडी विज़िट के लिए लक्षण, वाइटल्स व आयुष परीक्षा दर्ज करने की अनुमति',
+    descMr: 'या ओपीडी भेटीसाठी लक्षणे, वाइटल्स व आयुष परीक्षा नोंदवण्याची संमती',
     required: true,
     defaultState: true
   },
@@ -34,8 +43,10 @@ const PURPOSES = [
     key: 'document_scanning',
     titleEn: 'Document Storage & Medical OCR',
     titleHi: 'दस्तावेज़ संग्रह एवं मेडिकल OCR',
+    titleMr: 'कागदपत्रे साठवण आणि मेडिकल OCR',
     descEn: 'Store scanned paper prescriptions & lab reports for doctor review',
     descHi: 'डॉक्टर की समीक्षा हेतु पुराने पर्चे एवं रिपोर्ट सुरक्षित संग्रह करने की अनुमति',
+    descMr: 'डॉक्टरांच्या तपासणीसाठी जुनी प्रिस्क्रिप्शन व लॅब रिपोर्ट्स साठवण्याची संमती',
     required: false,
     defaultState: true
   },
@@ -43,8 +54,10 @@ const PURPOSES = [
     key: 'doctor_sharing',
     titleEn: 'Consulting Physician Sharing',
     titleHi: 'परामर्शदाता डॉक्टर के साथ शेयरिंग',
+    titleMr: 'सल्लागार डॉक्टरांसोबत शेअरिंग',
     descEn: 'Share AI case summary and history with assigned OPD doctor',
     descHi: 'नियुक्त ओपीडी डॉक्टर के साथ केस सारांश व इतिहास साझा करने की अनुमति',
+    descMr: 'नेमलेल्या ओपीडी डॉक्टरांसोबत केस सारांश व इतिहास शेअर करण्याची संमती',
     required: false,
     defaultState: true
   },
@@ -52,8 +65,10 @@ const PURPOSES = [
     key: 'lab_sharing',
     titleEn: 'Laboratory & Diagnostic Sharing',
     titleHi: 'प्रयोगशाला व नैदानिक शेयरिंग',
+    titleMr: 'प्रयोगशाळा व निदान शेअरिंग',
     descEn: 'Transmit test orders & sample statuses to hospital lab workbench',
     descHi: 'अस्पताल लैब टीम के साथ जांच आदेश एवं नमूना स्थिति साझा करने की अनुमति',
+    descMr: 'रुग्णालय लॅब टीमसोबत तपासणी आदेश व नमुना स्थिती शेअर करण्याची संमती',
     required: false,
     defaultState: true
   },
@@ -61,8 +76,10 @@ const PURPOSES = [
     key: 'abdm_exchange',
     titleEn: 'ABDM & Health Locker Exchange',
     titleHi: 'ABDM एवं हेल्थ लॉकर एक्सचेंज',
+    titleMr: 'ABDM आणि हेल्थ लॉकर देवाणघेवाण',
     descEn: 'Link consultation records with your ABHA Health ID',
     descHi: 'परामर्श रिकॉर्ड को अपने आभा (ABHA) हेल्थ लॉकर से जोड़ने की अनुमति',
+    descMr: 'तपासणी रेकॉर्ड आपल्या आभा (ABHA) हेल्थ लॉकरशी जोडण्याची संमती',
     required: false,
     defaultState: true
   },
@@ -70,8 +87,10 @@ const PURPOSES = [
     key: 'secondary_use',
     titleEn: 'Optional Anonymous Research Use',
     titleHi: 'अनाम शोध उपयोग (ऐच्छिक)',
+    titleMr: 'अनामित संशोधन वापर (पर्यायी)',
     descEn: 'Allow anonymized data aggregation for public health analytics',
     descHi: 'सार्वजनिक स्वास्थ्य अनुसंधान के लिए अनाम डेटा उपयोग की ऐच्छिक अनुमति',
+    descMr: 'सार्वजनिक आरोग्य विश्लेषणासाठी निनावी डेटा वापराची संमती',
     required: false,
     defaultState: false
   }
@@ -187,7 +206,7 @@ export default function ConsentScreen({ lang = 'hi', value, onChange, onContinue
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm text-slate-100">
-                    {lang === 'hi' ? p.titleHi : p.titleEn}
+                    {lang === 'hi' ? p.titleHi : lang === 'mr' ? p.titleMr : p.titleEn}
                   </span>
                   {p.required ? (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -200,7 +219,7 @@ export default function ConsentScreen({ lang = 'hi', value, onChange, onContinue
                   )}
                 </div>
                 <p className="text-xs text-slate-400 leading-normal">
-                  {lang === 'hi' ? p.descHi : p.descEn}
+                  {lang === 'hi' ? p.descHi : lang === 'mr' ? p.descMr : p.descEn}
                 </p>
               </div>
 

@@ -15,23 +15,14 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { useTranslation } from 'react-i18next';
+import { generateArchivePDF } from '../utils/pdfGenerator';
 
 import { API_URL } from '../config/api';
 
 const LANGUAGE_MAP = {
   'English': 'en',
   'Hindi': 'hi',
-  'Marathi': 'mr',
-  'Tamil': 'ta',
-  'Telugu': 'te',
-  'Bengali': 'bn',
-  'Gujarati': 'gu',
-  'Kannada': 'kn',
-  'Malayalam': 'ml',
-  'Odia': 'or',
-  'Punjabi': 'pa',
-  'Assamese': 'as',
-  'Urdu': 'ur'
+  'Marathi': 'mr'
 };
 const getLanguageCode = (languageLabelOrCode) => LANGUAGE_MAP[languageLabelOrCode] || languageLabelOrCode || 'en';
 
@@ -200,7 +191,7 @@ const Settings = () => {
           .finally(() => setSyncingFit(false));
       }
     }
-  }, [user]);
+  }, [effectiveUserId]);
 
   const handleSaveIdentity = async () => {
     try {
@@ -606,8 +597,8 @@ const Settings = () => {
                            <div className="p-3 bg-indigo-500/10 rounded-2xl"><Languages className="w-6 h-6 text-indigo-500" /></div>
                            <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">{t('settings.global_prefs.platform_dialect')}</h4>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                           {['English', 'Hindi', 'Marathi', 'Tamil', 'Telugu', 'Bengali', 'Gujarati', 'Kannada', 'Malayalam', 'Odia', 'Punjabi', 'Assamese', 'Urdu'].map(lang => (
+                        <div className="grid grid-cols-3 gap-4">
+                           {['English', 'Hindi', 'Marathi'].map(lang => (
                              <button 
                                key={lang} 
                                onClick={() => handleLanguageSelect(lang)} 

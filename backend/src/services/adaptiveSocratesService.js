@@ -10,12 +10,13 @@ const {
 const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim().length > 15;
 const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY.trim() }) : null;
 
-// Multi-model Groq fallback list optimized for speed and clinical reasoning
+// Multi-model Groq fallback list optimized for speed and clinical reasoning on active key
 const GROQ_FALLBACK_MODELS = [
   'qwen/qwen3.8-27b',
   'openai/gpt-oss-120b',
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant'
+  'openai/gpt-oss-20b',
+  'groq/compound',
+  'groq/compound-mini'
 ];
 
 /**
@@ -160,25 +161,60 @@ function detectRedFlags(text = '', vitals = {}) {
  */
 function updateSocratesStateDeterministic(currentStep, userText, currentState = {}) {
   const updated = { ...currentState };
+  const text = (userText || '').trim();
+  const lower = text.toLowerCase();
 
-  if (currentStep === 'site') {
-    updated.site = userText;
-  } else if (currentStep === 'onset') {
-    updated.onset = userText;
-  } else if (currentStep === 'character') {
-    updated.character = userText;
-  } else if (currentStep === 'radiation') {
-    updated.radiation = userText;
-  } else if (currentStep === 'associations') {
-    const tokens = userText.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
-    updated.associations = tokens.length > 0 ? tokens : [userText];
-  } else if (currentStep === 'timeCourse') {
-    updated.timeCourse = userText;
-  } else if (currentStep === 'exacerbatingRelieving') {
-    updated.exacerbatingRelieving = userText;
-  } else if (currentStep === 'severity') {
-    const numMatch = userText.match(/\b(10|[1-9])\b/);
-    updated.severity = numMatch ? parseInt(numMatch[1], 10) : (updated.severity || 5);
+  // 1. Cross-cutting Duration / Onset extraction across any utterance
+  const durationMatch = text.match(/(?:for\s+|since\s+)?(\d+\s*(?:day|days|din|दिन|दिवस|week|weeks|हफ्ते|आठवडे|month|months|महीने|महिने|hour|hours|घंटे|तास)(?:\s*(?:ago|पहले|पूर्वी|से|पासून))?|yesterday|कल से|कालपासून|today|आज से|आजपासून|just now|अभी से|आत्ताच)/i);
+  if (durationMatch && !updated.onset) {
+    updated.onset = durationMatch[0].trim();
+  }
+
+  // 2. Fever / Temperature extraction
+  if (/(?:fever|temperature|bukhar|taap|बुखार|ताप)/i.test(lower)) {
+    if (!updated.character) {
+      updated.character = /(?:high|severe|strong|tez|tiwra|तेज|तीव्र)/i.test(lower) ? 'High fever (तेज बुखार / तीव्र ताप)' : 'Fever (बुखार / ताप)';
+    }
+    if (!updated.site) {
+      updated.site = 'Whole body / Systemic';
+    }
+  }
+
+  // 3. Anatomical pain extraction
+  if (/(?:head|सिर|डोके|headache)/i.test(lower)) {
+    updated.site = 'Head / Cranial';
+    if (!updated.character) updated.character = 'Headache';
+  } else if (/(?:chest|छाती)/i.test(lower)) {
+    updated.site = 'Chest / Thorax';
+    if (!updated.character) updated.character = 'Chest discomfort';
+  } else if (/(?:stomach|abdomen|belly|pet|pot|पेट|पोट)/i.test(lower)) {
+    updated.site = 'Abdomen / Stomach';
+    if (!updated.character) updated.character = 'Abdominal pain';
+  } else if (/(?:knee|joint|ghutne|sandhi|घुटने|जोड़|सांधे|गुडघे)/i.test(lower)) {
+    updated.site = 'Knee & Joint';
+    if (!updated.character) updated.character = 'Joint stiffness & pain';
+  } else if (/(?:throat|gala|ghasa|गले|घसा)/i.test(lower)) {
+    updated.site = 'Throat / ENT';
+    if (!updated.character) updated.character = 'Sore throat & irritation';
+  }
+
+  // 4. Severity detection
+  if (/(?:severe|high|strong|unbearable|extreme|very\s+bad|bahut\s+tez|tez|tiwra|तीव्र|असहनीय|जास्त)/i.test(lower)) {
+    if (!updated.severity) updated.severity = 8;
+  } else if (/(?:mild|slight|halka|thoda|कम|कमी|हल्का)/i.test(lower)) {
+    if (!updated.severity) updated.severity = 3;
+  } else if (/(?:moderate|theek|medium|मध्यम)/i.test(lower)) {
+    if (!updated.severity) updated.severity = 5;
+  }
+
+  // 5. Direct assignment fallback
+  if (currentStep && !updated[currentStep]) {
+    if (currentStep === 'severity') {
+      const numMatch = text.match(/\b(10|[1-9])\b/);
+      updated.severity = numMatch ? parseInt(numMatch[1], 10) : (updated.severity || 5);
+    } else {
+      updated[currentStep] = text;
+    }
   }
 
   return updated;
@@ -218,29 +254,40 @@ async function processAdaptiveProbe({
   // 1. Red flag scan on incoming speech + vitals
   const redFlags = detectRedFlags(`${chiefComplaint || ''} ${userSpeech || ''}`, vitals);
 
-  // 2. Parse current utterance into structured field
+  // 2. Parse current utterance into structured field deterministically
   let updatedSocrates = updateSocratesStateDeterministic(currentStep, userSpeech, socratesState);
+  let extractedMedicalHistory = {
+    pastIllnesses: [],
+    allergies: [],
+    currentMedications: []
+  };
 
-  // 3. Dynamic LLM Extraction of all stated symptom parameters
+  // 3. Dynamic LLM Extraction of all stated symptom parameters & medical history via Groq
   if (groq && userSpeech) {
     try {
-      const extractionSystem = 'You are an expert clinical NLP triage extractor at an Indian hospital. Extract symptom parameters into a single valid JSON object. Do not invent details not mentioned by the patient.';
-      const extractionUser = `Patient Complaint: "${chiefComplaint || ''}"
-Current Step: "${currentStep || ''}"
-Patient Utterance: "${userSpeech}"
-Existing SOCRATES Context: ${JSON.stringify(socratesState)}
-
-Return ONLY JSON:
+      const extractionSystem = `You are an expert clinical NLP triage extractor at an Indian hospital OPD kiosk.
+Analyze the patient's speech and extract all symptom dimensions and any mentioned past medical history into a JSON object:
 {
   "site": "anatomical region or null",
-  "onset": "duration or onset pattern or null",
-  "character": "pain description or null",
+  "onset": "duration or onset timing, e.g. '2 days ago', or null",
+  "character": "symptom description or null",
   "radiation": "radiation area or null",
-  "associations": ["symptoms array"],
+  "associations": ["associated symptoms array"],
   "timeCourse": "timing pattern or null",
   "exacerbatingRelieving": "modifying factors or null",
-  "severity": number 1-10 or null
-}`;
+  "severity": number 1-10 or null,
+  "pastIllnesses": ["chronic diseases mentioned, e.g. Diabetes, Hypertension, Asthma"],
+  "allergies": ["allergies mentioned, e.g. Penicillin, Sulfa, Dust"],
+  "currentMedications": ["current medicines mentioned"]
+}
+Strict Rules:
+- If duration is mentioned (e.g. "2 days ago", "2 दिन से", "२ दिवस"), ALWAYS set "onset".
+- If fever is mentioned, set "character": "Fever" and "site": "Whole body".
+- Output ONLY valid JSON.`;
+
+      const extractionUser = `Patient Utterance: "${userSpeech}"
+Chief Complaint: "${chiefComplaint || ''}"
+Existing Known Context: ${JSON.stringify(updatedSocrates)}`;
 
       const rawJson = await callGroqWithFallback({
         systemPrompt: extractionSystem,
@@ -251,7 +298,7 @@ Return ONLY JSON:
 
       if (rawJson) {
         const parsed = JSON.parse(rawJson);
-        Object.keys(parsed).forEach(k => {
+        ['site', 'onset', 'character', 'radiation', 'associations', 'timeCourse', 'exacerbatingRelieving', 'severity'].forEach(k => {
           if (parsed[k] !== null && parsed[k] !== undefined && parsed[k] !== '') {
             if (Array.isArray(parsed[k]) && parsed[k].length > 0) {
               updatedSocrates[k] = parsed[k];
@@ -260,6 +307,10 @@ Return ONLY JSON:
             }
           }
         });
+
+        if (Array.isArray(parsed.pastIllnesses)) extractedMedicalHistory.pastIllnesses = parsed.pastIllnesses;
+        if (Array.isArray(parsed.allergies)) extractedMedicalHistory.allergies = parsed.allergies;
+        if (Array.isArray(parsed.currentMedications)) extractedMedicalHistory.currentMedications = parsed.currentMedications;
       }
     } catch (llmErr) {
       console.warn('[AdaptiveSocrates] Groq extraction bypassed:', llmErr.message);
@@ -357,6 +408,7 @@ Target Spoken Language: ${langName}`;
     quickReplies,
     isComplete,
     socrates: updatedSocrates,
+    extractedMedicalHistory,
     inferredDepartment,
     redFlags,
     hasCriticalRedFlag: redFlags.some(f => f.severity === 'critical')

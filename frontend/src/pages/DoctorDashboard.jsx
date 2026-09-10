@@ -4,7 +4,7 @@ import {
   Stethoscope, ShieldAlert, AlertOctagon, CheckCircle2, Clock,
   RefreshCw, UserCheck, Sparkles, Layers, ShieldCheck, Share2, Download, X, Printer, Plus, Trash2, Eye, FileText
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
 
@@ -17,8 +17,177 @@ import ReferralModal from '../components/doctor/ReferralModal';
 
 const AI_DRAFT_BANNER = 'AI-generated draft — physician verification required';
 
+export const FALLBACK_DEMO_CASES = [
+  {
+    _id: 'ENC-DEMO-001',
+    tokenNumber: 'OPD-001',
+    patientName: 'Rajesh Sharma',
+    age: 52,
+    gender: 'Male',
+    abhaId: '14-8921-3401-9921',
+    chiefComplaint: 'गंभीर छाती में जलन, खट्टी डकारें और पेट में भारीपन पिछले 5 दिनों से हो रहा है।',
+    socrates: {
+      site: 'Epigastric / Retrosternal',
+      onset: '5 days ago',
+      character: 'Severe burning sensation with sour water brash',
+      radiation: 'Ascending to throat',
+      severity: 7,
+      timing: 'Worse 1-2 hours post meals and lying down'
+    },
+    severityScore: 7,
+    triagePriority: 'urgent',
+    queueStatus: 'waiting_intake',
+    department: 'Kayachikitsa',
+    vitals: {
+      systolicBP: 138,
+      diastolicBP: 88,
+      heartRate: 82,
+      spo2: 98,
+      temperature: 98.6,
+      heightCm: 170,
+      weightKg: 78,
+      bmi: 27.0
+    },
+    dashavidhaPariksha: {
+      consultationType: 'ayurvedic',
+      prakriti: { primaryDosha: 'Pitta', secondaryDosha: 'Vata' },
+      agni: 'Tikshnagni (तीक्ष्णाग्नि - Hyperactive/Acidic)',
+      koshtha: 'Krura (क्रूर कोष्ठ)',
+      satva: 'Madhyama',
+      vyayamaShakti: 'Madhyama',
+      trividhaPariksha: {
+        darshana: 'पीत वर्ण (Flushed complexion, mild conjunctival congestion)',
+        sparshana: 'उष्ण स्पर्श (Elevated surface warmth)',
+        prashna: 'दाह व अम्ल उद्गार (Intense retrosternal burning and sour reflux)'
+      },
+      ashtavidhaPariksha: {
+        nadi: 'मण्डूक गति (Pitta - Rapid jumping pulse)',
+        jihwa: 'साम (White thick coating at base / Ama)',
+        mala: 'बद्ध (Hard constipation, irregular evacuation)',
+        mootra: 'रक्त-पीत (High-colored amber urine with mild burning)',
+        shabda: 'स्पष्ट (Normal speech)',
+        sparsha: 'उष्ण (Warm skin)',
+        drik: 'स्पष्ट (Eyes clear)',
+        akruti: 'मध्यम (Medium balanced build)'
+      }
+    },
+    pastMedicalHistory: ['Hypertension (Stage 1)', 'Dyslipidemia'],
+    allergies: ['Penicillin (Maculopapular rash)'],
+    ocrPrescriptions: [
+      {
+        extractedMedicines: [
+          { name: 'Amlodipine', dosage: '5mg', frequency: 'OD (Morning)' },
+          { name: 'Atorvastatin', dosage: '10mg', frequency: 'HS (Bedtime)' }
+        ]
+      }
+    ],
+    aiSummary: '52-year-old hypertensive male presenting with classical Amlapitta (Gastro-Esophageal Reflux Disease) exacerbated by irregular meals. Vitals indicate mild systolic elevation (138/88 mmHg). Classical Pariksha demonstrates predominant Pitta vitiation with Tikshnagni and Saama Jihwa. Relevant comorbidities: Hypertension (treated with Amlodipine). CRITICAL ALLERGY: Penicillin.'
+  },
+  {
+    _id: 'ENC-DEMO-002',
+    tokenNumber: 'OPD-002',
+    patientName: 'Sunita Devi',
+    age: 61,
+    gender: 'Female',
+    abhaId: '14-1122-3344-5566',
+    chiefComplaint: 'दोनों घुटनों में तेज दर्द, चलने में कट-कट की आवाज और सुबह के समय अकड़न।',
+    socrates: {
+      site: 'Bilateral Knee Joints',
+      onset: '3 months, worsened in last week',
+      character: 'Crepitus on bending, joint stiffness on rising',
+      severity: 8,
+      timing: 'Continuous ache, aggravated by stair climbing'
+    },
+    severityScore: 8,
+    triagePriority: 'normal',
+    queueStatus: 'waiting_intake',
+    department: 'Panchakarma',
+    vitals: {
+      systolicBP: 126,
+      diastolicBP: 80,
+      heartRate: 74,
+      spo2: 99,
+      temperature: 98.2,
+      heightCm: 154,
+      weightKg: 68,
+      bmi: 28.7
+    },
+    dashavidhaPariksha: {
+      consultationType: 'ayurvedic',
+      prakriti: { primaryDosha: 'Vata', secondaryDosha: 'Kapha' },
+      agni: 'Mandagni (मन्दाग्नि - Sluggish metabolism)',
+      koshtha: 'Madhyama',
+      satva: 'Pravara',
+      vyayamaShakti: 'Avara',
+      trividhaPariksha: {
+        darshana: 'शोथ (Mild bilateral knee swelling and antalgic gait)',
+        sparshana: 'शीत स्पर्श (Cool sensation, crepitus on passive flexion)',
+        prashna: 'तोद व सन्धि शूल (Piercing joint pain aggravated by cold weather)'
+      },
+      ashtavidhaPariksha: {
+        nadi: 'सर्प गति (Vata - Thin irregular rhythm)',
+        jihwa: 'निराम (Pink, clear)',
+        mala: 'प्राकृत (Normal regular)',
+        mootra: 'प्राकृत (Clear)',
+        shabda: 'स्पष्ट',
+        sparsha: 'रूक्ष (Dry texture)',
+        drik: 'स्पष्ट',
+        akruti: 'स्थूल (Heavy build)'
+      }
+    },
+    pastMedicalHistory: ['Type 2 Diabetes Mellitus (6 years)', 'Hypothyroidism'],
+    allergies: ['Sulfa Drugs (Facial swelling)'],
+    ocrPrescriptions: [
+      {
+        extractedMedicines: [
+          { name: 'Metformin', dosage: '500mg', frequency: 'BD with meals' },
+          { name: 'Levothyroxine', dosage: '50mcg', frequency: 'OD before breakfast' }
+        ]
+      }
+    ],
+    aiSummary: '61-year-old female presenting with bilateral Sandhivata (Osteoarthritis of knees, VAS 8/10). History significant for Type 2 Diabetes (Metformin) and Hypothyroidism. Pariksha reveals Vata-Kapha Prakriti with Mandagni and joint crepitus. IMPORTANT: Ashwagandha co-prescription may potentiate hypoglycemic action of Metformin.'
+  },
+  {
+    _id: 'ENC-DEMO-003',
+    tokenNumber: 'OPD-003',
+    patientName: 'Amit Verma',
+    age: 34,
+    gender: 'Male',
+    abhaId: '14-4455-6677-8899',
+    chiefComplaint: 'Chest tightness, persistent dry cough, and mild feverish feeling for 3 days.',
+    socrates: {
+      site: 'Retrosternal / Tracheobronchial',
+      onset: '3 days',
+      character: 'Spasmodic cough, nocturnal worsening',
+      severity: 6,
+      timing: 'Aggravated by cold air exposure'
+    },
+    severityScore: 6,
+    triagePriority: 'urgent',
+    queueStatus: 'waiting_intake',
+    department: 'General Medicine',
+    vitals: {
+      systolicBP: 118,
+      diastolicBP: 76,
+      heartRate: 88,
+      spo2: 97,
+      temperature: 100.2,
+      heightCm: 174,
+      weightKg: 70,
+      bmi: 23.1
+    },
+    dashavidhaPariksha: {
+      consultationType: 'allopathy'
+    },
+    pastMedicalHistory: ['Childhood Bronchial Asthma'],
+    allergies: ['Aspirin / NSAIDs (Induces bronchospasm)'],
+    aiSummary: '34-year-old male with acute tracheobronchitis and low-grade pyrexia (100.2°F). SpO2 stable at 97%. Past medical history positive for childhood Asthma. CONTRAINDICATION: NSAIDs strictly contraindicated due to documented aspirin-induced bronchospasm risk.'
+  }
+];
+
 const DoctorDashboard = () => {
   const navigate = useNavigate();
+  const { encounterId } = useParams();
   const { currentUser } = useAuth();
   const isDemoDoctor = currentUser?.doctorId === 'DOC-AIIA-001';
 
@@ -131,21 +300,33 @@ const DoctorDashboard = () => {
     try {
       const url = overrideDemo ? `${API_URL}/kiosk/queue?isDemo=true` : `${API_URL}/kiosk/queue`;
       const res = await axios.get(url);
-      if (res.data?.status === 'success') {
-        const queueData = res.data.data || [];
-        setQueue(queueData);
-        if (queueData.length > 0) {
-          setSelectedSession((prev) => {
-            if (!prev) return queueData[0];
-            const existingInList = queueData.find((s) => s._id === prev._id);
-            return existingInList || queueData[0];
-          });
-        } else {
-          setSelectedSession(null);
-        }
+      let queueData = [];
+      if (res.data?.status === 'success' && res.data.data?.length > 0) {
+        queueData = res.data.data;
+      } else if (overrideDemo || isDemoDoctor) {
+        queueData = FALLBACK_DEMO_CASES;
+      }
+      setQueue(queueData);
+      if (queueData.length > 0) {
+        setSelectedSession((prev) => {
+          if (encounterId) {
+            const match = queueData.find(s => s._id === encounterId || s.tokenNumber === encounterId || s.id === encounterId);
+            if (match) return match;
+          }
+          if (!prev) return queueData[0];
+          const existingInList = queueData.find((s) => s._id === prev._id);
+          return existingInList || queueData[0];
+        });
+      } else {
+        setSelectedSession(null);
       }
     } catch (err) {
       console.warn('Fetch queue fallback:', err?.message);
+      if (overrideDemo || isDemoDoctor) {
+        setQueue(FALLBACK_DEMO_CASES);
+        const match = encounterId ? FALLBACK_DEMO_CASES.find(s => s._id === encounterId || s.tokenNumber === encounterId) : null;
+        setSelectedSession(match || FALLBACK_DEMO_CASES[0]);
+      }
     } finally {
       setLoadingQueue(false);
     }
@@ -542,6 +723,14 @@ const DoctorDashboard = () => {
               <PatientSummaryCard
                 selectedSession={selectedSession}
                 openEvidenceDrawer={openEvidenceDrawer}
+                onCopyAiSummary={(text) => {
+                  setSoapData((prev) => ({
+                    ...prev,
+                    subjective: prev.subjective
+                      ? `${prev.subjective}\n\n[AI Clinical Summary]:\n${text}`
+                      : `[AI Clinical Summary]:\n${text}`
+                  }));
+                }}
               />
 
               {/* Returning Patient Delta Tracker */}
