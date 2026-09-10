@@ -318,7 +318,7 @@ export default function ComprehensiveMedicalHistory({
 
   // Modal for adding a new clinical entry
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addType, setAddType] = useState('chronic'); // 'chronic' | 'allergy' | 'lab' | 'visit'
+  const [addType, setAddType] = useState('chronic'); // 'chronic' | 'allergy' | 'lab' | 'med' | 'surgery' | 'family'
   const [newEntryForm, setNewEntryForm] = useState({
     name: '',
     substance: '',
@@ -326,7 +326,15 @@ export default function ComprehensiveMedicalHistory({
     notes: '',
     date: new Date().toISOString().slice(0, 10),
     value: '',
-    doctor: ''
+    doctor: '',
+    dosage: '',
+    frequency: '',
+    type: 'Ayurvedic',
+    relative: 'Father',
+    condition: '',
+    procedure: '',
+    hospital: '',
+    outcome: 'Resolved / Normal'
   });
 
   const handleAddEntry = (e) => {
@@ -340,8 +348,8 @@ export default function ComprehensiveMedicalHistory({
         diagnosedDate: newEntryForm.date || 'Recent',
         status: 'Active',
         severity: newEntryForm.severity,
-        notes: newEntryForm.notes || 'Added during OPD consultation.',
-        physician: newEntryForm.doctor || 'Attending OPD Physician'
+        notes: newEntryForm.notes || 'Added during clinical intake.',
+        physician: newEntryForm.doctor || 'Attending Physician'
       };
       setHistoryData(prev => ({
         ...prev,
@@ -357,7 +365,7 @@ export default function ComprehensiveMedicalHistory({
         severity: newEntryForm.severity === 'high' ? 'Critical / Anaphylactic' : 'Moderate',
         diagnosedDate: newEntryForm.date || 'Today',
         verified: true,
-        alertNote: 'Entered by attending doctor during case-taking.'
+        alertNote: 'Entered by patient / doctor during case-taking.'
       };
       setHistoryData(prev => ({
         ...prev,
@@ -376,17 +384,66 @@ export default function ComprehensiveMedicalHistory({
         status: newEntryForm.severity === 'high' ? 'abnormal' : 'normal',
         trend: newEntryForm.severity === 'high' ? 'elevated' : 'stable',
         delta: 'Baseline',
-        labName: 'In-House Laboratory / Kiosk Point-of-Care',
+        labName: newEntryForm.doctor || 'In-House Laboratory / Kiosk Point-of-Care',
         significance: newEntryForm.notes || 'Documented test result.'
       };
       setHistoryData(prev => ({
         ...prev,
         labReports: [newLab, ...prev.labReports]
       }));
+    } else if (addType === 'med') {
+      if (!newEntryForm.name) return;
+      const newMed = {
+        id: 'med-' + Date.now(),
+        name: newEntryForm.name,
+        dosage: newEntryForm.dosage || 'Standard dose',
+        frequency: newEntryForm.frequency || 'Daily',
+        type: newEntryForm.type || 'Ayurvedic / Classical',
+        startedDate: newEntryForm.date || 'Recent',
+        status: 'Active',
+        adherence: 'Ongoing',
+        prescriber: newEntryForm.doctor || 'Self / Clinical Prescriber'
+      };
+      setHistoryData(prev => ({
+        ...prev,
+        medications: [newMed, ...prev.medications]
+      }));
+    } else if (addType === 'surgery') {
+      if (!newEntryForm.procedure) return;
+      const newSurg = {
+        id: 'surg-' + Date.now(),
+        procedure: newEntryForm.procedure,
+        date: newEntryForm.date || 'Recent',
+        hospital: newEntryForm.hospital || 'District Hospital / Medical Center',
+        indication: newEntryForm.notes || 'Surgical intervention',
+        implants: 'None',
+        outcome: newEntryForm.outcome || 'Recovered uneventfully'
+      };
+      setHistoryData(prev => ({
+        ...prev,
+        surgeries: [newSurg, ...prev.surgeries]
+      }));
+    } else if (addType === 'family') {
+      if (!newEntryForm.condition) return;
+      const newFam = {
+        relative: newEntryForm.relative || 'Family Member',
+        condition: newEntryForm.condition,
+        status: newEntryForm.notes || 'Documented hereditary trait'
+      };
+      setHistoryData(prev => ({
+        ...prev,
+        familyHistory: [newFam, ...prev.familyHistory]
+      }));
     }
     setShowAddModal(false);
-    setNewEntryForm({ name: '', substance: '', severity: 'moderate', notes: '', date: '', value: '', doctor: '' });
+    setNewEntryForm({
+      name: '', substance: '', severity: 'moderate', notes: '',
+      date: new Date().toISOString().slice(0, 10), value: '', doctor: '',
+      dosage: '', frequency: '', type: 'Ayurvedic', relative: 'Father',
+      condition: '', procedure: '', hospital: '', outcome: 'Resolved / Normal'
+    });
   };
+
 
   // Filtered queries for search
   const filteredChronic = useMemo(() => {
@@ -1068,18 +1125,21 @@ export default function ComprehensiveMedicalHistory({
               </button>
             </div>
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl">
               {[
                 { id: 'chronic', label: 'Condition' },
                 { id: 'allergy', label: 'Allergy' },
-                { id: 'lab', label: 'Lab Test' }
+                { id: 'med', label: 'Medicine' },
+                { id: 'lab', label: 'Lab Test' },
+                { id: 'surgery', label: 'Surgery' },
+                { id: 'family', label: 'Family' }
               ].map(t => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setAddType(t.id)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    addType === t.id ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-white/5 text-gray-600 dark:text-gray-300'
+                  className={`py-2 px-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer truncate text-center ${
+                    addType === t.id ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-gray-400 hover:text-slate-900'
                   }`}
                 >
                   {t.label}
@@ -1089,82 +1149,267 @@ export default function ComprehensiveMedicalHistory({
 
             <form onSubmit={handleAddEntry} className="space-y-3 text-xs">
               {addType === 'chronic' && (
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">Condition / Disease Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Hypothyroidism, Asthma"
-                    value={newEntryForm.name}
-                    onChange={(e) => setNewEntryForm({ ...newEntryForm, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Condition / Chronic Disease Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Hypothyroidism, Type 2 Diabetes, Asthma"
+                      value={newEntryForm.name}
+                      onChange={(e) => setNewEntryForm({ ...newEntryForm, name: e.target.value })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Severity</label>
+                      <select
+                        value={newEntryForm.severity}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, severity: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      >
+                        <option value="mild">Mild</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="high">High / Severe</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Diagnosed Date</label>
+                      <input
+                        type="date"
+                        value={newEntryForm.date}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, date: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
               {addType === 'allergy' && (
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">Allergenic Substance / Drug</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Sulfa drugs, Ciprofloxacin"
-                    value={newEntryForm.substance}
-                    onChange={(e) => setNewEntryForm({ ...newEntryForm, substance: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Allergenic Substance / Drug</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Sulfa drugs, Ciprofloxacin, Peanuts"
+                      value={newEntryForm.substance}
+                      onChange={(e) => setNewEntryForm({ ...newEntryForm, substance: e.target.value })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Severity / Reaction Level</label>
+                    <select
+                      value={newEntryForm.severity}
+                      onChange={(e) => setNewEntryForm({ ...newEntryForm, severity: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    >
+                      <option value="high">Critical / Anaphylactic Risk</option>
+                      <option value="moderate">Moderate (Rash, Wheezing)</option>
+                      <option value="mild">Mild (Localized Itch)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {addType === 'med' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Medicine Name</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Yogaraj Guggulu, Metformin"
+                        value={newEntryForm.name}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, name: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Dosage & Frequency</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 500mg Once Daily"
+                        value={newEntryForm.dosage}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, dosage: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Medical System</label>
+                      <select
+                        value={newEntryForm.type}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, type: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      >
+                        <option value="Classical AYUSH / Ayurvedic">Classical AYUSH / Ayurvedic</option>
+                        <option value="Allopathic / Modern Medicine">Allopathic / Modern Medicine</option>
+                        <option value="Homeopathy / Alternative">Homeopathy / Alternative</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Prescribing Doctor</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dr. A. Sharma"
+                        value={newEntryForm.doctor}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, doctor: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
               {addType === 'lab' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">Test Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Total Cholesterol"
-                      value={newEntryForm.name}
-                      onChange={(e) => setNewEntryForm({ ...newEntryForm, name: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Test Name</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Total Cholesterol, HbA1c"
+                        value={newEntryForm.name}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, name: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Measured Value</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 210 mg/dL"
+                        value={newEntryForm.value}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, value: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">Measured Value</label>
+                    <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Diagnostic Laboratory</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. AIIA Central Lab, Dr Lal Pathlabs"
+                      value={newEntryForm.doctor}
+                      onChange={(e) => setNewEntryForm({ ...newEntryForm, doctor: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {addType === 'surgery' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Surgical Procedure</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 240 mg/dL"
-                      value={newEntryForm.value}
-                      onChange={(e) => setNewEntryForm({ ...newEntryForm, value: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                      placeholder="e.g. Laparoscopic Cholecystectomy, Knee Arthroscopy"
+                      value={newEntryForm.procedure}
+                      onChange={(e) => setNewEntryForm({ ...newEntryForm, procedure: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Hospital / Center</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. AIIA Hospital, AIIMS Delhi"
+                        value={newEntryForm.hospital}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, hospital: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Year / Date</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Jan 2024"
+                        value={newEntryForm.date}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, date: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {addType === 'family' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Relative</label>
+                      <select
+                        value={newEntryForm.relative}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, relative: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      >
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Brother">Brother</option>
+                        <option value="Sister">Sister</option>
+                        <option value="Paternal Grandfather">Paternal Grandfather</option>
+                        <option value="Maternal Grandmother">Maternal Grandmother</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Status</label>
+                      <select
+                        value={newEntryForm.notes}
+                        onChange={(e) => setNewEntryForm({ ...newEntryForm, notes: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      >
+                        <option value="Living">Living</option>
+                        <option value="Deceased">Deceased</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Hereditary Condition / Disease</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Type 2 Diabetes, Early Myocardial Infarction, Hypertension"
+                      value={newEntryForm.condition}
+                      onChange={(e) => setNewEntryForm({ ...newEntryForm, condition: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">Clinical Notes / Reaction Details</label>
+                <label className="block text-slate-700 dark:text-gray-300 font-bold mb-1">Additional Notes / Clinical Context</label>
                 <textarea
                   rows="2"
-                  placeholder="Additional context, symptoms, or doctor comments..."
+                  placeholder="Additional context, onset symptoms, or doctor remarks..."
                   value={newEntryForm.notes}
                   onChange={(e) => setNewEntryForm({ ...newEntryForm, notes: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-white/10">
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-200 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-white/10 text-slate-700 dark:text-gray-300 font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-gray-300 font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer shadow-md"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold cursor-pointer shadow-md shadow-emerald-600/20"
                 >
                   Save to Record
                 </button>
@@ -1173,6 +1418,7 @@ export default function ComprehensiveMedicalHistory({
           </div>
         </div>
       )}
+
 
     </div>
   );

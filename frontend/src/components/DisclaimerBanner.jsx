@@ -1,38 +1,72 @@
 import React from 'react';
-import { AlertTriangle, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { ShieldCheck, Stethoscope, Building2, Lock, FileCheck } from 'lucide-react';
 
 const DisclaimerBanner = () => {
-  const { t } = useTranslation();
   return (
-    <footer className="mt-auto py-12 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white/40 dark:bg-white/5 backdrop-blur-2xl border border-slate-200/50 dark:border-white/5 rounded-[3rem] p-10 md:p-16 flex flex-col items-center text-center gap-8 shadow-2xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group">
-           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-500/0" />
-           <div className="p-5 bg-red-500/10 text-red-500 rounded-3xl group-hover:scale-110 transition-transform duration-500 ring-1 ring-red-500/20">
-              <AlertTriangle className="w-10 h-10" />
-           </div>
-            <div className="max-w-4xl space-y-6">
-              <h4 className="text-gray-900 dark:text-white font-black mb-4 text-3xl tracking-tighter">{t('disclaimer.title')}</h4>
-              <p className="text-lg text-slate-600 dark:text-gray-300 leading-relaxed font-medium italic">
-                {t('disclaimer.main')}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed font-medium">
-                {t('disclaimer.secondary')}
-              </p>
-              <div className="mt-6 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-500">
-                 <Info className="w-3.5 h-3.5" /> Powered by Groq Llama 3 & IMPPAT Database
-              </div>
+    <footer className="mt-auto py-10 px-4 sm:px-6 bg-gradient-to-b from-transparent via-slate-50 to-slate-100/80 border-t border-slate-200">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Hackathon & Clinical Authority Header Card */}
+        <div className="bg-white border-2 border-emerald-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3.5 bg-emerald-100 text-emerald-800 rounded-2xl ring-1 ring-emerald-300 shrink-0">
+              <ShieldCheck className="w-8 h-8" />
             </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  SIH 2026 • PS 26047
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800 border border-teal-300">
+                  All India Institute of Ayurveda (AIIA)
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                  Ministry of Ayush
+                </span>
+              </div>
+              <h4 className="text-slate-900 font-extrabold text-xl sm:text-2xl tracking-tight">
+                VaidyaSetu — Patient Case-Taking & Integrative Health Intelligence
+              </h4>
+              <p className="text-slate-600 text-sm mt-1">
+                Standardized Clinical Triaging, Herb-Drug Interaction (HDI) Safety Bridge, and ABDM Ayushman Bharat Digital Gateway.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap md:flex-col items-start gap-2 text-xs font-semibold text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-200 shrink-0">
+            <div className="flex items-center gap-2 text-emerald-700">
+              <Lock className="w-4 h-4 text-emerald-600" />
+              <span>DPDP Act 2023 Compliant</span>
+            </div>
+            <div className="flex items-center gap-2 text-teal-700">
+              <Building2 className="w-4 h-4 text-teal-600" />
+              <span>ABDM M1, M2, M3 Ready</span>
+            </div>
+            <div className="flex items-center gap-2 text-blue-700">
+              <FileCheck className="w-4 h-4 text-blue-600" />
+              <span>IMPPAT 2.0 & NAMASTE Coded</span>
+            </div>
+          </div>
         </div>
-        
-        <div className="mt-12 pt-8 border-t border-gray-100 dark:border-white/5 flex flex-col items-center text-center gap-6 text-gray-400 dark:text-gray-500 text-[11px] font-bold uppercase tracking-[0.1em]">
-           <p>© 2026 VaidyaSetu. Bridge to Balanced Health.</p>
-           <div className="flex flex-wrap justify-center gap-x-8 gap-y-3">
-              <a href="#" className="hover:text-emerald-500 transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-emerald-500 transition-colors">Contact Support</a>
-           </div>
+
+        {/* Clinical Disclaimer Box */}
+        <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-5 text-slate-700 text-xs sm:text-sm leading-relaxed">
+          <div className="flex items-center gap-2 font-bold text-amber-900 mb-1">
+            <Stethoscope className="w-4 h-4 text-amber-700" />
+            <span>Statutory Medical & Clinical Decision Support Disclaimer</span>
+          </div>
+          <p className="text-slate-700">
+            VaidyaSetu is designed as an assistive Clinical Decision Support System (CDSS) for automated case-taking, preliminary Ayurvedic dosha triaging, and pharmacovigilance (herb-drug cross-reactivity). It does not replace the professional clinical diagnosis, prescription, or therapeutic judgment of a registered medical practitioner (Ayush or Allopathic). Final clinical interventions and prescription validations remain under the sole purview of attending doctors.
+          </p>
+        </div>
+
+        {/* Footer Subtext & Links */}
+        <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
+          <p>© 2026 VaidyaSetu — Smart India Hackathon 2026. Built for AIIA & Ministry of Ayush.</p>
+          <div className="flex items-center gap-6 text-slate-600">
+            <span className="hover:text-emerald-700 cursor-pointer">ABDM Sandbox</span>
+            <span className="hover:text-emerald-700 cursor-pointer">Privacy & Consent (DPDP)</span>
+            <span className="hover:text-emerald-700 cursor-pointer">AIIA Clinical Protocol</span>
+          </div>
         </div>
       </div>
     </footer>
@@ -40,3 +74,4 @@ const DisclaimerBanner = () => {
 };
 
 export default DisclaimerBanner;
+

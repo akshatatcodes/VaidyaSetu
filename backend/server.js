@@ -30,6 +30,8 @@ const doctorRoutes = require('./src/routes/doctorRoutes');
 const continuityRoutes = require('./src/routes/continuityRoutes');
 const aiLayerRoutes = require('./src/routes/aiLayerRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const ragRoutes = require('./src/routes/ragRoutes');
+const chatRoutes = require('./src/routes/chatRoutes');
 const { resolveLanguage } = require('./src/middleware/languageResolver');
 const { runReminderService } = require('./src/services/reminderService');
 const initCronJobs = require('./src/scripts/cronJobs');
@@ -82,6 +84,8 @@ app.use('/api/doctor', doctorRoutes);
 app.use('/api/continuity', continuityRoutes);
 app.use('/api/ai', aiLayerRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/rag', ragRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

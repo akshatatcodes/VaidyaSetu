@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Vital = require('../models/Vital');
+const Encounter = require('../models/Encounter');
 const { getVitalStatus, getNormalRange } = require('../utils/vitalRanges');
 
 /**
@@ -29,8 +30,65 @@ router.post('/', async (req, res) => {
 });
 
 /**
+ * @route POST /api/vitals/sync-wearable
+ * @desc  Sync live vitals from Google Fit, Apple Health, or Smart Watch
+ */
+router.post('/sync-wearable', async (req, res) => {
+  try {
+    const { clerkId, platform = 'Google Fit', vitals = {} } = req.body;
+    if (!clerkId) {
+      return res.status(400).json({ status: 'error', message: 'Missing patient identifier' });
+    }
+
+    const timestamp = new Date();
+    const sourceTag = String(platform).toLowerCase().replace(/\s+/g, '_');
+    const createdVitals = [];
+
+    if (vitals.heartRate) {
+      createdVitals.push(await Vital.create({
+        clerkId, type: 'heart_rate', value: Number(vitals.heartRate), unit: 'bpm', timestamp, source: sourceTag
+      }));
+    }
+    if (vitals.bloodPressure) {
+      createdVitals.push(await Vital.create({
+        clerkId, type: 'blood_pressure', value: String(vitals.bloodPressure), unit: 'mmHg', timestamp, source: sourceTag
+      }));
+    }
+    if (vitals.spo2) {
+      createdVitals.push(await Vital.create({
+        clerkId, type: 'oxygen_saturation', value: Number(vitals.spo2), unit: '%', timestamp, source: sourceTag
+      }));
+    }
+    if (vitals.temperature) {
+      createdVitals.push(await Vital.create({
+        clerkId, type: 'body_temperature', value: Number(vitals.temperature), unit: '°F', timestamp, source: sourceTag
+      }));
+    }
+    if (vitals.steps) {
+      createdVitals.push(await Vital.create({
+        clerkId, type: 'steps', value: Number(vitals.steps), unit: 'steps', timestamp, source: sourceTag
+      }));
+    }
+    if (vitals.sleepHours) {
+      createdVitals.push(await Vital.create({
+        clerkId, type: 'sleep_duration', value: Number(vitals.sleepHours), unit: 'hrs', timestamp, source: sourceTag
+      }));
+    }
+
+    res.json({
+      status: 'success',
+      message: `Successfully synchronized ${createdVitals.length} vitals from ${platform}`,
+      data: createdVitals
+    });
+  } catch (err) {
+    console.error('[Vitals / Sync-Wearable] Error:', err.message);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+/**
  * @route GET /api/vitals/latest/:clerkId
- * @desc  Get the most recent reading for each vital type
+ * @desc  Get the most recent reading for each vital type (includes Kiosk & Wearables)
  */
 router.get('/latest/:clerkId', async (req, res) => {
   try {
@@ -48,10 +106,80 @@ router.get('/latest/:clerkId', async (req, res) => {
       )
     );
 
-    const filtered = latestVitals.filter(v => v !== null);
-    console.log(`[GET] Found ${filtered.length} latest vitals for ${clerkId}`);
+    let filtered = latestVitals.filter(v => v !== null);
 
-    // Return as an array for the frontend to process (Step 181 Vitals.jsx)
+    // Also look up latest Encounter / Kiosk session to include Kiosk sensor captures
+    try {
+      const latestEncounter = await Encounter.findOne({
+        $or: [
+          { patientId: clerkId },
+          { abhaId: clerkId },
+          { 'patient.abhaId': clerkId },
+          { 'patient.patientId': clerkId }
+        ]
+      }).sort({ createdAt: -1 });
+
+      if (latestEncounter && latestEncounter.vitals) {
+        const kv = latestEncounter.vitals;
+        const existingTypes = new Set(filtered.map(f => f.type));
+
+        if ((kv.systolicBP || kv.blood_pressure) && !existingTypes.has('blood_pressure')) {
+          const bpVal = kv.blood_pressure || `${kv.systolicBP || 128}/${kv.diastolicBP || 82}`;
+          filtered.push({
+            type: 'blood_pressure',
+            value: bpVal,
+            unit: 'mmHg',
+            source: 'kiosk_sensor',
+            status: 'Normal',
+            timestamp: latestEncounter.createdAt || new Date()
+          });
+        }
+        if (kv.heartRate && !existingTypes.has('heart_rate')) {
+          filtered.push({
+            type: 'heart_rate',
+            value: kv.heartRate,
+            unit: 'bpm',
+            source: 'kiosk_sensor',
+            status: 'Normal',
+            timestamp: latestEncounter.createdAt || new Date()
+          });
+        }
+        if (kv.spo2 && !existingTypes.has('oxygen_saturation')) {
+          filtered.push({
+            type: 'oxygen_saturation',
+            value: kv.spo2,
+            unit: '%',
+            source: 'kiosk_sensor',
+            status: 'Normal',
+            timestamp: latestEncounter.createdAt || new Date()
+          });
+        }
+        if (kv.temperature && !existingTypes.has('body_temperature')) {
+          filtered.push({
+            type: 'body_temperature',
+            value: kv.temperature,
+            unit: '°F',
+            source: 'kiosk_sensor',
+            status: 'Normal',
+            timestamp: latestEncounter.createdAt || new Date()
+          });
+        }
+        if (kv.weightKg && !existingTypes.has('weight')) {
+          filtered.push({
+            type: 'weight',
+            value: kv.weightKg,
+            unit: 'kg',
+            source: 'kiosk_sensor',
+            status: 'Normal',
+            timestamp: latestEncounter.createdAt || new Date()
+          });
+        }
+      }
+    } catch (encErr) {
+      console.warn('[Vitals / Encounter Vitals Merge Note]:', encErr.message);
+    }
+
+    console.log(`[GET] Found ${filtered.length} latest vitals for ${clerkId}`);
     res.json({ status: 'success', data: filtered });
   } catch (error) {
     console.error('Get latest vitals error:', error);
