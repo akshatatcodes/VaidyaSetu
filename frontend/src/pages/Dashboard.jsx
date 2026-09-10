@@ -589,33 +589,33 @@ const Dashboard = () => {
         </div>
 
         {/* Scheduled Follow-Up & Clinical Advice (4 cols) */}
-        <div className="lg:col-span-4 bg-gradient-to-br from-teal-900 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-teal-500/30 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-4 bg-white text-slate-900 rounded-3xl p-6 sm:p-7 shadow-xl border border-teal-500/20 flex flex-col justify-between space-y-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-black uppercase border border-teal-500/30">
+              <span className="px-3 py-1 rounded-full bg-teal-500/15 text-teal-800 text-[11px] font-black uppercase tracking-wider border border-teal-500/30">
                 Next Appointment
               </span>
-              <CalendarClock className="w-5 h-5 text-teal-400" />
+              <CalendarClock className="w-5 h-5 text-teal-600" />
             </div>
 
             <div>
-              <div className="text-2xl font-black text-white">
+              <div className="text-2xl font-black text-slate-900">
                 {nextFollowUp?.scheduledDate || '24 Sep 2026'}
               </div>
-              <p className="text-xs text-slate-300 mt-1">
+              <p className="text-xs font-bold text-slate-600 mt-1">
                 Consultation with {nextFollowUp?.doctorName ? `Dr. ${nextFollowUp.doctorName}` : 'Dr. Vaidya Ramanathan'}
               </p>
-              <div className="mt-3 p-3 rounded-2xl bg-white/10 border border-white/10 text-xs text-slate-200 leading-relaxed">
+              <div className="mt-3 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/70 text-xs text-slate-800 font-medium leading-relaxed">
                 "Patient advised to continue light dietary Ahara-Vihara (Koshna Jala) and avoid heavy night curd intake."
               </div>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-white/15">
+          <div className="pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => navigate('/patient/opd')}
-              className="w-full py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               <span>Reschedule or Book Consultation</span>
               <ArrowRight className="w-3.5 h-3.5" />

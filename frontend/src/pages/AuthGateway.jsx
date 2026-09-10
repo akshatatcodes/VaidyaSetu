@@ -266,46 +266,46 @@ const AuthGateway = ({ initialPortal = null }) => {
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-gray-900 truncate">
                   VaidyaSetu
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-[10px] font-black uppercase">
-                  SIH 2026 • PS 26047
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 text-[10px] font-black uppercase">
+                  AIIA • Ayush (SIH PS 26047)
                 </span>
               </div>
-              <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mt-0.5">
-                {activePortal === 'doctor' ? 'Clinical Decision Support & OPD Cockpit'
-                  : activePortal === 'lab' ? 'Central Diagnostic Laboratory Workbench'
-                  : activePortal === 'admin' ? 'Hospital Administration & Operations Console'
-                  : 'AI-Powered Digital Clinical History & Intake Platform'}
+              <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mt-0.5">
+                {activePortal === 'doctor' ? 'Clinical Decision Support (CDSS) & OPD Cockpit'
+                  : activePortal === 'lab' ? 'Central Diagnostic Laboratory & Pathology LIMS'
+                  : activePortal === 'admin' ? 'Hospital Operations, Kiosk Telemetry & DPDP Governance'
+                  : 'AI-Powered Digital OPD Kiosk & Integrative Health Sanctuary'}
               </p>
             </div>
           </div>
 
-          {/* Dynamic Headline depending on portal */}
+          {/* Dynamic System Information depending on role portal */}
           <div className="space-y-4">
             {activePortal === 'doctor' ? (
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold">
                   <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Doctor & Clinical Portal</span>
+                  <span>Clinical Consultation Workspace • SIH PS 26047</span>
                 </div>
                 <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
-                  Intelligent <span className="text-teal-700">OPD Cockpit</span> & Clinical CDSS
+                  Physician <span className="text-teal-700">OPD Consultation Desk</span>
                 </h3>
                 <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
-                  Instant SOCRATES pre-consultation summaries, automated Dashavidha Pariksha, and real-time Herb-Drug Interaction (HDI) pharmacovigilance.
+                  Clinical consultation desk for All India Institute of Ayurveda (AIIA) practitioners. The system compiles patient intake data, vitals, classical Ayush evaluations (Trividha, Ashtavidha, and Dashavidha Pariksha), cross-checks herb-drug interactions, and generates structured SOAP case sheets.
                 </p>
 
                 <div className="grid grid-cols-3 gap-2.5 pt-2">
                   <div className="p-3 rounded-2xl bg-white border border-teal-200 shadow-sm">
-                    <div className="text-base font-extrabold text-teal-700">90-Sec</div>
-                    <div className="text-[11px] font-bold text-slate-700">Triage Summary</div>
+                    <div className="text-sm font-extrabold text-teal-800">Intake Dossier</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Symptom & Vitals Sheet</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-emerald-200 shadow-sm">
-                    <div className="text-base font-extrabold text-emerald-700">IMPPAT 2.0</div>
-                    <div className="text-[11px] font-bold text-slate-700">Herb-Drug Safety</div>
+                    <div className="text-sm font-extrabold text-emerald-800">Ayush Pariksha</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Prakriti & Agni Assessment</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-blue-200 shadow-sm">
-                    <div className="text-base font-extrabold text-blue-700">NAMASTE</div>
-                    <div className="text-[11px] font-bold text-slate-700">Ayush Coding</div>
+                    <div className="text-sm font-extrabold text-blue-800">Herb-Drug Guard</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Cross-System Safety Check</div>
                   </div>
                 </div>
               </div>
@@ -313,27 +313,27 @@ const AuthGateway = ({ initialPortal = null }) => {
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-bold">
                   <TestTubes className="w-3.5 h-3.5 text-cyan-600" />
-                  <span>Central Diagnostic Laboratory</span>
+                  <span>Central Diagnostic Laboratory • SIH PS 26047</span>
                 </div>
                 <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
-                  Laboratory <span className="text-cyan-700">Result Workbench</span> & Verification
+                  Diagnostic <span className="text-cyan-700">Laboratory Information Module</span>
                 </h3>
                 <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
-                  Process investigations with automated reference ranges, flag critical values instantly, and sync verified lab reports into patient ABDM records.
+                  Diagnostic laboratory module of the VaidyaSetu platform. Enables hospital laboratory personnel to process diagnostic investigation orders, digitize physical test slips via OCR scanning, verify reference values against clinical ranges, and attach reports to patient electronic health records.
                 </p>
 
                 <div className="grid grid-cols-3 gap-2.5 pt-2">
                   <div className="p-3 rounded-2xl bg-white border border-cyan-200 shadow-sm">
-                    <div className="text-base font-extrabold text-cyan-700">Fast Entry</div>
-                    <div className="text-[11px] font-bold text-slate-700">Queue Processing</div>
+                    <div className="text-sm font-extrabold text-cyan-800">Test Processing</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Order Entry & Ranges</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-amber-200 shadow-sm">
-                    <div className="text-base font-extrabold text-amber-700">Auto-Flags</div>
-                    <div className="text-[11px] font-bold text-slate-700">Critical Ranges</div>
+                    <div className="text-sm font-extrabold text-amber-800">Document OCR</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Slip Data Extraction</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-emerald-200 shadow-sm">
-                    <div className="text-base font-extrabold text-emerald-700">ABDM Sync</div>
-                    <div className="text-[11px] font-bold text-slate-700">FHIR Records</div>
+                    <div className="text-sm font-extrabold text-emerald-800">Record Sync</div>
+                    <div className="text-[11px] font-semibold text-slate-600">ABDM Diagnostic Push</div>
                   </div>
                 </div>
               </div>
@@ -341,27 +341,27 @@ const AuthGateway = ({ initialPortal = null }) => {
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold">
                   <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Hospital Administration</span>
+                  <span>Institutional Administration • SIH PS 26047</span>
                 </div>
                 <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
-                  OPD Operations & <span className="text-indigo-700">Governance Console</span>
+                  Hospital Operations & <span className="text-indigo-700">Governance Console</span>
                 </h3>
                 <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
-                  Live hospital OPD counters, queue analytics, department load balancing, and comprehensive audit logs across all clinical consultations.
+                  Administrative management console for AIIA hospital operations. Provides facility-wide visibility into OPD department routing, kiosk terminal status, clinical decision overrides, staff access controls, and DPDP Act 2023 patient consent logs.
                 </p>
 
                 <div className="grid grid-cols-3 gap-2.5 pt-2">
                   <div className="p-3 rounded-2xl bg-white border border-indigo-200 shadow-sm">
-                    <div className="text-base font-extrabold text-indigo-700">Live OPD</div>
-                    <div className="text-[11px] font-bold text-slate-700">Real-Time Flow</div>
+                    <div className="text-sm font-extrabold text-indigo-800">OPD Governance</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Queues & Allocation</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-teal-200 shadow-sm">
-                    <div className="text-base font-extrabold text-teal-700">Analytics</div>
-                    <div className="text-[11px] font-bold text-slate-700">Doctor AI Edits</div>
+                    <div className="text-sm font-extrabold text-teal-800">Kiosk Telemetry</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Terminal Fleet Health</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                    <div className="text-base font-extrabold text-slate-700">Audit Trail</div>
-                    <div className="text-[11px] font-bold text-slate-700">DPDP Compliant</div>
+                    <div className="text-sm font-extrabold text-slate-800">Compliance</div>
+                    <div className="text-[11px] font-semibold text-slate-600">DPDP 2023 Audit Log</div>
                   </div>
                 </div>
               </div>
@@ -369,27 +369,27 @@ const AuthGateway = ({ initialPortal = null }) => {
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
                   <Activity className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Patient Health Portal</span>
+                  <span>Patient Sanctuary & Kiosk • SIH PS 26047</span>
                 </div>
                 <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
-                  Fast-Track <span className="text-emerald-700">Digital OPD Intake</span> & Vitals
+                  Integrative <span className="text-emerald-700">OPD Patient Portal</span>
                 </h3>
                 <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
-                  Complete your intake in 90 seconds using trilingual voice or MediKiosk. Connect Google Fit, Apple Health, or smartwatches for effortless vital tracking.
+                  Patient portal and self-service kiosk system for All India Institute of Ayurveda (AIIA). Enables patients to complete OPD check-in, link their 14-digit ABHA ID, view cross-system prescriptions (Ayurvedic and Allopathic), and monitor their consultation token queue status.
                 </p>
 
                 <div className="grid grid-cols-3 gap-2.5 pt-2">
                   <div className="p-3 rounded-2xl bg-white border border-emerald-200 shadow-sm">
-                    <div className="text-base font-extrabold text-emerald-700">90s Intake</div>
-                    <div className="text-[11px] font-bold text-slate-700">Voice & Kiosk</div>
+                    <div className="text-sm font-extrabold text-emerald-800">OPD Check-In</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Symptom & Vitals Intake</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-teal-200 shadow-sm">
-                    <div className="text-base font-extrabold text-teal-700">3 Languages</div>
-                    <div className="text-[11px] font-bold text-slate-700">EN • हिन्दी • मराठी</div>
+                    <div className="text-sm font-extrabold text-teal-800">ABHA Health ID</div>
+                    <div className="text-[11px] font-semibold text-slate-600">14-Digit Record Link</div>
                   </div>
                   <div className="p-3 rounded-2xl bg-white border border-blue-200 shadow-sm">
-                    <div className="text-base font-extrabold text-blue-700">ABHA & Wearables</div>
-                    <div className="text-[11px] font-bold text-slate-700">Auto Vitals Sync</div>
+                    <div className="text-sm font-extrabold text-blue-800">Medication Log</div>
+                    <div className="text-[11px] font-semibold text-slate-600">Ayush & Allopathy Safety</div>
                   </div>
                 </div>
               </div>
@@ -399,18 +399,18 @@ const AuthGateway = ({ initialPortal = null }) => {
           {/* Feature Badges */}
           <div className="flex flex-wrap gap-2 pt-1">
             {(activePortal === 'doctor'
-              ? ['Live OPD Queue', 'AYUSH NAMASTE & ICD-11', 'Herb-Drug Guard', 'ABDM FHIR R4']
+              ? ['Patient Case History', 'Dashavidha Assessment', 'Herb-Drug Interaction Alerts', 'Dual Diagnostic Coding']
               : activePortal === 'lab'
-              ? ['Critical Result Flagging', 'Verified Sign-off', 'Slide to Patient Record', 'Order Workflow']
+              ? ['Diagnostic Order Queue', 'Biomarker Verification', 'Physical Slip Digitization', 'ABDM Diagnostic Records']
               : activePortal === 'admin'
-              ? ['Live OPD Counters', 'Department Toggles', 'AI-Edit Audit', 'Critical Lab Visibility']
-              : ['14-Digit ABHA Link', 'Google Fit & Wearable Sync', 'Herb-Drug Safety Bridge', 'DPDP 2023 Compliant']
+              ? ['Department Routing Management', 'Kiosk Terminal Fleet Status', 'Clinical Audit Trail', 'DPDP 2023 Consent Registry']
+              : ['14-Digit ABHA Link', 'Multilingual MediKiosk Intake', 'Prescription & Regimen Log', 'Live OPD Queue Status']
             ).map((feature) => (
               <span
                 key={feature}
                 className="px-3 py-1 rounded-full bg-white border border-emerald-500/20 text-emerald-800 text-xs font-bold shadow-sm"
               >
-                ✓ {feature}
+                • {feature}
               </span>
             ))}
           </div>

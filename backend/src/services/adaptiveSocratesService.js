@@ -165,7 +165,7 @@ function updateSocratesStateDeterministic(currentStep, userText, currentState = 
   const lower = text.toLowerCase();
 
   // 1. Cross-cutting Duration / Onset extraction across any utterance
-  const durationMatch = text.match(/(?:for\s+|since\s+)?(\d+\s*(?:day|days|din|दिन|दिवस|week|weeks|हफ्ते|आठवडे|month|months|महीने|महिने|hour|hours|घंटे|तास)(?:\s*(?:ago|पहले|पूर्वी|से|पासून))?|yesterday|कल से|कालपासून|today|आज से|आजपासून|just now|अभी से|आत्ताच)/i);
+  const durationMatch = text.match(/(?:for\s+|since\s+)?(\d+(?:-\d+)?\s*(?:day|days|din|दिन|दिवस|week|weeks|हफ्ते|आठवडे|month|months|महीने|महिने|hour|hours|घंटे|तास)(?:\s*(?:ago|पहले|पूर्वी|से|पासून))?|yesterday|कल से|कालपासून|today|आज से|आजपासून|just now|अभी से|आत्ताच|1-2 दिन|3-5 दिन|1 सप्ताह|2 सप्ताह या अधिक|1-2 दिवस|3-5 दिवस|1 आठवडा|1 महिन्याहून अधिक|1-2 days|3-5 days|1 week|2\+ weeks)/i);
   if (durationMatch && !updated.onset) {
     updated.onset = durationMatch[0].trim();
   }
@@ -199,15 +199,15 @@ function updateSocratesStateDeterministic(currentStep, userText, currentState = 
   }
 
   // 4. Severity detection
-  if (/(?:severe|high|strong|unbearable|extreme|very\s+bad|bahut\s+tez|tez|tiwra|तीव्र|असहनीय|जास्त)/i.test(lower)) {
+  if (/(?:severe|high|strong|unbearable|extreme|very\s+bad|bahut\s+tez|tez|tiwra|तीव्र|असहनीय|जास्त|गंभीर)/i.test(lower)) {
     if (!updated.severity) updated.severity = 8;
-  } else if (/(?:mild|slight|halka|thoda|कम|कमी|हल्का)/i.test(lower)) {
+  } else if (/(?:mild|slight|halka|thoda|कम|कमी|हल्का|सौम्य)/i.test(lower)) {
     if (!updated.severity) updated.severity = 3;
   } else if (/(?:moderate|theek|medium|मध्यम)/i.test(lower)) {
     if (!updated.severity) updated.severity = 5;
   }
 
-  // 5. Direct assignment fallback
+  // 5. Direct assignment fallback for currently probed step
   if (currentStep && !updated[currentStep]) {
     if (currentStep === 'severity') {
       const numMatch = text.match(/\b(10|[1-9])\b/);
