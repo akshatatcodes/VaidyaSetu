@@ -82,6 +82,10 @@ const ConsultationWorkspace = ({
   abdmSyncStatus,
   handleDownloadFhir
 }) => {
+  const consultationStream = selectedSession?.dashavidhaPariksha?.consultationType ||
+    (selectedSession?.department === 'Shalya' || selectedSession?.department === 'Kayachikitsa' || selectedSession?.department === 'Panchakarma' ? 'ayurvedic' : 'allopathy');
+  const isAyurvedic = consultationStream === 'ayurvedic';
+
   const pastIllnesses = Array.from(new Set([
     ...(selectedSession.pastMedicalHistory || []),
     ...(selectedSession.pastDiseases || []),
@@ -345,75 +349,77 @@ const ConsultationWorkspace = ({
           <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-white/10">
             <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-md bg-purple-500/20 text-purple-600 flex items-center justify-center font-bold text-xs">P</span>
-              Plan: Integrated Allopathic & Ayurvedic Rx Regimen
+              Plan: {isAyurvedic ? 'Ayurvedic & Integrated Rx Regimen' : 'Allopathic Prescription & Treatment Plan'}
             </label>
 
-            {/* Ayurvedic Medications Table */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase">
-                <span>🌿 Ayurvedic Shamana Formulations</span>
-                <span>{soapData.plan?.ayurvedicMeds?.length || 0} Prescribed</span>
-              </div>
+            {/* Ayurvedic Medications Table — Rendered for Ayurvedic OPD */}
+            {isAyurvedic && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase">
+                  <span>🌿 Ayurvedic Shamana Formulations</span>
+                  <span>{soapData.plan?.ayurvedicMeds?.length || 0} Prescribed</span>
+                </div>
 
-              {soapData.plan?.ayurvedicMeds?.map((med, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between text-xs"
-                >
-                  <div>
-                    <span className="font-black text-slate-900 dark:text-white">
-                      {med.name} • {med.dosage}
-                    </span>
-                    <span className="text-gray-500 block text-[11px]">
-                      {med.frequency} • Anupana: {med.anupana || 'Water'} • Duration: {med.duration}
-                    </span>
+                {soapData.plan?.ayurvedicMeds?.map((med, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between text-xs"
+                  >
+                    <div>
+                      <span className="font-black text-slate-900 dark:text-white">
+                        {med.name} • {med.dosage}
+                      </span>
+                      <span className="text-gray-500 block text-[11px]">
+                        {med.frequency} • Anupana: {med.anupana || 'Water'} • Duration: {med.duration}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeAyurvedicMedicine(idx)}
+                      className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
+                ))}
+
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Formulation (e.g. Ashwagandha)"
+                    value={newAyuMed.name}
+                    onChange={(e) => setNewAyuMed({ ...newAyuMed, name: e.target.value })}
+                    className="sm:col-span-2 px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Dose (e.g. 3g BD)"
+                    value={newAyuMed.dosage}
+                    onChange={(e) => setNewAyuMed({ ...newAyuMed, dosage: e.target.value })}
+                    className="px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Anupana (e.g. Milk)"
+                    value={newAyuMed.anupana}
+                    onChange={(e) => setNewAyuMed({ ...newAyuMed, anupana: e.target.value })}
+                    className="px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                  />
                   <button
                     type="button"
-                    onClick={() => removeAyurvedicMedicine(idx)}
-                    className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
+                    onClick={addAyurvedicMedicine}
+                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5" /> Add Herb
                   </button>
                 </div>
-              ))}
-
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-1">
-                <input
-                  type="text"
-                  placeholder="Formulation (e.g. Ashwagandha)"
-                  value={newAyuMed.name}
-                  onChange={(e) => setNewAyuMed({ ...newAyuMed, name: e.target.value })}
-                  className="sm:col-span-2 px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Dose (e.g. 3g BD)"
-                  value={newAyuMed.dosage}
-                  onChange={(e) => setNewAyuMed({ ...newAyuMed, dosage: e.target.value })}
-                  className="px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Anupana (e.g. Milk)"
-                  value={newAyuMed.anupana}
-                  onChange={(e) => setNewAyuMed({ ...newAyuMed, anupana: e.target.value })}
-                  className="px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={addAyurvedicMedicine}
-                  className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add Herb
-                </button>
               </div>
-            </div>
+            )}
 
             {/* Allopathic Medications Table */}
-            <div className="space-y-2 pt-3">
+            <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between text-xs font-black text-blue-700 dark:text-blue-400 uppercase">
-                <span>💊 Allopathic SOS & Supportive Medications</span>
+                <span>💊 Allopathic Medications & Prescriptions</span>
                 <span>{soapData.plan?.allopathicMeds?.length || 0} Prescribed</span>
               </div>
 
@@ -464,62 +470,6 @@ const ConsultationWorkspace = ({
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* HERB-DRUG INTERACTION (HDI) SAFETY GUARD BUTTON & DISPLAY */}
-          <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border-2 border-emerald-500/30 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-amber-500" />
-                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                  Herb-Drug Interaction (HDI) Safety Check
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  runInteractionCheck(
-                    soapData.plan?.ayurvedicMeds || [],
-                    selectedSession?.ocrPrescriptions || []
-                  )
-                }
-                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-              >
-                <ShieldAlert className="w-3.5 h-3.5" /> Run Safety Check
-              </button>
-            </div>
-
-            {checkingInteractions ? (
-              <div className="p-4 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" /> Evaluating contraindications...
-              </div>
-            ) : interactionAlerts.length > 0 ? (
-              <div className="space-y-2">
-                {interactionAlerts.map((alert, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 text-amber-900 dark:text-amber-200 text-xs space-y-1"
-                  >
-                    <div className="flex items-center justify-between font-black">
-                      <span className="text-amber-800 dark:text-amber-300 font-bold">
-                        ⚠️ {alert.medicines_involved ? alert.medicines_involved.join(' + ') : 'Potential Interaction'}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] uppercase">
-                        {alert.severity || 'Moderate'} Risk
-                      </span>
-                    </div>
-                    <p className="text-[11px] leading-relaxed text-slate-700 dark:text-amber-100 font-medium">
-                      {alert.effect || alert.description || alert.mechanism || 'Potential interaction detected.'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-2 border border-emerald-500/20">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                No herb-drug contraindications detected.
-              </div>
-            )}
           </div>
 
           {/* INVESTIGATION ORDERS (§27) */}

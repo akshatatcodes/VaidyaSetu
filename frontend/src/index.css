@@ -183,11 +183,12 @@ html:not(.dark) .text-slate-800 { color: #0f172a !important; }
 html:not(.dark) .text-slate-700 { color: #1e293b !important; }
 html:not(.dark) .text-slate-600 { color: #334155 !important; }
 
-html:not(.dark) .text-white {
-  color: #ffffff;
+html:not(.dark) .text-white,
+.text-white {
+  color: #ffffff !important;
 }
 
-/* Keep white text ON colored backgrounds */
+/* Keep white text ON dark/colored backgrounds */
 html:not(.dark) [class*="bg-emerald"] .text-white,
 html:not(.dark) [class*="bg-green"] .text-white,
 html:not(.dark) [class*="bg-blue"] .text-white,
@@ -199,11 +200,15 @@ html:not(.dark) [class*="bg-fuchsia"] .text-white,
 html:not(.dark) [class*="bg-indigo"] .text-white,
 html:not(.dark) [class*="bg-violet"] .text-white,
 html:not(.dark) [class*="bg-gray-900"] .text-white,
+html:not(.dark) [class*="bg-slate-900"] .text-white,
+html:not(.dark) [class*="bg-slate-950"] .text-white,
+html:not(.dark) [class*="bg-slate-9"] *,
+html:not(.dark) [class*="bg-slate-8"] *,
 html:not(.dark) button.bg-emerald-600,
 html:not(.dark) button.bg-emerald-500,
 html:not(.dark) button.bg-emerald-600 *,
 html:not(.dark) button.bg-emerald-500 * {
-  color: #ffffff !important;
+  /* Allow white text to stay white */
 }
 
 /* Small label text */
@@ -603,6 +608,10 @@ html:not(.dark) .bg-gray-200 {
   .vs-main-content {
     min-height: calc(100vh - 100px);
   }
+  /* Offset all fixed modals to the right of the sidebar (w-72 / 288px) */
+  .fixed.inset-0 {
+    padding-left: 18rem !important;
+  }
 }
 
 /* ================================================================
@@ -730,27 +739,29 @@ html:not(.dark) .vs-sidebar {
 }
 
 /* ── WARM TYPOGRAPHY ─────────────────────────────────────────────── */
-html:not(.dark) h1,
-html:not(.dark) h2,
-html:not(.dark) h3,
-html:not(.dark) h4,
-html:not(.dark) h5,
-html:not(.dark) h6 {
-  color: var(--vs-text-base) !important;
+html:not(.dark) h1:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h2:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h3:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h4:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h5:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h6:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *) {
+  color: var(--vs-text-base);
 }
 
-html:not(.dark) p { color: var(--vs-text-base) !important; }
+html:not(.dark) p:not(.text-white):not(.text-emerald-200\/70):not(.text-emerald-300):not(.text-teal-300):not([class*="bg-slate"] *):not([class*="bg-teal"] *) { 
+  color: var(--vs-text-base); 
+}
 
-html:not(.dark) .text-gray-400,
-html:not(.dark) .text-gray-300 { color: var(--vs-text-muted) !important; }
-
-html:not(.dark) .text-gray-500 { color: var(--vs-text-muted) !important; }
+html:not(.dark) .text-gray-400:not([class*="bg-slate"] *),
+html:not(.dark) .text-gray-300:not([class*="bg-slate"] *) { 
+  color: var(--vs-text-muted); 
+}
 
 html:not(.dark) .text-slate-900,
-html:not(.dark) .text-gray-900  { color: var(--vs-text-base)  !important; }
-html:not(.dark) .text-slate-800 { color: #3d2c18 !important; }
-html:not(.dark) .text-slate-700 { color: #4a3520 !important; }
-html:not(.dark) .text-slate-600 { color: var(--vs-text-muted) !important; }
+html:not(.dark) .text-gray-900  { color: var(--vs-text-base); }
+html:not(.dark) .text-slate-800 { color: #3d2c18; }
+html:not(.dark) .text-slate-700 { color: #4a3520; }
+html:not(.dark) .text-slate-600 { color: var(--vs-text-muted); }
 
 /* ── WARM TEAL ACCENT (replaces emerald) ─────────────────────────── */
 html:not(.dark) .text-emerald-600,

@@ -34,9 +34,13 @@ import DoctorHome from './pages/doctor/DoctorHome';
 import DoctorQueue from './pages/doctor/DoctorQueue';
 import DoctorConsultation from './pages/doctor/DoctorConsultation';
 import DoctorPatients from './pages/doctor/DoctorPatients';
+import DoctorLabs from './pages/doctor/DoctorLabs';
 import DoctorFollowUps from './pages/doctor/DoctorFollowUps';
 import DoctorReferrals from './pages/doctor/DoctorReferrals';
+import DoctorReports from './pages/doctor/DoctorReports';
+import DoctorHistory from './pages/doctor/DoctorHistory';
 import DoctorProfile from './pages/doctor/DoctorProfile';
+import DoctorSettings from './pages/doctor/DoctorSettings';
 import AuthGateway from './pages/AuthGateway';
 import AccessDenied from './pages/AccessDenied';
 import AdminDashboard from './pages/AdminDashboard';
@@ -137,7 +141,7 @@ const AppLayout = () => {
       {!isFullscreen && <Sidebar />}
       {/* md:ml-72 offsets fixed sidebar (w-72) unless fullscreen */}
       <div className={`flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 ${!isFullscreen ? 'md:ml-72' : ''} h-full md:h-screen overflow-y-auto overflow-x-hidden scrollbar-hide`}>
-        <main className={`flex-1 ${isFullscreen ? 'p-0' : 'p-4 pt-20 sm:p-6 md:pt-6 md:p-12'} w-full max-w-[100vw] min-w-0 vs-main-content bg-transparent pb-24 md:pb-12 text-slate-900`}>
+        <main className={`flex-1 ${isFullscreen ? 'p-0' : 'px-3 pt-20 sm:px-6 sm:pt-20 md:px-8 md:pt-6'} w-full max-w-[100vw] min-w-0 vs-main-content bg-transparent pb-28 md:pb-12 text-slate-900`}>
           <ErrorBoundary>
             <Routes>
               {/* Patient Only Route: Root lands on Health Sanctuary for patients */}
@@ -167,11 +171,14 @@ const AppLayout = () => {
               <Route path="/doctor/consultation/:encounterId" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
               <Route path="/doctor/patients" element={<DoctorRoute><DoctorPatients /></DoctorRoute>} />
               <Route path="/doctor/patients/:patientId" element={<DoctorRoute><DoctorPatients /></DoctorRoute>} />
+              <Route path="/doctor/labs" element={<DoctorRoute><DoctorLabs /></DoctorRoute>} />
               <Route path="/doctor/followups" element={<DoctorRoute><DoctorFollowUps /></DoctorRoute>} />
               <Route path="/doctor/followups/:id" element={<DoctorRoute><DoctorFollowUps /></DoctorRoute>} />
               <Route path="/doctor/referrals" element={<DoctorRoute><DoctorReferrals /></DoctorRoute>} />
+              <Route path="/doctor/reports" element={<DoctorRoute><DoctorReports /></DoctorRoute>} />
+              <Route path="/doctor/history" element={<DoctorRoute><DoctorHistory /></DoctorRoute>} />
               <Route path="/doctor/profile" element={<DoctorRoute><DoctorProfile /></DoctorRoute>} />
-              <Route path="/doctor/settings" element={<DoctorRoute><Settings /></DoctorRoute>} />
+              <Route path="/doctor/settings" element={<DoctorRoute><DoctorSettings /></DoctorRoute>} />
               {/* Admin Only: Operations Console & Sub-pages per Phase 30 */}
               <Route path="/admin" element={<AdminRoute><AdminDashboard initialTab="overview" /></AdminRoute>} />
               <Route path="/admin/hospitals" element={<AdminRoute><AdminDashboard initialTab="hospitals" /></AdminRoute>} />

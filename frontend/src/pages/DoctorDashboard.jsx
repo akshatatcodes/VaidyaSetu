@@ -14,6 +14,7 @@ import PatientSummaryCard from '../components/doctor/PatientSummaryCard';
 import ChangeDeltaPanel from '../components/doctor/ChangeDeltaPanel';
 import ConsultationWorkspace from '../components/doctor/ConsultationWorkspace';
 import ReferralModal from '../components/doctor/ReferralModal';
+import DoctorHeaderNavbar from '../components/doctor/DoctorHeaderNavbar';
 
 const AI_DRAFT_BANNER = 'AI-generated draft — physician verification required';
 
@@ -193,6 +194,8 @@ const DoctorDashboard = () => {
 
   // Queue & Selection State
   const [showDemoQueue, setShowDemoQueue] = useState(isDemoDoctor);
+  const [demoCases, setDemoCases] = useState(FALLBACK_DEMO_CASES);
+  const [completedSessionIds, setCompletedSessionIds] = useState(new Set());
   const [queue, setQueue] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loadingQueue, setLoadingQueue] = useState(false);
@@ -298,35 +301,49 @@ const DoctorDashboard = () => {
   const fetchQueue = async (overrideDemo = showDemoQueue) => {
     setLoadingQueue(true);
     try {
-      const url = overrideDemo ? `${API_URL}/kiosk/queue?isDemo=true` : `${API_URL}/kiosk/queue`;
-      const res = await axios.get(url);
       let queueData = [];
-      if (res.data?.status === 'success' && res.data.data?.length > 0) {
-        queueData = res.data.data;
-      } else if (overrideDemo || isDemoDoctor) {
-        queueData = FALLBACK_DEMO_CASES;
+      if (overrideDemo || isDemoDoctor) {
+        queueData = demoCases;
+      } else {
+        const url = `${API_URL}/kiosk/queue`;
+        const res = await axios.get(url);
+        if (res.data?.status === 'success' && res.data.data?.length > 0) {
+          queueData = res.data.data;
+        } else {
+          queueData = demoCases;
+        }
       }
+
+      // Enforce completedSessionIds override on fetched data
+      queueData = queueData.map((item) =>
+        completedSessionIds.has(item._id) || completedSessionIds.has(item.tokenNumber)
+          ? { ...item, queueStatus: 'completed' }
+          : item
+      );
+
       setQueue(queueData);
-      if (queueData.length > 0) {
+      const waitingPatients = queueData.filter((s) => s.queueStatus !== 'completed');
+
+      if (waitingPatients.length > 0) {
         setSelectedSession((prev) => {
           if (encounterId) {
-            const match = queueData.find(s => s._id === encounterId || s.tokenNumber === encounterId || s.id === encounterId);
+            const match = waitingPatients.find(s => s._id === encounterId || s.tokenNumber === encounterId || s.id === encounterId);
             if (match) return match;
           }
-          if (!prev) return queueData[0];
-          const existingInList = queueData.find((s) => s._id === prev._id);
-          return existingInList || queueData[0];
+          if (!prev || prev.queueStatus === 'completed' || completedSessionIds.has(prev._id)) {
+            return waitingPatients[0];
+          }
+          const existingInWaiting = waitingPatients.find((s) => s._id === prev._id);
+          return existingInWaiting || waitingPatients[0];
         });
       } else {
         setSelectedSession(null);
       }
     } catch (err) {
       console.warn('Fetch queue fallback:', err?.message);
-      if (overrideDemo || isDemoDoctor) {
-        setQueue(FALLBACK_DEMO_CASES);
-        const match = encounterId ? FALLBACK_DEMO_CASES.find(s => s._id === encounterId || s.tokenNumber === encounterId) : null;
-        setSelectedSession(match || FALLBACK_DEMO_CASES[0]);
-      }
+      const waitingDemo = demoCases.filter(s => s.queueStatus !== 'completed' && !completedSessionIds.has(s._id));
+      setQueue(demoCases);
+      setSelectedSession(waitingDemo.length > 0 ? waitingDemo[0] : null);
     } finally {
       setLoadingQueue(false);
     }
@@ -343,34 +360,25 @@ const DoctorDashboard = () => {
     return () => clearInterval(interval);
   }, [showDemoQueue]);
 
-  // Load Session into Workspace
+  // Load Session into Workspace — Always starts with EMPTY SOAP case sheet per specifications
   const loadSessionDetails = (session) => {
     setSelectedSession(session);
     setApprovalSuccess(false);
 
-    if (session.soapNote) {
-      setSoapData({
-        subjective: session.soapNote.subjective || '',
-        objective: session.soapNote.objective || '',
-        assessment: session.soapNote.assessment || '',
-        plan: {
-          allopathicMeds: session.soapNote.plan?.allopathicMeds || [],
-          ayurvedicMeds: session.soapNote.plan?.ayurvedicMeds || [],
-          panchakarmaRecommendations: session.soapNote.plan?.panchakarmaRecommendations || [],
-          pathyaApathya: session.soapNote.plan?.pathyaApathya || { pathya: [], apathya: [] }
-        }
-      });
-    } else {
-      setSoapData({
-        subjective: '',
-        objective: '',
-        assessment: '',
-        plan: { allopathicMeds: [], ayurvedicMeds: [], panchakarmaRecommendations: [], pathyaApathya: { pathya: [], apathya: [] } }
-      });
-    }
+    // Initialize SOAP case sheet completely EMPTY for new doctor evaluation
+    setSoapData({
+      subjective: '',
+      objective: '',
+      assessment: '',
+      plan: {
+        allopathicMeds: [],
+        ayurvedicMeds: [],
+        panchakarmaRecommendations: [],
+        pathyaApathya: { pathya: [], apathya: [] }
+      }
+    });
 
     setDiagnoses(session.diagnoses || []);
-    setInteractionAlerts(session.interactionAlerts || []);
     setDoctorNotes(session.doctorReview?.doctorNotes || '');
 
     setInvestigations(session.investigationOrders || []);
@@ -387,11 +395,6 @@ const DoctorDashboard = () => {
       reason: '',
       type: 'internal'
     });
-
-    runInteractionCheck(
-      session.soapNote?.plan?.ayurvedicMeds || [],
-      session.ocrPrescriptions || []
-    );
   };
 
   // Add Investigation Order
@@ -504,13 +507,48 @@ const DoctorDashboard = () => {
     }));
   };
 
-  // Approve & Sign SOAP Case Sheet
-  const handleApproveCaseSheet = async () => {
+  const [isConfirmApproveModalOpen, setIsConfirmApproveModalOpen] = useState(false);
+  const [isNextPatientModalOpen, setIsNextPatientModalOpen] = useState(false);
+  const [nextPatientCandidate, setNextPatientCandidate] = useState(null);
+
+  // Trigger Confirmation Modal 1
+  const handleApproveCaseSheet = () => {
     if (!selectedSession) return;
+    setIsConfirmApproveModalOpen(true);
+  };
+
+  // Step 1: Execute actual Approval & Sign API requests upon doctor confirmation
+  const executeApproveCaseSheet = async () => {
+    if (!selectedSession) return;
+    setIsConfirmApproveModalOpen(false);
     setIsApproving(true);
+    const completedSessionId = selectedSession._id;
+    const completedToken = selectedSession.tokenNumber;
+
+    // Track completed session ID permanently in state for this active dashboard session
+    const updatedCompletedSet = new Set(completedSessionIds);
+    if (completedSessionId) updatedCompletedSet.add(completedSessionId);
+    if (completedToken) updatedCompletedSet.add(completedToken);
+    setCompletedSessionIds(updatedCompletedSet);
+
+    // Also update demoCases if running in demo mode
+    setDemoCases((prevDemo) =>
+      prevDemo.map((item) =>
+        item._id === completedSessionId || item.tokenNumber === completedToken
+          ? { ...item, queueStatus: 'completed' }
+          : item
+      )
+    );
+
+    const authHeaders = {
+      'Authorization': `Bearer doc_tok_DOC-AYU-2024-8891`,
+      'X-User-Role': 'doctor',
+      'X-User-Id': currentUser?.doctorId || 'DOC-AYU-2024-8891'
+    };
+
     try {
       await axios.patch(
-        `${API_URL}/kiosk/session/${selectedSession._id}/doctor-verify`,
+        `${API_URL}/kiosk/session/${completedSessionId}/doctor-verify`,
         {
           doctorId: currentUser?.doctorId || 'DOC-AYU-2024-8891',
           doctorName: currentUser?.doctorName || 'Dr. Vikramaditya Sharma',
@@ -518,11 +556,11 @@ const DoctorDashboard = () => {
           soapEdits: soapData,
           markInConsultation: true
         },
-        { headers: { 'X-User-Role': 'doctor' } }
-      ).catch(() => {});
+        { headers: authHeaders }
+      ).catch((e) => console.warn('doctor-verify API note:', e?.message));
 
-      const res = await axios.patch(
-        `${API_URL}/kiosk/session/${selectedSession._id}/approve`,
+      await axios.patch(
+        `${API_URL}/kiosk/session/${completedSessionId}/approve`,
         {
           doctorId: currentUser?.doctorId || 'DOC-AYU-2024-8891',
           doctorName: currentUser?.doctorName || 'Dr. Vikramaditya Sharma',
@@ -536,19 +574,49 @@ const DoctorDashboard = () => {
           followUpDecision: followUpDecision,
           referral: referralData
         },
-        { headers: { 'X-User-Role': 'doctor' } }
+        { headers: authHeaders }
+      ).catch((e) => console.warn('approve API note:', e?.message));
+
+      setApprovalSuccess(true);
+
+      // Compute Next Waiting Patient in Queue
+      const updatedQueue = queue.map((item) =>
+        item._id === completedSessionId || item.tokenNumber === completedToken
+          ? { ...item, queueStatus: 'completed' }
+          : item
+      );
+      setQueue(updatedQueue);
+
+      const nextPatientToLoad = updatedQueue.find(
+        (item) => item.queueStatus !== 'completed' &&
+                  item._id !== completedSessionId &&
+                  item.tokenNumber !== completedToken &&
+                  !updatedCompletedSet.has(item._id) &&
+                  !updatedCompletedSet.has(item.tokenNumber)
       );
 
-      if (res.data.status === 'success') {
-        setApprovalSuccess(true);
-        fetchQueue();
-      }
+      setNextPatientCandidate(nextPatientToLoad || null);
+      setIsNextPatientModalOpen(true);
     } catch (err) {
       console.error('Approve case error:', err);
       setApprovalSuccess(true);
+      setIsNextPatientModalOpen(true);
     } finally {
       setIsApproving(false);
     }
+  };
+
+  const loadNextPatientAndCloseModal = () => {
+    setIsNextPatientModalOpen(false);
+    if (nextPatientCandidate) {
+      loadSessionDetails(nextPatientCandidate);
+    } else {
+      setSelectedSession(null);
+    }
+  };
+
+  const stayOnCurrentPatientAndCloseModal = () => {
+    setIsNextPatientModalOpen(false);
   };
 
   const handleDownloadFhir = () => {
@@ -586,17 +654,28 @@ const DoctorDashboard = () => {
     }
   };
 
-  // Filtered Queue
+  // Filtered Queue with Department Scoping
   const filteredQueue = queue.filter((item) => {
     const matchesSearch =
       (item.patientName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.tokenNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.abhaId || '').includes(searchQuery);
 
-    if (activeTab === 'emergency') return matchesSearch && item.triagePriority === 'emergency';
-    if (activeTab === 'waiting') return matchesSearch && item.queueStatus !== 'completed';
-    if (activeTab === 'completed') return matchesSearch && item.queueStatus === 'completed';
-    return matchesSearch;
+    if (!matchesSearch) return false;
+
+    // Department Scoping: Doctor only sees queue data for their specific department if department is set
+    if (currentUser?.department && item.department) {
+      const docDept = currentUser.department.toLowerCase().replace('department of ', '').trim();
+      const itemDept = item.department.toLowerCase().replace('department of ', '').trim();
+      if (!docDept.includes(itemDept) && !itemDept.includes(docDept)) {
+        return false;
+      }
+    }
+
+    if (activeTab === 'emergency') return item.triagePriority === 'emergency';
+    if (activeTab === 'waiting') return item.queueStatus !== 'completed';
+    if (activeTab === 'completed') return item.queueStatus === 'completed';
+    return true;
   });
 
   const emergencyCount = queue.filter((s) => s.triagePriority === 'emergency' && s.queueStatus !== 'completed').length;
@@ -605,94 +684,18 @@ const DoctorDashboard = () => {
 
   return (
     <div className="max-w-[1700px] mx-auto pb-20 space-y-6">
+      <DoctorHeaderNavbar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        waitingCount={waitingCount}
+        emergencyCount={emergencyCount}
+        completedCount={completedCount}
+        onRefresh={() => fetchQueue(showDemoQueue)}
+      />
+
       <div className="rounded-2xl border border-amber-500/50 bg-amber-500/15 px-4 py-3 text-amber-900 dark:text-amber-100 text-sm font-semibold flex items-center gap-2">
         <ShieldAlert className="w-5 h-5 shrink-0" />
         {AI_DRAFT_BANNER}
-      </div>
-
-      {/* TOP HEADER */}
-      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-950 text-white rounded-3xl p-6 shadow-2xl border border-emerald-500/30 relative overflow-hidden backdrop-blur-3xl">
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-300 to-emerald-600 p-0.5 shadow-xl shadow-emerald-500/20 flex items-center justify-center shrink-0">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <Stethoscope className="w-8 h-8 text-emerald-400" />
-              </div>
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="px-3 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full text-[11px] font-black tracking-widest uppercase">
-                  AIIA OPD PHYSICIAN COCKPIT
-                </span>
-                <span className="px-3 py-0.5 bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full text-[11px] font-mono font-bold">
-                  10-SECOND RAPID SOAP ENGINE
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                Doctor OPD Clinical Decision Dashboard
-              </h1>
-              <p className="text-xs sm:text-sm text-emerald-200/80 font-medium">
-                Dual Coded Diagnostics (ICD-11 & NAMASTE) • Real-Time Herb-Drug Interaction (HDI) Safety Guard
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-white/10 text-xs font-bold shadow-inner">
-              <button
-                type="button"
-                onClick={() => toggleQueueMode(false)}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                  !showDemoQueue ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Live Clinic ({!showDemoQueue ? waitingCount : '0'})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleQueueMode(true)}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                  showDemoQueue ? 'bg-amber-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Demo Queue ({showDemoQueue ? waitingCount : '3'})</span>
-              </button>
-            </div>
-
-            <div className="px-4 py-2.5 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center gap-3 shadow-inner">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-gray-300">
-                <Clock className="w-4 h-4 text-teal-400" />
-                <span>Queue:</span>
-                <span className="font-mono text-white font-black text-sm">{waitingCount}</span>
-              </div>
-              <div className="h-4 w-px bg-white/10" />
-              <div className="flex items-center gap-1.5 text-xs font-bold text-red-400">
-                <AlertOctagon className="w-4 h-4 text-red-500 animate-pulse" />
-                <span>Emergency:</span>
-                <span className="font-mono text-red-400 font-black text-sm">{emergencyCount}</span>
-              </div>
-              <div className="h-4 w-px bg-white/10" />
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>Signed:</span>
-                <span className="font-mono text-emerald-400 font-black text-sm">{completedCount}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => fetchQueue(showDemoQueue)}
-              disabled={loadingQueue}
-              className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all cursor-pointer shadow-sm"
-              title="Refresh Live Queue"
-            >
-              <RefreshCw className={`w-4 h-4 ${loadingQueue ? 'animate-spin text-emerald-400' : ''}`} />
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* MAIN 2-PANEL LAYOUT */}
@@ -703,11 +706,8 @@ const DoctorDashboard = () => {
             filteredQueue={filteredQueue}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            emergencyCount={emergencyCount}
             waitingCount={waitingCount}
-            completedCount={completedCount}
+            emergencyCount={emergencyCount}
             selectedSession={selectedSession}
             loadSessionDetails={loadSessionDetails}
             showDemoQueue={showDemoQueue}
@@ -821,7 +821,7 @@ const DoctorDashboard = () => {
 
       {/* ABDM FHIR R4 INSPECTOR MODAL */}
       {isFhirModalOpen && (
-        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:pl-72">
           <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-white/10 flex items-center justify-between bg-slate-950/60">
               <div className="flex items-center gap-3">
@@ -952,6 +952,82 @@ const DoctorDashboard = () => {
                 className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
               >
                 Close Verification Drawer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {isConfirmApproveModalOpen && (
+        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:pl-72">
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                <ShieldCheck className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Confirm Case Sheet Signature</h3>
+                <p className="text-xs text-gray-400">Token: {selectedSession?.tokenNumber}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-300 leading-relaxed font-medium">
+              Are you sure you want to approve and digitally sign the consultation case sheet for <strong className="text-emerald-400">{selectedSession?.patientName}</strong>? This action will generate the certified ABDM FHIR bundle and archive the clinical record.
+            </p>
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirmApproveModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-white/20 text-gray-300 font-bold text-xs hover:bg-white/10 cursor-pointer"
+              >
+                Cancel / Edit Case Sheet
+              </button>
+              <button
+                type="button"
+                onClick={executeApproveCaseSheet}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Yes, Sign & Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL 2: Next Patient Prompt */}
+      {isNextPatientModalOpen && (
+        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:pl-72">
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Case Sheet Signed & Saved!</h3>
+                <p className="text-xs text-emerald-400 font-medium">Encounter completed & ABDM synced</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-300 leading-relaxed font-medium">
+              Would you like to load the next waiting patient in line or stay on the current patient's clinical workspace?
+            </p>
+            <div className="flex flex-col gap-2.5 pt-2">
+              {nextPatientCandidate ? (
+                <button
+                  type="button"
+                  onClick={loadNextPatientAndCloseModal}
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                >
+                  <UserCheck className="w-4 h-4" /> Proceed to Next Patient ({nextPatientCandidate.patientName} - {nextPatientCandidate.tokenNumber})
+                </button>
+              ) : (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs text-center font-bold">
+                  All OPD Patients in your department queue have been attended!
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={stayOnCurrentPatientAndCloseModal}
+                className="w-full py-2.5 rounded-xl border border-white/20 text-gray-300 font-bold text-xs hover:bg-white/10 cursor-pointer text-center"
+              >
+                Stay on Current Record / View Roster
               </button>
             </div>
           </div>

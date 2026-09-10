@@ -150,7 +150,7 @@ const Sidebar = () => {
 
       {/* ── MOBILE TOP HEADER ── */}
       <div
-        className="md:hidden flex items-center justify-between px-4 h-16 border-b z-50 sticky top-0"
+        className="md:hidden flex items-center justify-between px-4 h-16 border-b z-50 fixed top-0 left-0 right-0"
         style={theme === 'dark' ? {
           background: 'rgba(5, 11, 20, 0.95)',
           borderColor: 'rgba(255,255,255,0.05)',
