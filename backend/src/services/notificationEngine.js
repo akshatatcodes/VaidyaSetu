@@ -1,19 +1,37 @@
 /**
- * Phase 13 — Multi-Channel Notification Engine (§56)
+ * Phase 29 — Multi-Channel Consent-Aware Notification Engine
  * Channels: sms, whatsapp, push, kiosk_print, voice
- * Event set: report_ready, doctor_now_seeing, proceed_to_room, followup_slot_available
- * Rule (§56): SMS and WhatsApp are sent ONLY where explicit consent has been granted per Consent purpose scopes.
+ * Events: opd_token_generated, queue_approaching, doctor_ready, lab_order_created, report_ready, followup_created, followup_changed, referral_created
  */
 const Notification = require('../models/Notification');
 const Consent = require('../models/Consent');
+
+const SUPPORTED_CHANNELS = ['sms', 'whatsapp', 'push', 'kiosk_print', 'voice'];
+const SUPPORTED_EVENTS = [
+  'opd_token_generated',
+  'token_issued',
+  'queue_approaching',
+  'doctor_ready',
+  'doctor_now_seeing',
+  'proceed_to_room',
+  'lab_order_created',
+  'report_ready',
+  'followup_created',
+  'followup_changed',
+  'referral_created'
+];
 
 async function sendNotification({ recipientId, channel, template, payload = {} }) {
   if (!recipientId || !channel || !template) {
     throw new Error('recipientId, channel, and template are required');
   }
 
-  // 1. Consent Gate check for SMS / WhatsApp (§56)
-  if (channel === 'whatsapp' || channel === 'sms') {
+  if (!SUPPORTED_CHANNELS.includes(channel)) {
+    throw new Error(`Unsupported channel: ${channel}`);
+  }
+
+  // Consent Gate check for channels requiring explicit consent (§29, §56)
+  if (['whatsapp', 'sms', 'voice'].includes(channel)) {
     const consent = await Consent.findOne({
       patientId: recipientId,
       status: 'active'
@@ -23,6 +41,7 @@ async function sendNotification({ recipientId, channel, template, payload = {} }
       consent && (
         consent.purpose === channel ||
         consent.purpose === 'all_communications' ||
+        (consent.purpose === 'followup_notification' && template.startsWith('followup')) ||
         consent.permissions?.[channel] === true
       )
     );
@@ -39,7 +58,7 @@ async function sendNotification({ recipientId, channel, template, payload = {} }
     }
   }
 
-  // 2. Simulated Dispatch for consented / push / kiosk_print / voice channels
+  // Simulated Dispatch for consented / push / kiosk_print / voice channels
   const notification = await Notification.create({
     recipientId,
     channel,
@@ -57,4 +76,4 @@ async function sendNotification({ recipientId, channel, template, payload = {} }
   };
 }
 
-module.exports = { sendNotification };
+module.exports = { sendNotification, SUPPORTED_CHANNELS, SUPPORTED_EVENTS };

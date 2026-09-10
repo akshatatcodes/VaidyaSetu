@@ -307,4 +307,128 @@ router.put('/:patientId/health-profile', async (req, res) => {
   }
 });
 
+/**
+ * @route GET /api/patients/:patientId/timeline
+ * @desc Aggregate longitudinal timeline events across Encounters, Vitals, Documents, Labs, Referrals & Follow-ups (§40, Phase 23)
+ */
+router.get('/:patientId/timeline', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    const Encounter = require('../models/Encounter');
+    const Vital = require('../models/Vital');
+    const Document = require('../models/Document');
+    const InvestigationOrder = require('../models/InvestigationOrder');
+    const LabResult = require('../models/LabResult');
+    const Referral = require('../models/Referral');
+    const FollowUp = require('../models/FollowUp');
+
+    let query = {};
+    if (String(patientId).match(/^[0-9a-fA-F]{24}$/)) {
+      query.patientId = patientId;
+    }
+
+    const [encounters, vitals, docs, orders, labResults, referrals, followups] = await Promise.all([
+      Encounter.find(query).lean(),
+      Vital.find(query).lean(),
+      Document.find(query).lean(),
+      InvestigationOrder.find(query).lean(),
+      LabResult.find(query).lean(),
+      Referral.find(query).lean(),
+      FollowUp.find(query).lean()
+    ]);
+
+    const events = [];
+
+    encounters.forEach(e => {
+      events.push({
+        id: `enc_${e._id}`,
+        type: 'Visit',
+        title: `OPD Consultation (${e.type || 'opd'})`,
+        timestamp: e.openedAt || e.createdAt,
+        details: e.structuredComplaint?.chiefComplaint || 'Consultation visit',
+        status: e.status
+      });
+    });
+
+    vitals.forEach(v => {
+      events.push({
+        id: `vit_${v._id}`,
+        type: 'Vital',
+        title: `Vitals Recorded (${v.source || 'Kiosk'})`,
+        timestamp: v.capturedAt || v.createdAt,
+        details: `BP: ${v.values?.systolicBP || '--'}/${v.values?.diastolicBP || '--'}, HR: ${v.values?.heartRate || '--'} bpm, SpO2: ${v.values?.spo2 || '--'}%`,
+        status: 'recorded'
+      });
+    });
+
+    docs.forEach(d => {
+      events.push({
+        id: `doc_${d._id}`,
+        type: 'Document',
+        title: d.title || `Document (${d.type})`,
+        timestamp: d.uploadedAt || d.createdAt,
+        details: `Verification: ${d.verificationStatus || 'pending'}`,
+        fileUrl: d.originalFileUrl
+      });
+    });
+
+    orders.forEach(o => {
+      events.push({
+        id: `ord_${o._id}`,
+        type: 'Lab order',
+        title: `Investigation Ordered: ${o.testName}`,
+        timestamp: o.createdAt,
+        details: `Priority: ${o.priority}, Status: ${o.status}`,
+        status: o.status
+      });
+    });
+
+    labResults.forEach(r => {
+      events.push({
+        id: `res_${r._id}`,
+        type: 'Lab result',
+        title: `Lab Result Verified: ${r.testName}`,
+        timestamp: r.verifiedAt || r.createdAt,
+        details: `Value: ${r.resultValue} ${r.unit || ''} (Ref: ${r.referenceRange || 'N/A'})`,
+        status: r.verified ? 'verified' : 'unverified'
+      });
+    });
+
+    referrals.forEach(ref => {
+      events.push({
+        id: `ref_${ref._id}`,
+        type: 'Referral',
+        title: `Clinical Referral (${ref.referralScope})`,
+        timestamp: ref.createdAt,
+        details: `Reason: ${ref.reason}, Priority: ${ref.priority}`,
+        status: ref.status
+      });
+    });
+
+    followups.forEach(f => {
+      events.push({
+        id: `fol_${f._id}`,
+        type: 'Follow-up',
+        title: `Follow-up Slot (${f.reason})`,
+        timestamp: f.createdAt,
+        details: `Window: ${f.scheduledWindow?.date || 'Pending'} (${f.scheduledWindow?.startTime || ''}-${f.scheduledWindow?.endTime || ''})`,
+        status: f.status
+      });
+    });
+
+    // Sort chronologically descending
+    events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return res.json({
+      status: 'success',
+      count: events.length,
+      data: events
+    });
+  } catch (error) {
+    console.error('Error fetching longitudinal timeline:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 module.exports = router;

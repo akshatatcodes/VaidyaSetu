@@ -3,48 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import {
-  Stethoscope, Pill, FlaskConical, FileText, Activity, CalendarClock,
-  Users, ShieldCheck, ChevronRight, Loader2, Clock, Plus, UserPlus, X
+  Stethoscope, Pill, FlaskConical, Activity, Clock, CalendarClock,
+  ChevronRight, Loader2, ArrowRight, Sparkles, FileText, CheckCircle2
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
-
-const Tile = ({ icon: Icon, label, hint, onClick, accent = 'teal', pending = false }) => {
-  const accents = {
-    teal: 'text-teal-600 dark:text-teal-400 bg-teal-500/10',
-    mango: 'text-orange-600 dark:text-orange-400 bg-orange-500/10'
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={pending ? undefined : onClick}
-      disabled={pending}
-      className={`group bg-white dark:bg-white/[0.04] border border-black/5 dark:border-white/10
-        rounded-2xl p-5 text-left w-full transition-all duration-300
-        ${pending
-          ? 'opacity-55 cursor-not-allowed'
-          : 'hover:-translate-y-0.5 hover:border-teal-500/40 cursor-pointer'}`}
-    >
-      <div className="flex items-start gap-4">
-        <div className={`shrink-0 w-11 h-11 rounded-xl grid place-items-center ${accents[accent]}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="font-bold text-slate-900 dark:text-white truncate">{label}</h3>
-            {!pending && (
-              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 transition-transform group-hover:translate-x-0.5" />
-            )}
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {pending ? 'Not yet available' : hint}
-          </p>
-        </div>
-      </div>
-    </button>
-  );
-};
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
@@ -53,39 +16,20 @@ const Dashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
-  const [medications, setMedications] = useState([]);
-  const [latestVitals, setLatestVitals] = useState([]);
+  const [activeQueue, setActiveQueue] = useState(null);
+  const [nextFollowUp, setNextFollowUp] = useState(null);
+  const [recentActivity, setRecentActivity] = useState({ medsCount: 0, vitalsCount: 0, lastVisit: null });
 
-  // Family Members (§2) state
-  const [familyMembers, setFamilyMembers] = useState([]);
-  const [showFamilyModal, setShowFamilyModal] = useState(false);
-  const [selectedPatientId, setSelectedPatientId] = useState(currentUser?.patientId || currentUser?.id);
-  const [newFamilyForm, setNewFamilyForm] = useState({ fullName: '', relation: 'father', age: '', gender: 'Male' });
-
-  const effectiveUserId = currentUser?.id || currentUser?.userId || currentUser?.mobile;
-
-  // Fetch family members
-  const fetchFamilyMembers = async () => {
-    if (!effectiveUserId) return;
-    try {
-      const res = await axios.get(`${API_URL}/patients/family-members/${effectiveUserId}`);
-      if (res.data.status === 'success') {
-        setFamilyMembers(res.data.data || []);
-      }
-    } catch (e) {}
-  };
+  const activePatientId = currentUser?.patientId || currentUser?.id || currentUser?.userId;
 
   useEffect(() => {
-    fetchFamilyMembers();
-  }, [effectiveUserId]);
-
-  const activePatientId = selectedPatientId || currentUser?.patientId || currentUser?.id;
-
-  useEffect(() => {
-    if (!activePatientId) return;
+    if (!activePatientId) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
-    const load = async () => {
+    const loadDashboardData = async () => {
       const safeGet = async (url) => {
         try {
           const res = await axios.get(url);
@@ -95,280 +39,242 @@ const Dashboard = () => {
         }
       };
 
-      const [p, meds, vitals] = await Promise.all([
+      const [p, q, f, meds, vitals] = await Promise.all([
         safeGet(`${API_URL}/patients/${activePatientId}`),
+        safeGet(`${API_URL}/queues/patient/${activePatientId}`),
+        safeGet(`${API_URL}/followups/patient/${activePatientId}`),
         safeGet(`${API_URL}/medications/patient/${activePatientId}`),
         safeGet(`${API_URL}/vitals/latest/${activePatientId}`)
       ]);
 
       if (cancelled) return;
+
       setProfile(p);
-      setMedications(Array.isArray(meds) ? meds : []);
-      setLatestVitals(Array.isArray(vitals) ? vitals : []);
+      if (q && Array.isArray(q) && q.length > 0) {
+        setActiveQueue(q[0]);
+      } else if (q && typeof q === 'object' && !Array.isArray(q)) {
+        setActiveQueue(q);
+      } else {
+        setActiveQueue(null);
+      }
+
+      if (f && Array.isArray(f) && f.length > 0) {
+        setNextFollowUp(f[0]);
+      } else if (f && typeof f === 'object' && !Array.isArray(f)) {
+        setNextFollowUp(f);
+      } else {
+        setNextFollowUp(null);
+      }
+
+      const activeMeds = Array.isArray(meds) ? meds.filter(m => m.active !== false).length : 0;
+      const vitalsArr = Array.isArray(vitals) ? vitals : [];
+      
+      setRecentActivity({
+        medsCount: activeMeds,
+        vitalsCount: vitalsArr.length,
+        lastVisit: p?.updatedAt || p?.createdAt || new Date().toISOString()
+      });
+
       setLoading(false);
     };
 
-    load();
+    loadDashboardData();
     return () => { cancelled = true; };
   }, [activePatientId]);
 
-  const handleAddFamilyMember = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${API_URL}/patients/family-member`, {
-        userId: effectiveUserId,
-        fullName: newFamilyForm.fullName,
-        relation: newFamilyForm.relation,
-        age: Number(newFamilyForm.age),
-        gender: newFamilyForm.gender
-      });
-      setNewFamilyForm({ fullName: '', relation: 'father', age: '', gender: 'Male' });
-      fetchFamilyMembers();
-    } catch (err) {
-      alert('Failed to add family member');
-    }
-  };
-
   const displayName =
     profile?.basicInfo?.fullName || profile?.fullName?.value ||
-    currentUser?.patientName || currentUser?.name || currentUser?.firstName || 'there';
-
-  const activeMeds = medications.filter(m => m.active !== false).length;
+    currentUser?.patientName || currentUser?.name || currentUser?.firstName || 'Patient';
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          <p className="text-xs text-slate-500 font-medium">Loading Health Sanctuary...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto w-full pb-20 animate-in fade-in duration-500">
-
-      {/* Family Member Switcher Bar (§3) */}
-      {familyMembers.length > 0 && (
-        <div className="mb-6 bg-slate-900/60 border border-slate-800 p-3 rounded-2xl flex items-center gap-2 overflow-x-auto">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-1.5 shrink-0">
-            <Users size={14} className="text-teal-400" /> Beneficiary:
-          </span>
-          <button
-            onClick={() => setSelectedPatientId(currentUser?.patientId || currentUser?.id)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-              activePatientId === (currentUser?.patientId || currentUser?.id)
-                ? 'bg-teal-500 text-slate-950 shadow'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            Self ({currentUser?.patientName || 'Primary'})
-          </button>
-          {familyMembers.map(fm => (
-            <button
-              key={fm.familyMemberId}
-              onClick={() => setSelectedPatientId(fm.patient?._id || fm.patientId)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                activePatientId === (fm.patient?._id || fm.patientId)
-                  ? 'bg-teal-500 text-slate-950 shadow'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {fm.patient?.basicInfo?.fullName || 'Family Member'} ({fm.relation})
-            </button>
-          ))}
-          <button
-            onClick={() => setShowFamilyModal(true)}
-            className="ml-auto px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-400 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0"
-          >
-            <UserPlus size={14} /> Add Member
-          </button>
-        </div>
-      )}
-
-      {/* Greeting */}
-      <header className="mb-8 flex items-center justify-between">
+    <div className="max-w-5xl mx-auto w-full pb-20 space-y-6 animate-in fade-in duration-500">
+      
+      {/* ── GREETING & PATIENT HEADER ── */}
+      <header className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600 dark:text-teal-400">
-            {t('dashboard.greeting', 'Welcome back')}
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
+            {t('dashboard.greeting', 'Health Sanctuary')}
           </p>
-          <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
-            {displayName}
+          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
+            Namaste, {displayName}
           </h1>
         </div>
-        {familyMembers.length === 0 && (
-          <button
-            onClick={() => setShowFamilyModal(true)}
-            className="px-4 py-2 bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-bold rounded-xl flex items-center gap-1.5 hover:bg-teal-500/20"
-          >
-            <UserPlus size={14} /> Add Family Beneficiary (§2)
-          </button>
-        )}
+        <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-500" /> ABDM Linked
+        </div>
       </header>
 
-      {/* Primary action — start a visit (§3, §68) */}
-      <button
-        type="button"
-        onClick={() => navigate('/kiosk')}
-        className="w-full text-left rounded-3xl p-6 md:p-8 mb-8 transition-transform duration-300 hover:-translate-y-0.5
-                   bg-gradient-to-br from-teal-600 to-teal-700 dark:from-teal-600 dark:to-teal-800
-                   shadow-lg shadow-teal-900/20"
-      >
-        <div className="flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-white/15 grid place-items-center shrink-0">
-            <Stethoscope className="w-7 h-7 text-white" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">
-              See a Doctor
+      {/* ── PRIORITY 1: CURRENT ACTION ── */}
+      <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-emerald-500/30 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/40">
+              <CheckCircle2 className="w-3 h-3" /> Priority Action
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white">
+              {activeQueue ? `OPD Token Active: #${activeQueue.tokenNumber || activeQueue.ticketNumber || 'OPD-101'}` : 'Need a Consultation Today?'}
             </h2>
-            <p className="text-teal-50/90 text-sm mt-1">
-              Start OPD registration — we&apos;ll reuse what we already know about {displayName}.
+            <p className="text-xs text-slate-300 max-w-xl">
+              {activeQueue
+                ? `You are in line for ${activeQueue.department || 'Kayachikitsa'}. Position #${activeQueue.queuePosition || 1} • Room ${activeQueue.roomNumber || '4'}.`
+                : 'Start instant OPD intake, scan token, or register for specialized Ayurvedic consultation.'}
             </p>
           </div>
-          <ChevronRight className="w-6 h-6 text-white/80 shrink-0" />
-        </div>
-      </button>
-
-      {/* At-a-glance */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-        <div className="bg-white dark:bg-white/[0.04] border border-black/5 dark:border-white/10 rounded-2xl p-4">
-          <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">Current medicines</p>
-          <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{activeMeds}</p>
-        </div>
-        <div className="bg-white dark:bg-white/[0.04] border border-black/5 dark:border-white/10 rounded-2xl p-4">
-          <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">Vitals on record</p>
-          <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{latestVitals.length}</p>
-        </div>
-        <div className="bg-white dark:bg-white/[0.04] border border-black/5 dark:border-white/10 rounded-2xl p-4 col-span-2 md:col-span-1">
-          <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">Next follow-up</p>
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
-            <Clock className="w-4 h-4" /> None scheduled
-          </p>
+          <button
+            type="button"
+            onClick={() => navigate(activeQueue ? '/patient/queue' : '/patient/opd')}
+            className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer flex items-center gap-2 shrink-0 self-start sm:self-center"
+          >
+            <span>{activeQueue ? 'Track Live Queue' : 'Start OPD Intake'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* §3 tiles */}
-      <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-4">
-        Your health record
-      </h2>
-      <div className="grid sm:grid-cols-2 gap-3">
-        <Tile icon={Pill} label="My Medicines" hint="Current, previous, stopped and pending"
-              onClick={() => navigate('/medicines')} />
-        <Tile icon={FlaskConical} label="My Lab Reports" hint="Results and verified reports"
-              accent="mango" onClick={() => navigate('/records')} />
-        <Tile icon={FileText} label="My Documents" hint="Scans, prescriptions and uploads"
-              onClick={() => navigate('/records')} />
-        <Tile icon={Activity} label="My Vitals" hint="Readings from home and kiosk"
-              accent="mango" onClick={() => navigate('/vitals')} />
-        <Tile icon={CalendarClock} label="My Visits" hint="Your consultation timeline"
-              onClick={() => navigate('/visits')} />
-        <Tile icon={ShieldCheck} label="Consent & Privacy" hint="See and revoke what you've shared"
-              onClick={() => navigate('/consent/my')} />
-        <Tile icon={Clock} label="My Queue / Appointments" hint="Live token status, ETA, and follow-up slots"
-              onClick={() => navigate('/queue')} />
-        <Tile icon={Users} label="Family Members" hint="Manage family account beneficiaries"
-              onClick={() => navigate('/family')} />
-        <Tile icon={CalendarClock} label="My Referrals" hint="Doctor-initiated referral passes & status"
-              accent="mango" onClick={() => navigate('/referrals')} />
-        <Tile icon={ShieldCheck} label="ABHA / ABDM Link" hint="Ayushman Bharat Digital Health ID status"
-              onClick={() => navigate('/abha')} />
-      </div>
-
-      {/* Family Members Modal (§2) */}
-      {showFamilyModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowFamilyModal(false)} />
-          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-lg space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Users className="text-teal-400" /> Family Beneficiaries (§2)
-              </h3>
-              <button onClick={() => setShowFamilyModal(false)} className="text-slate-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* List existing family members */}
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              <div className="p-3 bg-slate-800/80 rounded-xl flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-white">Self ({currentUser?.patientName || 'Primary'})</p>
-                  <p className="text-xs text-slate-400">Head of Account</p>
-                </div>
-                <button
-                  onClick={() => { setSelectedPatientId(currentUser?.patientId || currentUser?.id); setShowFamilyModal(false); }}
-                  className="px-3 py-1 bg-teal-500 text-slate-950 font-bold text-xs rounded-lg"
-                >
-                  Select
-                </button>
-              </div>
-              {familyMembers.map(fm => (
-                <div key={fm.familyMemberId} className="p-3 bg-slate-800/80 rounded-xl flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-white">{fm.patient?.basicInfo?.fullName || 'Family Member'}</p>
-                    <p className="text-xs text-slate-400">Relation: {fm.relation} &bull; Age: {fm.patient?.basicInfo?.age}</p>
-                  </div>
-                  <button
-                    onClick={() => { setSelectedPatientId(fm.patient?._id || fm.patientId); setShowFamilyModal(false); }}
-                    className="px-3 py-1 bg-teal-500 text-slate-950 font-bold text-xs rounded-lg"
-                  >
-                    Select
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Form to add beneficiary */}
-            <form onSubmit={handleAddFamilyMember} className="border-t border-slate-800 pt-4 space-y-3">
-              <p className="text-xs font-bold text-teal-400 uppercase tracking-wider">Add New Family Beneficiary</p>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  required
-                  value={newFamilyForm.fullName}
-                  onChange={e => setNewFamilyForm({ ...newFamilyForm, fullName: e.target.value })}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
-                />
-                <select
-                  value={newFamilyForm.relation}
-                  onChange={e => setNewFamilyForm({ ...newFamilyForm, relation: e.target.value })}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
-                >
-                  <option value="father">Father</option>
-                  <option value="mother">Mother</option>
-                  <option value="spouse">Spouse</option>
-                  <option value="child">Child</option>
-                  <option value="sibling">Sibling</option>
-                  <option value="other">Other</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder="Age"
-                  required
-                  value={newFamilyForm.age}
-                  onChange={e => setNewFamilyForm({ ...newFamilyForm, age: e.target.value })}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
-                />
-                <select
-                  value={newFamilyForm.gender}
-                  onChange={e => setNewFamilyForm({ ...newFamilyForm, gender: e.target.value })}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs"
-                >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-teal-500 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"
-              >
-                <Plus size={14} /> Add Beneficiary
-              </button>
-            </form>
+      {/* ── PRIORITY 2, 3, 4: THREE-COLUMN CORE METRIC STRIP ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* PRIORITY 2: Current Appointment / Queue */}
+        <div className="bg-white dark:bg-slate-900/90 border border-gray-200 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-3 hover:border-emerald-500/30 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">2. Queue & Appointment</span>
+            <Clock className="w-4 h-4 text-emerald-500" />
           </div>
+          <div>
+            <p className="text-xl font-black text-slate-900 dark:text-white">
+              {activeQueue ? `Token ${activeQueue.tokenNumber || 'OPD-101'}` : 'No Active Queue'}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {activeQueue ? `Est Wait: ${activeQueue.estimatedWaitTime || '10 mins'}` : 'Register token at Kiosk or online'}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/patient/queue')}
+            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline cursor-pointer pt-1"
+          >
+            Check Live Queue Status <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
-      )}
+
+        {/* PRIORITY 3: Next Follow-Up */}
+        <div className="bg-white dark:bg-slate-900/90 border border-gray-200 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-3 hover:border-emerald-500/30 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">3. Next Follow-up</span>
+            <CalendarClock className="w-4 h-4 text-teal-500" />
+          </div>
+          <div>
+            <p className="text-xl font-black text-slate-900 dark:text-white">
+              {nextFollowUp?.scheduledDate ? new Date(nextFollowUp.scheduledDate).toLocaleDateString() : 'None Scheduled'}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {nextFollowUp?.doctorName ? `Dr. ${nextFollowUp.doctorName}` : 'Check doctor advice in visit history'}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/patient/followups')}
+            className="text-xs font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1 hover:underline cursor-pointer pt-1"
+          >
+            View Scheduled Follow-ups <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* PRIORITY 4: Recent Health Activity */}
+        <div className="bg-white dark:bg-slate-900/90 border border-gray-200 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-3 hover:border-emerald-500/30 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">4. Recent Activity</span>
+            <Activity className="w-4 h-4 text-purple-500" />
+          </div>
+          <div>
+            <p className="text-xl font-black text-slate-900 dark:text-white">
+              {recentActivity.medsCount} Active Meds
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {recentActivity.vitalsCount} vitals logged · Last updated recently
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/patient/visits')}
+            className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1 hover:underline cursor-pointer pt-1"
+          >
+            View Visit Timeline <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── PRIORITY 5: FOUR QUICK ACTIONS ── */}
+      <div className="space-y-3 pt-2">
+        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          5. Quick Actions
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button
+            type="button"
+            onClick={() => navigate('/patient/opd')}
+            className="group p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-gray-200 dark:border-white/10 hover:border-emerald-500/40 shadow-sm hover:shadow-md transition-all text-left cursor-pointer flex flex-col justify-between"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
+              <Stethoscope className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-slate-900 dark:text-white">See a Doctor</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Start OPD Intake & Register</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/patient/medicines')}
+            className="group p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-gray-200 dark:border-white/10 hover:border-emerald-500/40 shadow-sm hover:shadow-md transition-all text-left cursor-pointer flex flex-col justify-between"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+              <Pill className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-slate-900 dark:text-white">My Prescriptions</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Active & past medications</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/patient/labs')}
+            className="group p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-gray-200 dark:border-white/10 hover:border-emerald-500/40 shadow-sm hover:shadow-md transition-all text-left cursor-pointer flex flex-col justify-between"
+          >
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-3">
+              <FlaskConical className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-slate-900 dark:text-white">Lab Reports</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Diagnostic test results</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/patient/vitals')}
+            className="group p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-gray-200 dark:border-white/10 hover:border-emerald-500/40 shadow-sm hover:shadow-md transition-all text-left cursor-pointer flex flex-col justify-between"
+          >
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-slate-900 dark:text-white">Health Records</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Vitals & document vault</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -197,6 +197,7 @@ router.post('/results/:resultId/verify', async (req, res) => {
 
     // Automatic Continuity Trigger (§31, §36)
     const FollowUp = require('../models/FollowUp');
+    const { sendNotification } = require('../services/notificationEngine');
     const targetPatientId = resultDoc.patientId || order?.patientId;
     const targetEncounterId = resultDoc.encounterId || order?.encounterId;
 
@@ -204,6 +205,24 @@ router.post('/results/:resultId/verify', async (req, res) => {
     if (targetPatientId) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      // Dynamic capacity calculation: calculate follow-up window based on existing load
+      const existingCount = await FollowUp.countDocuments({
+        'scheduledWindow.date': tomorrowStr
+      });
+
+      const baseHour = 9;
+      const baseMinute = 30 + (existingCount * 15);
+      const startMinsTotal = baseHour * 60 + baseMinute;
+      const startH = Math.floor(startMinsTotal / 60);
+      const startM = startMinsTotal % 60;
+      const endMinsTotal = startMinsTotal + 20;
+      const endH = Math.floor(endMinsTotal / 60);
+      const endM = endMinsTotal % 60;
+
+      const startTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+      const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
       followUp = await FollowUp.findOne({
         patientId: targetPatientId,
@@ -218,17 +237,17 @@ router.post('/results/:resultId/verify', async (req, res) => {
           linkedOrderIds: resultDoc.investigationOrderId ? [resultDoc.investigationOrderId] : [],
           status: 'schedulable',
           scheduledWindow: {
-            date: tomorrow.toISOString().split('T')[0],
-            startTime: '09:30',
-            endTime: '10:00'
+            date: tomorrowStr,
+            startTime,
+            endTime
           }
         });
       } else {
         followUp.status = 'schedulable';
         followUp.scheduledWindow = {
-          date: tomorrow.toISOString().split('T')[0],
-          startTime: '09:30',
-          endTime: '10:00'
+          date: tomorrowStr,
+          startTime,
+          endTime
         };
         await followUp.save();
       }
@@ -242,6 +261,32 @@ router.post('/results/:resultId/verify', async (req, res) => {
           await encounter.save();
         }
       }
+
+      // Proactive Multi-Channel Notification Engine Trigger (§56)
+      try {
+        await sendNotification({
+          recipientId: targetPatientId,
+          channel: 'sms',
+          template: 'report_ready',
+          payload: {
+            testName: resultDoc.testName,
+            resultValue: resultDoc.resultValue,
+            followUpWindow: `${tomorrowStr} (${startTime} - ${endTime})`,
+            message: `Your report for ${resultDoc.testName} is ready. Follow-up window: ${tomorrowStr} (${startTime} - ${endTime}).`
+          }
+        });
+        await sendNotification({
+          recipientId: targetPatientId,
+          channel: 'push',
+          template: 'report_ready',
+          payload: {
+            testName: resultDoc.testName,
+            followUpWindow: `${tomorrowStr} (${startTime} - ${endTime})`
+          }
+        });
+      } catch (notifErr) {
+        console.warn('Lab verification notification note:', notifErr?.message);
+      }
     }
 
     const responseData = resultDoc.toObject ? resultDoc.toObject() : { ...resultDoc };
@@ -251,7 +296,7 @@ router.post('/results/:resultId/verify', async (req, res) => {
 
     return res.json({
       status: 'success',
-      message: 'Lab result verified successfully. Continuity follow-up triggered.',
+      message: 'Lab result verified successfully. Continuity follow-up & notifications triggered.',
       data: responseData
     });
   } catch (error) {
@@ -349,4 +394,119 @@ router.get('/pending', async (req, res) => {
   }
 });
 
+/**
+ * 7. POST /api/lab/scan-qr
+ * QR Scan workflow (§28) -> Resolves order/sample by QR code or token number, transitions status 'ordered' -> 'collected'.
+ */
+router.post('/scan-qr', async (req, res) => {
+  try {
+    const { code, technicianId = 'Lab Technician' } = req.body;
+    if (!code) {
+      return res.status(400).json({ status: 'error', message: 'QR Code or Token Number is required' });
+    }
+
+    const cleanCode = code.trim();
+
+    // 1. Try finding by qrPayload, _id, or tokenNumber in InvestigationOrder
+    let order = await InvestigationOrder.findOne({
+      $or: [
+        { qrPayload: cleanCode },
+        { _id: mongoose.Types.ObjectId.isValid(cleanCode) ? cleanCode : null }
+      ].filter(q => Object.values(q)[0] != null)
+    });
+
+    // 2. If not found in InvestigationOrder, check Encounter labOrders (demo sessions)
+    let encounter = null;
+    let demoOrderIndex = -1;
+
+    if (!order) {
+      encounter = await Encounter.findOne({
+        $or: [
+          { tokenNumber: cleanCode },
+          { _id: mongoose.Types.ObjectId.isValid(cleanCode) ? cleanCode : null },
+          { 'labOrders.testName': new RegExp(cleanCode, 'i') }
+        ].filter(q => Object.values(q)[0] != null)
+      });
+
+      if (encounter && encounter.labOrders?.length > 0) {
+        demoOrderIndex = encounter.labOrders.findIndex(lo => lo.status === 'ordered' || lo.status === 'collected' || cleanCode.includes(lo.testName));
+        if (demoOrderIndex === -1) demoOrderIndex = 0;
+      }
+    }
+
+    if (!order && !encounter) {
+      return res.status(404).json({ status: 'error', message: `No active lab order found matching code "${cleanCode}"` });
+    }
+
+    if (order) {
+      if (order.status === 'ordered') {
+        const sampleId = `SMP-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+        await LabSample.create({
+          investigationOrderId: order._id,
+          patientId: order.patientId,
+          sampleId,
+          collectedBy: technicianId,
+          status: 'collected'
+        });
+        order.status = 'collected';
+        await order.save();
+      }
+      return res.json({
+        status: 'success',
+        message: `Sample for ${order.testName} resolved & marked collected.`,
+        data: order
+      });
+    } else if (encounter && demoOrderIndex >= 0) {
+      encounter.labOrders[demoOrderIndex].status = 'collected';
+      await encounter.save();
+      const updatedOrder = encounter.labOrders[demoOrderIndex];
+      return res.json({
+        status: 'success',
+        message: `Demo sample for ${updatedOrder.testName} (${encounter.patientName}) scanned & marked collected.`,
+        data: {
+          _id: `${encounter._id}_${demoOrderIndex}`,
+          sessionId: encounter._id,
+          tokenNumber: encounter.tokenNumber,
+          patientName: encounter.patientName,
+          testName: updatedOrder.testName,
+          urgency: updatedOrder.urgency || updatedOrder.priority || 'routine',
+          status: 'collected'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error scanning lab QR code:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * 8. GET /api/lab/results/version-history/:orderId
+ * Fetches non-overwriting amendment version history for a given lab result (§30).
+ */
+router.get('/results/version-history/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    let query = {};
+
+    if (mongoose.Types.ObjectId.isValid(orderId)) {
+      query = { investigationOrderId: orderId };
+    } else {
+      query = { testName: new RegExp(orderId.split('_')[0], 'i') };
+    }
+
+    const versions = await LabResult.find(query).sort({ version: -1 }).lean();
+
+    return res.json({
+      status: 'success',
+      count: versions.length,
+      data: versions
+    });
+  } catch (error) {
+    console.error('Error fetching lab result version history:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 module.exports = router;
+

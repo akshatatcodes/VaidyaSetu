@@ -40,6 +40,20 @@ router.post('/session/start', async (req, res) => {
       });
     }
 
+    // Idempotency Check for Offline Reconnection (§44)
+    const idempotencyKey = req.headers['x-idempotency-key'] || req.body.idempotencyKey;
+    if (idempotencyKey) {
+      const existingSession = await Encounter.findOne({ idempotencyKey });
+      if (existingSession) {
+        return res.status(200).json({
+          status: 'success',
+          idempotent: true,
+          message: 'Encounter already synchronized previously (idempotency match).',
+          data: existingSession
+        });
+      }
+    }
+
     // Rate Limit Cooldown: 1 Kiosk Session Submission per Hour per genuine ABHA ID
     const cleanAbha = (abhaId || '').trim();
     if (cleanAbha && !cleanAbha.startsWith('ABHA-DEMO') && !cleanAbha.startsWith('14-0000')) {
@@ -139,6 +153,7 @@ router.post('/session/start', async (req, res) => {
     const newSession = new Encounter({
       patientId: patient ? patient._id : undefined,
       tokenNumber,
+      idempotencyKey: idempotencyKey || undefined,
       abhaId: abhaId || `ABHA-${Math.floor(10000000000000 + Math.random() * 90000000000000)}`,
       patientName,
       age: Number(age),

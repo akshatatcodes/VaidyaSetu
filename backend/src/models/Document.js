@@ -22,6 +22,7 @@ const DocumentSchema = new mongoose.Schema({
       'lab_report',
       'discharge_summary',
       'imaging',
+      'referral',
       'referral_letter',
       'other'
     ],

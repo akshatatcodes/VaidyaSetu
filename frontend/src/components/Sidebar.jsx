@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Home, FileText, Activity, ShieldAlert, ShieldCheck, Settings, LogOut, UserCircle, Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle, AlertCircle, Users, Clock, Building2, ArrowRightLeft } from 'lucide-react';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
+import {
+  Home, FileText, Activity, ShieldCheck, Settings, LogOut, UserCircle,
+  Pill, Sun, Moon, Stethoscope, ClipboardCheck, HelpCircle, Users,
+  Clock, Building2, ArrowRightLeft, Layers, Monitor, FlaskConical, Shield
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+
+import { getNavigationForRole, getMobileNavigationForRole } from '../navigation';
 
 const Sidebar = () => {
   const { theme, toggleTheme } = useTheme();
@@ -12,9 +18,14 @@ const Sidebar = () => {
   const { t } = useTranslation();
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const location = useLocation();
+  if (location.pathname.startsWith('/kiosk') || location.pathname === '/patient/opd') {
+    return null;
+  }
+
   const activeRole = userRole || localStorage.getItem('vaidya_active_role') || 'patient';
 
-  // Role display metadata shared by desktop + mobile identity headers
+  // Role display metadata
   const roleMeta = {
     doctor: { badge: '🩺 DOCTOR', chip: 'DOC', short: 'MD', station: 'AIIA CLINICIAN STATION', name: 'Dr. Vaidya', sub: 'AIIA Physician', signOut: 'Doctor' },
     admin: { badge: '⚙️ ADMIN', chip: 'ADM', short: 'AD', station: 'AIIA ADMIN CONSOLE', name: 'Admin', sub: 'AIIA Administrator', signOut: 'Admin' },
@@ -24,92 +35,10 @@ const Sidebar = () => {
   const rm = roleMeta[activeRole] || roleMeta.patient;
   const isDoctor = activeRole === 'doctor';
 
-  // Dedicated 5-Tab Patient Sanctuary Information Architecture
-  const patientNavItems = [
-    { to: '/', icon: Home, label: t('sidebar.dashboard', 'Home') },
-    { to: '/visits', icon: ClipboardCheck, label: t('sidebar.visits', 'Visits') },
-    { to: '/records', icon: FileText, label: t('sidebar.records', 'Records') },
-    { to: '/medicines', icon: Pill, label: t('sidebar.medicines', 'Medicines') },
-    { to: '/queue', icon: Clock, label: t('sidebar.queue', 'My Queue / Appts') },
-    { to: '/family', icon: Users, label: t('sidebar.family', 'Family Members') },
-    { to: '/referrals', icon: ArrowRightLeft, label: t('sidebar.referrals', 'My Referrals') },
-    { to: '/consent/my', icon: ShieldCheck, label: t('sidebar.consent', 'My Consent') },
-    { to: '/abha', icon: Building2, label: t('sidebar.abha', 'ABHA / ABDM') },
-    { to: '/help', icon: HelpCircle, label: t('sidebar.help', 'Help & Guide') },
-    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'OPD MediKiosk') },
-    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'My Vitals') },
-    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Health Profile') }
-  ];
+  // Phase 35 — Single navigation configuration source per role
+  const desktopNavItems = getNavigationForRole(activeRole);
+  const mobileBottomNavItems = getMobileNavigationForRole(activeRole);
 
-  // Dedicated AIIA Doctor Cockpit navigation items (Consumer dashboard excluded)
-  const doctorNavItems = [
-    { to: '/doctor', icon: ClipboardCheck, label: t('sidebar.doctor', 'Doctor Cockpit') },
-    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kioskQueue', 'Kiosk Terminal') },
-    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Clinical Records') },
-    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Triage Telemetry') },
-    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Physician Profile') },
-    { to: '/settings', icon: Settings, label: t('sidebar.settings', 'Settings') }
-  ];
-
-  // Dedicated AIIA Admin Console navigation (RBAC: admin role)
-  const adminNavItems = [
-    { to: '/admin', icon: ClipboardCheck, label: t('sidebar.admin', 'Admin Console') },
-    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kioskQueue', 'Kiosk Terminal') },
-    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Clinical Records') },
-    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Triage Telemetry') },
-    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Admin Profile') },
-    { to: '/settings', icon: Settings, label: t('sidebar.settings', 'Settings') }
-  ];
-
-  // Dedicated AIIA Lab Workbench navigation (RBAC: lab role)
-  const labNavItems = [
-    { to: '/lab', icon: ClipboardCheck, label: t('sidebar.lab', 'Lab Workbench') },
-    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kioskQueue', 'Kiosk Terminal') },
-    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Clinical Records') },
-    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Diagnostics') },
-    { to: '/settings', icon: Settings, label: t('sidebar.settings', 'Settings') }
-  ];
-
-  const desktopNavItems = activeRole === 'doctor' ? doctorNavItems : activeRole === 'admin' ? adminNavItems : activeRole === 'lab' ? labNavItems : patientNavItems;
-
-  // Strict 5-Tab Mobile Bottom Nav Architecture
-  const mobilePatientNavItems = [
-    { to: '/', icon: Home, label: 'Home' },
-    { to: '/visits', icon: ClipboardCheck, label: 'Visits' },
-    { to: '/records', icon: FileText, label: 'Records' },
-    { to: '/medicines', icon: Pill, label: 'Medicines' },
-    { to: '/help', icon: HelpCircle, label: 'Help' }
-  ];
-
-  const mobileDoctorNavItems = [
-    { to: '/doctor', icon: ClipboardCheck, label: t('sidebar.doctor', 'Cockpit') },
-    { to: '/kiosk', icon: Stethoscope, label: t('sidebar.kiosk', 'Kiosk') },
-    { to: '/prescriptions', icon: ShieldAlert, label: t('sidebar.prescriptions', 'Records') },
-    { to: '/vitals', icon: Activity, label: t('sidebar.vitals', 'Vitals') },
-    { to: '/profile', icon: UserCircle, label: t('sidebar.profile', 'Profile') }
-  ];
-
-  const mobileAdminNavItems = [
-    { to: '/admin', icon: ClipboardCheck, label: 'Console' },
-    { to: '/kiosk', icon: Stethoscope, label: 'Kiosk' },
-    { to: '/prescriptions', icon: ShieldAlert, label: 'Records' },
-    { to: '/vitals', icon: Activity, label: 'Vitals' },
-    { to: '/profile', icon: UserCircle, label: 'Profile' }
-  ];
-
-  const mobileLabNavItems = [
-    { to: '/lab', icon: ClipboardCheck, label: 'Lab' },
-    { to: '/kiosk', icon: Stethoscope, label: 'Kiosk' },
-    { to: '/prescriptions', icon: ShieldAlert, label: 'Records' },
-    { to: '/vitals', icon: Activity, label: 'Tests' },
-    { to: '/settings', icon: Settings, label: 'Settings' }
-  ];
-
-  const mobileBottomNavItems = activeRole === 'doctor' ? mobileDoctorNavItems : activeRole === 'admin' ? mobileAdminNavItems : activeRole === 'lab' ? mobileLabNavItems : mobilePatientNavItems;
-
-  /* ──────────────────────────────────────────────
-     DESKTOP SIDEBAR (hidden on mobile)
-  ────────────────────────────────────────────── */
   return (
     <>
       {/* ── DESKTOP SIDEBAR ── */}
@@ -158,12 +87,7 @@ const Sidebar = () => {
                 }
               >
                 <item.icon className="w-5 h-5 mr-3 shrink-0" />
-                <span className="text-base">{item.label}</span>
-                {item.to === '/alerts' && unreadCount > 0 && (
-                  <span className="absolute right-4 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-bounce">
-                    {unreadCount}
-                  </span>
-                )}
+                <span className="text-base">{t(item.labelKey, item.defaultLabel || item.label)}</span>
               </NavLink>
             ))}
           </nav>
@@ -242,22 +166,12 @@ const Sidebar = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
             className="text-slate-600 dark:text-gray-400 p-1 hover:text-emerald-500 transition-colors"
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          {/* Alerts icon */}
-          <Link to="/alerts" className="relative text-slate-600 dark:text-gray-400 flex items-center justify-center">
-            <AlertCircle className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </Link>
           
           {currentUser ? (
             <button
@@ -316,7 +230,7 @@ const Sidebar = () => {
                 )}
                 <item.icon className={`w-5 h-5 mb-0.5 transition-transform ${isActive ? 'scale-110' : ''}`} />
                 <span className="text-[9px] font-black uppercase tracking-wider leading-none">
-                  {item.label.length > 8 ? item.label.slice(0, 8) : item.label}
+                  {t(item.labelKey, item.defaultLabel || item.label || '').slice(0, 10)}
                 </span>
               </>
             )}

@@ -5,10 +5,14 @@ const Consent = require('../models/Consent');
 const VALID_PURPOSES = [
   'clinical_history',
   'document_scanning',
+  'document_processing',
   'doctor_sharing',
   'lab_sharing',
+  'followup_notification',
   'abdm_exchange',
-  'secondary_use'
+  'secondary_use',
+  'whatsapp',
+  'sms'
 ];
 
 /**
@@ -106,6 +110,27 @@ router.post('/revoke', async (req, res) => {
     });
   } catch (error) {
     console.error('Error revoking consent:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * @route POST /api/consent/check
+ * @desc Verify if active consent exists before exposing data (§47)
+ */
+router.post('/check', async (req, res) => {
+  try {
+    const { patientId, purpose } = req.body;
+    if (!patientId || !purpose) {
+      return res.status(400).json({ status: 'error', message: 'patientId and purpose required' });
+    }
+    const consent = await Consent.findOne({ patientId, purpose, status: 'active' });
+    return res.json({
+      status: 'success',
+      granted: !!consent,
+      data: consent || null
+    });
+  } catch (error) {
     return res.status(500).json({ status: 'error', message: error.message });
   }
 });

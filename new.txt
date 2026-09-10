@@ -1,0 +1,3127 @@
+# MEDIKIOSK / VAIDYASETU
+
+## MASTER IMPLEMENTATION BLUEPRINT FOR VIBE CODER
+
+You are working on an existing Node/Express + MongoDB + React/Vite healthcare platform.
+
+The repository currently contains two overlapping concepts:
+
+1. An older VaidyaSetu wellness application.
+2. The new MediKiosk hospital workflow platform.
+
+The target is to turn the repository into one coherent, production-structured MediKiosk platform.
+
+The existing source bundle contains 224 files, including backend AI services, models, routes, patient/doctor/lab/admin pages, kiosk components, tests and localization files. Do NOT assume the repository is clean or that existing “100% complete” claims are correct. Inspect the actual implementation before changing it.
+
+---
+
+# 0. ABSOLUTE RULES
+
+These rules apply to every phase.
+
+## Rule 1 — Do not invent a second architecture
+
+The target architecture is:
+
+Patient
+→ Identity
+→ Consent
+→ Health Profile
+→ OPD / Kiosk Intake
+→ Encounter
+→ Queue
+→ Doctor
+→ Investigation
+→ Lab
+→ Result
+→ Follow-up
+→ Referral
+→ Longitudinal Timeline
+→ ABDM/HIS
+
+Every clinical event must be anchored to an Encounter.
+
+Never randomly attach clinical data directly to Patient when that data belongs to a visit/clinical interaction.
+
+The normalized target model already defines Encounter as the central object.
+
+## Rule 2 — Role isolation
+
+There are exactly four application roles plus a separate kiosk experience:
+
+* Patient
+* Doctor
+* Lab Technician
+* Hospital Admin
+* Kiosk Terminal
+
+Each role gets its own navigation, dashboard and route namespace.
+
+Never expose another role's navigation or dashboard.
+
+## Rule 3 — Dashboard is not the entire application
+
+A dashboard should show:
+
+* what matters now
+* current workload/status
+* the most important next actions
+
+It must NOT contain every feature.
+
+Detailed functionality belongs in dedicated pages.
+
+## Rule 4 — One route = one responsibility
+
+Do not use a giant dashboard with internal tabs when the content represents a distinct operational page.
+
+## Rule 5 — Kiosk is a different UI shell
+
+The kiosk must never use the normal patient sidebar.
+
+## Rule 6 — AI does not diagnose
+
+AI:
+
+* collects
+* structures
+* summarizes
+* routes
+* detects red flags
+* predicts queue timing
+* extracts documents
+
+The doctor remains responsible for diagnosis, prescription and clinical decisions.
+
+The existing architecture explicitly requires doctor review before encounter closure.
+
+## Rule 7 — Never fabricate missing clinical information
+
+Valid information states:
+
+* Confirmed
+* Patient reported
+* Caregiver reported
+* Document derived
+* Uncertain
+* Conflicting
+* Not reported
+
+Never convert “not asked” into “no”.
+
+## Rule 8 — Preserve source provenance
+
+Every extracted clinical value should retain its source.
+
+Examples:
+
+* Patient reported
+* Caregiver reported
+* OCR/document
+* Doctor entered
+* Lab result
+* Kiosk device
+
+## Rule 9 — Do not destroy existing data during migration
+
+If old IntakeSession data exists, migrate it into the new Encounter-centered model.
+
+The existing migration plan already specifies:
+
+IntakeSession
+→ Encounter
+
+* History
+* Vital
+* Document
+* InvestigationOrder
+* LabSample
+* LabResult
+* Prescription
+
+rather than deleting old records.
+
+## Rule 10 — Every phase must pass acceptance checks before the next phase begins.
+
+---
+
+# PHASE 0 — REPOSITORY AUDIT AND CLEANUP
+
+## Goal
+
+Create a clean MediKiosk-only baseline.
+
+The current repository contains legacy wellness functionality that conflicts with the hospital architecture. The existing blueprint identifies old interaction/RAG/risk-report/wellness components that should be removed or archived where they are not part of MediKiosk.
+
+## Tasks
+
+Audit and remove obsolete modules such as:
+
+* old wellness onboarding
+* old predictive wellness dashboard
+* Google Fit
+* old standalone interaction checker
+* old alert/notification wellness system
+* old health quizzes
+* old Lottie/3D wellness body animation
+* duplicate/legacy authentication integrations
+* old report generator if it is unrelated to clinical encounter reporting
+* duplicate legacy project folders
+
+Keep the kiosk's actual body map.
+
+Do not blindly delete anything that has been repurposed into the MediKiosk architecture.
+
+Search for all imports/references before deletion.
+
+## Authentication
+
+Choose one real authentication strategy.
+
+Do not leave old Clerk and native authentication paths partially active.
+
+The existing source still contains old Clerk environment configuration, so audit authentication thoroughly rather than assuming it has already disappeared.
+
+## Acceptance
+
+* Application starts.
+* No legacy imports.
+* No dead routes.
+* No duplicate authentication flows.
+* No old wellness dashboard visible.
+* No console errors.
+
+---
+
+# PHASE 1 — NORMALIZED DATA MODEL
+
+## Goal
+
+Establish one coherent backend domain model.
+
+Target entities:
+
+```text
+User
+Patient
+FamilyMember
+ABHAIdentity
+Consent
+
+Hospital
+Department
+Doctor
+Laboratory
+Kiosk
+
+Appointment
+Queue
+Encounter
+Symptom
+History
+Vital
+
+Medication
+Prescription
+
+Document
+OCRExtraction
+
+InvestigationOrder
+LabSample
+LabResult
+
+Referral
+FollowUp
+
+Notification
+AuditLog
+AIEvent
+```
+
+The existing normalized architecture already defines these relationships.
+
+## Critical relationships
+
+```text
+Patient
+  ↓
+Encounter
+  ├── Symptom
+  ├── History
+  ├── Vital
+  ├── Document
+  ├── Prescription
+  ├── InvestigationOrder
+  │      ↓
+  │   LabSample
+  │      ↓
+  │   LabResult
+  ├── Referral
+  └── FollowUp
+```
+
+Medication is long-lived patient data, but each medication record should retain its source/encounter where relevant.
+
+## Acceptance
+
+Create database tests proving:
+
+* encounter is the clinical parent
+* multiple encounters per patient work
+* multiple lab orders per encounter work
+* multiple results per order/version work
+* follow-ups link to origin encounter
+* referrals link to origin encounter
+
+---
+
+# PHASE 2 — IDENTITY, FAMILY ACCOUNTS AND CONSENT
+
+## Patient identity
+
+Flow:
+
+```text
+Mobile number
+↓
+OTP
+↓
+Identify account
+↓
+Existing patient profiles?
+├── Yes → choose authorized family member
+└── No → create/resolve patient identity
+```
+
+One phone account may manage:
+
+```text
+Self
+Father
+Mother
+Child
+Other beneficiary
+```
+
+But each beneficiary must have an independent health record and authorization boundary.
+
+## ABHA
+
+ABHA integration must be treated as an external governed identity workflow.
+
+Do not fake local ABHA creation.
+
+Create an abstraction:
+
+```text
+ABHAIdentity
+```
+
+containing:
+
+* ABHA identifier/reference
+* link status
+* linked timestamp
+* consent artifact/reference
+* verification status
+
+## Consent
+
+Create actual Consent records, not embedded booleans.
+
+Fields:
+
+```text
+consentId
+patientId
+purpose
+dataScope
+recipient
+method
+language
+status
+grantedAt
+revokedAt
+```
+
+Purpose examples:
+
+```text
+clinical_history
+document_processing
+doctor_sharing
+lab_sharing
+followup_notification
+abdm_exchange
+```
+
+The existing architecture specifically requires granular, revocable consent.
+
+## Acceptance
+
+* One account can manage multiple family members.
+* Each patient has separate records.
+* Consent is separately stored.
+* Consent can be revoked.
+* Sharing checks consent before exposing data.
+
+---
+
+# PHASE 3 — PATIENT APPLICATION
+
+## Goal
+
+Rebuild Patient as a simple patient-first application.
+
+Do not copy the old wellness dashboard.
+
+## Patient navigation
+
+```text
+HOME
+
+CARE
+- See a Doctor
+- Appointments / Queue
+- Visits
+- Follow-ups
+- Referrals
+
+HEALTH
+- My Health
+- Medicines
+- Lab Reports
+- Documents
+- Vitals
+
+ACCOUNT
+- Family
+- ABHA / ABDM
+- Consent & Privacy
+- Profile
+- Settings
+- Help
+```
+
+Do not put every feature into the dashboard.
+
+## Patient routes
+
+```text
+/patient
+/patient/opd
+/patient/opd/register
+/patient/opd/intake
+/patient/opd/review
+/patient/opd/token
+
+/patient/visits
+/patient/visits/:encounterId
+
+/patient/followups
+/patient/followups/:id
+
+/patient/referrals
+
+/patient/medicines
+/patient/labs
+/patient/documents
+/patient/vitals
+
+/patient/queue
+/patient/appointments
+
+/patient/family
+/patient/profile
+/patient/abha
+/patient/consent
+/patient/settings
+/patient/help
+```
+
+## Patient dashboard
+
+Show only:
+
+```text
+Greeting
+
+Current appointment / token
+Live queue if applicable
+Next follow-up
+Reports requiring attention
+Recent activity
+
+Primary actions:
+See a Doctor
+View Reports
+My Medicines
+My Documents
+```
+
+The existing patient dashboard currently renders many tiles for medicines, reports, documents, vitals, visits, consent, queue, family and referrals; these should move to navigation + dedicated pages rather than all competing for dashboard attention.
+
+## Acceptance
+
+A new patient immediately understands:
+
+* what they need to do now
+* whether they are waiting
+* what appointment comes next
+
+---
+
+# PHASE 4 — PATIENT HEALTH PROFILE AND MEDICINES
+
+## Health Profile sections
+
+```text
+Basic Information
+Medical History
+Allergies
+Past Surgeries
+Hospitalizations
+Family History
+Personal History
+Long-term Conditions
+AYUSH Information
+```
+
+## Medicine buckets
+
+```text
+CURRENT
+PREVIOUS
+STOPPED
+NEEDS CONFIRMATION
+```
+
+## Smart confirmation
+
+At each later visit:
+
+```text
+Are you still taking these medicines?
+
+✓ Medicine A
+✓ Medicine B
+○ Medicine C
+```
+
+Do not make the patient repeat information that is already known.
+
+## Acceptance
+
+* Existing profile information pre-populates future encounters.
+* Medication status can change.
+* History source is preserved.
+
+---
+
+# PHASE 5 — DOCUMENT INTELLIGENCE
+
+## Goal
+
+Turn medical documents into structured evidence.
+
+Pipeline:
+
+```text
+Image/PDF
+↓
+Quality Check
+↓
+Pre-processing
+↓
+OCR / Handwriting Recognition
+↓
+Language Detection
+↓
+Medical Entity Extraction
+↓
+Validation
+↓
+Classification
+↓
+Date Extraction
+↓
+Timeline
+```
+
+This pipeline is already part of the intended architecture.
+
+## Supported document types
+
+* prescription
+* lab report
+* discharge summary
+* imaging report
+* referral
+* other medical document
+
+## Extract
+
+* diagnosis
+* medicine
+* dosage
+* frequency
+* laboratory value
+* reference range
+* procedure
+* surgery
+* date
+
+## IMPORTANT
+
+Preserve:
+
+```text
+Original file
++
+OCR output
++
+Structured extraction
++
+Confidence
++
+Source
+```
+
+Never overwrite the original.
+
+## Acceptance
+
+Scan a fake/seeded prescription and report and confirm:
+
+* document classification
+* OCR
+* structured extraction
+* date
+* provenance
+* original document remains viewable
+
+---
+
+# PHASE 6 — ENCOUNTER + KIOSK CORE
+
+## Goal
+
+Every hospital interaction becomes an Encounter.
+
+Encounter types:
+
+```text
+OPD
+EMERGENCY
+FOLLOWUP
+```
+
+Status:
+
+```text
+draft
+intake
+queued
+in_consultation
+awaiting_investigation
+followup_pending
+completed
+cancelled
+```
+
+## Kiosk shell
+
+The kiosk MUST NOT use the patient sidebar.
+
+Use a dedicated full-screen stepper:
+
+```text
+1 Identity
+2 Consent
+3 Complaint
+4 History
+5 Vitals
+6 Documents
+7 Review
+8 Routing
+9 Token
+```
+
+The Kiosk navigation should show only the current progress, not application-wide features.
+
+## Kiosk controls
+
+Every screen:
+
+```text
+Back
+Repeat
+Listen
+Speak
+Tap
+Help
+Exit
+```
+
+## Low-literacy mode
+
+Must be a real configuration state, not visual decoration.
+
+The architecture explicitly calls for Listen/Speak/Tap/Repeat/Help interaction.
+
+---
+
+# PHASE 7 — CLINICAL INTAKE ENGINE
+
+## Complaint capture
+
+Support:
+
+```text
+Voice
+Text
+Touch
+Body map
+```
+
+Body map:
+
+* front
+* back
+* selectable body regions
+
+## Adaptive questioning
+
+Never ask the same fixed questionnaire to every patient.
+
+Use:
+
+```text
+Patient profile
++
+Previous history
++
+Current complaint
++
+Existing documents
++
+Current answers
+↓
+Question engine
+↓
+Only necessary missing questions
+```
+
+Target approximately 4–5 focused questions for simple OPD complaints when sufficient history is already known.
+
+Use complaint-specific frameworks such as SOCRATES where applicable.
+
+## Mode 1 — MODERN CLINICAL
+
+```text
+Chief Complaint
+HPI
+Past Medical
+Past Surgical
+Drug History
+Allergy
+Family History
+Personal History
+ROS
+Relevant Investigations
+Vitals
+```
+
+## Mode 2 — AYUSH
+
+Activate when the selected department is configured for AYUSH.
+
+```text
+Chief Complaint
+Nidana
+Samprapti
+Prakriti
+Vikriti
+Dashavidha Pariksha
+Ahara
+Vihara
+Agni
+Koshtha
+Other configured AYUSH fields
+```
+
+The existing architecture explicitly requires the AYUSH mode and Dashavidha parameters.
+
+Do not force patients into both modes.
+
+The hospital/department configuration chooses the clinical mode.
+
+---
+
+# PHASE 8 — VITALS + RED-FLAG TRIAGE
+
+## Vitals
+
+Home:
+
+```text
+Patient enters reading
++
+Timestamp
++
+Source = patient
+```
+
+Hospital:
+
+```text
+Kiosk device
+↓
+automatic reading
+↓
+Encounter
+```
+
+Sources:
+
+```text
+patient
+kiosk-device
+staff
+```
+
+## Red flags
+
+```text
+Patient data
+↓
+Red flag engine
+↓
+Potential emergency?
+├── No → normal flow
+└── Yes
+    ↓
+Human triage
+    ↓
+Confirmed priority
+    ↓
+Emergency queue
+```
+
+Never automatically diagnose disease.
+
+The current architecture explicitly requires “AI flag → immediate human triage → confirmed priority → emergency queue.”
+
+## Emergency misuse
+
+Do NOT implement:
+
+```text
+3 false reports → banned
+```
+
+Implement:
+
+```text
+Warning
+↓
+Repeated suspicious use
+↓
+Human verification
+↓
+Hospital staff review
+```
+
+Genuine emergencies must never be denied by an automated penalty.
+
+---
+
+# PHASE 9 — DEPARTMENT AND DOCTOR ROUTING
+
+## Routing input
+
+```text
+Complaint
++
+Structured history
++
+Vitals
++
+Existing relevant information
+```
+
+## Output
+
+```text
+Suggested Department
+```
+
+Example:
+
+```text
+Suggested:
+ENT
+```
+
+Do not label this “AI diagnosis”.
+
+## Doctor selection
+
+When multiple doctors are available:
+
+```text
+Doctor
+Current queue
+Estimated wait
+Availability
+Room
+```
+
+Example:
+
+```text
+Dr A
+8 patients
+40–50 min
+
+Dr B
+3 patients
+15–25 min
+```
+
+Patient may choose according to hospital rules.
+
+## Important
+
+Do not hard-code doctors or departments.
+
+Facility configuration must come from Hospital/Department/Doctor records.
+
+The existing FacilityService was specifically created so callers resolve hospital/department configuration from persisted facility data rather than literals.
+
+---
+
+# PHASE 10 — QUEUE ENGINE
+
+## Queue types
+
+At minimum:
+
+```text
+normal
+emergency
+followup
+lab
+```
+
+## Normal queue
+
+Sort based on:
+
+* priority
+* arrival
+* hospital rules
+
+## Emergency queue
+
+Only after valid triage priority.
+
+## Dynamic ETA
+
+ETA uses:
+
+```text
+patients ahead
++
+doctor rolling consultation speed
++
+priority cases
++
+availability
++
+follow-up capacity
+```
+
+Show:
+
+```text
+15–25 minutes
+```
+
+not:
+
+```text
+18 minutes 12 seconds
+```
+
+The existing architecture already specifies this dynamic queue model.
+
+## Patient live queue
+
+Show:
+
+```text
+Token
+Current token
+Patients ahead
+Estimated wait
+Doctor
+Room
+```
+
+Update live/polling without forcing a full page refresh where practical.
+
+---
+
+# PHASE 11 — TOKEN + QR
+
+Generate:
+
+```text
+Token
+Patient
+Department
+Doctor
+Room
+Queue position
+Estimated wait
+QR
+```
+
+QR must contain a secure non-PII reference, not full medical information.
+
+Patient can scan to see queue status.
+
+Lab and follow-up workflows also use linked secure QR references.
+
+---
+
+# PHASE 12 — DOCTOR APPLICATION REBUILD
+
+## IMPORTANT
+
+The existing DoctorDashboard.jsx is ~34 KB and currently carries too many responsibilities.
+
+Do not continue adding functionality to it.
+
+Split it.
+
+## Doctor navigation
+
+```text
+Today
+Queue
+Patients
+Follow-ups
+Referrals
+My Profile
+Settings
+```
+
+## Doctor routes
+
+```text
+/doctor
+/doctor/queue
+/doctor/queue/:encounterId
+
+/doctor/consultation/:encounterId
+
+/doctor/patients
+/doctor/patients/:patientId
+
+/doctor/followups
+/doctor/followups/:id
+
+/doctor/referrals
+/doctor/profile
+/doctor/settings
+```
+
+## Doctor dashboard
+
+Show:
+
+```text
+Normal waiting
+Emergency waiting
+Follow-ups
+Seen today
+
+Current patient
+
+Next few patients
+
+Follow-up alerts
+```
+
+Do NOT show every clinical control here.
+
+---
+
+# PHASE 13 — DOCTOR PATIENT VIEW
+
+## 30-second summary
+
+Default view:
+
+```text
+Current complaint
+
+Red flags
+
+What is NEW
+
+Known conditions
+
+Current medicines
+
+Latest vitals
+
+Recent investigations
+
+Follow-up status
+```
+
+Then expandable sections:
+
+```text
+Full history
+Documents
+Timeline
+Evidence
+Previous encounters
+```
+
+## “WHAT CHANGED”
+
+Always provide:
+
+```text
+NEW
+CHANGED
+UNCHANGED
+```
+
+The source architecture explicitly requires this longitudinal delta concept.
+
+---
+
+# PHASE 14 — EVIDENCE-LINKED CLINICAL VIEW
+
+Every important field should expose source.
+
+Example:
+
+```text
+Diabetes
+Patient reported
+```
+
+```text
+Hb 9.8 g/dL
+CBC report
+06 Sep 2026
+```
+
+```text
+Diagnosis
+Doctor recorded
+Encounter ENC-123
+```
+
+If conflicting:
+
+```text
+⚠ Conflicting information
+
+Old record:
+Penicillin allergy
+
+Patient:
+Uncertain
+
+Doctor verification required
+```
+
+Never silently select one source.
+
+The architecture explicitly requires evidence/provenance states and conflict detection.
+
+---
+
+# PHASE 15 — DOCTOR CONSULTATION WORKSPACE
+
+Dedicated page:
+
+```text
+/doctor/consultation/:encounterId
+```
+
+Structure:
+
+```text
+Patient header
+
+Clinical Brief
+
+History
+
+Vitals
+
+Documents
+
+Examination
+
+Diagnosis
+
+Investigations
+
+Prescription
+
+Advice
+
+Referral
+
+Follow-up
+
+Review & Sign
+```
+
+## Doctor actions
+
+### Diagnosis
+
+Doctor only.
+
+### Examination
+
+Doctor only.
+
+### Prescription
+
+Doctor only.
+
+### Lab Order
+
+Doctor.
+
+### Referral
+
+Doctor.
+
+### Follow-up
+
+Doctor.
+
+### Complete Encounter
+
+Requires doctor verification/sign-off.
+
+The architecture already defines the consultation workspace as symptoms, examination, diagnosis, investigations, prescription, advice, referral, follow-up and sign/complete.
+
+---
+
+# PHASE 16 — LAB TECHNICIAN APPLICATION
+
+## Lab navigation
+
+```text
+Dashboard
+Work Queue
+Results
+Critical
+Follow-ups
+My Profile
+Settings
+```
+
+Do not put seven operational tabs inside one giant dashboard.
+
+## Routes
+
+```text
+/lab
+/lab/queue
+/lab/orders/:orderId
+/lab/results
+/lab/results/:resultId
+/lab/critical
+/lab/followups
+/lab/profile
+/lab/settings
+```
+
+## Dashboard
+
+Show only:
+
+```text
+Pending
+Processing
+Completed
+Critical
+Follow-up required
+```
+
+plus current workload.
+
+---
+
+# PHASE 17 — LAB WORKFLOW
+
+Flow:
+
+```text
+Doctor
+↓
+InvestigationOrder
+↓
+QR
+↓
+Patient arrives at lab
+↓
+QR scanned
+↓
+LabSample collected
+↓
+Processing
+↓
+Result entered
+↓
+Verification
+↓
+Report attached to origin encounter
+```
+
+Existing backend workflow already models:
+
+```text
+ordered
+→ collected
+→ processing
+→ resulted
+→ verified
+```
+
+The current source assessment identifies that the backend has this state machine and that the main gap is the frontend workflow exposure.
+
+## Never overwrite verified results
+
+If a verified result needs amendment:
+
+```text
+Original result
++
+new linked version
+```
+
+The original remains readable.
+
+---
+
+# PHASE 18 — LAB → FOLLOW-UP CONTINUITY
+
+This is one of the most important features.
+
+Doctor:
+
+```text
+Order CBC
+```
+
+System:
+
+```text
+InvestigationOrder
+```
+
+Lab:
+
+```text
+Sample
+↓
+Result
+↓
+Verified
+```
+
+System:
+
+```text
+FollowUp created automatically
+```
+
+Patient does NOT re-register.
+
+The existing blueprint explicitly requires automatic FollowUp creation when a relevant lab result is verified.
+
+## Follow-up queue
+
+Create a separate logical queue:
+
+```text
+normal
+followup
+```
+
+## Next-day review
+
+Doctor selects:
+
+```text
+Review after lab result
+Review tomorrow
+Review on date
+```
+
+System creates:
+
+```text
+FollowUp
+date
+time window
+doctor
+room
+reason
+origin encounter
+```
+
+No new full OPD registration.
+
+---
+
+# PHASE 19 — MULTIPLE LAB TESTS / LINKED CARE TASK
+
+Suppose doctor orders:
+
+```text
+CBC
+X-ray
+HbA1c
+```
+
+System tracks:
+
+```text
+CBC ✓
+X-ray ✓
+HbA1c pending
+```
+
+Follow-up state:
+
+```text
+waiting_for_results
+```
+
+Only when required tests are verified:
+
+```text
+Follow-up schedulable
+```
+
+This exact linked-care behavior is already specified in the existing architecture blueprint.
+
+---
+
+# PHASE 20 — FOLLOW-UP QUEUE ALLOCATION
+
+Do not make follow-up patients join the back of a normal OPD queue.
+
+Use:
+
+```text
+Follow-up capacity
++
+doctor availability
++
+result completion
++
+priority
++
+existing workload
+```
+
+Generate a time window.
+
+Example:
+
+```text
+10:30–11:00
+Follow-up F-203
+Dr Sharma
+Room 204
+CBC review
+```
+
+If result is delayed:
+
+```text
+No follow-up slot yet
+```
+
+If result becomes ready:
+
+```text
+Create slot
+Notify patient
+```
+
+---
+
+# PHASE 21 — REFERRAL ENGINE
+
+Support:
+
+## Same hospital
+
+```text
+Department
+Doctor
+Reason
+Priority
+Status
+```
+
+## Cross hospital
+
+```text
+Hospital
+Department
+Reason
+Referral note
+QR
+Status
+```
+
+Receiving side must only see authorized referral information.
+
+The backend blueprint explicitly defines this same-hospital/cross-hospital referral path.
+
+---
+
+# PHASE 22 — HANDWRITTEN PRESCRIPTION
+
+Doctor writes on paper.
+
+Workflow:
+
+```text
+Paper
+↓
+Scan
+↓
+OCR/handwriting recognition
+↓
+Structured extraction
+↓
+Doctor confirmation
+↓
+Attach to encounter
+```
+
+Always retain:
+
+```text
+Original image
++
+Extracted content
+```
+
+The architecture requires doctor confirmation for extracted handwritten prescriptions.
+
+---
+
+# PHASE 23 — PATIENT LONGITUDINAL TIMELINE
+
+Create a single:
+
+```text
+/patient/timeline
+```
+
+and doctor-readable timeline.
+
+Events:
+
+```text
+Visit
+Prescription
+Vital
+Document
+Lab order
+Lab result
+Referral
+Follow-up
+```
+
+Example:
+
+```text
+09 Sep
+OPD
+↓
+CBC ordered
+
+09 Sep
+Lab
+↓
+Sample collected
+
+09 Sep
+Lab
+↓
+Result verified
+
+09 Sep
+Follow-up created
+
+10 Sep
+Doctor review
+```
+
+---
+
+# PHASE 24 — “WHAT CHANGED SINCE LAST VISIT”
+
+System compares previous relevant encounter with current encounter.
+
+Display:
+
+```text
+NEW
+Changed symptoms
+New medication
+New investigation
+
+CHANGED
+BP
+Hb
+Medicine status
+
+UNCHANGED
+Known conditions
+Existing allergy
+Long-term medication
+```
+
+Do not compare unrelated records.
+
+---
+
+# PHASE 25 — AI SERVICE ARCHITECTURE
+
+Never use one generic AI function.
+
+Services:
+
+```text
+asrService
+ocrService
+historyAiService
+summaryAiService
+riskEngine
+routingService
+queuePredictionService
+```
+
+Each service creates an AIEvent.
+
+This exact service separation is already specified in the source blueprint.
+
+## Summary pipeline
+
+```text
+ASR
+↓
+Structured facts
+
+OCR
+↓
+Medical entities
+
+Merge
+↓
+Conflict detection
+↓
+Evidence validation
+↓
+Structured summary
+↓
+Doctor review
+↓
+Final encounter
+```
+
+Doctor review is mandatory before completion.
+
+---
+
+# PHASE 26 — MULTILINGUAL ENGINE
+
+Supported interface should include the existing Indian-language localization system where appropriate.
+
+Current repository already contains many language files.
+
+Language applies to:
+
+```text
+UI
+Voice prompts
+ASR
+TTS
+Patient explanations
+Kiosk
+```
+
+Important:
+
+Translate the interaction.
+
+Do NOT change the controlled clinical ontology merely because the patient speaks another language.
+
+Store structured medical data in controlled terminology.
+
+The current blueprint explicitly requires this separation.
+
+---
+
+# PHASE 27 — KIOSK UX / LOW-LITERACY MODE
+
+Kiosk must be usable by a first-time user.
+
+Screen design:
+
+```text
+ONE question
+ONE clear action
+
+🔊 Listen
+🗣 Speak
+👆 Tap
+🔁 Repeat
+❓ Help
+```
+
+Avoid:
+
+* long paragraphs
+* tables
+* multiple competing buttons
+* technical terminology
+* sidebar navigation
+
+Use:
+
+* icons
+* audio
+* very large controls
+* progress indicators
+* local language
+* caregiver mode
+
+---
+
+# PHASE 28 — CAREGIVER MODE
+
+Patient may be unable to answer.
+
+Ask:
+
+```text
+Is the patient answering personally?
+```
+
+Options:
+
+```text
+Patient
+Caregiver
+```
+
+If caregiver:
+
+every captured field should retain:
+
+```text
+Source = Caregiver
+```
+
+The source suite explicitly includes caregiver provenance tests.
+
+---
+
+# PHASE 29 — NOTIFICATION ENGINE
+
+Support:
+
+```text
+SMS
+Push
+WhatsApp where institutionally supported
+Voice
+Kiosk print
+```
+
+Events:
+
+```text
+OPD token generated
+Queue approaching
+Doctor ready
+Lab order created
+Report ready
+Follow-up created
+Follow-up changed
+Referral created
+```
+
+Every channel must be consent-aware.
+
+Never send a notification if the required consent scope is missing.
+
+The existing architecture explicitly tests the notification system against consent scope.
+
+---
+
+# PHASE 30 — ADMIN APPLICATION
+
+## Admin navigation
+
+```text
+Overview
+
+Facilities
+  Hospitals
+  Departments
+  Laboratories
+
+People
+  Doctors
+
+Infrastructure
+  Kiosks
+
+Operations
+  Queues
+  Schedules
+  Follow-up Capacity
+
+Governance
+  Audit
+  Access / Security
+
+Settings
+```
+
+## Admin routes
+
+```text
+/admin
+/admin/hospitals
+/admin/departments
+/admin/labs
+/admin/doctors
+/admin/kiosks
+/admin/queues
+/admin/schedules
+/admin/followup-capacity
+/admin/audit
+/admin/system-logs
+/admin/profile
+/admin/settings
+```
+
+## IMPORTANT
+
+Do NOT have:
+
+* sidebar navigation
+  AND
+* giant internal AdminDashboard tabs
+
+Use URL routing as the navigation system.
+
+## The current code has seven admin sidebar items AND maps them all to one AdminDashboard with `initialTab`, which is exactly the duplication we are removing.
+
+# PHASE 31 — ADMIN DASHBOARD
+
+Only operational overview:
+
+```text
+Patients today
+Waiting
+Emergency
+Doctors active
+Lab tests
+Kiosks online/offline
+```
+
+Then:
+
+```text
+Attention required
+```
+
+Examples:
+
+```text
+1 kiosk offline
+2 critical results waiting
+4 doctors unavailable
+Queue overload in Orthopaedics
+```
+
+No doctor consultation controls.
+No patient clinical history.
+No raw AI output.
+
+---
+
+# PHASE 32 — ADMIN CONFIGURATION
+
+Everything configurable through database:
+
+```text
+Hospitals
+Departments
+Doctors
+Rooms
+Labs
+Services
+Kiosks
+Working hours
+Queue policies
+Priority rules
+Follow-up capacity
+Clinical mode
+AYUSH enabled/disabled
+Body map enabled/disabled
+Voice enabled/disabled
+Vitals device configuration
+```
+
+The existing FacilityService already follows the “resolve configuration from persisted facility data” principle.
+
+Acceptance:
+
+Create a new department in Admin.
+
+It must immediately appear in OPD routing and registration without changing frontend code.
+
+---
+
+# PHASE 33 — ROUTING ARCHITECTURE REBUILD
+
+This is one of the highest-priority phases.
+
+## New route namespaces
+
+```text
+/public/*
+
+/patient/*
+/doctor/*
+/lab/*
+/admin/*
+/kiosk/*
+```
+
+Do not use generic shared clinical URLs such as:
+
+```text
+/profile
+/history
+/vitals
+/queue
+```
+
+when they actually represent role-specific experiences.
+
+The current App.jsx still exposes a set of shared clinical routes including `/profile`, `/history`, `/prescriptions`, `/vitals`, `/queue`, etc.
+
+Replace with role-specific route ownership.
+
+Examples:
+
+```text
+/patient/profile
+/doctor/profile
+/lab/profile
+/admin/profile
+```
+
+```text
+/patient/queue
+/doctor/queue
+/lab/queue
+```
+
+The kiosk is:
+
+```text
+/kiosk/*
+```
+
+with a completely different shell.
+
+---
+
+# PHASE 34 — ROLE GUARDS
+
+Create one consistent role authorization system.
+
+Concept:
+
+```text
+RoleRoute
+```
+
+Examples:
+
+```text
+PatientRoute
+DoctorRoute
+LabRoute
+AdminRoute
+KioskRoute
+```
+
+but implement them through one centralized authorization mechanism rather than duplicated rules.
+
+If a doctor attempts:
+
+```text
+/patient/documents
+```
+
+deny.
+
+If a patient attempts:
+
+```text
+/doctor/consultation/:id
+```
+
+deny.
+
+If a lab technician attempts:
+
+```text
+/admin/doctors
+```
+
+deny.
+
+Return a clean Access Denied page or redirect to their own dashboard.
+
+---
+
+# PHASE 35 — NAVIGATION ARCHITECTURE
+
+Create:
+
+```text
+navigation/
+  patientNav.js
+  doctorNav.js
+  labNav.js
+  adminNav.js
+  kioskNav.js
+```
+
+The Sidebar reads the current role and selected navigation configuration.
+
+Never maintain duplicated desktop/mobile role navigation definitions unless the content truly differs.
+
+Mobile can collapse the same information architecture instead of becoming another independent application map.
+
+The current Sidebar contains separate arrays for patient, doctor, lab and admin plus separate mobile arrays, which is one source of navigation duplication.
+
+---
+
+# PHASE 36 — DOCTOR DASHBOARD SPLIT
+
+Break:
+
+```text
+DoctorDashboard.jsx
+```
+
+into:
+
+```text
+DoctorHome.jsx
+DoctorQueue.jsx
+DoctorConsultation.jsx
+DoctorPatients.jsx
+DoctorFollowUps.jsx
+DoctorReferrals.jsx
+DoctorProfile.jsx
+```
+
+Reusable components:
+
+```text
+DoctorStats
+QueueTable
+ClinicalBrief
+EvidenceBadge
+ChangeDelta
+VitalsSummary
+MedicationSummary
+LabOrderPanel
+PrescriptionPanel
+ReferralPanel
+FollowUpPanel
+```
+
+Do not create a new giant component to replace the old one.
+
+---
+
+# PHASE 37 — LAB DASHBOARD SPLIT
+
+Break the current lab operational tabs into routes.
+
+The architecture expects:
+
+```text
+Today's Samples
+Pending
+In Progress
+Completed
+Verified
+Critical/Attention
+Follow-up Required
+```
+
+The current frontend reportedly only exposes Pending Orders and Critical Results, despite the backend state machine already existing.
+
+Create dedicated views/routes or a compact workbench with URL state.
+
+Do not make one 30,000-line component.
+
+---
+
+# PHASE 38 — PATIENT DASHBOARD SIMPLIFICATION
+
+Remove visual clutter.
+
+Dashboard priority:
+
+```text
+1. Current action
+2. Current appointment/queue
+3. Next follow-up
+4. Recent health activity
+5. Four quick actions
+```
+
+Everything else lives in navigation.
+
+Do not show:
+
+* every document
+* every lab report
+* every medicine
+* every vital
+* full family list
+* full consent record
+* full ABDM details
+  on the dashboard.
+
+---
+
+# PHASE 39 — ADMIN DASHBOARD SIMPLIFICATION
+
+Admin gets:
+
+```text
+Operational metrics
+Alerts requiring action
+Facility status
+Queue health
+System status
+```
+
+All management functionality goes into navigation.
+
+---
+
+# PHASE 40 — ABDM/HIS INTEGRATION LAYER
+
+Create:
+
+```text
+abdmIntegrationService
+```
+
+Do not couple the entire application directly to external ABDM calls.
+
+Concept:
+
+```text
+MediKiosk Core
+↓
+ABDM Adapter
+↓
+External ABDM services
+```
+
+Similarly:
+
+```text
+MediKiosk Core
+↓
+HIS Adapter
+↓
+Hospital HIS
+```
+
+ABHA/consent/FHIR operations should go through adapters.
+
+Do not place raw FHIR JSON inside the doctor dashboard.
+
+Doctor should see:
+
+```text
+ABDM sync: ✓
+```
+
+and only authorized technical users should inspect interoperability payloads.
+
+---
+
+# PHASE 41 — PRIVACY + PURPOSE-BASED ACCESS
+
+Role alone is not sufficient.
+
+Example:
+
+Doctor:
+
+```text
+role = doctor
+```
+
+does NOT automatically mean:
+
+```text
+access = every patient's entire record
+```
+
+Require:
+
+```text
+role
++
+purpose
++
+assigned/current encounter
++
+consent where necessary
+```
+
+The existing blueprint specifically requires purpose-based access control on top of role checks.
+
+---
+
+# PHASE 42 — AUDIT LOG
+
+Every sensitive operation:
+
+```text
+actor
+role
+action
+targetType
+targetId
+patient
+reason
+timestamp
+```
+
+Examples:
+
+```text
+Doctor viewed CBC report
+Lab viewed investigation order
+Admin changed department configuration
+Patient revoked consent
+```
+
+Use middleware for sensitive reads instead of manually adding logs everywhere.
+
+The current architecture calls for centralized AuditLog handling.
+
+---
+
+# PHASE 43 — KIOSK SECURITY
+
+At encounter completion:
+
+```text
+Submit
+↓
+Synchronize
+↓
+Clear temporary local state
+↓
+Reset kiosk
+```
+
+The next patient must see zero information from the previous patient.
+
+The source blueprint explicitly requires an explicit kiosk cache reset at session completion.
+
+---
+
+# PHASE 44 — OFFLINE MODE
+
+Kiosk may temporarily operate offline for:
+
+```text
+UI shell
+Language packs
+Basic local workflow
+Safe non-sensitive queue state
+Pending submissions
+```
+
+Do NOT pretend external ABDM health-record exchange is fully offline.
+
+On reconnection:
+
+```text
+Pending local submissions
+↓
+sync
+↓
+idempotency check
+↓
+server acknowledgement
+↓
+mark synced
+```
+
+Never duplicate encounters/tokens because of reconnection.
+
+---
+
+# PHASE 45 — UX DESIGN SYSTEM
+
+Use one clean healthcare visual language.
+
+## Patient
+
+Friendly, simple, large controls.
+
+## Doctor
+
+Dense but organized clinical workspace.
+
+## Lab
+
+Operational/data-entry workspace.
+
+## Admin
+
+Control-center style, but simple.
+
+## Kiosk
+
+Very large touch targets and almost no decorative complexity.
+
+Do not use:
+
+* excessive gradients
+* glassmorphism everywhere
+* giant cards for every piece of data
+* animated dashboards
+* decorative statistics that aren't actionable
+
+Prefer:
+
+* whitespace
+* hierarchy
+* clear typography
+* consistent spacing
+* status chips
+* contextual actions
+* progressive disclosure
+
+---
+
+# PHASE 46 — FRONTEND COMPONENT ARCHITECTURE
+
+Recommended:
+
+```text
+src/
+  app/
+    routes/
+    roleGuards/
+    navigation/
+
+  layouts/
+    PatientLayout.jsx
+    DoctorLayout.jsx
+    LabLayout.jsx
+    AdminLayout.jsx
+    KioskLayout.jsx
+
+  pages/
+    patient/
+    doctor/
+    lab/
+    admin/
+    kiosk/
+
+  components/
+    common/
+    patient/
+    doctor/
+    lab/
+    admin/
+    kiosk/
+
+  services/
+    api/
+    patient/
+    doctor/
+    lab/
+    admin/
+    kiosk/
+
+  state/
+    auth/
+    patient/
+    encounter/
+    queue/
+    kiosk/
+
+  hooks/
+
+  utils/
+
+  locales/
+```
+
+Do not put all application state into one giant context.
+
+---
+
+# PHASE 47 — BACKEND ARCHITECTURE
+
+Recommended:
+
+```text
+backend/src/
+  ai/
+  controllers/
+  routes/
+  services/
+  models/
+  middleware/
+  policies/
+  validators/
+  integrations/
+    abdm/
+    his/
+  jobs/
+  utils/
+  data/
+```
+
+Separate:
+
+```textauthentication
+authorization
+business logic
+AI
+external integrations
+```
+
+Do not put business logic directly into route files.
+
+---
+
+# PHASE 48 — ERROR HANDLING
+
+Every page must have:
+
+```textLoading
+Empty
+Error
+Success
+Retry
+```
+
+Examples:
+
+No lab reports:
+
+> No lab reports yet.
+
+No appointments:
+
+> No upcoming appointments.
+
+Network failure:
+
+> We couldn't connect. Retry.
+
+AI failure:
+
+> Voice processing failed. You can continue using touch/text.
+
+The workflow should degrade gracefully.
+
+---
+
+# PHASE 49 — EMPTY STATES
+
+Never show fake patient data.
+
+A new patient dashboard must be empty.
+
+A new doctor consultation must contain no fabricated diagnosis, medicine or symptom.
+
+A new lab queue must contain no fake patients.
+
+The existing project audit specifically calls out hardcoded/example values such as fabricated diagnoses/medications as something to remove from real UI defaults.
+
+Seed data must be clearly identifiable as demo data.
+
+---
+
+# PHASE 50 — TESTING
+
+## Backend
+
+Test:
+
+```textIdentity
+Family
+Consent
+Profile
+Medication
+Documents
+Encounter
+Intake
+Vitals
+Triage
+Routing
+Queue
+Doctor
+Lab
+Follow-up
+Referral
+AI
+Security
+ABDM
+Notifications
+```
+
+## Frontend
+
+Test every route:
+
+```textPatient
+Doctor
+Lab
+Admin
+Kiosk
+```
+
+## E2E mandatory flows
+
+### Flow A — Normal OPD
+
+```textPatient
+→ identity
+→ consent
+→ complaint
+→ adaptive questions
+→ vitals
+→ routing
+→ doctor
+→ queue
+→ consultation
+→ prescription
+→ complete
+```
+
+### Flow B — OPD → Lab → Follow-up
+
+```textDoctor
+→ order CBC
+→ lab QR
+→ sample
+→ result
+→ verification
+→ automatic FollowUp
+→ patient notified
+→ follow-up queue
+→ doctor review
+```
+
+### Flow C — Multiple tests
+
+```textOrder 3 tests
+→ complete 1
+→ complete 2
+→ complete 3
+→ only then create schedulable follow-up
+```
+
+### Flow D — Family caregiver
+
+```textAccount
+→ select parent
+→ register parent
+→ source tagged Caregiver
+→ doctor sees provenance
+```
+
+### Flow E — Emergency
+
+```textPatient
+→ red flag
+→ human triage
+→ emergency priority
+```
+
+### Flow F — Referral
+
+```textDoctor
+→ referral
+→ receiving department
+→ authorized access
+```
+
+### Flow G — Kiosk offline
+
+```textStart encounter
+→ network disconnect
+→ continue locally
+→ reconnect
+→ sync once
+→ no duplicate encounter
+```
+
+---
+
+# PHASE 51 — ROUTE QA MATRIX
+
+Create a route matrix like:
+
+| Route    |  Patient |          Doctor |             Lab |            Admin |
+| -------- | -------: | --------------: | --------------: | ---------------: |
+| /patient |        ✓ |        redirect |        redirect |         redirect |
+| /doctor  |     deny |               ✓ |        redirect |         redirect |
+| /lab     |     deny |            deny |               ✓ |         redirect |
+| /admin   |     deny |            deny |            deny |                ✓ |
+| /kiosk/* | terminal | terminal policy | terminal policy | admin-configured |
+
+No unauthorized role should see another role's dashboard.
+
+---
+
+# PHASE 52 — NAVIGATION QA
+
+Verify:
+
+### Patient
+
+Only patient navigation.
+
+### Doctor
+
+Only doctor navigation.
+
+### Lab
+
+Only lab navigation.
+
+### Admin
+
+Only admin navigation.
+
+### Kiosk
+
+Stepper only.
+
+No duplicate navigation.
+
+No hidden tab bars.
+
+No role-inappropriate links.
+
+---
+
+# PHASE 53 — FINAL DOCTOR UX QA
+
+Doctor should be able to perform:
+
+```textOpen patient
+→ understand case in 30 sec
+→ inspect evidence if needed
+→ examine
+→ diagnose
+→ order test
+→ prescribe
+→ refer
+→ assign follow-up
+→ sign
+→ complete
+```
+
+without opening unrelated admin/technical screens.
+
+---
+
+# PHASE 54 — FINAL LAB UX QA
+
+Lab technician should be able to:
+
+```textOpen queue
+→ scan QR
+→ collect sample
+→ process
+→ enter result
+→ verify
+→ see follow-up requirement
+```
+
+without navigating through patient or doctor pages.
+
+---
+
+# PHASE 55 — FINAL PATIENT UX QA
+
+Patient should be able to:
+
+```textLogin
+→ select family member
+→ see current task
+→ register OPD
+→ explain problem by voice/touch/body map
+→ answer only relevant questions
+→ capture vitals
+→ get department
+→ select doctor if permitted
+→ receive token
+→ track queue
+→ view result
+→ receive follow-up
+→ return without re-registering
+```
+
+---
+
+# PHASE 56 — FINAL KIOSK UX QA
+
+A low-literacy user must be able to complete:
+
+```textIdentity
+→ Consent
+→ Complaint
+→ Questions
+→ Vitals
+→ Documents
+→ Review
+→ Token
+```
+
+with minimal staff assistance.
+
+Use real audio and touch controls.
+
+---
+
+# PHASE 57 — FINAL VISUAL REBUILD
+
+After functionality is correct, perform a visual cleanup.
+
+## Remove
+
+* oversized dashboard cards
+* duplicate tabs
+* excessive shadows
+* excessive glassmorphism
+* decorative gradients
+* redundant metrics
+* dense technical information
+* raw AI payloads
+* raw FHIR views from normal workflows
+
+## Keep
+
+* strong hierarchy
+* simple cards
+* compact tables where useful
+* meaningful status indicators
+* clear buttons
+* consistent spacing
+* accessible typography
+
+---
+
+# PHASE 58 — NO “EVERYTHING ON DASHBOARD”
+
+This is a hard acceptance condition.
+
+### Patient dashboard ≠ Patient application
+
+### Doctor dashboard ≠ Doctor clinical workspace
+
+### Lab dashboard ≠ Entire laboratory system
+
+### Admin dashboard ≠ Entire administration console
+
+Dashboard = overview.
+
+Navigation = access.
+
+Page = detailed work.
+
+Modal/drawer = secondary context.
+
+---
+
+# PHASE 59 — FINAL SYSTEM INTEGRATION
+
+Verify this complete chain:
+
+```text
+PATIENT
+  ↓
+Identity
+  ↓
+Consent
+  ↓
+Health Profile
+  ↓
+OPD registration
+  ↓
+Encounter
+  ↓
+Complaint
+  ↓
+Modern / AYUSH mode
+  ↓
+Adaptive History
+  ↓
+Vitals
+  ↓
+Red Flag
+  ↓
+Department Routing
+  ↓
+Doctor Selection
+  ↓
+Queue
+  ↓
+Doctor
+  ↓
+Diagnosis
+  ↓
+Prescription
+  ↓
+Lab Order / Referral / Follow-up
+  ↓
+LAB
+  ↓
+Sample
+  ↓
+Result
+  ↓
+Verification
+  ↓
+FollowUp
+  ↓
+Doctor Review
+  ↓
+Patient Timeline
+```
+
+Nothing in this chain should require starting the entire process again.
+
+---
+
+# PHASE 60 — FINAL ACCEPTANCE CRITERIA
+
+The application is NOT considered complete until all conditions below pass.
+
+## Architecture
+
+* Role-based route namespaces exist.
+* Every role has its own layout.
+* Kiosk has its own layout.
+* Encounter is the central clinical object.
+* No random clinical writes directly to Patient.
+* No giant role dashboard owns the entire application.
+
+## Patient
+
+* Family members work.
+* Health Profile works.
+* Medicines work.
+* Documents work.
+* Vitals work.
+* OPD registration works.
+* Modern mode works.
+* AYUSH mode works.
+* Queue works.
+* Follow-up works.
+* Referral viewing works.
+* Consent works.
+* ABHA integration point exists.
+* Timeline works.
+
+## Doctor
+
+* Today dashboard works.
+* Queue works.
+* Consultation works.
+* Evidence works.
+* What Changed works.
+* Prescription works.
+* Lab ordering works.
+* Referral works.
+* Follow-up works.
+* Doctor profile works.
+* Doctor review gate works.
+
+## Lab
+
+* Queue works.
+* QR resolution works.
+* Collection works.
+* Processing works.
+* Result entry works.
+* Verification works.
+* Critical results work.
+* Amendment versioning works.
+* Follow-up visibility works.
+
+## Admin
+
+* Hospital management works.
+* Department management works.
+* Doctor management works.
+* Lab management works.
+* Kiosk management works.
+* Queue configuration works.
+* Schedule configuration works.
+* Follow-up capacity works.
+* Audit works.
+
+## AI
+
+* ASR works or cleanly falls back.
+* OCR works or cleanly falls back.
+* Adaptive history works.
+* AYUSH questionnaire routing works.
+* Red flags trigger human triage.
+* Department routing works.
+* Queue prediction works.
+* Summary works.
+* Every AI call produces AIEvent.
+* Doctor review is mandatory.
+* AI never declares a diagnosis autonomously.
+
+## Security
+
+* Role checks work.
+* Purpose-based access works.
+* Consent checks work.
+* Audit logs work.
+* Kiosk session data is cleared.
+* Offline sync does not duplicate records.
+
+## UX
+
+* No duplicate navigation.
+* No duplicate dashboard tabs.
+* No role sees another role's navigation.
+* No raw technical ABDM/FHIR screens in normal workflows.
+* No fake clinical data.
+* No giant dashboard component.
+* No generic `/profile` shared by incompatible roles.
+* No normal patient sidebar on kiosk.
+
+---
+
+# FINAL IMPLEMENTATION ORDER
+
+Do NOT try to solve everything simultaneously.
+
+Execute in this exact order:
+
+```text
+PHASE 0  Cleanup
+   ↓
+PHASE 1  Data Model
+   ↓
+PHASE 2  Identity + Family + Consent
+   ↓
+PHASE 3  Patient App
+   ↓
+PHASE 4  Profile + Medicines
+   ↓
+PHASE 5  Documents
+   ↓
+PHASE 6  Encounter + Kiosk
+   ↓
+PHASE 7  Clinical Intake
+   ↓
+PHASE 8  Vitals + Triage
+   ↓
+PHASE 9  Routing
+   ↓
+PHASE 10 Queue
+   ↓
+PHASE 11 Token / QR
+   ↓
+PHASE 12 Doctor App
+   ↓
+PHASE 13 Doctor Patient View
+   ↓
+PHASE 14 Evidence
+   ↓
+PHASE 15 Consultation
+   ↓
+PHASE 16 Lab App
+   ↓
+PHASE 17 Lab Workflow
+   ↓
+PHASE 18 Follow-up
+   ↓
+PHASE 19 Linked Care
+   ↓
+PHASE 20 Follow-up Queue
+   ↓
+PHASE 21 Referrals
+   ↓
+PHASE 22 Handwritten Prescription
+   ↓
+PHASE 23 Timeline
+   ↓
+PHASE 24 What Changed
+   ↓
+PHASE 25 AI Services
+   ↓
+PHASE 26 Multilingual
+   ↓
+PHASE 27 Kiosk UX
+   ↓
+PHASE 28 Caregiver
+   ↓
+PHASE 29 Notifications
+   ↓
+PHASE 30 Admin
+   ↓
+PHASE 31 Admin Dashboard
+   ↓
+PHASE 32 Admin Configuration
+   ↓
+PHASE 33 Routing Architecture
+   ↓
+PHASE 34 Role Guards
+   ↓
+PHASE 35 Navigation
+   ↓
+PHASE 36 Doctor Split
+   ↓
+PHASE 37 Lab Split
+   ↓
+PHASE 38 Patient Dashboard Cleanup
+   ↓
+PHASE 39 Admin Dashboard Cleanup
+   ↓
+PHASE 40 ABDM/HIS Adapter
+   ↓
+PHASE 41 Purpose Access
+   ↓
+PHASE 42 Audit
+   ↓
+PHASE 43 Kiosk Security
+   ↓
+PHASE 44 Offline
+   ↓
+PHASE 45 Visual System
+   ↓
+PHASE 46 Component Architecture
+   ↓
+PHASE 47 Backend Architecture
+   ↓
+PHASE 48 Error States
+   ↓
+PHASE 49 Empty States
+   ↓
+PHASE 50 Testing
+   ↓
+PHASE 51 Route QA
+   ↓
+PHASE 52 Navigation QA
+   ↓
+PHASE 53 Doctor UX QA
+   ↓
+PHASE 54 Lab UX QA
+   ↓
+PHASE 55 Patient UX QA
+   ↓
+PHASE 56 Kiosk UX QA
+   ↓
+PHASE 57 Visual QA
+   ↓
+PHASE 58 Dashboard QA
+   ↓
+PHASE 59 Full Integration
+   ↓
+PHASE 60 Final Acceptance
+```
+
+# MOST IMPORTANT DIRECTIVE TO THE VIBE CODER
+
+Before changing code, understand the existing implementation.
+
+Do not blindly rewrite working backend functionality.
+
+Do not create duplicate models.
+
+Do not create duplicate routes.
+
+Do not create duplicate navigation.
+
+Do not add another dashboard layer.
+
+Refactor existing code into the architecture above.
+
+Whenever an existing component already implements the desired business rule, reuse it and move it into the correct role/page rather than rebuilding the same logic.
+
+The current repository already contains many of the required models, AI services, routes and workflow tests; the main objective is to turn these pieces into a coherent, role-separated, encounter-centered application rather than continuing to grow the existing monolithic dashboards.
+
+At the end of every phase, report:
+
+```text
+PHASE:
+FILES CREATED:
+FILES MODIFIED:
+FILES REMOVED:
+BACKEND CHANGES:
+FRONTEND CHANGES:
+ROUTES ADDED:
+ROUTES REMOVED:
+TESTS ADDED:
+TESTS PASSED:
+KNOWN ISSUES:
+ACCEPTANCE CHECK:
+```
+
+Do NOT move to the next phase until the acceptance check passes.

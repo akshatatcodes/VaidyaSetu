@@ -28,10 +28,18 @@ import Vitals from './pages/Vitals';
 import MyMedicines from './pages/MyMedicines';
 import KioskIntake from './pages/KioskIntake';
 import DoctorDashboard from './pages/DoctorDashboard';
+import DoctorHome from './pages/doctor/DoctorHome';
+import DoctorQueue from './pages/doctor/DoctorQueue';
+import DoctorConsultation from './pages/doctor/DoctorConsultation';
+import DoctorPatients from './pages/doctor/DoctorPatients';
+import DoctorFollowUps from './pages/doctor/DoctorFollowUps';
+import DoctorReferrals from './pages/doctor/DoctorReferrals';
+import DoctorProfile from './pages/doctor/DoctorProfile';
 import AuthGateway from './pages/AuthGateway';
 import AccessDenied from './pages/AccessDenied';
 import AdminDashboard from './pages/AdminDashboard';
 import LabDashboard from './pages/LabDashboard';
+import LabProfile from './pages/lab/LabProfile';
 import QueueDisplay from './pages/QueueDisplay';
 import HelpSupport from './pages/HelpSupport';
 import MyConsent from './pages/MyConsent';
@@ -42,8 +50,8 @@ import ABHALinkStatus from './pages/ABHALinkStatus';
 
 import { API_URL } from './config/api';
 
-// Guard: Strict Authentication and Role Authorization
-const ProtectedRoute = ({ children, allowedRole }) => {
+// Phase 51 — Centralized Role Authorization System & Route QA Matrix
+const RoleRoute = ({ children, allowedRole, allowedRoles }) => {
   const { isAuthenticated, userRole, authLoading } = useAuth();
 
   if (authLoading) {
@@ -57,65 +65,37 @@ const ProtectedRoute = ({ children, allowedRole }) => {
     );
   }
 
-  // By default, unauthenticated users MUST be redirected to /login
-  if (!isAuthenticated) {
+  // 1. Unauthenticated users must log in unless accessing kiosk
+  const rolesList = allowedRoles || (allowedRole ? [allowedRole] : []);
+  const isKioskAllowed = rolesList.includes('kiosk');
+
+  if (!isAuthenticated && !isKioskAllowed) {
     return <Navigate to="/login" replace />;
   }
 
-  // Role authorization guard
-  if (allowedRole && userRole !== allowedRole) {
-    if (allowedRole === 'doctor') {
-      return <AccessDenied requiredRole="doctor" />;
+  const currentRole = userRole || 'patient';
+
+  // 2. Route QA Matrix Enforcement (§51):
+  // /patient -> Staff (doctor/lab/admin) redirect to their home portal
+  // /doctor, /lab, /admin -> Unauthorized roles denied access
+  if (rolesList.length > 0 && !rolesList.includes(currentRole)) {
+    if (rolesList.includes('patient')) {
+      if (currentRole === 'doctor') return <Navigate to="/doctor" replace />;
+      if (currentRole === 'lab') return <Navigate to="/lab" replace />;
+      if (currentRole === 'admin') return <Navigate to="/admin" replace />;
     }
-    if (allowedRole === 'patient') {
-      return <Navigate to="/doctor" replace />;
-    }
+    return <AccessDenied requiredRole={rolesList.join(' or ')} currentRole={currentRole} />;
   }
 
   return children;
 };
 
-// Sub-route guard for doctor exclusive pages
-const DoctorRoute = ({ children }) => {
-  const { userRole } = useAuth();
-  if (userRole !== 'doctor') {
-    return <AccessDenied requiredRole="doctor" />;
-  }
-  return children;
-};
-
-// Sub-route guard for patient exclusive pages
-const PatientRoute = ({ children }) => {
-  const { userRole } = useAuth();
-  if (userRole === 'doctor') {
-    return <Navigate to="/doctor" replace />;
-  }
-  if (userRole === 'admin') {
-    return <Navigate to="/admin" replace />;
-  }
-  if (userRole === 'lab') {
-    return <Navigate to="/lab" replace />;
-  }
-  return children;
-};
-
-// Sub-route guard for admin pages
-const AdminRoute = ({ children }) => {
-  const { userRole } = useAuth();
-  if (userRole !== 'admin') {
-    return <AccessDenied requiredRole="admin" />;
-  }
-  return children;
-};
-
-// Sub-route guard for lab pages
-const LabRoute = ({ children }) => {
-  const { userRole } = useAuth();
-  if (userRole !== 'lab') {
-    return <AccessDenied requiredRole="lab" />;
-  }
-  return children;
-};
+// Centralized Role Wrappers (§34)
+const ProtectedRoute = ({ children, allowedRole }) => <RoleRoute allowedRole={allowedRole}>{children}</RoleRoute>;
+const DoctorRoute = ({ children }) => <RoleRoute allowedRole="doctor">{children}</RoleRoute>;
+const PatientRoute = ({ children }) => <RoleRoute allowedRole="patient">{children}</RoleRoute>;
+const AdminRoute = ({ children }) => <RoleRoute allowedRole="admin">{children}</RoleRoute>;
+const LabRoute = ({ children }) => <RoleRoute allowedRole="lab">{children}</RoleRoute>;
 
 // Main app shell
 const AppLayout = () => {
@@ -153,38 +133,114 @@ const AppLayout = () => {
             <Routes>
               {/* Patient Only Route: Root lands on Health Sanctuary for patients */}
               <Route path="/" element={<PatientRoute><Dashboard /></PatientRoute>} />
+              <Route path="/patient" element={<PatientRoute><Dashboard /></PatientRoute>} />
+              <Route path="/patient/opd" element={<KioskIntake />} />
+              <Route path="/patient/visits" element={<PatientRoute><ChangeHistory /></PatientRoute>} />
+              <Route path="/patient/followups" element={<PatientRoute><LiveQueueStatus /></PatientRoute>} />
+              <Route path="/patient/referrals" element={<PatientRoute><ReferralView /></PatientRoute>} />
+              <Route path="/patient/medicines" element={<PatientRoute><MyMedicines /></PatientRoute>} />
+              <Route path="/patient/labs" element={<PatientRoute><Prescriptions /></PatientRoute>} />
+              <Route path="/patient/documents" element={<PatientRoute><Prescriptions /></PatientRoute>} />
+              <Route path="/patient/vitals" element={<PatientRoute><Vitals /></PatientRoute>} />
+              <Route path="/patient/queue" element={<PatientRoute><LiveQueueStatus /></PatientRoute>} />
+              <Route path="/patient/appointments" element={<PatientRoute><LiveQueueStatus /></PatientRoute>} />
+              <Route path="/patient/family" element={<PatientRoute><FamilyMembers /></PatientRoute>} />
+              <Route path="/patient/profile" element={<PatientRoute><HealthProfile /></PatientRoute>} />
+              <Route path="/patient/abha" element={<PatientRoute><ABHALinkStatus /></PatientRoute>} />
+              <Route path="/patient/consent" element={<PatientRoute><MyConsent /></PatientRoute>} />
+              <Route path="/patient/settings" element={<PatientRoute><Settings /></PatientRoute>} />
+              <Route path="/patient/help" element={<PatientRoute><HelpSupport /></PatientRoute>} />
               
-              {/* Doctor Only Route: Clinical Cockpit */}
-              <Route path="/doctor" element={<DoctorRoute><DoctorDashboard /></DoctorRoute>} />
-              {/* Admin Only: Operations Console */}
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              {/* Lab Only: Diagnostic Result Workbench */}
-              <Route path="/lab" element={<LabRoute><LabDashboard /></LabRoute>} />
+              {/* Doctor Only Routes: Modular Page Components per Phase 36 */}
+              <Route path="/doctor" element={<DoctorRoute><DoctorHome /></DoctorRoute>} />
+              <Route path="/doctor/queue" element={<DoctorRoute><DoctorQueue /></DoctorRoute>} />
+              <Route path="/doctor/queue/:encounterId" element={<DoctorRoute><DoctorQueue /></DoctorRoute>} />
+              <Route path="/doctor/consultation/:encounterId" element={<DoctorRoute><DoctorConsultation /></DoctorRoute>} />
+              <Route path="/doctor/patients" element={<DoctorRoute><DoctorPatients /></DoctorRoute>} />
+              <Route path="/doctor/patients/:patientId" element={<DoctorRoute><DoctorPatients /></DoctorRoute>} />
+              <Route path="/doctor/followups" element={<DoctorRoute><DoctorFollowUps /></DoctorRoute>} />
+              <Route path="/doctor/followups/:id" element={<DoctorRoute><DoctorFollowUps /></DoctorRoute>} />
+              <Route path="/doctor/referrals" element={<DoctorRoute><DoctorReferrals /></DoctorRoute>} />
+              <Route path="/doctor/profile" element={<DoctorRoute><DoctorProfile /></DoctorRoute>} />
+              <Route path="/doctor/settings" element={<DoctorRoute><Settings /></DoctorRoute>} />
+              {/* Admin Only: Operations Console & Sub-pages per Phase 30 */}
+              <Route path="/admin" element={<AdminRoute><AdminDashboard initialTab="overview" /></AdminRoute>} />
+              <Route path="/admin/hospitals" element={<AdminRoute><AdminDashboard initialTab="hospitals" /></AdminRoute>} />
+              <Route path="/admin/departments" element={<AdminRoute><AdminDashboard initialTab="departments" /></AdminRoute>} />
+              <Route path="/admin/labs" element={<AdminRoute><AdminDashboard initialTab="labs" /></AdminRoute>} />
+              <Route path="/admin/doctors" element={<AdminRoute><AdminDashboard initialTab="doctors" /></AdminRoute>} />
+              <Route path="/admin/kiosks" element={<AdminRoute><AdminDashboard initialTab="kiosks" /></AdminRoute>} />
+              <Route path="/admin/queues" element={<AdminRoute><AdminDashboard initialTab="queues" /></AdminRoute>} />
+              <Route path="/admin/schedules" element={<AdminRoute><AdminDashboard initialTab="schedules" /></AdminRoute>} />
+              <Route path="/admin/followup-capacity" element={<AdminRoute><AdminDashboard initialTab="followup-capacity" /></AdminRoute>} />
+              <Route path="/admin/audit" element={<AdminRoute><AdminDashboard initialTab="audit" /></AdminRoute>} />
+              <Route path="/admin/system-logs" element={<AdminRoute><AdminDashboard initialTab="system-logs" /></AdminRoute>} />
+              <Route path="/admin/profile" element={<AdminRoute><AdminDashboard initialTab="profile" /></AdminRoute>} />
+              <Route path="/admin/settings" element={<AdminRoute><AdminDashboard initialTab="settings" /></AdminRoute>} />
+              {/* Lab Only: Diagnostic Result Workbench & Sub-pages */}
+              <Route path="/lab" element={<LabRoute><LabDashboard initialTab="todays_samples" /></LabRoute>} />
+              <Route path="/lab/queue" element={<LabRoute><LabDashboard initialTab="pending" /></LabRoute>} />
+              <Route path="/lab/orders" element={<LabRoute><LabDashboard initialTab="in_progress" /></LabRoute>} />
+              <Route path="/lab/orders/:orderId" element={<LabRoute><LabDashboard initialTab="pending" /></LabRoute>} />
+              <Route path="/lab/results" element={<LabRoute><LabDashboard initialTab="completed" /></LabRoute>} />
+              <Route path="/lab/verified" element={<LabRoute><LabDashboard initialTab="verified" /></LabRoute>} />
+              <Route path="/lab/results/:resultId" element={<LabRoute><LabDashboard initialTab="verified" /></LabRoute>} />
+              <Route path="/lab/critical" element={<LabRoute><LabDashboard initialTab="critical" /></LabRoute>} />
+              <Route path="/lab/followups" element={<LabRoute><LabDashboard initialTab="followup" /></LabRoute>} />
+              <Route path="/lab/profile" element={<LabRoute><LabProfile /></LabRoute>} />
+              <Route path="/lab/settings" element={<LabRoute><Settings /></LabRoute>} />
 
-              {/* Patient Dedicated Routes */}
-              <Route path="/visits" element={<PatientRoute><ChangeHistory /></PatientRoute>} />
-              <Route path="/records" element={<PatientRoute><Prescriptions /></PatientRoute>} />
-              <Route path="/medicines" element={<PatientRoute><MyMedicines /></PatientRoute>} />
+              {/* Patient Dedicated Routes (/patient/*) */}
+              <Route path="/patient/timeline" element={<PatientRoute><ChangeHistory /></PatientRoute>} />
+              <Route path="/patient/visits" element={<PatientRoute><ChangeHistory /></PatientRoute>} />
+              <Route path="/patient/records" element={<PatientRoute><Prescriptions /></PatientRoute>} />
+              <Route path="/patient/medicines" element={<PatientRoute><MyMedicines /></PatientRoute>} />
+              <Route path="/patient/vitals" element={<PatientRoute><Vitals /></PatientRoute>} />
+              <Route path="/patient/queue" element={<PatientRoute><LiveQueueStatus /></PatientRoute>} />
+              <Route path="/patient/appointments" element={<PatientRoute><LiveQueueStatus /></PatientRoute>} />
+              <Route path="/patient/family" element={<PatientRoute><FamilyMembers /></PatientRoute>} />
+              <Route path="/patient/profile" element={<PatientRoute><HealthProfile /></PatientRoute>} />
+              <Route path="/patient/profile/edit" element={<PatientRoute><ProfileEditor /></PatientRoute>} />
+              <Route path="/patient/history" element={<PatientRoute><ChangeHistory /></PatientRoute>} />
+              <Route path="/patient/prescriptions" element={<PatientRoute><Prescriptions /></PatientRoute>} />
+              <Route path="/patient/referrals" element={<PatientRoute><ReferralView /></PatientRoute>} />
+              <Route path="/patient/consent" element={<PatientRoute><MyConsent /></PatientRoute>} />
+              <Route path="/patient/abha" element={<PatientRoute><ABHALinkStatus /></PatientRoute>} />
+              <Route path="/patient/settings" element={<PatientRoute><Settings /></PatientRoute>} />
+              <Route path="/patient/help" element={<HelpSupport />} />
+
+              {/* Kiosk Dedicated Routes (/kiosk/*) */}
+              <Route path="/kiosk" element={<KioskIntake />} />
+              <Route path="/kiosk/intake" element={<KioskIntake />} />
+              <Route path="/kiosk/opd" element={<KioskIntake />} />
+
+              {/* Public Routes (/public/*) */}
+              <Route path="/public/help" element={<HelpSupport />} />
+              <Route path="/public/privacy" element={<Privacy />} />
+              <Route path="/public/terms" element={<Terms />} />
               <Route path="/help" element={<HelpSupport />} />
               <Route path="/support" element={<HelpSupport />} />
-
-              {/* Shared Role Clinical Routes */}
-              <Route path="/kiosk" element={<KioskIntake />} />
-              <Route path="/profile" element={<HealthProfile />} />
-              <Route path="/profile/edit" element={<ProfileEditor />} />
-              <Route path="/history" element={<ChangeHistory />} />
-              <Route path="/prescriptions" element={<Prescriptions />} />
-              <Route path="/vitals" element={<Vitals />} />
-              <Route path="/consent/my" element={<MyConsent />} />
-              <Route path="/consent" element={<MyConsent />} />
-              <Route path="/family" element={<FamilyMembers />} />
-              <Route path="/queue" element={<LiveQueueStatus />} />
-              <Route path="/appointments" element={<LiveQueueStatus />} />
-              <Route path="/referrals" element={<ReferralView />} />
-              <Route path="/abha" element={<ABHALinkStatus />} />
-              <Route path="/settings" element={<Settings />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+
+              {/* Legacy un-namespaced clinical routes redirect to role-owned routes */}
+              <Route path="/profile" element={<Navigate to="/patient/profile" replace />} />
+              <Route path="/profile/edit" element={<Navigate to="/patient/profile/edit" replace />} />
+              <Route path="/history" element={<Navigate to="/patient/history" replace />} />
+              <Route path="/timeline" element={<Navigate to="/patient/timeline" replace />} />
+              <Route path="/visits" element={<Navigate to="/patient/visits" replace />} />
+              <Route path="/records" element={<Navigate to="/patient/records" replace />} />
+              <Route path="/medicines" element={<Navigate to="/patient/medicines" replace />} />
+              <Route path="/prescriptions" element={<Navigate to="/patient/prescriptions" replace />} />
+              <Route path="/vitals" element={<Navigate to="/patient/vitals" replace />} />
+              <Route path="/consent/my" element={<Navigate to="/patient/consent" replace />} />
+              <Route path="/consent" element={<Navigate to="/patient/consent" replace />} />
+              <Route path="/family" element={<Navigate to="/patient/family" replace />} />
+              <Route path="/queue" element={<Navigate to="/patient/queue" replace />} />
+              <Route path="/appointments" element={<Navigate to="/patient/queue" replace />} />
+              <Route path="/referrals" element={<Navigate to="/patient/referrals" replace />} />
+              <Route path="/abha" element={<Navigate to="/patient/abha" replace />} />
+              <Route path="/settings" element={<Navigate to="/patient/settings" replace />} />
             </Routes>
           </ErrorBoundary>
           

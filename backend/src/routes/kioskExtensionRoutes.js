@@ -721,6 +721,26 @@ router.patch('/session/:id/doctor-verify', requireAuth, async (req, res) => {
     }
 
     await session.save();
+
+    // Trigger Notification for Doctor Seeing Patient (§19, §56)
+    if ((markInConsultation || queueStatus === 'in_consultation') && session.patientId) {
+      try {
+        const { sendNotification } = require('../services/notificationEngine');
+        await sendNotification({
+          recipientId: session.patientId,
+          channel: 'push',
+          template: 'doctor_now_seeing',
+          payload: {
+            tokenNumber: session.tokenNumber,
+            roomNumber: 'Room 104',
+            message: `Doctor is now ready to see Token ${session.tokenNumber}. Please proceed to Room 104.`
+          }
+        });
+      } catch (e) {
+        console.warn('Doctor seeing notification note:', e?.message);
+      }
+    }
+
     res.json({
       status: 'success',
       message: 'Physician verification updates saved. AI-generated draft — physician verification required.',

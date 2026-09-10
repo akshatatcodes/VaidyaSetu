@@ -123,4 +123,72 @@ describe('Phase 1 — Core Data Model Rebuild (25 Models & Encounter Architectur
     expect(result.originalValuePreserved).toBe(true);
     expect(result.parameters[0].name).toBe('Hb');
   });
+
+  test('Acceptance Check 1: Encounter is the clinical parent for Symptoms, Vitals, Prescriptions, Orders', () => {
+    const encId = new mongoose.Types.ObjectId();
+    const patientId = new mongoose.Types.ObjectId();
+    const docId = new mongoose.Types.ObjectId();
+
+    const sym = new Symptom({ encounterId: encId, patientId, name: 'Fever', severity: 'moderate' });
+    const vit = new Vital({ encounterId: encId, patientId, systolicBP: 120, diastolicBP: 80 });
+    const rx = new Prescription({ encounterId: encId, patientId, doctorId: docId, medications: [{ name: 'Sudarshan Vati', dosage: '1 tab' }] });
+    const order = new InvestigationOrder({ encounterId: encId, patientId, doctorId: docId, testName: 'CBC' });
+
+    expect(sym.encounterId).toEqual(encId);
+    expect(vit.encounterId).toEqual(encId);
+    expect(rx.encounterId).toEqual(encId);
+    expect(order.encounterId).toEqual(encId);
+  });
+
+  test('Acceptance Check 2: Multiple encounters per patient work', () => {
+    const patientId = new mongoose.Types.ObjectId();
+    const enc1 = new Encounter({ patientId, tokenNumber: 'OPD-001', type: 'opd', status: 'completed' });
+    const enc2 = new Encounter({ patientId, tokenNumber: 'OPD-002', type: 'opd', status: 'opened' });
+
+    expect(enc1.patientId).toEqual(patientId);
+    expect(enc2.patientId).toEqual(patientId);
+    expect(enc1.tokenNumber).not.toEqual(enc2.tokenNumber);
+  });
+
+  test('Acceptance Check 3: Multiple lab orders per encounter work', () => {
+    const encId = new mongoose.Types.ObjectId();
+    const patientId = new mongoose.Types.ObjectId();
+    const docId = new mongoose.Types.ObjectId();
+
+    const order1 = new InvestigationOrder({ encounterId: encId, patientId, doctorId: docId, testName: 'CBC' });
+    const order2 = new InvestigationOrder({ encounterId: encId, patientId, doctorId: docId, testName: 'LFT' });
+
+    expect(order1.encounterId).toEqual(encId);
+    expect(order2.encounterId).toEqual(encId);
+    expect(order1.testName).toBe('CBC');
+    expect(order2.testName).toBe('LFT');
+  });
+
+  test('Acceptance Check 4: Multiple results per order/version work', () => {
+    const orderId = new mongoose.Types.ObjectId();
+    const patientId = new mongoose.Types.ObjectId();
+
+    const resV1 = new LabResult({ investigationOrderId: orderId, patientId, testName: 'CBC', version: 1, parameters: [{ name: 'Hb', value: '10.5' }] });
+    const resV2 = new LabResult({ investigationOrderId: orderId, patientId, testName: 'CBC', version: 2, parameters: [{ name: 'Hb', value: '11.0' }], originalValuePreserved: true });
+
+    expect(resV1.investigationOrderId).toEqual(orderId);
+    expect(resV2.investigationOrderId).toEqual(orderId);
+    expect(resV1.version).toBe(1);
+    expect(resV2.version).toBe(2);
+    expect(resV2.originalValuePreserved).toBe(true);
+  });
+
+  test('Acceptance Check 5 & 6: Follow-ups and Referrals link to origin encounter', () => {
+    const originEncId = new mongoose.Types.ObjectId();
+    const patientId = new mongoose.Types.ObjectId();
+    const docId = new mongoose.Types.ObjectId();
+    const deptId = new mongoose.Types.ObjectId();
+
+    const followUp = new FollowUp({ originEncounterId: originEncId, patientId, doctorId: docId, reason: 'lab_result' });
+    const referral = new Referral({ encounterId: originEncId, originEncounterId: originEncId, patientId, fromDoctorId: docId, toDepartmentId: deptId, reason: 'Specialist consult' });
+
+    expect(followUp.originEncounterId).toEqual(originEncId);
+    expect(referral.originEncounterId).toEqual(originEncId);
+    expect(referral.encounterId).toEqual(originEncId);
+  });
 });

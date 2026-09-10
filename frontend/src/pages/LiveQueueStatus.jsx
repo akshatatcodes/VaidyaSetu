@@ -192,7 +192,7 @@ const LiveQueueStatus = () => {
           </div>
         ) : (
           <div className="p-6 bg-slate-900/40 border border-slate-800 rounded-3xl text-center text-slate-400 text-xs">
-            No scheduled follow-up consultations on record.
+            No upcoming appointments.
           </div>
         )}
       </div>

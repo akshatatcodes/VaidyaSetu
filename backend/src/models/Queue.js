@@ -33,8 +33,8 @@ const QueueSchema = new mongoose.Schema({
   },
   queueType: {
     type: String,
-    enum: ['opd', 'followup'],
-    default: 'opd',
+    enum: ['normal', 'emergency', 'followup', 'lab', 'opd'],
+    default: 'normal',
     index: true
   },
   date: {

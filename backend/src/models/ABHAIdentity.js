@@ -32,6 +32,11 @@ const ABHAIdentitySchema = new mongoose.Schema({
   },
   consentArtifactRef: {
     type: String
+  },
+  verificationStatus: {
+    type: String,
+    enum: ['unverified', 'verified_otp', 'verified_biometric'],
+    default: 'unverified'
   }
 }, {
   timestamps: true

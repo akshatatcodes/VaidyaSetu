@@ -884,3 +884,44 @@ html.dark .border-white\/5,
 .dark .border-white\/5 {
   border-color: var(--vs-border) !important;
 }
+
+/* ================================================================
+   PHASE 45 — UX DESIGN SYSTEM ROLE UTILITIES (§45)
+   ================================================================ */
+
+/* 1. Patient UX: Friendly, simple, spacious, large controls */
+.role-patient-container {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.role-patient-btn {
+  min-height: 48px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  border-radius: 1rem;
+}
+
+/* 2. Doctor UX: Dense, organized clinical workspace */
+.role-doctor-workspace {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+/* 3. Lab UX: Operational/data-entry workbench */
+.role-lab-workbench {
+  font-size: 0.8125rem;
+}
+
+/* 4. Admin UX: Control-center style, clean system metrics */
+.role-admin-console {
+  font-size: 0.875rem;
+}
+
+/* 5. Kiosk UX: Very large touch targets (64px+) and zero decorative complexity */
+.role-kiosk-touch-target {
+  min-height: 64px !important;
+  min-width: 64px !important;
+  font-size: 1.125rem !important;
+  font-weight: 800 !important;
+  border-radius: 1.25rem !important;
+}

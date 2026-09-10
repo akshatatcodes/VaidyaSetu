@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Queue = require('../models/Queue');
 const Encounter = require('../models/Encounter');
 const Doctor = require('../models/Doctor');
@@ -133,6 +134,28 @@ router.post('/token', async (req, res) => {
       department: req.body.departmentName || 'Kayachikitsa',
       triagePriority: entryPriority
     }, qrSvgDataUri);
+
+    // Trigger Multi-Channel Notification (§20, §56)
+    const targetPatId = patientId || (encounter ? encounter.patientId : null);
+    if (targetPatId && mongoose.Types.ObjectId.isValid(targetPatId)) {
+      try {
+        const { sendNotification } = require('../services/notificationEngine');
+        await sendNotification({
+          recipientId: targetPatId,
+          channel: 'push',
+          template: 'token_issued',
+          payload: {
+            tokenNumber,
+            patientsAhead,
+            etaRange,
+            roomNumber: 'Room 104',
+            message: `OPD Token ${tokenNumber} issued. Department: ${req.body.departmentName || 'Kayachikitsa'}, Wait ETA: ${etaRange}.`
+          }
+        });
+      } catch (e) {
+        console.warn('Queue token notification note:', e?.message);
+      }
+    }
 
     return res.status(201).json({
       status: 'success',

@@ -10,6 +10,11 @@ const ReferralSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  originEncounterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Encounter',
+    index: true
+  },
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Patient',

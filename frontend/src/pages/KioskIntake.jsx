@@ -16,7 +16,7 @@ import SymptomIconPicker from '../components/kiosk/SymptomIconPicker';
 import BodyMapSvg from '../components/kiosk/BodyMapSvg';
 import ConsentScreen from '../components/kiosk/ConsentScreen';
 import DocumentVerification from '../components/kiosk/DocumentVerification';
-import { saveKioskDraft, loadKioskDraft, installOnlineFlush, queueOfflineRequest } from '../utils/kioskOffline';
+import { saveKioskDraft, loadKioskDraft, installOnlineFlush, queueOfflineRequest, clearKioskLocalCache } from '../utils/kioskOffline';
 import NeedStaffHelp from '../components/NeedStaffHelp';
 
 const LANG_OPTIONS = [
@@ -313,6 +313,28 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [qrSvg, setQrSvg] = useState('');
   const [offlineNotice, setOfflineNotice] = useState(false);
 
+  const [departmentsList, setDepartmentsList] = useState(DEPARTMENTS);
+
+  useEffect(() => {
+    // Dynamic department resolution from database (§32)
+    axios.get(`${API_URL}/admin/departments/live`)
+      .then(res => {
+        if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          const liveDepts = res.data.data.map(d => ({
+            id: d.name,
+            label: d.localName || `${d.name} (${d.systemOfMedicine || 'AYUSH'})`,
+            sub: d.description || `${d.systemOfMedicine || 'AYUSH'} Clinic`,
+            icon: Stethoscope,
+            color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-400'
+          }));
+          const existingIds = new Set(liveDepts.map(d => d.id));
+          const merged = [...liveDepts, ...DEPARTMENTS.filter(d => !existingIds.has(d.id))];
+          setDepartmentsList(merged);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Active Session State
   const [sessionId, setSessionId] = useState(null);
   const [tokenNumber, setTokenNumber] = useState('');
@@ -376,6 +398,7 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [chiefComplaint, setChiefComplaint] = useState('');
   const [speechInput, setSpeechInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const [nextQuestion, setNextQuestion] = useState('नमस्ते। कृपया बताएं कि आज आपको क्या मुख्य तकलीफ या समस्या है?');
   const [socratesProgressStep, setSocratesProgressStep] = useState('site');
   const [severityScore, setSeverityScore] = useState(5);
@@ -494,7 +517,54 @@ const KioskIntake = ({ isStandalone = false }) => {
   }, [currentStep]);
 
   const handleResetKiosk = () => {
+    // 1. Reset current step to Welcome / Identity Screen
     setCurrentStep(0);
+
+    // 2. Clear Patient Identity Form
+    setPatientForm({
+      abhaId: '',
+      patientName: '',
+      age: '',
+      gender: '',
+      contactNumber: '',
+      department: ''
+    });
+
+    // 3. Clear Voice Intake & SOCRATES State
+    setChiefComplaint('');
+    setSpeechInput('');
+    setIsListening(false);
+    setNextQuestion('नमस्ते। कृपया बताएं कि आज आपको क्या मुख्य तकलीफ या समस्या है?');
+    setSocratesProgressStep('site');
+    setSeverityScore(5);
+    setTranscript([]);
+    setRedFlags([]);
+    setInferredDept(null);
+    setShowManualDeptModal(false);
+    setQuickReplies([]);
+    setPendingSpeechConfirm(null);
+
+    // 4. Clear Vitals State
+    setVitals({
+      systolicBP: '',
+      diastolicBP: '',
+      heartRate: '',
+      spo2: '',
+      temperature: '',
+      heightCm: '',
+      weightKg: ''
+    });
+
+    // 5. Clear Dashavidha Pariksha State
+    setDasha({
+      prakriti: '',
+      agni: '',
+      koshtha: '',
+      satva: '',
+      vyayama: ''
+    });
+
+    // 6. Clear Tokens & Case Sheet
     setTokenNumber('');
     setSessionId(null);
     setTriagePriority('normal');
@@ -503,17 +573,31 @@ const KioskIntake = ({ isStandalone = false }) => {
     setPreviousVisitInfo(null);
     setChangesSinceLastVisit([]);
     setChangeDetails('');
-    setRedFlags([]);
-    setTranscript([]);
     setFinalCaseSheet(null);
     setQrSvg('');
     setPendingDoc(null);
+    setOcrMeds([]);
+
+    // 7. Reset Consents
     setConsent({
       dataCapture: false,
       documentStorage: true,
       doctorSharing: true,
       audioNarrated: false
     });
+
+    // 8. Explicitly purge local storage / session storage cache for Kiosk (§43)
+    clearKioskLocalCache();
+    try {
+      localStorage.removeItem('vaidyasetu_kiosk_draft_active');
+      localStorage.removeItem('vaidyasetu_kiosk_draft');
+      localStorage.removeItem('kiosk_last_patient');
+      localStorage.removeItem('vaidyasetu_patient_temp');
+      sessionStorage.clear();
+      window.speechSynthesis?.cancel();
+    } catch (e) {
+      console.warn('[Kiosk Security §43] Reset cache note:', e.message);
+    }
   };
 
   // Text-To-Speech audio helper (Faster speed: 1.25x & GC-safe)
@@ -724,9 +808,9 @@ const KioskIntake = ({ isStandalone = false }) => {
       recognition.continuous = false;
       recognition.interimResults = false;
 
-      recognition.onstart = () => setIsListening(true);
+      recognition.onstart = () => { setIsListening(true); setAiError(false); };
       recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
+      recognition.onerror = () => { setIsListening(false); setAiError(true); };
 
       recognition.onresult = (event) => {
         const text = event.results[0][0].transcript;
@@ -739,6 +823,7 @@ const KioskIntake = ({ isStandalone = false }) => {
     } catch (err) {
       console.error('Speech recognition error:', err);
       setIsListening(false);
+      setAiError(true);
     }
   };
 
@@ -1879,7 +1964,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
-                  {DEPARTMENTS.map(dept => {
+                  {departmentsList.map(dept => {
                     const isSelected = patientForm.department === dept.id;
                     const IconComp = dept.icon;
                     return (
@@ -1958,6 +2043,24 @@ const KioskIntake = ({ isStandalone = false }) => {
           {/* Central Voice Intake Console */}
           <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-800/80 dark:to-slate-900/80 border-2 border-emerald-500/30 flex flex-col items-center justify-center text-center space-y-5">
             
+            {aiError && (
+              <div className="w-full p-4 bg-amber-500/10 border border-amber-300 dark:border-amber-700/50 rounded-2xl flex items-center justify-between text-left">
+                <div className="flex items-center gap-3">
+                  <MicOff className="w-5 h-5 text-amber-500 shrink-0" />
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                    Voice processing failed. You can continue using touch/text.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAiError(false)}
+                  className="text-xs font-bold text-amber-700 dark:text-amber-300 underline shrink-0 ml-2"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             {/* Pulsing Central Microphone */}
             <div className="relative">
               {isListening && (

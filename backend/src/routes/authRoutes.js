@@ -18,7 +18,9 @@ const DEMO_DOCTORS = [
     department: 'Kayachikitsa',
     hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi',
     roomNumber: 'Room 104',
-    experienceYears: 14
+    experienceYears: 14,
+    isDemo: true,
+    isDemoData: true
   },
   {
     doctorId: 'DOC-AIIA-002',
@@ -29,7 +31,9 @@ const DEMO_DOCTORS = [
     department: 'Shalya',
     hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi',
     roomNumber: 'Room 208',
-    experienceYears: 9
+    experienceYears: 9,
+    isDemo: true,
+    isDemoData: true
   },
   {
     doctorId: 'DOC-AIIA-003',
@@ -40,7 +44,9 @@ const DEMO_DOCTORS = [
     department: 'Prasuti',
     hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi',
     roomNumber: 'Room 112',
-    experienceYears: 18
+    experienceYears: 18,
+    isDemo: true,
+    isDemoData: true
   }
 ];
 
@@ -54,7 +60,9 @@ const DEMO_PATIENTS = [
     gender: 'Female',
     mobile: '+91 9412345678',
     email: 'subhadra.devi@gmail.com',
-    primaryCondition: 'Bilateral Knee Osteoarthritis (Janu Sandhigata Vata)'
+    primaryCondition: 'Bilateral Knee Osteoarthritis (Janu Sandhigata Vata)',
+    isDemo: true,
+    isDemoData: true
   },
   {
     patientId: 'PAT-14892',
@@ -64,7 +72,9 @@ const DEMO_PATIENTS = [
     gender: 'Male',
     mobile: '+91 9820192834',
     email: 'h.patil@outlook.com',
-    primaryCondition: 'Hypertensive Heart Disease / Angina Pectoris'
+    primaryCondition: 'Hypertensive Heart Disease / Angina Pectoris',
+    isDemo: true,
+    isDemoData: true
   },
   {
     patientId: 'PAT-14112',
@@ -74,7 +84,9 @@ const DEMO_PATIENTS = [
     gender: 'Male',
     mobile: '+91 9811223344',
     email: 'rahul.sharma@gmail.com',
-    primaryCondition: 'Knee Osteoarthritis + Dyslipidemia Follow-up'
+    primaryCondition: 'Knee Osteoarthritis + Dyslipidemia Follow-up',
+    isDemo: true,
+    isDemoData: true
   }
 ];
 
@@ -86,7 +98,9 @@ const DEMO_LAB_TECHS = [
     email: 'suresh.lab@aiia.gov.in',
     mobile: '+91 9810012345',
     labName: 'AIIA Central Diagnostic Laboratory',
-    section: 'Pathology'
+    section: 'Pathology',
+    isDemo: true,
+    isDemoData: true
   },
   {
     techId: 'LAB-AIIA-002',
@@ -94,7 +108,9 @@ const DEMO_LAB_TECHS = [
     email: 'meena.lab@aiia.gov.in',
     mobile: '+91 9810054321',
     labName: 'AIIA Central Diagnostic Laboratory',
-    section: 'Biochemistry'
+    section: 'Biochemistry',
+    isDemo: true,
+    isDemoData: true
   }
 ];
 
@@ -103,9 +119,12 @@ const DEMO_ADMINS = [
   {
     adminId: 'ADM-AIIA-001',
     adminName: 'Dr. Arun Kulkarni',
-    email: 'admin@aiia.gov.in',
-    role: 'admin',
-    hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi'
+    email: 'arun.kulkarni@aiia.gov.in',
+    mobile: '+91 9899001122',
+    role: 'hospital_admin',
+    hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi',
+    isDemo: true,
+    isDemoData: true
   }
 ];
 
@@ -197,14 +216,19 @@ router.post('/otp/request', async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Invalid 10-digit mobile number' });
     }
 
-    const otp = '123456'; // Stub OTP for dev/testing
+    const isProd = process.env.NODE_ENV === 'production';
+    const otp = isProd ? String(Math.floor(100000 + Math.random() * 900000)) : '123456';
     otpStore.set(cleanMobile, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
-    console.log(`[OTP SERVICE] Sent OTP ${otp} to +91 ${cleanMobile}`);
+    if (isProd) {
+      console.log(`[SMS PROVIDER GATEWAY] Dispatched OTP to +91 ${cleanMobile}`);
+    } else {
+      console.log(`[OTP SERVICE DEV] Sent OTP ${otp} to +91 ${cleanMobile}`);
+    }
 
     return res.json({
       status: 'success',
-      message: `OTP sent successfully to +91 ${cleanMobile}. (Dev OTP: 123456)`,
+      message: `OTP sent successfully to +91 ${cleanMobile}.${isProd ? '' : ' (Dev OTP: 123456)'}`,
       mobile: cleanMobile
     });
   } catch (error) {
@@ -225,8 +249,10 @@ router.post('/otp/verify', async (req, res) => {
     }
     const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
     const storedData = otpStore.get(cleanMobile);
+    const isProd = process.env.NODE_ENV === 'production';
+    const isDevFallback = !isProd && otp === '123456';
 
-    if (otp !== '123456' && (!storedData || storedData.otp !== otp || Date.now() > storedData.expiresAt)) {
+    if (!isDevFallback && (!storedData || storedData.otp !== otp || Date.now() > storedData.expiresAt)) {
       return res.status(401).json({ status: 'error', message: 'Invalid or expired OTP' });
     }
 

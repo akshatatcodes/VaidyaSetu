@@ -176,6 +176,26 @@ describe('Phase 2 — Identity, Family Accounts, Consent & Access Control', () =
       expect(res.body.data.status).toBe('revoked');
       expect(res.body.data.revokedAt).toBeDefined();
     });
+
+    test('POST /api/consent/check should check consent before exposing data', async () => {
+      const checkRevoked = await request(app)
+        .post('/api/consent/check')
+        .send({ patientId: testPatientId.toString(), purpose: 'clinical_history' });
+
+      expect(checkRevoked.statusCode).toBe(200);
+      expect(checkRevoked.body.granted).toBe(false);
+
+      await request(app)
+        .post('/api/consent/grant')
+        .send({ patientId: testPatientId.toString(), purpose: 'doctor_sharing' });
+
+      const checkGranted = await request(app)
+        .post('/api/consent/check')
+        .send({ patientId: testPatientId.toString(), purpose: 'doctor_sharing' });
+
+      expect(checkGranted.statusCode).toBe(200);
+      expect(checkGranted.body.granted).toBe(true);
+    });
   });
 
   describe('5. ABHA Identity Link Request (§2)', () => {

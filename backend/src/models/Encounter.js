@@ -37,6 +37,11 @@ const EncounterSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  idempotencyKey: {
+    type: String,
+    sparse: true,
+    index: true
+  },
   type: {
     type: String,
     enum: ['opd', 'followup', 'emergency'],
@@ -46,8 +51,21 @@ const EncounterSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['opened', 'in_consultation', 'lab_pending', 'doctor_review', 'closed', 'cancelled'],
-    default: 'opened',
+    enum: [
+      'draft',
+      'intake',
+      'queued',
+      'in_consultation',
+      'awaiting_investigation',
+      'followup_pending',
+      'completed',
+      'cancelled',
+      'opened',
+      'lab_pending',
+      'doctor_review',
+      'closed'
+    ],
+    default: 'intake',
     required: true,
     index: true
   },

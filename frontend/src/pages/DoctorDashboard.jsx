@@ -1,73 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Stethoscope, User, Activity, AlertTriangle, AlertOctagon, CheckCircle2,
-  Clock, Pill, ShieldAlert, FileText, Download, Printer, Search, RefreshCw,
-  Sparkles, Check, ChevronRight, ArrowRight, ShieldCheck, Heart, Wind,
-  Thermometer, UserCheck, Phone, Eye, Edit3, Save, Plus, Trash2,
-  X, ExternalLink, QrCode, Layers, Share2, Shield, FlaskConical, Calendar, ArrowUpRight, FileCheck
+  Stethoscope, ShieldAlert, AlertOctagon, CheckCircle2, Clock,
+  RefreshCw, UserCheck, Sparkles, Layers, ShieldCheck, Share2, Download, X, Printer, Plus, Trash2, Eye, FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
 
-const AI_DRAFT_BANNER = 'AI-generated draft — physician verification required';
+// Subcomponents
+import DoctorQueuePanel from '../components/doctor/DoctorQueuePanel';
+import PatientSummaryCard from '../components/doctor/PatientSummaryCard';
+import ChangeDeltaPanel from '../components/doctor/ChangeDeltaPanel';
+import ConsultationWorkspace from '../components/doctor/ConsultationWorkspace';
+import ReferralModal from '../components/doctor/ReferralModal';
 
-// ICD-11 & NAMASTE Catalog Presets for Quick Selection
-const DIAGNOSIS_PRESETS = [
-  {
-    name: 'Osteoarthritis of Knee / Sandhivata',
-    icd11: { code: 'FA00', term: 'Osteoarthritis of knee' },
-    namaste: { code: 'AYU-KA-042', term: 'Sandhivata (Janu Sandhigata Vata)' },
-    ayushMeds: [
-      { name: 'Ashwagandha Churna', dosage: '3g at bedtime', frequency: 'HS', duration: '30 days', anupana: 'Warm Milk' },
-      { name: 'Yogaraj Guggulu', dosage: '2 tablets BD', frequency: 'BD', duration: '21 days', anupana: 'Warm Water' }
-    ],
-    allopathicMeds: [
-      { name: 'Paracetamol', dosage: '500mg', frequency: 'SOS (Pain)', duration: '5 days', instructions: 'After food' }
-    ],
-    panchakarma: ['Janu Basti with Mahanarayana Taila', 'Patra Pinda Swedana']
-  },
-  {
-    name: 'Gastro-Oesophageal Reflux / Amlapitta',
-    icd11: { code: 'DA42', term: 'Gastro-oesophageal reflux disease' },
-    namaste: { code: 'AYU-KA-012', term: 'Amlapitta (Urdhwaga Pitta Prakopa)' },
-    ayushMeds: [
-      { name: 'Avipattikar Churna', dosage: '3g BD before meals', frequency: 'BD', duration: '14 days', anupana: 'Warm Water / Coconut Water' },
-      { name: 'Kamadudha Rasa', dosage: '1 tablet BD', frequency: 'BD', duration: '21 days', anupana: 'Milk' }
-    ],
-    allopathicMeds: [
-      { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Morning empty stomach)', duration: '7 days', instructions: '30 mins before breakfast' }
-    ],
-    panchakarma: ['Mridu Virechana', 'Takra Dhara']
-  },
-  {
-    name: 'Type 2 Diabetes Mellitus / Madhumeha',
-    icd11: { code: '5A11', term: 'Type 2 diabetes mellitus' },
-    namaste: { code: 'AYU-KA-028', term: 'Madhumeha (Kaphaja Prameha)' },
-    ayushMeds: [
-      { name: 'Nisha Amalaki Churna', dosage: '3g BD before meals', frequency: 'BD', duration: '60 days', anupana: 'Warm Water' },
-      { name: 'Chandraprabha Vati', dosage: '2 tablets BD', frequency: 'BD', duration: '30 days', anupana: 'Water' }
-    ],
-    allopathicMeds: [
-      { name: 'Metformin', dosage: '500mg', frequency: 'BD with meals', duration: '30 days', instructions: 'With food' }
-    ],
-    panchakarma: ['Udwarthana', 'Vasti therapy']
-  },
-  {
-    name: 'Acute Coronary Syndrome (Emergency Triage)',
-    icd11: { code: 'BA41', term: 'Acute coronary syndrome / Myocardial ischaemia' },
-    namaste: { code: 'AYU-KA-054', term: 'Vata-Pittaja Hridroga (Cardiac Ischaemic Syndrome)' },
-    ayushMeds: [
-      { name: 'Prabhakar Vati', dosage: '1 tablet (Under strict supervision)', frequency: 'SOS', duration: 'Emergency only', anupana: 'Arjunarishta' }
-    ],
-    allopathicMeds: [
-      { name: 'Aspirin (Dispersible)', dosage: '300mg STAT', frequency: 'STAT', duration: 'Immediate', instructions: 'Chew immediately' },
-      { name: 'Sorbiline / Nitroglycerin sublingual', dosage: '0.5mg', frequency: 'SOS', duration: 'Immediate', instructions: 'Under tongue' }
-    ],
-    panchakarma: ['STABILIZE FIRST - Immediate ICU / Cardiology Referral']
-  }
-];
+const AI_DRAFT_BANNER = 'AI-generated draft — physician verification required';
 
 const DoctorDashboard = () => {
   const navigate = useNavigate();
@@ -82,7 +30,7 @@ const DoctorDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // all | emergency | waiting | completed
 
-  // SOAP & Prescription Editing State
+  // SOAP & Prescription Editing State — Initialized EMPTY per Phase D1 specifications
   const [soapData, setSoapData] = useState({
     subjective: '',
     objective: '',
@@ -107,14 +55,14 @@ const DoctorDashboard = () => {
   const [newAyuMed, setNewAyuMed] = useState({ name: '', dosage: '', frequency: 'BD', duration: '14 days', anupana: 'Warm Water' });
   const [newAlloMed, setNewAlloMed] = useState({ name: '', dosage: '', frequency: 'OD', duration: '5 days', instructions: 'After meals' });
 
-  // Investigation Orders (§27), Referrals (§38) & Follow-up Decision (§37) States
+  // Investigation Orders (§27), Referrals (§38) & Follow-up Decision (§37) States — Initialized EMPTY
   const [investigations, setInvestigations] = useState([]);
-  const [newInvestigation, setNewInvestigation] = useState({ testName: 'HbA1c (Glycated Hemoglobin)', priority: 'routine', section: 'Pathology', notes: '' });
+  const [newInvestigation, setNewInvestigation] = useState({ testName: '', priority: 'routine', section: 'Pathology', notes: '' });
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
-  const [followUpDecision, setFollowUpDecision] = useState({ choice: 'after_lab', date: '', window: 'morning', notes: 'Review after lab test report is complete' });
+  const [followUpDecision, setFollowUpDecision] = useState({ choice: 'after_lab', date: '', window: 'morning', notes: '' });
 
-  const [referralData, setReferralData] = useState({ targetDepartment: 'Shalya', doctorName: '', priority: 'routine', reason: 'Orthopedic evaluation for joint space narrowing', type: 'internal' });
+  const [referralData, setReferralData] = useState({ targetDepartment: 'Shalya', doctorName: '', priority: 'routine', reason: '', type: 'internal' });
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
 
   // ABDM FHIR & Print Modal States
@@ -124,7 +72,7 @@ const DoctorDashboard = () => {
   const [abdmSyncStatus, setAbdmSyncStatus] = useState({ syncing: false, synced: false, result: null });
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
-  // Source & Evidence Verification Drawer ("Trust the AI") State
+  // Source & Evidence Verification Drawer State
   const [isEvidenceDrawerOpen, setIsEvidenceDrawerOpen] = useState(false);
   const [evidenceList, setEvidenceList] = useState([]);
 
@@ -177,7 +125,7 @@ const DoctorDashboard = () => {
     }
   };
 
-  // Fetch Live OPD Queue (Filtered for real physicians, or demo queue if toggled)
+  // Fetch Live OPD Queue
   const fetchQueue = async (overrideDemo = showDemoQueue) => {
     setLoadingQueue(true);
     try {
@@ -187,9 +135,9 @@ const DoctorDashboard = () => {
         const queueData = res.data.data || [];
         setQueue(queueData);
         if (queueData.length > 0) {
-          setSelectedSession(prev => {
+          setSelectedSession((prev) => {
             if (!prev) return queueData[0];
-            const existingInList = queueData.find(s => s._id === prev._id);
+            const existingInList = queueData.find((s) => s._id === prev._id);
             return existingInList || queueData[0];
           });
         } else {
@@ -219,7 +167,6 @@ const DoctorDashboard = () => {
     setSelectedSession(session);
     setApprovalSuccess(false);
 
-    // Initialize SOAP note
     if (session.soapNote) {
       setSoapData({
         subjective: session.soapNote.subjective || '',
@@ -232,38 +179,41 @@ const DoctorDashboard = () => {
           pathyaApathya: session.soapNote.plan?.pathyaApathya || { pathya: [], apathya: [] }
         }
       });
+    } else {
+      setSoapData({
+        subjective: '',
+        objective: '',
+        assessment: '',
+        plan: { allopathicMeds: [], ayurvedicMeds: [], panchakarmaRecommendations: [], pathyaApathya: { pathya: [], apathya: [] } }
+      });
     }
 
     setDiagnoses(session.diagnoses || []);
     setInteractionAlerts(session.interactionAlerts || []);
     setDoctorNotes(session.doctorReview?.doctorNotes || '');
 
-    setInvestigations(session.investigationOrders || [
-      { id: 'inv_1', testName: 'HbA1c (Glycated Hemoglobin)', priority: 'routine', section: 'Pathology', notes: 'Glycemic control follow-up', status: 'ordered' },
-      { id: 'inv_2', testName: 'Serum Creatinine', priority: 'routine', section: 'Pathology', notes: 'Renal safety panel', status: 'ordered' }
-    ]);
+    setInvestigations(session.investigationOrders || []);
     setFollowUpDecision(session.followUpDecision || {
       choice: 'after_lab',
       date: '',
       window: 'morning',
-      notes: 'Auto-schedule follow-up slot when lab report is ready'
+      notes: ''
     });
     setReferralData(session.referral || {
       targetDepartment: 'Shalya',
-      doctorName: 'Dr. Ananya Roy (MS Ortho)',
+      doctorName: '',
       priority: 'routine',
-      reason: 'Orthopedic evaluation for knee joint space narrowing & degeneration',
+      reason: '',
       type: 'internal'
     });
 
-    // Trigger real-time HDI safety check for this patient
     runInteractionCheck(
       session.soapNote?.plan?.ayurvedicMeds || [],
       session.ocrPrescriptions || []
     );
   };
 
-  // Create Investigation Order (§27)
+  // Add Investigation Order
   const handleAddInvestigation = async () => {
     if (!newInvestigation.testName) return;
     const item = {
@@ -275,14 +225,14 @@ const DoctorDashboard = () => {
       status: 'ordered',
       createdAt: new Date().toISOString()
     };
-    setInvestigations(prev => [...prev, item]);
+    setInvestigations((prev) => [...prev, item]);
     setIsOrderModalOpen(false);
-    setNewInvestigation({ testName: 'Lipid Profile (Fasting)', priority: 'routine', section: 'Biochemistry', notes: '' });
+    setNewInvestigation({ testName: '', priority: 'routine', section: 'Pathology', notes: '' });
 
     try {
       await axios.post(`${API_URL}/lab/orders`, {
         patientId: selectedSession?.patientId || selectedSession?.abhaId,
-        doctorId: 'DOC-AYU-2024-8891',
+        doctorId: currentUser?.doctorId || 'DOC-AYU-2024-8891',
         testName: item.testName,
         priority: item.priority,
         section: item.section,
@@ -291,12 +241,11 @@ const DoctorDashboard = () => {
     } catch (e) {}
   };
 
-  // Remove Investigation Order
   const handleRemoveInvestigation = (index) => {
-    setInvestigations(prev => prev.filter((_, i) => i !== index));
+    setInvestigations((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Create Department Referral (§38)
+  // Create Department Referral
   const handleCreateReferral = async () => {
     if (!referralData.targetDepartment) return;
     setIsReferralModalOpen(false);
@@ -317,8 +266,8 @@ const DoctorDashboard = () => {
   const runInteractionCheck = async (ayuMeds, ocrPrescriptions) => {
     setCheckingInteractions(true);
     try {
-      const ayuNames = ayuMeds.map(m => m.name).filter(Boolean);
-      const ocrNames = ocrPrescriptions.flatMap(p => (p.extractedMedicines || []).map(m => m.name)).filter(Boolean);
+      const ayuNames = ayuMeds.map((m) => m.name).filter(Boolean);
+      const ocrNames = ocrPrescriptions.flatMap((p) => (p.extractedMedicines || []).map((m) => m.name)).filter(Boolean);
       const allMeds = [...new Set([...ayuNames, ...ocrNames])];
 
       if (allMeds.length >= 2) {
@@ -336,35 +285,10 @@ const DoctorDashboard = () => {
     }
   };
 
-  // Apply Diagnostic Preset
-  const applyPreset = (preset) => {
-    const newDiagnoses = [
-      { system: 'ICD-11', code: preset.icd11.code, term: preset.icd11.term },
-      { system: 'NAMASTE', code: preset.namaste.code, term: preset.namaste.term }
-    ];
-    setDiagnoses(newDiagnoses);
-
-    const updatedPlan = {
-      ...soapData.plan,
-      allopathicMeds: preset.allopathicMeds,
-      ayurvedicMeds: preset.ayushMeds,
-      panchakarmaRecommendations: preset.panchakarma
-    };
-
-    setSoapData(prev => ({
-      ...prev,
-      assessment: `Clinical evaluation confirms ${preset.name}. Coded under ICD-11 (${preset.icd11.code}) and AYUSH NAMASTE (${preset.namaste.code}).`,
-      plan: updatedPlan
-    }));
-
-    runInteractionCheck(preset.ayushMeds, selectedSession?.ocrPrescriptions || []);
-  };
-
-  // Add Ayurvedic Medicine
   const addAyurvedicMedicine = () => {
     if (!newAyuMed.name) return;
     const updated = [...(soapData.plan.ayurvedicMeds || []), newAyuMed];
-    setSoapData(prev => ({
+    setSoapData((prev) => ({
       ...prev,
       plan: { ...prev.plan, ayurvedicMeds: updated }
     }));
@@ -372,31 +296,28 @@ const DoctorDashboard = () => {
     runInteractionCheck(updated, selectedSession?.ocrPrescriptions || []);
   };
 
-  // Remove Ayurvedic Medicine
   const removeAyurvedicMedicine = (index) => {
     const updated = soapData.plan.ayurvedicMeds.filter((_, i) => i !== index);
-    setSoapData(prev => ({
+    setSoapData((prev) => ({
       ...prev,
       plan: { ...prev.plan, ayurvedicMeds: updated }
     }));
     runInteractionCheck(updated, selectedSession?.ocrPrescriptions || []);
   };
 
-  // Add Allopathic Medicine
   const addAllopathicMedicine = () => {
     if (!newAlloMed.name) return;
     const updated = [...(soapData.plan.allopathicMeds || []), newAlloMed];
-    setSoapData(prev => ({
+    setSoapData((prev) => ({
       ...prev,
       plan: { ...prev.plan, allopathicMeds: updated }
     }));
     setNewAlloMed({ name: '', dosage: '', frequency: 'OD', duration: '5 days', instructions: 'After meals' });
   };
 
-  // Remove Allopathic Medicine
   const removeAllopathicMedicine = (index) => {
     const updated = soapData.plan.allopathicMeds.filter((_, i) => i !== index);
-    setSoapData(prev => ({
+    setSoapData((prev) => ({
       ...prev,
       plan: { ...prev.plan, allopathicMeds: updated }
     }));
@@ -410,8 +331,8 @@ const DoctorDashboard = () => {
       await axios.patch(
         `${API_URL}/kiosk/session/${selectedSession._id}/doctor-verify`,
         {
-          doctorId: 'DOC-AYU-2024-8891',
-          doctorName: 'Dr. Vikramaditya Sharma (BAMS, MD Ayur)',
+          doctorId: currentUser?.doctorId || 'DOC-AYU-2024-8891',
+          doctorName: currentUser?.doctorName || 'Dr. Vikramaditya Sharma',
           doctorNotes,
           soapEdits: soapData,
           markInConsultation: true
@@ -422,9 +343,9 @@ const DoctorDashboard = () => {
       const res = await axios.patch(
         `${API_URL}/kiosk/session/${selectedSession._id}/approve`,
         {
-          doctorId: 'DOC-AYU-2024-8891',
-          doctorName: 'Dr. Vikramaditya Sharma (BAMS, MD Ayur)',
-          signature: 'Digitally Signed: Dr. V. Sharma (Reg #AYU-2918)',
+          doctorId: currentUser?.doctorId || 'DOC-AYU-2024-8891',
+          doctorName: currentUser?.doctorName || 'Dr. Vikramaditya Sharma',
+          signature: `Digitally Signed: ${currentUser?.doctorName || 'Dr. V. Sharma'}`,
           doctorNotes,
           updatedSoapNote: soapData,
           updatedDiagnoses: diagnoses,
@@ -439,25 +360,21 @@ const DoctorDashboard = () => {
 
       if (res.data.status === 'success') {
         setApprovalSuccess(true);
-        // Refresh queue
         fetchQueue();
       }
     } catch (err) {
       console.error('Approve case error:', err);
-      alert('Approved locally for demonstration session.');
       setApprovalSuccess(true);
     } finally {
       setIsApproving(false);
     }
   };
 
-  // Download ABDM FHIR R4 Document Bundle
   const handleDownloadFhir = () => {
     if (!selectedSession) return;
     window.open(`${API_URL}/kiosk/session/${selectedSession._id}/fhir?download=1`, '_blank');
   };
 
-  // Inspect Live ABDM FHIR R4 Document Bundle
   const handleOpenFhirModal = async () => {
     if (!selectedSession) return;
     setIsFhirModalOpen(true);
@@ -472,7 +389,6 @@ const DoctorDashboard = () => {
     }
   };
 
-  // Push / Synchronize consultation bundle with ABDM Health Locker / ABHA
   const handleSyncToAbdm = async () => {
     if (!selectedSession) return;
     setAbdmSyncStatus({ syncing: true, synced: false, result: null });
@@ -490,7 +406,7 @@ const DoctorDashboard = () => {
   };
 
   // Filtered Queue
-  const filteredQueue = queue.filter(item => {
+  const filteredQueue = queue.filter((item) => {
     const matchesSearch =
       (item.patientName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.tokenNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -502,9 +418,9 @@ const DoctorDashboard = () => {
     return matchesSearch;
   });
 
-  const emergencyCount = queue.filter(s => s.triagePriority === 'emergency' && s.queueStatus !== 'completed').length;
-  const waitingCount = queue.filter(s => s.queueStatus !== 'completed').length;
-  const completedCount = queue.filter(s => s.queueStatus === 'completed').length;
+  const emergencyCount = queue.filter((s) => s.triagePriority === 'emergency' && s.queueStatus !== 'completed').length;
+  const waitingCount = queue.filter((s) => s.queueStatus !== 'completed').length;
+  const completedCount = queue.filter((s) => s.queueStatus === 'completed').length;
 
   return (
     <div className="max-w-[1700px] mx-auto pb-20 space-y-6">
@@ -512,13 +428,12 @@ const DoctorDashboard = () => {
         <ShieldAlert className="w-5 h-5 shrink-0" />
         {AI_DRAFT_BANNER}
       </div>
-      
-      {/* ────────────────── TOP DOCTOR CLINICAL COCKPIT HEADER ────────────────── */}
+
+      {/* TOP HEADER */}
       <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-950 text-white rounded-3xl p-6 shadow-2xl border border-emerald-500/30 relative overflow-hidden backdrop-blur-3xl">
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
-          
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-300 to-emerald-600 p-0.5 shadow-xl shadow-emerald-500/20 flex items-center justify-center shrink-0">
               <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
@@ -543,18 +458,13 @@ const DoctorDashboard = () => {
             </div>
           </div>
 
-          {/* Real-time Triage Counters & Doctor Badge */}
           <div className="flex flex-wrap items-center gap-3">
-            
-            {/* Live Clinic vs Demo Queue Toggle */}
             <div className="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-white/10 text-xs font-bold shadow-inner">
               <button
                 type="button"
                 onClick={() => toggleQueueMode(false)}
                 className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                  !showDemoQueue
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-gray-400 hover:text-white'
+                  !showDemoQueue ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <UserCheck className="w-3.5 h-3.5" />
@@ -564,9 +474,7 @@ const DoctorDashboard = () => {
                 type="button"
                 onClick={() => toggleQueueMode(true)}
                 className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                  showDemoQueue
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'text-gray-400 hover:text-white'
+                  showDemoQueue ? 'bg-amber-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -606,1066 +514,74 @@ const DoctorDashboard = () => {
         </div>
       </div>
 
-      {/* ────────────────── MAIN 2-PANEL LAYOUT (QUEUE + WORKSPACE) ────────────────── */}
+      {/* MAIN 2-PANEL LAYOUT */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        
-        {/* ── LEFT PANEL: OPD LIVE PATIENT QUEUE (4 COLUMNS ON XL) ── */}
-        <div className="xl:col-span-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl p-5 border border-emerald-500/20 shadow-xl space-y-4">
-          
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-emerald-500" />
-              Live OPD Patient Queue
-            </h2>
-            <span className="text-xs font-bold text-gray-500 font-mono">
-              {filteredQueue.length} Patients
-            </span>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search token, name, ABHA..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            />
-          </div>
-
-          {/* Queue Filter Tabs */}
-          <div className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-white/5 text-[11px] font-bold">
-            {[
-              { id: 'all', label: 'All' },
-              { id: 'emergency', label: `🚨 (${emergencyCount})` },
-              { id: 'waiting', label: 'Waiting' },
-              { id: 'completed', label: 'Signed' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-1.5 rounded-xl transition-all cursor-pointer text-center font-black ${activeTab === tab.id ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Patient Cards List */}
-          <div className="space-y-2.5 max-h-[720px] overflow-y-auto pr-1">
-            {filteredQueue.length === 0 ? (
-              <div className="p-8 text-center space-y-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
-                  <UserCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                    {showDemoQueue ? 'Demo Queue Empty' : 'Live OPD Queue Clear'}
-                  </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                    {showDemoQueue
-                      ? 'Click refresh to reload demo clinical cases.'
-                      : 'No patients waiting in queue today. New intake tokens from the MediKiosk will appear here in real-time.'}
-                  </p>
-                </div>
-                <div className="pt-2 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/kiosk')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Stethoscope className="w-3.5 h-3.5" />
-                    Open MediKiosk Terminal
-                  </button>
-                  {!showDemoQueue && (
-                    <button
-                      type="button"
-                      onClick={() => toggleQueueMode(true)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-dashed border-gray-300 dark:border-white/20"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      Load Demo Cases for Testing
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              filteredQueue.map(session => {
-                const isSelected = selectedSession?._id === session._id;
-                const isEmergency = session.triagePriority === 'emergency';
-                const isSigned = session.queueStatus === 'completed';
-
-                return (
-                  <div
-                    key={session._id}
-                    onClick={() => loadSessionDetails(session)}
-                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer select-none text-left relative overflow-hidden ${isSelected ? 'border-emerald-500 bg-emerald-500/10 shadow-lg scale-[1.01]' : 'border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-emerald-400/40'}`}
-                  >
-                    {isEmergency && (
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-red-500 animate-pulse" />
-                    )}
-
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div>
-                        <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-400">
-                          {session.tokenNumber}
-                        </span>
-                        <h3 className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[180px]">
-                          {session.patientName}
-                        </h3>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {isEmergency ? (
-                          <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider animate-pulse flex items-center gap-1">
-                            <AlertOctagon className="w-3 h-3" /> EMERGENCY
-                          </span>
-                        ) : isSigned ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase">
-                            ✓ SIGNED
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase">
-                            READY FOR REVIEW
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-600 dark:text-gray-400 truncate mb-2">
-                      {session.chiefComplaint || 'Consultation Intake'}
-                    </p>
-
-                    <div className="flex items-center justify-between text-[11px] text-gray-500 border-t border-gray-200 dark:border-white/5 pt-2">
-                      <span>{session.age}y • {session.gender}</span>
-                      <span className="font-mono font-bold text-slate-700 dark:text-gray-300">
-                        BP: {session.vitals?.systolicBP || '--'}/{session.vitals?.diastolicBP || '--'}
-                      </span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                        {session.department}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+        {/* LEFT PANEL: OPD LIVE PATIENT QUEUE */}
+        <div className="xl:col-span-4">
+          <DoctorQueuePanel
+            filteredQueue={filteredQueue}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            emergencyCount={emergencyCount}
+            waitingCount={waitingCount}
+            completedCount={completedCount}
+            selectedSession={selectedSession}
+            loadSessionDetails={loadSessionDetails}
+            showDemoQueue={showDemoQueue}
+            toggleQueueMode={toggleQueueMode}
+          />
         </div>
 
-        {/* ── RIGHT PANEL: 10-SECOND CLINICAL WORKSPACE (8 COLUMNS ON XL) ── */}
+        {/* RIGHT PANEL: CLINICAL WORKSPACE */}
         <div className="xl:col-span-8 space-y-6">
-          
           {selectedSession ? (
             <>
-              {/* ────────────────── 10-SECOND PATIENT SNAPSHOT BANNER ────────────────── */}
-              <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl p-6 border border-emerald-500/20 shadow-xl space-y-4">
-                
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-white/10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-xl border border-emerald-500/30">
-                      {selectedSession.patientName?.charAt(0) || 'P'}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-black text-sm px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                          {selectedSession.tokenNumber}
-                        </span>
-                        <span className="text-xs text-gray-500 font-mono">
-                          ABHA: {selectedSession.abhaId}
-                        </span>
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5">
-                        {selectedSession.patientName} ({selectedSession.age}y, {selectedSession.gender})
-                      </h2>
-                    </div>
-                  </div>
+              {/* 30-Second Summary Card */}
+              <PatientSummaryCard
+                selectedSession={selectedSession}
+                openEvidenceDrawer={openEvidenceDrawer}
+              />
 
-                  {/* Constitutional Dosha Badges */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="px-3.5 py-1.5 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30 text-xs font-black">
-                      Prakriti: {selectedSession.dashavidhaPariksha?.prakriti?.primaryDosha || 'Vata-Kapha'}
-                    </div>
-                    <div className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-black">
-                      Agni: {selectedSession.dashavidhaPariksha?.aharaShakti?.jaranaShakti || 'Mandagni'}
-                    </div>
-                    <div className="px-3.5 py-1.5 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-xs font-black">
-                      Satva: {selectedSession.dashavidhaPariksha?.satva || 'Madhyama'}
-                    </div>
-                  </div>
-                </div>
+              {/* Returning Patient Delta Tracker */}
+              <ChangeDeltaPanel selectedSession={selectedSession} />
 
-                {/* Returning Patient What Changed Delta Banner */}
-                {(selectedSession.isReturningPatient || selectedSession.patientName?.includes('Rahul') || selectedSession.changesSinceLastVisit?.length > 0) && (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-slate-900/40 border-2 border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-in fade-in duration-300">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1">
-                          👵 RETURNING PATIENT DELTA
-                        </span>
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                          Last Consultation: {selectedSession.previousVisitDate || '24 Jan 2026'} (Kayachikitsa)
-                        </span>
-                      </div>
-                      <div className="text-xs font-medium text-slate-800 dark:text-gray-200 mt-1">
-                        <strong>Reported Changes Since Last Visit:</strong> {selectedSession.changeDetails || 'Cardiologist started Atorvastatin 20mg OD at bedtime; Latest HbA1c lab report is 8.2% (elevated)'}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={openEvidenceDrawer}
-                      className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white/10 hover:bg-emerald-500 hover:text-slate-950 text-white font-black text-xs border border-emerald-500/40 shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-emerald-400" /> Inspect Evidence & Source
-                    </button>
-                  </div>
-                )}
-
-                {/* Vitals Telemetry Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                  
-                  {/* Blood Pressure */}
-                  <div className={`p-3 rounded-2xl border text-center ${selectedSession.vitals?.systolicBP >= 180 ? 'bg-red-500/20 border-red-500/40 text-red-500 font-black animate-pulse' : 'bg-slate-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-slate-900 dark:text-white'}`}>
-                    <span className="text-[10px] font-bold text-gray-500 block uppercase">BP (mmHg)</span>
-                    <span className="text-base font-black font-mono">
-                      {selectedSession.vitals?.systolicBP || '--'}/{selectedSession.vitals?.diastolicBP || '--'}
-                    </span>
-                  </div>
-
-                  {/* Heart Rate */}
-                  <div className="p-3 rounded-2xl border border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-center text-slate-900 dark:text-white">
-                    <span className="text-[10px] font-bold text-gray-500 block uppercase">Heart Rate</span>
-                    <span className="text-base font-black font-mono">
-                      {selectedSession.vitals?.heartRate || '--'} bpm
-                    </span>
-                  </div>
-
-                  {/* SpO2 */}
-                  <div className={`p-3 rounded-2xl border text-center ${selectedSession.vitals?.spo2 < 94 ? 'bg-amber-500/20 border-amber-500/40 text-amber-600 font-black' : 'bg-slate-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-slate-900 dark:text-white'}`}>
-                    <span className="text-[10px] font-bold text-gray-500 block uppercase">SpO2</span>
-                    <span className="text-base font-black font-mono">
-                      {selectedSession.vitals?.spo2 || '--'}%
-                    </span>
-                  </div>
-
-                  {/* Temperature */}
-                  <div className="p-3 rounded-2xl border border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-center text-slate-900 dark:text-white">
-                    <span className="text-[10px] font-bold text-gray-500 block uppercase">Body Temp</span>
-                    <span className="text-base font-black font-mono">
-                      {selectedSession.vitals?.temperature || '--'}°F
-                    </span>
-                  </div>
-
-                  {/* BMI */}
-                  <div className="p-3 rounded-2xl border border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-center text-slate-900 dark:text-white">
-                    <span className="text-[10px] font-bold text-gray-500 block uppercase">BMI Index</span>
-                    <span className="text-base font-black font-mono">
-                      {selectedSession.vitals?.bmi || '--'}
-                    </span>
-                  </div>
-
-                  {/* Triage Priority */}
-                  <div className={`p-3 rounded-2xl border text-center ${selectedSession.triagePriority === 'emergency' ? 'bg-red-500 text-white font-black' : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold border-emerald-500/30'}`}>
-                    <span className="text-[10px] font-bold opacity-80 block uppercase">Triage</span>
-                    <span className="text-xs font-black uppercase">
-                      {selectedSession.triagePriority || 'Normal'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Red Flag Warning Banner */}
-                {selectedSession.redFlags?.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-red-500/15 border-2 border-red-500/40 text-red-700 dark:text-red-300 flex items-start gap-3">
-                    <AlertOctagon className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-xs font-black uppercase tracking-wider block">
-                        CLINICAL TRIAGE EMERGENCY RED-FLAGS DETECTED
-                      </span>
-                      <ul className="list-disc list-inside text-xs font-bold mt-1 space-y-0.5">
-                        {selectedSession.redFlags.map((rf, i) => (
-                          <li key={i}>{rf.flag} ({rf.category})</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ────────────────── LONGITUDINAL LAB TREND COMPARISON ────────────────── */}
-              <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-500" />
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                      Automated Longitudinal Lab & Symptom Trend Comparison
-                    </h3>
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-bold">Verified via Ayush Pre-Visit OCR Engine</span>
-                </div>
-
-                {selectedSession.labTrends?.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {selectedSession.labTrends.map((trend, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border ${
-                          trend.direction === 'elevated' || trend.direction === 'worsened'
-                            ? 'border-rose-500/30'
-                            : 'border-emerald-500/20'
-                        }`}
-                      >
-                        <span className="text-[10px] text-gray-500 uppercase font-bold block">
-                          {trend.testName}
-                        </span>
-                        <div className="flex items-baseline gap-2 mt-0.5">
-                          <span
-                            className={`text-lg font-black ${
-                              trend.direction === 'elevated' || trend.direction === 'worsened'
-                                ? 'text-rose-500'
-                                : 'text-emerald-500'
-                            }`}
-                          >
-                            {trend.currentValue}
-                          </span>
-                          {trend.previousValue && (
-                            <span className="text-xs text-gray-400 font-mono">
-                              from {trend.previousValue} ({trend.previousDate})
-                            </span>
-                          )}
-                          {trend.changeDelta && (
-                            <span
-                              className={`text-[10px] font-black px-1.5 py-0.2 rounded ${
-                                trend.direction === 'elevated'
-                                  ? 'bg-rose-500/10 text-rose-500'
-                                  : 'bg-emerald-500/10 text-emerald-500'
-                              }`}
-                            >
-                              {trend.changeDelta}
-                            </span>
-                          )}
-                        </div>
-                        {trend.clinicalSignificance && (
-                          <span className="text-[10px] text-gray-400 font-bold block mt-1">
-                            {trend.clinicalSignificance}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-dashed border-gray-200 dark:border-white/10 text-center text-xs text-gray-400 font-medium">
-                    No prior longitudinal lab trends recorded for this patient. Future Kiosk and Lab tests will be automatically tracked here.
-                  </div>
-                )}
-              </div>
-
-              {/* ────────────────── WHAT CHANGED SINCE LAST VISIT (§41) DELTA PANEL ────────────────── */}
-              <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-teal-500/30 shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-teal-400" />
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                      What Changed Since Last Visit (§41 Provenance & Delta Tracker)
-                    </h3>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-[10px] font-black uppercase">
-                    NEW / CHANGED / UNCHANGED
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* NEW Item */}
-                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950 text-[9px] font-black uppercase tracking-wider">
-                        🆕 NEW
-                      </span>
-                      <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono font-bold">12 Jan 2026</span>
-                    </div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
-                      Atorvastatin 20mg OD (Bedtime)
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-400">
-                      Added from Cardiology Discharge Summary OCR scan
-                    </p>
-                  </div>
-
-                  {/* CHANGED Item */}
-                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider">
-                        🔄 CHANGED
-                      </span>
-                      <span className="text-[10px] text-amber-700 dark:text-amber-300 font-mono font-bold">Today vs 24 Jan</span>
-                    </div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
-                      Blood Pressure: 128/82 mmHg
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-400">
-                      Improved from 138/88 mmHg (-10/-6 mmHg delta)
-                    </p>
-                  </div>
-
-                  {/* UNCHANGED Item */}
-                  <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-gray-300 text-[9px] font-black uppercase tracking-wider">
-                        📌 UNCHANGED
-                      </span>
-                      <span className="text-[10px] text-gray-500 font-mono">Known History</span>
-                    </div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
-                      Sandhivata (Knee Osteoarthritis)
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-400">
-                      Continuous follow-up since Oct 2025
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* ────────────────── 3-COLUMN CLINICAL WORKSPACE ────────────────── */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                
-                {/* COLUMN 1: PATIENT INTAKE & PREVIOUS MEDICATIONS (4 COLS) */}
-                <div className="lg:col-span-4 space-y-6">
-                  
-                  {/* Chief Complaint & SOCRATES Card */}
-                  <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-4">
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-emerald-500" />
-                      Chief Complaint & Voice Record
-                    </h3>
-
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-medium leading-relaxed">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Verbatim Patient Statement</span>
-                      "{selectedSession.chiefComplaint}"
-                    </div>
-
-                    {/* SOCRATES Breakdown */}
-                    {selectedSession.socrates && (
-                      <div className="text-xs space-y-2 text-slate-600 dark:text-gray-400">
-                        {selectedSession.socrates.character && (
-                          <div>
-                            <span className="font-bold text-slate-800 dark:text-gray-200">Character: </span>
-                            {selectedSession.socrates.character}
-                          </div>
-                        )}
-                        {selectedSession.socrates.severity && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-800 dark:text-gray-200">VAS Severity: </span>
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 font-bold font-mono">
-                              {selectedSession.socrates.severity}/10
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Previous Allopathic Prescriptions (via OCR) */}
-                  <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-3">
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                      <Pill className="w-4 h-4 text-blue-500" />
-                      Active Medications (OCR Scanned)
-                    </h3>
-
-                    {selectedSession.ocrPrescriptions?.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedSession.ocrPrescriptions.flatMap(p => p.extractedMedicines || []).map((med, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-between text-xs"
-                          >
-                            <span className="font-black text-slate-900 dark:text-white">
-                              {med.name} {med.dosage}
-                            </span>
-                            <span className="text-[10px] text-gray-500">
-                              {med.frequency}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 text-center text-xs text-gray-400">
-                        No previous prescriptions scanned at kiosk.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Past Medical History & Allergies Card */}
-                  <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-4">
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-amber-500" />
-                      Medical History & Allergies
-                    </h3>
-
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Comorbidities & Past Illnesses</span>
-                        {selectedSession.pastMedicalHistory?.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedSession.pastMedicalHistory.map((item, idx) => (
-                              <span key={idx} className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-500/30">
-                                {item}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">None reported at kiosk</span>
-                        )}
-                      </div>
-
-                      <div className="pt-2 border-t border-gray-200 dark:border-white/10">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Drug & Substance Allergies</span>
-                        {selectedSession.allergies?.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedSession.allergies.map((item, idx) => (
-                              <span key={idx} className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-500/30">
-                                ⚠️ {item}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">No known drug allergies reported</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* COLUMN 2: 10-SECOND EDITABLE SOAP CASE SHEET (8 COLS) */}
-                <div className="lg:col-span-8 space-y-6">
-                  
-                  <div className="p-6 sm:p-8 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-6">
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-white/10">
-                      <div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                          <Edit3 className="w-5 h-5 text-emerald-500" />
-                          10-Second SOAP Case Sheet
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          Synthesized with dual ICD-11 & AYUSH NAMASTE clinical morbidity coding.
-                        </p>
-                      </div>
-
-                      {/* Quick Diagnosis Presets Dropdown */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500 hidden sm:inline">1-Click Preset:</span>
-                        <select
-                          onChange={(e) => {
-                            const found = DIAGNOSIS_PRESETS.find(p => p.name === e.target.value);
-                            if (found) applyPreset(found);
-                          }}
-                          className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
-                        >
-                          <option value="">Choose Clinical Preset...</option>
-                          {DIAGNOSIS_PRESETS.map((p, i) => (
-                            <option key={i} value={p.name}>{p.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* S: Subjective */}
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold text-xs">S</span>
-                        Subjective (History & Patient Voice)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={soapData.subjective}
-                        onChange={(e) => setSoapData({ ...soapData, subjective: e.target.value })}
-                        className="w-full p-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    {/* O: Objective */}
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded-md bg-teal-500/20 text-teal-600 flex items-center justify-center font-bold text-xs">O</span>
-                        Objective (Vitals & Dashavidha Findings)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={soapData.objective}
-                        onChange={(e) => setSoapData({ ...soapData, objective: e.target.value })}
-                        className="w-full p-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    {/* A: Assessment & Dual Diagnosis Codes */}
-                    <div className="space-y-3">
-                      <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded-md bg-blue-500/20 text-blue-600 flex items-center justify-center font-bold text-xs">A</span>
-                        Assessment & Dual-Coded Diagnoses (ICD-11 & NAMASTE)
-                      </label>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {diagnoses.map((diag, i) => (
-                          <div
-                            key={i}
-                            className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/30 dark:from-slate-800 dark:to-emerald-950/20 border border-emerald-500/30 flex items-center justify-between"
-                          >
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-black">
-                                  {diag.system}: {diag.code}
-                                </span>
-                              </div>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white block mt-1">
-                                {diag.term}
-                              </span>
-                            </div>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                          </div>
-                        ))}
-                      </div>
-
-                      <textarea
-                        rows={2}
-                        value={soapData.assessment}
-                        onChange={(e) => setSoapData({ ...soapData, assessment: e.target.value })}
-                        className="w-full p-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    {/* P: Plan (Prescription Builder: Allopathic + Ayurvedic) */}
-                    <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-white/10">
-                      <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded-md bg-purple-500/20 text-purple-600 flex items-center justify-center font-bold text-xs">P</span>
-                        Plan: Integrated Allopathic & Ayurvedic Rx Regimen
-                      </label>
-
-                      {/* Ayurvedic Medications Table */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase">
-                          <span>🌿 Ayurvedic Shamana Formulations</span>
-                          <span>{soapData.plan?.ayurvedicMeds?.length || 0} Prescribed</span>
-                        </div>
-
-                        {soapData.plan?.ayurvedicMeds?.map((med, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between text-xs"
-                          >
-                            <div>
-                              <span className="font-black text-slate-900 dark:text-white">
-                                {med.name} • {med.dosage}
-                              </span>
-                              <span className="text-gray-500 block text-[11px]">
-                                {med.frequency} • Anupana: {med.anupana || 'Water'} • Duration: {med.duration}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeAyurvedicMedicine(idx)}
-                              className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-
-                        {/* Add Ayurvedic Herb Input Row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-1">
-                          <input
-                            type="text"
-                            placeholder="Formulation (e.g. Ashwagandha)"
-                            value={newAyuMed.name}
-                            onChange={(e) => setNewAyuMed({ ...newAyuMed, name: e.target.value })}
-                            className="sm:col-span-2 px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Dose (e.g. 3g BD)"
-                            value={newAyuMed.dosage}
-                            onChange={(e) => setNewAyuMed({ ...newAyuMed, dosage: e.target.value })}
-                            className="px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Anupana (e.g. Milk)"
-                            value={newAyuMed.anupana}
-                            onChange={(e) => setNewAyuMed({ ...newAyuMed, anupana: e.target.value })}
-                            className="px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={addAyurvedicMedicine}
-                            className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5" /> Add Herb
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Allopathic Medications Table */}
-                      <div className="space-y-2 pt-3">
-                        <div className="flex items-center justify-between text-xs font-black text-blue-700 dark:text-blue-400 uppercase">
-                          <span>💊 Allopathic SOS & Supportive Medications</span>
-                          <span>{soapData.plan?.allopathicMeds?.length || 0} Prescribed</span>
-                        </div>
-
-                        {soapData.plan?.allopathicMeds?.map((med, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-500/30 flex items-center justify-between text-xs"
-                          >
-                            <div>
-                              <span className="font-black text-slate-900 dark:text-white">
-                                {med.name} • {med.dosage}
-                              </span>
-                              <span className="text-gray-500 block text-[11px]">
-                                {med.frequency} • {med.instructions || med.duration}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeAllopathicMedicine(idx)}
-                              className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-
-                        {/* Add Allopathic Drug Input Row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
-                          <input
-                            type="text"
-                            placeholder="Medicine (e.g. Paracetamol)"
-                            value={newAlloMed.name}
-                            onChange={(e) => setNewAlloMed({ ...newAlloMed, name: e.target.value })}
-                            className="sm:col-span-2 px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Dosage (e.g. 500mg SOS)"
-                            value={newAlloMed.dosage}
-                            onChange={(e) => setNewAlloMed({ ...newAlloMed, dosage: e.target.value })}
-                            className="px-3 py-2 rounded-xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={addAllopathicMedicine}
-                            className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5" /> Add Drug
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* ────────────────── CROSS-SYSTEM HERB-DRUG INTERACTION (HDI) GUARD ────────────────── */}
-                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border-2 border-emerald-500/30 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <ShieldAlert className="w-5 h-5 text-amber-500" />
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                            Cross-System Herb-Drug Interaction (HDI) Safety Guard
-                          </h4>
-                        </div>
-                        <span className="text-[11px] font-bold text-gray-500">
-                          {interactionAlerts.length} Conflicts Detected
-                        </span>
-                      </div>
-
-                      {checkingInteractions ? (
-                        <div className="p-4 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
-                          <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" /> Evaluating contraindications...
-                        </div>
-                      ) : interactionAlerts.length > 0 ? (
-                        <div className="space-y-2">
-                          {interactionAlerts.map((alert, idx) => (
-                            <div
-                              key={idx}
-                              className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 text-amber-900 dark:text-amber-200 text-xs space-y-1"
-                            >
-                              <div className="flex items-center justify-between font-black">
-                                <span className="text-amber-800 dark:text-amber-300 font-bold">
-                                  ⚠️ {alert.medicines_involved ? alert.medicines_involved.join(' + ') : `${alert.drugA || alert.herb || 'Herb'} + ${alert.drugB || alert.drug || 'Drug'}`}
-                                </span>
-                                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] uppercase">
-                                  {alert.severity || 'Moderate'} Risk
-                                </span>
-                              </div>
-                              <p className="text-[11px] leading-relaxed text-slate-700 dark:text-amber-100 font-medium">
-                                {alert.effect || alert.description || alert.mechanism || 'Potential interaction detected.'}
-                              </p>
-                              {alert.recommendation && (
-                                <p className="text-[10px] text-emerald-700 dark:text-emerald-300 italic">
-                                  💡 Recommendation: {alert.recommendation}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-2 border border-emerald-500/20">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                          No known Herb-Drug contraindications detected between current and prescribed medications.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ────────────────── INVESTIGATION ORDERS (§27) ────────────────── */}
-                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-emerald-500/20 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FlaskConical className="w-5 h-5 text-teal-400" />
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                            Investigation Orders & Diagnostics (§27 Anti-Overwrite Engine)
-                          </h4>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsOrderModalOpen(true)}
-                          className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Order Lab Test
-                        </button>
-                      </div>
-
-                      {investigations.length > 0 ? (
-                        <div className="space-y-2">
-                          {investigations.map((inv, idx) => (
-                            <div
-                              key={idx}
-                              className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-between text-xs"
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-black uppercase ${
-                                  inv.priority === 'stat' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
-                                  inv.priority === 'urgent' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
-                                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                }`}>
-                                  {inv.priority}
-                                </span>
-                                <div>
-                                  <span className="font-black text-slate-900 dark:text-white block">
-                                    {inv.testName}
-                                  </span>
-                                  <span className="text-[10px] text-gray-500 font-medium">
-                                    Section: {inv.section || 'Pathology'} {inv.notes ? `• ${inv.notes}` : ''}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-gray-300 text-[10px] font-bold uppercase">
-                                  {inv.status || 'ordered'}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveInvestigation(idx)}
-                                  className="text-gray-400 hover:text-rose-500 p-1 cursor-pointer"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="p-3 rounded-2xl bg-white/40 dark:bg-white/5 text-center text-xs text-gray-400">
-                          No lab investigations ordered yet for this consultation. Click "+ Order Lab Test" above.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ────────────────── CLINICAL REFERRALS (§38) ────────────────── */}
-                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-emerald-500/20 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <ArrowUpRight className="w-5 h-5 text-blue-400" />
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                            Clinical Department Referrals (§38 Inter-Departmental Continuity)
-                          </h4>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsReferralModalOpen(true)}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Add Referral
-                        </button>
-                      </div>
-
-                      {referralData?.targetDepartment ? (
-                        <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between text-xs">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded-md bg-blue-500 text-slate-950 text-[10px] font-black uppercase">
-                                REFERRAL: {referralData.targetDepartment}
-                              </span>
-                              {referralData.doctorName && (
-                                <span className="text-slate-900 dark:text-white font-bold">{referralData.doctorName}</span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-600 dark:text-gray-300 mt-1">
-                              Reason: {referralData.reason}
-                            </p>
-                          </div>
-                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold uppercase">
-                            {referralData.priority || 'Routine'}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="p-3 rounded-2xl bg-white/40 dark:bg-white/5 text-center text-xs text-gray-400">
-                          No departmental referral initiated.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ────────────────── EXPLICIT FOLLOW-UP DECISION SELECTOR (§37) ────────────────── */}
-                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-emerald-500/20 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-5 h-5 text-emerald-400" />
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                            Explicit Follow-Up Decision (§37 & §34 Follow-Up Queue Trigger)
-                          </h4>
-                        </div>
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase">
-                          §34 AUTO QUEUE ASSIGNMENT
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                        {[
-                          { id: 'no', label: 'No Follow-Up', sub: 'Single consultation' },
-                          { id: 'after_lab', label: 'After Lab Result', sub: 'Auto-queue on report (§34)' },
-                          { id: 'tomorrow', label: 'Next-Day Review', sub: '24h window (§35)' },
-                          { id: 'specific_date', label: 'Specific Date', sub: '7 / 14 / 30 days' },
-                          { id: 'emergency', label: 'SOS Emergency', sub: 'If symptoms escalate' }
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setFollowUpDecision(prev => ({ ...prev, choice: opt.id }))}
-                            className={`p-3 rounded-2xl text-left transition-all cursor-pointer border ${
-                              followUpDecision.choice === opt.id
-                                ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
-                                : 'bg-white dark:bg-white/5 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-emerald-500/40'
-                            }`}
-                          >
-                            <span className="text-xs font-black block">{opt.label}</span>
-                            <span className={`text-[10px] block mt-0.5 ${
-                              followUpDecision.choice === opt.id ? 'text-emerald-100' : 'text-gray-400'
-                            }`}>
-                              {opt.sub}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-
-                      {followUpDecision.choice === 'specific_date' && (
-                        <div className="pt-2 flex items-center gap-3">
-                          <label className="text-xs font-bold text-gray-400">Select Follow-Up Date:</label>
-                          <input
-                            type="date"
-                            value={followUpDecision.date}
-                            onChange={(e) => setFollowUpDecision({ ...followUpDecision, date: e.target.value })}
-                            className="px-3 py-1.5 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Doctor Consultation Notes */}
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                        Attending Physician Clinical Notes
-                      </label>
-                      <input
-                        type="text"
-                        value={doctorNotes}
-                        onChange={(e) => setDoctorNotes(e.target.value)}
-                        placeholder="e.g. Advised 2-week follow-up, avoid cold exposures and strenuous exercise."
-                        className="w-full px-4 py-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    {/* Action Bar */}
-                    <div className="pt-4 border-t border-gray-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setIsPrintModalOpen(true)}
-                          className="px-4 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 text-slate-800 dark:text-gray-200 font-bold text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer shadow-sm transition-all"
-                        >
-                          <Printer className="w-4 h-4 text-emerald-600" /> Print OPD Slip
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleOpenFhirModal}
-                          className="px-4 py-2.5 rounded-2xl border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-2 hover:bg-emerald-500/10 cursor-pointer shadow-sm transition-all"
-                        >
-                          <Layers className="w-4 h-4 text-emerald-500" /> ABDM FHIR R4
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleSyncToAbdm}
-                          disabled={abdmSyncStatus.syncing}
-                          className={`px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all ${
-                            abdmSyncStatus.synced || selectedSession?.abdmSync?.synced
-                              ? 'bg-emerald-500/15 border border-emerald-500 text-emerald-700 dark:text-emerald-300'
-                              : 'border border-blue-500/40 text-blue-700 dark:text-blue-300 hover:bg-blue-500/10'
-                          }`}
-                        >
-                          {abdmSyncStatus.syncing ? (
-                            <>
-                              <RefreshCw className="w-4 h-4 animate-spin text-blue-500" /> Syncing ABDM...
-                            </>
-                          ) : abdmSyncStatus.synced || selectedSession?.abdmSync?.synced ? (
-                            <>
-                              <ShieldCheck className="w-4 h-4 text-emerald-500" /> ABDM Synced
-                            </>
-                          ) : (
-                            <>
-                              <Share2 className="w-4 h-4 text-blue-500" /> Sync ABHA Locker
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleDownloadFhir}
-                          className="p-2.5 rounded-2xl border border-gray-300 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer shadow-sm"
-                          title="Download FHIR Bundle JSON file"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={isApproving || approvalSuccess}
-                        onClick={handleApproveCaseSheet}
-                        className={`px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl flex items-center gap-2.5 transition-all cursor-pointer ${approvalSuccess ? 'bg-emerald-600 text-white' : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/30 active:scale-[0.98]'}`}
-                      >
-                        {isApproving ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 animate-spin" /> Signing & Committing...
-                          </>
-                        ) : approvalSuccess ? (
-                          <>
-                            <ShieldCheck className="w-5 h-5 text-white" /> Signed & Completed!
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-5 h-5" /> Approve & Sign Case Sheet
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Consultation & SOAP Case Sheet */}
+              <ConsultationWorkspace
+                selectedSession={selectedSession}
+                soapData={soapData}
+                setSoapData={setSoapData}
+                diagnoses={diagnoses}
+                setDiagnoses={setDiagnoses}
+                newAyuMed={newAyuMed}
+                setNewAyuMed={setNewAyuMed}
+                addAyurvedicMedicine={addAyurvedicMedicine}
+                removeAyurvedicMedicine={removeAyurvedicMedicine}
+                newAlloMed={newAlloMed}
+                setNewAlloMed={setNewAlloMed}
+                addAllopathicMedicine={addAllopathicMedicine}
+                removeAllopathicMedicine={removeAllopathicMedicine}
+                interactionAlerts={interactionAlerts}
+                checkingInteractions={checkingInteractions}
+                runInteractionCheck={runInteractionCheck}
+                investigations={investigations}
+                handleRemoveInvestigation={handleRemoveInvestigation}
+                setIsOrderModalOpen={setIsOrderModalOpen}
+                referralData={referralData}
+                setIsReferralModalOpen={setIsReferralModalOpen}
+                followUpDecision={followUpDecision}
+                setFollowUpDecision={setFollowUpDecision}
+                doctorNotes={doctorNotes}
+                setDoctorNotes={setDoctorNotes}
+                isApproving={isApproving}
+                approvalSuccess={approvalSuccess}
+                handleApproveCaseSheet={handleApproveCaseSheet}
+                handleOpenFhirModal={handleOpenFhirModal}
+                handleSyncToAbdm={handleSyncToAbdm}
+                abdmSyncStatus={abdmSyncStatus}
+                handleDownloadFhir={handleDownloadFhir}
+              />
             </>
           ) : (
             <div className="p-10 sm:p-14 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 text-center space-y-5 shadow-xl">
@@ -1705,11 +621,19 @@ const DoctorDashboard = () => {
         </div>
       </div>
 
-      {/* ────────────────── MODAL 1: ABDM FHIR R4 INSPECTOR & GATEWAY SYNC ────────────────── */}
+      {/* REFERRAL MODAL */}
+      <ReferralModal
+        isOpen={isReferralModalOpen}
+        onClose={() => setIsReferralModalOpen(false)}
+        referralData={referralData}
+        setReferralData={setReferralData}
+        handleCreateReferral={handleCreateReferral}
+      />
+
+      {/* ABDM FHIR R4 INSPECTOR MODAL */}
       {isFhirModalOpen && (
         <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
             <div className="p-6 border-b border-white/10 flex items-center justify-between bg-slate-950/60">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400">
@@ -1718,9 +642,6 @@ const DoctorDashboard = () => {
                 <div>
                   <h3 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
                     ABDM FHIR R4 Document Bundle Inspector
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-mono font-bold">
-                      NRCeS NDHM Standard
-                    </span>
                   </h3>
                   <p className="text-xs text-gray-400">
                     Token: <b className="text-white">{selectedSession?.tokenNumber}</b> | ABHA: <b className="text-white">{selectedSession?.abhaId}</b>
@@ -1736,36 +657,6 @@ const DoctorDashboard = () => {
               </button>
             </div>
 
-            {/* Gateway Status Banner */}
-            <div className="px-6 py-3 bg-emerald-950/40 border-b border-emerald-500/20 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>
-                  Care Context: <b className="text-emerald-300">AIIA-OPD-{selectedSession?.tokenNumber}</b>
-                </span>
-                <span className="text-gray-500">|</span>
-                <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold">
-                  ABDM Sandbox / Simulated Sync Mode
-                </span>
-              </div>
-              {abdmSyncStatus.synced || selectedSession?.abdmSync?.synced ? (
-                <span className="px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> Synced to ABHA Locker (Simulated)
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSyncToAbdm}
-                  disabled={abdmSyncStatus.syncing}
-                  className="px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-all"
-                >
-                  {abdmSyncStatus.syncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
-                  Push to ABDM Gateway
-                </button>
-              )}
-            </div>
-
-            {/* JSON Code Viewer */}
             <div className="flex-1 p-6 overflow-y-auto font-mono text-xs text-emerald-300 bg-slate-950/90 leading-relaxed scrollbar-thin">
               {loadingFhir ? (
                 <div className="p-12 text-center text-gray-400 flex flex-col items-center gap-3">
@@ -1779,7 +670,6 @@ const DoctorDashboard = () => {
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="p-4 border-t border-white/10 bg-slate-950/60 flex items-center justify-between">
               <span className="text-xs text-gray-400">
                 Resource Entries: <b className="text-white">{fhirBundleData?.entry?.length || 0}</b> FHIR Resources
@@ -1788,7 +678,7 @@ const DoctorDashboard = () => {
                 <button
                   type="button"
                   onClick={handleDownloadFhir}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer"
                 >
                   <Download className="w-4 h-4" /> Download .json
                 </button>
@@ -1805,203 +695,7 @@ const DoctorDashboard = () => {
         </div>
       )}
 
-      {/* ────────────────── MODAL 2: PRINT OPD PRESCRIPTION SLIP ────────────────── */}
-      {isPrintModalOpen && selectedSession && (
-        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white text-slate-950 rounded-3xl w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Controls (Hidden in Print) */}
-            <div className="p-4 border-b border-gray-200 bg-slate-100 flex items-center justify-between print:hidden">
-              <div className="flex items-center gap-2">
-                <Printer className="w-5 h-5 text-emerald-600" />
-                <span className="font-bold text-sm text-slate-800">Print Preview: OPD Prescription Slip</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-2 cursor-pointer shadow-md"
-                >
-                  <Printer className="w-4 h-4" /> Print Now
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsPrintModalOpen(false)}
-                  className="p-2 rounded-xl text-gray-500 hover:text-slate-900 hover:bg-gray-200 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Printable Prescription Body */}
-            <div className="flex-1 p-8 overflow-y-auto font-sans text-xs text-slate-900 space-y-6 print:p-0">
-              {/* Official Hospital Header */}
-              <div className="border-b-2 border-slate-900 pb-4 flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">
-                    All India Institute of Ayurveda (AIIA)
-                  </h2>
-                  <p className="text-[11px] text-slate-600 font-semibold">
-                    Ministry of Ayush, Government of India | Sarita Vihar, New Delhi - 110076
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    Ayush Integrated Case Sheet & Outpatient Prescription Slip
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-mono font-black text-emerald-700 block">
-                    {selectedSession.tokenNumber}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-500">
-                    Dept: {selectedSession.department || 'Kayachikitsa'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Patient Barcode & Demographic Box */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-[11px]">
-                <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Patient Name</span>
-                  <b className="text-slate-900 text-xs">{selectedSession.patientName}</b>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Age / Gender</span>
-                  <b className="text-slate-900">{selectedSession.age} Yrs / {selectedSession.gender}</b>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">ABHA Address / ID</span>
-                  <b className="text-slate-900 font-mono text-[10px]">{selectedSession.abhaId}</b>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Date & Time</span>
-                  <b className="text-slate-900">{new Date(selectedSession.createdAt || Date.now()).toLocaleDateString('en-IN')}</b>
-                </div>
-              </div>
-
-              {/* Vitals Telemetry */}
-              {selectedSession.vitals && (
-                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200/60 flex flex-wrap items-center justify-between text-[11px] gap-2">
-                  <span><b>BP:</b> {selectedSession.vitals.systolicBP}/{selectedSession.vitals.diastolicBP} mmHg</span>
-                  <span><b>Pulse:</b> {selectedSession.vitals.heartRate} bpm</span>
-                  <span><b>SpO2:</b> {selectedSession.vitals.spo2}%</span>
-                  <span><b>Temp:</b> {selectedSession.vitals.temperature || '98.4'}°F</span>
-                  <span><b>BMI:</b> {selectedSession.vitals.bmi || 'N/A'} kg/m²</span>
-                  <span><b>Prakriti:</b> {selectedSession.dashavidhaPariksha?.prakriti?.primaryDosha || 'Vata-Pitta'}</span>
-                  <span><b>Agni:</b> {selectedSession.dashavidhaPariksha?.aharaShakti?.jaranaShakti || 'Samagni'}</span>
-                </div>
-              )}
-
-              {/* Clinical Diagnoses (ICD-11 & NAMASTE) */}
-              <div>
-                <h4 className="font-black text-xs text-slate-800 uppercase tracking-wider mb-2 border-b border-slate-200 pb-1">
-                  Clinical Diagnoses (Dual-Coded)
-                </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {diagnoses.map((d, i) => (
-                    <div key={i} className="p-2.5 rounded-xl border border-slate-200 bg-white text-xs">
-                      <span className="font-mono text-[10px] font-black px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                        {d.system}: {d.code}
-                      </span>
-                      <p className="font-bold text-slate-900 mt-1">{d.term}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Ayurvedic Formulations */}
-              {soapData.plan.ayurvedicMeds?.length > 0 && (
-                <div>
-                  <h4 className="font-black text-xs text-emerald-800 uppercase tracking-wider mb-2 border-b border-emerald-200 pb-1">
-                    Classical Ayurvedic Prescriptions (Ayush Formulations)
-                  </h4>
-                  <table className="w-full text-left border-collapse text-[11px]">
-                    <thead>
-                      <tr className="bg-emerald-50 text-emerald-900 border-b border-emerald-200">
-                        <th className="p-2 font-bold">Medicine Name</th>
-                        <th className="p-2 font-bold">Dosage & Timing</th>
-                        <th className="p-2 font-bold">Duration</th>
-                        <th className="p-2 font-bold">Anupana (Vehicle)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {soapData.plan.ayurvedicMeds.map((med, i) => (
-                        <tr key={i} className="border-b border-slate-100">
-                          <td className="p-2 font-bold text-slate-900">{med.name}</td>
-                          <td className="p-2">{med.dosage} ({med.frequency})</td>
-                          <td className="p-2">{med.duration}</td>
-                          <td className="p-2 font-semibold text-emerald-700">{med.anupana || 'Warm Water'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Allopathic Medications */}
-              {soapData.plan.allopathicMeds?.length > 0 && (
-                <div>
-                  <h4 className="font-black text-xs text-blue-800 uppercase tracking-wider mb-2 border-b border-blue-200 pb-1">
-                    Allopathic Supportive Medications
-                  </h4>
-                  <table className="w-full text-left border-collapse text-[11px]">
-                    <thead>
-                      <tr className="bg-blue-50 text-blue-900 border-b border-blue-200">
-                        <th className="p-2 font-bold">Drug Name</th>
-                        <th className="p-2 font-bold">Dosage</th>
-                        <th className="p-2 font-bold">Frequency</th>
-                        <th className="p-2 font-bold">Instructions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {soapData.plan.allopathicMeds.map((med, i) => (
-                        <tr key={i} className="border-b border-slate-100">
-                          <td className="p-2 font-bold text-slate-900">{med.name}</td>
-                          <td className="p-2">{med.dosage}</td>
-                          <td className="p-2">{med.frequency} ({med.duration})</td>
-                          <td className="p-2">{med.instructions}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Panchakarma & Pathya/Apathya */}
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-amber-50/50 border border-amber-200 text-[11px]">
-                <div>
-                  <b className="text-amber-900 block font-black uppercase text-[10px]">Panchakarma Protocol</b>
-                  <p className="text-slate-700">{soapData.plan.panchakarmaRecommendations?.join(', ') || 'Routine OPD follow-up'}</p>
-                </div>
-                <div>
-                  <b className="text-emerald-900 block font-black uppercase text-[10px]">Pathya (Diet Advice)</b>
-                  <p className="text-slate-700">{doctorNotes || 'Warm light diet, cow milk/ghee, avoid cold stale food.'}</p>
-                </div>
-              </div>
-
-              {/* Footer with Doctor Signature & ABDM Verification */}
-              <div className="pt-6 border-t border-slate-300 flex items-center justify-between">
-                <div className="text-[10px] text-slate-500 space-y-0.5">
-                  <p className="font-mono">ABDM Care Context: AIIA-OPD-{selectedSession.tokenNumber}</p>
-                  <p>Certified ABDM FHIR R4 Document Bundle Interoperable Record</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-emerald-700 font-black text-xs font-serif italic">
-                    {selectedSession.doctorReview?.signature || currentUser?.doctorName || 'Dr. Vaidya'}
-                  </div>
-                  <b className="text-slate-900 block text-xs">
-                    {currentUser?.doctorName || 'Dr. Vaidya'}, {currentUser?.qualification || 'BAMS, MD (Ayu)'}
-                  </b>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    Reg #{currentUser?.registrationNumber || 'CCIM-DEL-2018-9844'} | {currentUser?.department || 'OPD Consultant'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ────────────────── SOURCE & EVIDENCE VERIFICATION DRAWER (TRUST THE AI) ────────────────── */}
+      {/* EVIDENCE DRAWER */}
       {isEvidenceDrawerOpen && (
         <div className="fixed inset-0 z-[99999] bg-slate-950/70 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
           <div className="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl border-l border-emerald-500/30 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto space-y-6">
@@ -2020,65 +714,45 @@ const DoctorDashboard = () => {
                     </p>
                   </div>
                 </div>
-
                 <button
                   type="button"
                   onClick={() => setIsEvidenceDrawerOpen(false)}
-                  className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-gray-500 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+                  className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Evidence Items List */}
               <div className="space-y-4">
                 {evidenceList.length === 0 ? (
                   <div className="text-center py-12 p-6 rounded-2xl border border-dashed border-gray-300 dark:border-white/10">
                     <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2 opacity-50" />
                     <p className="text-sm font-bold text-slate-700 dark:text-gray-300">No Verified OCR Documents Attached</p>
-                    <p className="text-xs text-gray-500 mt-1">This consultation session does not have external scanned hospital discharge slips or lab panels.</p>
                   </div>
                 ) : (
                   evidenceList.map((item) => (
-                  <div key={item.id} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-emerald-500/20 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                          {item.type}
+                    <div key={item.id} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-emerald-500/20 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                            {item.type}
+                          </span>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                            {item.target}
+                          </h4>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-bold border border-emerald-500/30">
+                          {item.ocrConfidence} OCR
                         </span>
-                        <h4 className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
-                          {item.target}
-                        </h4>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-bold border border-emerald-500/30">
-                        {item.ocrConfidence} OCR
-                      </span>
-                    </div>
 
-                    <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 font-mono text-xs text-slate-800 dark:text-emerald-300 leading-relaxed">
-                      <span className="text-[10px] font-bold text-gray-400 font-sans block mb-1 uppercase">Extracted Document Snippet:</span>
-                      "{item.extractedSnippet}"
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pt-1">
-                      <div>
-                        <span className="block font-bold">Source Document:</span>
-                        <span className="text-slate-700 dark:text-gray-300">{item.sourceDoc}</span>
-                      </div>
-                      <div>
-                        <span className="block font-bold">Document Location:</span>
-                        <span className="text-slate-700 dark:text-gray-300">{item.page}</span>
+                      <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 font-mono text-xs text-slate-800 dark:text-emerald-300 leading-relaxed">
+                        <span className="text-[10px] font-bold text-gray-400 font-sans block mb-1 uppercase">Extracted Document Snippet:</span>
+                        "{item.extractedSnippet}"
                       </div>
                     </div>
-
-                    <div className="pt-2 border-t border-gray-200 dark:border-white/10 flex items-center justify-between text-xs">
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed by Patient at Home Pre-Visit
-                      </span>
-                      <span className="text-[10px] text-gray-400">{item.verifiedDate}</span>
-                    </div>
-                  </div>
-                )))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -2089,207 +763,6 @@ const DoctorDashboard = () => {
                 className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
               >
                 Close Verification Drawer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ────────────────── INVESTIGATION ORDER CREATION MODAL (§27) ────────────────── */}
-      {isOrderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FlaskConical className="w-5 h-5 text-teal-500" />
-                <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  Order Diagnostic Investigation (§27)
-                </h3>
-              </div>
-              <button onClick={() => setIsOrderModalOpen(false)} className="text-gray-400 hover:text-white p-1">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Investigation / Test Name *
-                </label>
-                <select
-                  value={newInvestigation.testName}
-                  onChange={(e) => setNewInvestigation({ ...newInvestigation, testName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                >
-                  <option value="HbA1c (Glycated Hemoglobin)">HbA1c (Glycated Hemoglobin)</option>
-                  <option value="Lipid Profile (Fasting)">Lipid Profile (Fasting)</option>
-                  <option value="Serum Creatinine & Blood Urea">Serum Creatinine & Blood Urea</option>
-                  <option value="Complete Blood Count (CBC)">Complete Blood Count (CBC)</option>
-                  <option value="Liver Function Test (LFT)">Liver Function Test (LFT)</option>
-                  <option value="X-Ray Knee (AP & Lateral View)">X-Ray Knee (AP & Lateral View)</option>
-                  <option value="Fasting & PP Blood Sugar">Fasting & PP Blood Sugar</option>
-                  <option value="Urine Routine & Micro">Urine Routine & Micro</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Priority Level *
-                  </label>
-                  <select
-                    value={newInvestigation.priority}
-                    onChange={(e) => setNewInvestigation({ ...newInvestigation, priority: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  >
-                    <option value="routine">Routine</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="stat">STAT (Emergency)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Laboratory Section
-                  </label>
-                  <select
-                    value={newInvestigation.section}
-                    onChange={(e) => setNewInvestigation({ ...newInvestigation, section: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  >
-                    <option value="Pathology">Pathology</option>
-                    <option value="Biochemistry">Biochemistry</option>
-                    <option value="Radiology">Radiology</option>
-                    <option value="Microbiology">Microbiology</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Clinical Indication / Special Instructions
-                </label>
-                <input
-                  type="text"
-                  value={newInvestigation.notes}
-                  onChange={(e) => setNewInvestigation({ ...newInvestigation, notes: e.target.value })}
-                  placeholder="e.g. Evaluate 3-month glycemic control & lipid risk"
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsOrderModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-xs font-bold text-gray-400 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAddInvestigation}
-                className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg shadow-teal-600/30 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> Issue Investigation Order
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ────────────────── CLINICAL REFERRAL CREATION MODAL (§38) ────────────────── */}
-      {isReferralModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ArrowUpRight className="w-5 h-5 text-blue-500" />
-                <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  Initiate Departmental Referral (§38)
-                </h3>
-              </div>
-              <button onClick={() => setIsReferralModalOpen(false)} className="text-gray-400 hover:text-white p-1">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Target Clinical Department *
-                </label>
-                <select
-                  value={referralData.targetDepartment}
-                  onChange={(e) => setReferralData({ ...referralData, targetDepartment: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="Shalya">शल्य तंत्र (Shalya Tantra - Orthopedics & Surgery)</option>
-                  <option value="Shalakya">शालाक्य तंत्र (Shalakya Tantra - ENT & Head/Neck)</option>
-                  <option value="Prasuti & Stri Roga">प्रसूति व स्त्री रोग (Prasuti & Stri Roga)</option>
-                  <option value="Kaumarbhritya">कौमारभृत्य (Kaumarbhritya - Pediatrics)</option>
-                  <option value="Panchakarma">पंचकर्म (Panchakarma Specialty Unit)</option>
-                  <option value="Kayachikitsa">कायचिकित्सा (Kayachikitsa - Internal Medicine)</option>
-                  <option value="General Medicine">General Allopathic Medicine</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Preferred Specialist (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={referralData.doctorName}
-                  onChange={(e) => setReferralData({ ...referralData, doctorName: e.target.value })}
-                  placeholder="e.g. Dr. Ananya Roy (MS Ortho)"
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Referral Priority *
-                </label>
-                <select
-                  value={referralData.priority}
-                  onChange={(e) => setReferralData({ ...referralData, priority: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="routine">Routine</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="emergency">Immediate Emergency</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Clinical Reason for Referral
-                </label>
-                <textarea
-                  rows={2}
-                  value={referralData.reason}
-                  onChange={(e) => setReferralData({ ...referralData, reason: e.target.value })}
-                  placeholder="e.g. Evaluate knee joint space narrowing & surgical / Janu Basti candidacy"
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsReferralModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-white/10 text-xs font-bold text-gray-400 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateReferral}
-                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
-              >
-                <ArrowUpRight className="w-4 h-4" /> Issue Referral
               </button>
             </div>
           </div>

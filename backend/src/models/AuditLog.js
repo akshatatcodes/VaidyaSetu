@@ -1,17 +1,20 @@
 const mongoose = require('mongoose');
 
 /**
- * AuditLog Schema — Traceable DPDP/ABDM audit logging collection (§50)
+ * AuditLog Schema — Centralized DPDP/ABDM/HIPAA Audit Trail (§42)
+ * Logs every sensitive operation with 8 required attributes:
+ * actor, role, action, targetType, targetId, patient, reason, timestamp.
  */
 const AuditLogSchema = new mongoose.Schema({
-  actorId: {
+  actor: {
     type: String,
     required: true,
     index: true
   },
-  actorRole: {
+  role: {
     type: String,
-    required: true
+    required: true,
+    index: true
   },
   action: {
     type: String,
@@ -20,26 +23,35 @@ const AuditLogSchema = new mongoose.Schema({
   },
   targetType: {
     type: String,
-    required: true
+    required: true,
+    index: true
   },
   targetId: {
-    type: String
+    type: String,
+    default: null
   },
-  patientId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Patient',
+  patient: {
+    type: String,
+    default: null,
     index: true
   },
   reason: {
-    type: String
+    type: String,
+    default: 'clinical_care'
   },
-  at: {
+  timestamp: {
     type: Date,
     default: Date.now,
     index: true
-  }
+  },
+
+  // Compatibility fields for legacy queries
+  actorId: { type: String },
+  actorRole: { type: String },
+  patientId: { type: String },
+  at: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-AuditLogSchema.index({ actorId: 1, at: -1 });
+AuditLogSchema.index({ actor: 1, timestamp: -1 });
 
 module.exports = mongoose.models.AuditLog || mongoose.model('AuditLog', AuditLogSchema);

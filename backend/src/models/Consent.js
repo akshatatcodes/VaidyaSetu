@@ -21,12 +21,18 @@ const ConsentSchema = new mongoose.Schema({
     enum: [
       'clinical_history',
       'document_scanning',
+      'document_processing',
       'doctor_sharing',
       'lab_sharing',
+      'followup_notification',
       'abdm_exchange',
       'secondary_use',
       'whatsapp',
-      'sms'
+      'sms',
+      'voice',
+      'push',
+      'kiosk_print',
+      'all_communications'
     ],
     required: true,
     index: true
