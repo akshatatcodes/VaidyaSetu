@@ -24,6 +24,7 @@ import Prescriptions from './pages/Prescriptions';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Settings from './pages/Settings';
+import MedicalHistoryPage from './pages/MedicalHistoryPage';
 import Vitals from './pages/Vitals';
 import MyMedicines from './pages/MyMedicines';
 import KioskIntake from './pages/KioskIntake';
@@ -209,6 +210,9 @@ const AppLayout = () => {
               <Route path="/patient/settings" element={<PatientRoute><Settings /></PatientRoute>} />
               <Route path="/patient/help" element={<HelpSupport />} />
 
+              {/* Shared Role Clinical Routes */}
+              <Route path="/medical-history" element={<MedicalHistoryPage />} />
+
               {/* Kiosk Dedicated Routes (/kiosk/*) */}
               <Route path="/kiosk" element={<KioskIntake />} />
               <Route path="/kiosk/intake" element={<KioskIntake />} />
@@ -285,6 +289,8 @@ const AuthWrapper = () => {
         </ProtectedRoute>
       } />
 
+      {/* Onboarding eliminated - redirect to main dashboard */}
+      <Route path="/onboarding" element={<Navigate to="/" replace />} />
       {/* Main Authenticated Application Shell */}
       <Route path="/*" element={
         <ProtectedRoute>

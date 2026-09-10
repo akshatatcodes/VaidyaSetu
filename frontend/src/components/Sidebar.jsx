@@ -38,7 +38,6 @@ const Sidebar = () => {
   // Phase 35 — Single navigation configuration source per role
   const desktopNavItems = getNavigationForRole(activeRole);
   const mobileBottomNavItems = getMobileNavigationForRole(activeRole);
-
   return (
     <>
       {/* ── DESKTOP SIDEBAR ── */}

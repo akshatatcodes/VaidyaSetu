@@ -137,7 +137,6 @@ const ProfileEditor = () => {
         },
         sourceTag
       });
-
       navigate('/profile', { state: { toast: `Health Profile updated cleanly (Source: ${sourceTag})` } });
     } catch (err) {
       alert('Failed to update health profile.');
