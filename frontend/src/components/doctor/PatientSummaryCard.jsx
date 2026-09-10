@@ -9,24 +9,42 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
   const [copied, setCopied] = useState(false);
   const [activeParikshaTab, setActiveParikshaTab] = useState('trividha');
   const [showParikshaDetails, setShowParikshaDetails] = useState(true);
+  const [selectedDocPreview, setSelectedDocPreview] = useState(null);
 
   if (!selectedSession) return null;
 
-  // Gather past illnesses from all possible sources
-  const pastIllnesses = Array.from(new Set([
-    ...(selectedSession.pastMedicalHistory || []),
+  // Distinguish between Current Visit Intake vs Previously on File (Historical Record)
+  const currentVisitIllnesses = Array.from(new Set([
+    ...(selectedSession.medicalHistory?.currentKioskIllnesses || []),
     ...(selectedSession.pastDiseases || []),
-    ...(selectedSession.medicalHistory?.pastMedicalHistory || []),
     ...(selectedSession.medicalHistory?.pastDiseases || []),
-    ...(selectedSession.extractedHistory?.illnesses || [])
+    ...(selectedSession.pastMedicalHistory || [])
   ])).filter(Boolean);
 
-  // Gather allergies from all possible sources
-  const patientAllergies = Array.from(new Set([
+  const previousIllnesses = Array.from(new Set([
+    ...(selectedSession.patientId?.chronicDiseases || []),
+    ...(selectedSession.historicalIllnesses || []),
+    ...(selectedSession.previousMedicalHistory || [])
+  ])).filter(ill => !currentVisitIllnesses.includes(ill));
+
+  const allIllnesses = [...currentVisitIllnesses, ...previousIllnesses];
+
+  const currentVisitAllergies = Array.from(new Set([
+    ...(selectedSession.medicalHistory?.currentKioskAllergies || []),
     ...(selectedSession.allergies || []),
-    ...(selectedSession.medicalHistory?.allergies || []),
-    ...(selectedSession.extractedHistory?.allergies || [])
+    ...(selectedSession.medicalHistory?.allergies || [])
   ])).filter(Boolean);
+
+  const previousAllergies = Array.from(new Set([
+    ...(selectedSession.patientId?.allergies || []),
+    ...(selectedSession.historicalAllergies || [])
+  ])).filter(all => !currentVisitAllergies.includes(all));
+
+  const allAllergies = [...currentVisitAllergies, ...previousAllergies];
+
+  // Documents attached to this encounter
+  const attachedDocs = Array.isArray(selectedSession.documents) ? selectedSession.documents : [];
+  const ocrPrescriptions = Array.isArray(selectedSession.ocrPrescriptions) ? selectedSession.ocrPrescriptions : [];
 
   // Synthesize rich AI Smart Clinical Summary if not explicitly set
   const aiSmartSummary = selectedSession.aiSummary ||
@@ -221,7 +239,7 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
         </div>
       </div>
 
-      {/* 4. PAST MEDICAL HISTORY & ALLERGIES DOSSIER */}
+      {/* 4. PAST MEDICAL HISTORY & ALLERGIES DOSSIER (WITH VISIT ATTRIBUTION) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Past Illnesses & Comorbidities */}
         <div className="p-5 rounded-3xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-3">
@@ -229,26 +247,46 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" /> Past Illnesses & Comorbidities
             </h4>
-            <span className="text-[10px] font-bold text-gray-400">
-              {pastIllnesses.length} Documented
-            </span>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                {currentVisitIllnesses.length} Today (Kiosk)
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-300">
+                {previousIllnesses.length} Previous
+              </span>
+            </div>
           </div>
 
-          {pastIllnesses.length > 0 ? (
+          {allIllnesses.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {pastIllnesses.map((illness, idx) => (
+              {currentVisitIllnesses.map((illness, idx) => (
                 <span
-                  key={idx}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                  key={`curr-${idx}`}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-2 shadow-sm"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   {illness}
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider">
+                    Filled Today
+                  </span>
+                </span>
+              ))}
+              {previousIllnesses.map((illness, idx) => (
+                <span
+                  key={`prev-${idx}`}
+                  className="px-3 py-1.5 rounded-xl bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-white/15 text-xs font-medium flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  {illness}
+                  <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[9px] font-bold uppercase">
+                    Past Record
+                  </span>
                 </span>
               ))}
             </div>
           ) : (
             <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-dashed border-gray-300 dark:border-white/10 text-center text-xs text-gray-400 font-medium">
-              No chronic illnesses reported by patient during kiosk intake.
+              No chronic illnesses reported by patient.
             </div>
           )}
         </div>
@@ -259,19 +297,35 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
             <h4 className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-500" /> Known Drug & Substance Allergies
             </h4>
-            <span className="text-[10px] font-bold text-rose-500">
-              {patientAllergies.length > 0 ? 'CRITICAL SAFETY' : 'CLEAR'}
-            </span>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                {allAllergies.length > 0 ? 'CRITICAL SAFETY' : 'CLEAR'}
+              </span>
+            </div>
           </div>
 
-          {patientAllergies.length > 0 ? (
+          {allAllergies.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {patientAllergies.map((allergy, idx) => (
+              {currentVisitAllergies.map((allergy, idx) => (
                 <span
-                  key={idx}
-                  className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-xs font-black flex items-center gap-1.5 shadow-sm animate-pulse"
+                  key={`curr-all-${idx}`}
+                  className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-xs font-black flex items-center gap-2 shadow-sm animate-pulse"
                 >
                   ⚠️ {allergy}
+                  <span className="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[9px] font-black uppercase tracking-wider">
+                    Reported Today
+                  </span>
+                </span>
+              ))}
+              {previousAllergies.map((allergy, idx) => (
+                <span
+                  key={`prev-all-${idx}`}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-2"
+                >
+                  ⚠️ {allergy}
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[9px] font-bold uppercase">
+                    Past Record
+                  </span>
                 </span>
               ))}
             </div>
@@ -282,6 +336,104 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
           )}
         </div>
       </div>
+
+      {/* 4B. ATTACHED CLINICAL DOCUMENTS & PRESCRIPTION SCANS */}
+      {(attachedDocs.length > 0 || ocrPrescriptions.length > 0) && (
+        <div className="p-5 rounded-3xl bg-slate-50 dark:bg-white/5 border border-emerald-500/30 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="w-4 h-4 text-cyan-500" /> Attached Clinical Documents & Scanned Prescriptions ({attachedDocs.length})
+            </h4>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+              Captured via MediKiosk / Uploaded by Patient
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {attachedDocs.map((doc, dIdx) => {
+              const fileSrc = doc.originalFileUrl || doc.url || (typeof doc === 'string' ? doc : null);
+              return (
+                <div
+                  key={dIdx}
+                  onClick={() => setSelectedDocPreview(fileSrc)}
+                  className="group relative rounded-2xl overflow-hidden border-2 border-emerald-500/30 bg-white dark:bg-slate-800 p-2 shadow hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <div className="w-full aspect-[4/3] bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center">
+                    {fileSrc && (fileSrc.startsWith('data:image') || fileSrc.match(/\.(jpg|jpeg|png|webp)/i)) ? (
+                      <img src={fileSrc} alt={doc.title || `Document ${dIdx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <FileText className="w-10 h-10 text-emerald-500" />
+                    )}
+                  </div>
+                  <div className="mt-2 text-left">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {doc.title || `Prescription Scan #${dIdx + 1}`}
+                    </p>
+                    <span className="text-[10px] text-gray-400 block">
+                      Click to inspect full document 🔍
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Extracted medicines from OCR prescriptions if available */}
+          {ocrPrescriptions.length > 0 && (
+            <div className="pt-2 border-t border-gray-200 dark:border-white/10">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-gray-300 block mb-1">
+                OCR Extracted Medications from Scans:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {ocrPrescriptions.flatMap(p => p.extractedMedicines || []).map((m, mIdx) => (
+                  <span key={mIdx} className="px-2.5 py-1 rounded-lg bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/30 text-xs font-semibold">
+                    💊 {m.name} {m.dosage ? `(${m.dosage})` : ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal for full original document inspection */}
+      {selectedDocPreview && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border-2 border-emerald-500/40 shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-white/10">
+              <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-500" /> Original Clinical Document / Prescription Scan
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedDocPreview(null)}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/15 bg-black flex items-center justify-center min-h-[300px]">
+              <img src={selectedDocPreview} alt="Original Clinical Document" className="max-w-full max-h-[70vh] object-contain" />
+            </div>
+            <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => window.open(selectedDocPreview, '_blank')}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-md"
+              >
+                Open in New Tab ↗
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDocPreview(null)}
+                className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 text-slate-800 dark:text-white font-bold text-xs cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 5. AYUSH CLASSICAL PARIKSHA DOSSIER (TRIVIDHA, ASHTAVIDHA, DASHAVIDHA) */}
       <div className="p-5 rounded-3xl bg-white dark:bg-slate-800/80 border border-emerald-500/25 shadow-md space-y-4">

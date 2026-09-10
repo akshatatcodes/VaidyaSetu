@@ -487,22 +487,22 @@ export default function ComprehensiveMedicalHistory({
     <div className={`bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col ${isModal ? 'max-h-[90vh]' : 'w-full'}`}>
       
       {/* ────────────────── TOP COMPREHENSIVE HEADER ────────────────── */}
-      <div className="p-6 bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white relative">
+      <div className="p-6 bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 text-slate-900 border-b border-emerald-500/20 relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-emerald-400" /> Longitudinal Clinical Record (SIH PS 26047)
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 border border-emerald-400/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-600" /> Longitudinal Clinical Record (SIH PS 26047)
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-black uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-800 border border-blue-400/40 text-[10px] font-black uppercase">
                 ABDM / ABHA Linked
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2.5">
-              <Stethoscope className="w-6 h-6 text-emerald-400" />
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
+              <Stethoscope className="w-6 h-6 text-emerald-600" />
               Comprehensive Medical History & Diagnostic Dossier
             </h2>
-            <p className="text-xs text-gray-300 mt-1 max-w-2xl">
+            <p className="text-xs text-slate-600 font-medium mt-1 max-w-2xl">
               Unified longitudinal case-sheet: chronic comorbidities, high-alert drug allergies, multi-visit timeline, lab trends, and classical AYUSH Ahara-Vihara.
             </p>
           </div>
@@ -512,7 +512,7 @@ export default function ComprehensiveMedicalHistory({
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> Add Record
               </button>
@@ -521,7 +521,7 @@ export default function ComprehensiveMedicalHistory({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-all"
+                className="p-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 cursor-pointer transition-all"
                 title="Close Medical History"
               >
                 <X className="w-5 h-5" />
@@ -531,28 +531,28 @@ export default function ComprehensiveMedicalHistory({
         </div>
 
         {/* Vital Highlight Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5 pt-4 border-t border-white/10 text-xs">
-          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-            <span className="text-[10px] text-gray-400 block uppercase font-bold">Chronic Illnesses</span>
-            <span className="text-base font-black text-white">{historyData.chronicIllnesses.length} Conditions</span>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5 pt-4 border-t border-slate-200 text-xs">
+          <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+            <span className="text-[10px] text-slate-500 block uppercase font-black">Chronic Illnesses</span>
+            <span className="text-base font-black text-slate-900">{historyData.chronicIllnesses.length} Conditions</span>
           </div>
-          <div className="bg-rose-500/10 rounded-xl p-2.5 border border-rose-500/20">
-            <span className="text-[10px] text-rose-300 block uppercase font-bold flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-rose-400" /> Known Allergies
+          <div className="bg-rose-50 rounded-xl p-3 border border-rose-200 shadow-sm">
+            <span className="text-[10px] text-rose-700 block uppercase font-black flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-rose-600" /> Known Allergies
             </span>
-            <span className="text-base font-black text-rose-300">{historyData.allergies.length} High-Alert</span>
+            <span className="text-base font-black text-rose-700">{historyData.allergies.length} High-Alert</span>
           </div>
-          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-            <span className="text-[10px] text-gray-400 block uppercase font-bold">Lab Biomarkers</span>
-            <span className="text-base font-black text-emerald-300">{historyData.labReports.length} Tracked</span>
+          <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+            <span className="text-[10px] text-slate-500 block uppercase font-black">Lab Biomarkers</span>
+            <span className="text-base font-black text-emerald-700">{historyData.labReports.length} Tracked</span>
           </div>
-          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-            <span className="text-[10px] text-gray-400 block uppercase font-bold">Past Hospital Visits</span>
-            <span className="text-base font-black text-white">{historyData.pastVisits.length} Documented</span>
+          <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+            <span className="text-[10px] text-slate-500 block uppercase font-black">Past Hospital Visits</span>
+            <span className="text-base font-black text-slate-900">{historyData.pastVisits.length} Documented</span>
           </div>
-          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 col-span-2 sm:col-span-1">
-            <span className="text-[10px] text-gray-400 block uppercase font-bold">Prakriti / Agni</span>
-            <span className="text-xs font-black text-amber-300 truncate block">{historyData.aharaVihara.prakriti}</span>
+          <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 shadow-sm col-span-2 sm:col-span-1">
+            <span className="text-[10px] text-amber-800 block uppercase font-black">Prakriti / Agni</span>
+            <span className="text-xs font-black text-amber-900 truncate block">{historyData.aharaVihara.prakriti}</span>
           </div>
         </div>
       </div>

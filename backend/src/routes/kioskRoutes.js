@@ -63,12 +63,12 @@ router.post('/session/start', async (req, res) => {
         createdAt: { $gte: oneHourAgo }
       }).sort({ createdAt: -1 });
 
-      if (recentSession) {
-        const minsLeft = Math.ceil((recentSession.createdAt.getTime() + 60 * 60 * 1000 - Date.now()) / 60000);
-        return res.status(429).json({
-          status: 'error',
-          code: 'RATE_LIMIT_COOLDOWN',
-          message: `Active OPD Token (${recentSession.tokenNumber}) was already generated for ABHA ${cleanAbha} within the last hour. Please use your active token at Room ${recentSession.department || 'Kayachikitsa'} or wait ${minsLeft} minutes before generating a new token.`,
+      if (recentSession && recentSession.queueStatus !== 'completed') {
+        // Re-use active uncompleted session seamlessly so patient can proceed
+        return res.status(200).json({
+          status: 'success',
+          isExistingSession: true,
+          message: `Active OPD Token (${recentSession.tokenNumber}) resumed for ABHA ${cleanAbha}.`,
           data: recentSession
         });
       }
@@ -279,6 +279,72 @@ router.post('/session/:id/quick-changes', async (req, res) => {
 });
 
 /**
+ * 1C-2. POST /api/kiosk/session/:id/socrates-probe
+ * Adaptive SOCRATES voice & touch triage probe with dynamic question progression
+ */
+router.post('/session/:id/socrates-probe', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { chiefComplaint, userSpeech, currentStep = 'site', language = 'hi' } = req.body;
+
+    const session = await findSession(id);
+    const existingSocrates = session?.socrates || {};
+
+    const probeResult = await processAdaptiveProbe({
+      chiefComplaint: chiefComplaint || session?.chiefComplaint,
+      userSpeech,
+      currentStep,
+      socratesState: existingSocrates,
+      vitals: session?.vitals || {},
+      language
+    });
+
+    if (session) {
+      session.socrates = probeResult.socrates;
+      if (probeResult.inferredDepartment?.department) {
+        session.department = probeResult.inferredDepartment.department;
+      }
+      if (probeResult.hasCriticalRedFlag) {
+        session.triagePriority = 'emergency';
+      }
+      if (probeResult.extractedMedicalHistory) {
+        if (probeResult.extractedMedicalHistory.pastIllnesses?.length > 0) {
+          session.pastMedicalHistory = Array.from(new Set([
+            ...(session.pastMedicalHistory || []),
+            ...probeResult.extractedMedicalHistory.pastIllnesses
+          ]));
+        }
+        if (probeResult.extractedMedicalHistory.allergies?.length > 0) {
+          session.allergies = Array.from(new Set([
+            ...(session.allergies || []),
+            ...probeResult.extractedMedicalHistory.allergies
+          ]));
+        }
+      }
+      await session.save();
+    }
+
+    res.json({
+      status: 'success',
+      data: {
+        nextStep: probeResult.nextStep,
+        nextQuestion: probeResult.nextQuestion,
+        quickReplies: probeResult.quickReplies,
+        isComplete: probeResult.isComplete,
+        socrates: probeResult.socrates,
+        extractedMedicalHistory: probeResult.extractedMedicalHistory,
+        inferredDepartment: probeResult.inferredDepartment,
+        redFlags: probeResult.redFlags,
+        triagePriority: probeResult.hasCriticalRedFlag ? 'emergency' : (session?.triagePriority || 'normal')
+      }
+    });
+  } catch (error) {
+    console.error('[KioskRoutes] Socrates probe error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
  * 1D. POST /api/kiosk/session/:id/prepare-visit
  * Patient at-home pre-consultation preparation from mobile/web dashboard
  */
@@ -365,10 +431,15 @@ const findSession = (id) => {
 router.get('/session/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const session = await findSession(id);
+    let session = await findSession(id);
 
     if (!session) {
       return res.status(404).json({ status: 'error', message: 'Intake session not found' });
+    }
+
+    if (session.patientId && typeof session.patientId !== 'object') {
+      const populated = await Encounter.findById(session._id).populate('patientId');
+      if (populated) session = populated;
     }
 
     res.json({ status: 'success', data: session });
@@ -429,6 +500,7 @@ router.patch('/session/:id/vitals', async (req, res) => {
     // Check for vital red-flags
     const vitalFlags = detectRedFlags('', session.vitals);
     if (vitalFlags.length > 0) {
+      if (!Array.isArray(session.redFlags)) session.redFlags = [];
       vitalFlags.forEach(f => {
         const exists = session.redFlags.some(r => r.flag === f.flag);
         if (!exists) session.redFlags.push(f);
@@ -499,6 +571,11 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
     const effectiveComplaint = session?.chiefComplaint || chiefComplaint || userSpeech || '';
     const effectiveSocrates = session?.socrates || incomingSocrates || {};
     const effectiveTranscript = session?.intakeTranscript || incomingTranscript || [];
+    // Ensure session arrays are initialized
+    if (session) {
+      if (!Array.isArray(session.intakeTranscript)) session.intakeTranscript = [];
+      if (!Array.isArray(session.redFlags)) session.redFlags = [];
+    }
 
     // Record patient speech in transcript if session exists
     if (session && userSpeech) {
@@ -525,7 +602,7 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
     });
 
     if (session) {
-      // Write to controlled AI audit log layer (§42)
+      // Background calls to controlled extraction services
       await processHistoryIntake({
         chiefComplaint: session.chiefComplaint || chiefComplaint || '',
         previousAnswers: (session.intakeTranscript || []).filter(t => t.speaker === 'patient').map(t => t.text),
@@ -558,6 +635,7 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
 
       // Accumulate new red flags
       if (probeResult.redFlags?.length > 0) {
+        if (!Array.isArray(session.redFlags)) session.redFlags = [];
         probeResult.redFlags.forEach(f => {
           const exists = session.redFlags.some(r => r.flag === f.flag);
           if (!exists) session.redFlags.push(f);
@@ -646,7 +724,7 @@ router.patch('/session/:id/department', async (req, res) => {
 router.patch('/session/:id/medical-history', async (req, res) => {
   try {
     const { id } = req.params;
-    const { pastMedicalHistory = [], allergies = [] } = req.body;
+    const { pastMedicalHistory = [], allergies = [], isCurrentKioskIntake = true } = req.body;
 
     const session = await findSession(id);
     if (!session) {
@@ -655,18 +733,126 @@ router.patch('/session/:id/medical-history', async (req, res) => {
 
     session.pastMedicalHistory = pastMedicalHistory;
     session.allergies = allergies;
+    session.medicalHistory = {
+      ...(session.medicalHistory || {}),
+      pastIllnesses: pastMedicalHistory,
+      allergies: allergies,
+      currentKioskIllnesses: pastMedicalHistory,
+      currentKioskAllergies: allergies,
+      recordedAt: new Date(),
+      isCurrentKioskIntake: true
+    };
     await session.save();
+
+    // If patient linked, also update patient profile
+    if (session.patientId) {
+      const Patient = require('../models/Patient');
+      await Patient.findByIdAndUpdate(session.patientId, {
+        $addToSet: {
+          chronicDiseases: { $each: pastMedicalHistory },
+          allergies: { $each: allergies }
+        }
+      }).catch(() => {});
+    }
 
     res.json({
       status: 'success',
       message: 'Medical history updated',
       data: {
         pastMedicalHistory: session.pastMedicalHistory,
-        allergies: session.allergies
+        allergies: session.allergies,
+        medicalHistory: session.medicalHistory
       }
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
+ * 4D. PATCH /api/kiosk/session/:id/documents
+ * Attach captured webcam photos or uploaded clinical documents to the encounter
+ */
+router.patch('/session/:id/documents', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { documents = [], ocrPrescriptions = [], photos = [], imageUrl = null, medicines = [] } = req.body;
+
+    const session = await findSession(id);
+    if (!session) {
+      return res.status(404).json({ status: 'error', message: 'Intake session not found' });
+    }
+
+    const newDocs = [...documents];
+    if (imageUrl) {
+      newDocs.push({
+        type: 'prescription',
+        title: 'Kiosk Prescription Capture',
+        originalFileUrl: imageUrl,
+        uploadedAt: new Date()
+      });
+    }
+    if (Array.isArray(photos)) {
+      photos.forEach((photo, idx) => {
+        newDocs.push({
+          type: 'prescription',
+          title: `Kiosk Document Scan #${idx + 1}`,
+          originalFileUrl: photo,
+          uploadedAt: new Date()
+        });
+      });
+    }
+
+    const existingDocs = Array.isArray(session.documents) ? session.documents : [];
+    session.documents = [...existingDocs, ...newDocs];
+
+    const newOcr = [...ocrPrescriptions];
+    if (medicines && medicines.length > 0) {
+      newOcr.push({
+        extractedMedicines: medicines,
+        scannedAt: new Date(),
+        method: req.body.ocrMethod || 'Vision-OCR',
+        confidence: req.body.confidence || 90
+      });
+    }
+
+    if (newOcr.length > 0) {
+      const existingOcr = Array.isArray(session.ocrPrescriptions) ? session.ocrPrescriptions : [];
+      session.ocrPrescriptions = [...existingOcr, ...newOcr];
+    }
+    await session.save();
+
+    // Also persist in Document collection for patient record vault
+    if (session.patientId) {
+      try {
+        const Document = require('../models/Document');
+        for (const doc of newDocs) {
+          await Document.create({
+            patientId: session.patientId,
+            encounterId: session._id,
+            type: doc.type || 'prescription',
+            title: doc.title || 'Kiosk Uploaded Clinical Document',
+            originalFileUrl: doc.originalFileUrl || doc.url,
+            uploadedAt: new Date(),
+            verificationStatus: 'verified'
+          }).catch(() => {});
+        }
+      } catch (docErr) {
+        console.warn('[KioskRoutes] Document vault write warning:', docErr.message);
+      }
+    }
+
+    res.json({
+      status: 'success',
+      message: 'Documents stored successfully',
+      data: {
+        documents: session.documents,
+        ocrPrescriptions: session.ocrPrescriptions,
+        totalDocuments: session.documents.length
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
   }
 });
 

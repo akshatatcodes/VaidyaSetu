@@ -146,29 +146,26 @@ tbody tr{border-bottom:1px solid #f0f0f0}
     <div className="max-w-7xl mx-auto w-full pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* ── HEADER ── */}
-      <div className="relative rounded-[2rem] overflow-hidden mb-8 border border-white/8 p-8"
-        style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #06111a 60%, #0a0f1e 100%)' }}>
-        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-15 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }} />
+      <div className="relative rounded-[2rem] overflow-hidden mb-8 border border-slate-200 bg-white shadow-xl p-8">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <Link to="/profile" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-emerald-400 transition-colors mb-3 uppercase tracking-widest">
+            <Link to="/patient/profile" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors mb-3 uppercase tracking-widest">
               <ArrowLeft size={13} /> Back to Profile
             </Link>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-xl bg-emerald-500/10">
-                <Activity size={18} className="text-emerald-400" />
+                <Activity size={18} className="text-emerald-600" />
               </div>
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Audit Trail</span>
+              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.2em]">Audit Trail</span>
             </div>
-            <h1 className="text-4xl font-black text-white tracking-tighter">
-              Data <span className="text-emerald-400">History Log</span>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
+              Data <span className="text-emerald-600">History Log</span>
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Every change to your health matrix, timestamped and classified.</p>
+            <p className="text-slate-600 font-medium text-sm mt-1">Every change to your health matrix, timestamped and classified.</p>
           </div>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-6 py-3 bg-white/6 hover:bg-emerald-500/15 border border-white/10 hover:border-emerald-500/30 rounded-2xl text-gray-300 hover:text-emerald-400 text-sm font-bold transition-all active:scale-95 self-start md:self-auto"
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-sm font-bold shadow-md transition-all active:scale-95 self-start md:self-auto cursor-pointer"
           >
             <Download size={15} /> Export PDF
           </button>
@@ -178,18 +175,16 @@ tbody tr{border-bottom:1px solid #f0f0f0}
       {/* ── STAT TILES ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Total Entries', value: totalEntries, color: '#e2e8f0', icon: BarChart2 },
-          { label: 'Real Changes',  value: realChanges,  color: '#10b981', icon: TrendingUp },
-          { label: 'Corrections',   value: corrections,  color: '#f59e0b', icon: Edit2 },
-          { label: 'Integrity',     value: totalEntries > 0 ? `${Math.round((realChanges / totalEntries) * 100)}%` : '—', color: '#818cf8', icon: Shield },
+          { label: 'Total Entries', value: totalEntries, color: '#0f172a', icon: BarChart2 },
+          { label: 'Real Changes',  value: realChanges,  color: '#059669', icon: TrendingUp },
+          { label: 'Corrections',   value: corrections,  color: '#d97706', icon: Edit2 },
+          { label: 'Integrity',     value: totalEntries > 0 ? `${Math.round((realChanges / totalEntries) * 100)}%` : '—', color: '#4f46e5', icon: Shield },
         ].map(stat => (
           <div key={stat.label}
-            className="relative rounded-2xl border border-white/8 bg-white/4 backdrop-blur p-5 overflow-hidden group hover:-translate-y-0.5 transition-all duration-300">
-            <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-5 -translate-y-6 translate-x-6 pointer-events-none"
-              style={{ background: stat.color }} />
+            className="relative rounded-2xl border border-slate-200 bg-white shadow-sm p-5 overflow-hidden group hover:-translate-y-0.5 transition-all duration-300">
             <div className="flex items-center gap-2 mb-3">
-              <stat.icon size={13} style={{ color: stat.color }} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{stat.label}</span>
+              <stat.icon size={15} style={{ color: stat.color }} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{stat.label}</span>
             </div>
             <div className="text-3xl font-black" style={{ color: stat.color }}>{stat.value}</div>
           </div>

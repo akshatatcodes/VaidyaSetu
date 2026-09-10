@@ -925,3 +925,45 @@ html.dark .border-white\/5,
   font-weight: 800 !important;
   border-radius: 1.25rem !important;
 }
+
+/* ================================================================
+   PRINT STYLES FOR OPD TOKEN SLIP & MEDICAL REPORTS
+   ================================================================ */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  
+  /* Hide all app chrome, navigation, toolbars, and buttons */
+  body * {
+    visibility: hidden !important;
+  }
+  
+  /* Expose ONLY the printable token slip */
+  #printable-opd-token-slip,
+  #printable-opd-token-slip * {
+    visibility: visible !important;
+  }
+  
+  #printable-opd-token-slip {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 16px 24px !important;
+    box-shadow: none !important;
+    border: 2px solid #0f172a !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    z-index: 9999999 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
