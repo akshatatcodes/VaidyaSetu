@@ -164,6 +164,45 @@ const Dashboard = () => {
     );
   }
 
+  const isTokenExpired = () => {
+    if (!activeQueue) return false;
+    if (activeQueue.status?.toLowerCase() === 'expired') return true;
+    if (activeQueue.tokenDate) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (activeQueue.tokenDate < todayStr) return true;
+    }
+    if (activeQueue.tokenNumber) {
+      const match = activeQueue.tokenNumber.match(/OPD-(\d{4})(\d{2})(\d{2})-/);
+      if (match) {
+        const tokenDateStr = `${match[1]}-${match[2]}-${match[3]}`;
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (tokenDateStr < todayStr) return true;
+      }
+    }
+    return false;
+  };
+
+  const handleRegenerateToken = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const randSeq = String(Math.floor(Math.random() * 900) + 100);
+    const newToken = `OPD-${yyyy}${mm}${dd}-${randSeq}`;
+
+    localStorage.setItem('vaidyasetu_last_token', newToken);
+    setActiveQueue({
+      tokenNumber: newToken,
+      department: activeQueue?.department || 'Kayachikitsa (Internal Medicine)',
+      roomNumber: activeQueue?.roomNumber || 'Room 104',
+      doctorName: activeQueue?.doctorName || 'Dr. Vaidya Ramanathan',
+      queuePosition: 8,
+      estimatedWaitTime: '20 mins',
+      status: 'In Line',
+      tokenDate: `${yyyy}-${mm}-${dd}`
+    });
+  };
+
   return (
     <div className="max-w-6xl mx-auto w-full pb-20 space-y-7 animate-in fade-in duration-500">
       
@@ -204,77 +243,77 @@ const Dashboard = () => {
       {/* ── SECTION 1: OFFICIAL ABHA CARD & ACTIVE QUEUE STRIP ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
-        {/* Left: ABHA Identity Health Card (5 cols) */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-emerald-800 via-teal-900 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-emerald-400/30 relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute right-0 top-0 w-48 h-48 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Left: ABHA Identity Health Card (5 cols) - Crisp Light Theme */}
+        <div className="lg:col-span-5 bg-gradient-to-br from-emerald-50 via-teal-50 to-white text-slate-900 rounded-3xl p-6 sm:p-7 shadow-sm border-2 border-emerald-300 relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute right-0 top-0 w-48 h-48 bg-emerald-200/40 rounded-full blur-3xl pointer-events-none" />
           
           <div className="relative z-10 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-emerald-300">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800">
                     National Health Authority
                   </div>
-                  <div className="text-xs font-black text-white">
+                  <div className="text-xs font-black text-slate-900">
                     Ayushman Bharat Health Card (ABHA)
                   </div>
                 </div>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 font-mono text-[10px] font-black border border-emerald-400/30">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-black border border-emerald-300">
                 ACTIVE
               </span>
             </div>
 
             <div className="pt-2">
-              <span className="text-[11px] font-bold text-slate-300 block">ABHA Health Number</span>
-              <div className="text-2xl sm:text-3xl font-black font-mono tracking-wider text-white mt-0.5">
+              <span className="text-[11px] font-bold text-slate-600 block">ABHA Health Number</span>
+              <div className="text-2xl sm:text-3xl font-black font-mono tracking-wider text-slate-900 mt-0.5">
                 {abhaId}
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/15 text-xs">
+            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-200 text-xs">
               <div>
-                <span className="text-[10px] text-slate-300 block uppercase">Name</span>
-                <span className="font-bold text-white truncate block">{displayName}</span>
+                <span className="text-[10px] text-slate-500 block uppercase font-bold">Name</span>
+                <span className="font-extrabold text-slate-900 truncate block">{displayName}</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-300 block uppercase">Age / Gender</span>
-                <span className="font-bold text-white">{age}y • {gender}</span>
+                <span className="text-[10px] text-slate-500 block uppercase font-bold">Age / Gender</span>
+                <span className="font-extrabold text-slate-900">{age}y • {gender}</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-300 block uppercase">Blood Group</span>
-                <span className="font-bold text-emerald-300">{bloodGroup}</span>
+                <span className="text-[10px] text-slate-500 block uppercase font-bold">Blood Group</span>
+                <span className="font-extrabold text-emerald-800">{bloodGroup}</span>
               </div>
             </div>
           </div>
 
-          <div className="relative z-10 pt-5 mt-4 border-t border-white/15 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] text-slate-300">
-              <Phone className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="relative z-10 pt-4 mt-4 border-t border-slate-200 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <Phone className="w-3.5 h-3.5 text-emerald-600" />
               <span>{mobileNumber}</span>
             </div>
             <button
               type="button"
-              onClick={() => navigate('/patient/abha')}
-              className="text-xs font-bold text-emerald-300 hover:text-emerald-200 flex items-center gap-1 cursor-pointer transition-colors"
+              onClick={() => navigate('/patient/profile')}
+              className="text-xs font-extrabold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer transition-colors"
             >
-              View Full Card <ChevronRight className="w-3.5 h-3.5" />
+              View ABHA Details <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
         {/* Right: Active OPD Token & Consultation Tracker (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-gray-200 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 shadow-sm border-2 border-slate-200 flex flex-col justify-between space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold border border-emerald-200">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
                   Live OPD Queue & Token Status
                 </span>
                 <h3 className="text-base font-black text-slate-900">
@@ -282,15 +321,21 @@ const Dashboard = () => {
                 </h3>
               </div>
             </div>
-            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black w-fit">
-              ● Queue Position: #{activeQueue?.queuePosition || 2}
-            </span>
+            {isTokenExpired() ? (
+              <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black border border-amber-300 w-fit">
+                ⚠️ Expired at 11:59 PM
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300 w-fit">
+                ● Queue Position: #{activeQueue?.queuePosition || 2}
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
               <span className="text-[10px] text-slate-500 block uppercase font-bold">Your Token</span>
-              <span className="text-lg font-black font-mono text-emerald-700">
+              <span className={`text-lg font-black font-mono ${isTokenExpired() ? 'text-slate-400 line-through' : 'text-emerald-700'}`}>
                 {activeQueue?.tokenNumber || 'OPD-007'}
               </span>
             </div>
@@ -309,27 +354,48 @@ const Dashboard = () => {
             <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
               <span className="text-[10px] text-slate-500 block uppercase font-bold">Est. Wait</span>
               <span className="text-lg font-black text-emerald-600">
-                {activeQueue?.estimatedWaitTime || '10 mins'}
+                {isTokenExpired() ? 'Expired' : (activeQueue?.estimatedWaitTime || '10 mins')}
               </span>
             </div>
           </div>
 
-          {/* Queue Progress Bar */}
-          <div className="space-y-1.5 pt-2">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-              <span className="flex items-center gap-1.5 text-emerald-700">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Kiosk Check-In Completed
-              </span>
-              <span className="text-slate-400">Next: Doctor Encounter</span>
+          {/* Queue Progress Bar or Expired Re-generate Section */}
+          {isTokenExpired() ? (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-amber-900">
+                  This token was unconsulted and expired at midnight (11:59 PM).
+                </p>
+                <p className="text-[11px] text-amber-800">
+                  Re-generate a token to rejoin today's live OPD queue at the end of the line.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRegenerateToken}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Re-generate Token for Today</span>
+              </button>
             </div>
-            <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
-              <div className="w-3/4 bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full" />
+          ) : (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                <span className="flex items-center gap-1.5 text-emerald-700">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Kiosk Check-In Completed
+                </span>
+                <span className="text-slate-500 font-semibold">Next: Doctor Encounter</span>
+              </div>
+              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+                <div className="w-3/4 bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full" />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-xs text-slate-500 font-medium">
-              Please be near Room 104 when your token is announced.
+              Please be near Room 104 when your token is called.
             </span>
             <button
               type="button"
@@ -341,6 +407,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
 
       {/* ── SECTION 2: PATIENT VITALS COCKPIT ── */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-gray-200 space-y-5">

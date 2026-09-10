@@ -12,6 +12,7 @@ import { CaregiverProvider } from './context/CaregiverContext';
 import Sidebar from './components/Sidebar';
 import DisclaimerBanner from './components/DisclaimerBanner';
 import ThemeToggle from './components/ThemeToggle';
+import Chatbot from './components/Chatbot';
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -260,6 +261,7 @@ const AppLayout = () => {
       </div>
 
       <ThemeToggle />
+      <Chatbot />
     </div>
   );
 };

@@ -282,63 +282,114 @@ const AuthGateway = ({ initialPortal = null }) => {
           {/* Dynamic Headline depending on portal */}
           <div className="space-y-4">
             {activePortal === 'doctor' ? (
-              <>
-                <h3 className="text-3xl sm:text-4xl xl:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-teal-700 via-emerald-600 to-blue-700 leading-[1.15]">
-                  Physician & Doctor <br /> Clinical Cockpit.
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold">
+                  <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Doctor & Clinical Portal</span>
+                </div>
+                <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                  Intelligent <span className="text-teal-700">OPD Cockpit</span> & Clinical CDSS
                 </h3>
-                <p className="text-base text-gray-600 max-w-lg leading-relaxed font-medium">
-                  Real-time OPD triage queue, AI-synthesized SOCRATES pre-consultations, and seamless 10-second AYUSH prescription writing.
-                </p>
-              </>
-            ) : activePortal === 'lab' ? (
-              <>
-                <h3 className="text-3xl sm:text-4xl xl:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-teal-700 via-cyan-600 to-emerald-700 leading-[1.15]">
-                  Diagnostic Lab <br /> Result Workbench.
-                </h3>
-                <p className="text-base text-gray-600 max-w-lg leading-relaxed font-medium">
-                  Enter results for ordered tests, flag critical values, verify sign-off, and push verified results straight into the patient record.
-                </p>
-              </>
-            ) : activePortal === 'admin' ? (
-              <>
-                <h3 className="text-3xl sm:text-4xl xl:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-teal-700 via-emerald-600 to-slate-700 leading-[1.15]">
-                  Hospital Admin & <br /> Operations Console.
-                </h3>
-                <p className="text-base text-gray-600 max-w-lg leading-relaxed font-medium">
-                  Live OPD counters, department toggles, % AI-edited-by-doctor and full audit trail across today's sessions.
-                </p>
-              </>
-            ) : (
-              <div className="space-y-4">
-                <h3 className="text-3xl sm:text-4xl xl:text-5xl font-black text-slate-900 leading-[1.15] tracking-tight">
-                  Solving India's <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600">2-Minute OPD</span> Consultation Bottleneck.
-                </h3>
-                <p className="text-sm sm:text-base text-gray-600 max-w-xl leading-relaxed font-medium">
-                  Public hospital OPDs register <strong>4,000–10,000 patients daily</strong> with consultation times under 2 minutes (BMJ Open 2017). 
-                  <strong> VaidyaSetu</strong> bridges this crisis through multimodal conversational AI (Bhashini ASR), physical document digitization, classical AYUSH Dashavidha Pariksha, and end-to-end ABDM FHIR R4 interoperability.
+                <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
+                  Instant SOCRATES pre-consultation summaries, automated Dashavidha Pariksha, and real-time Herb-Drug Interaction (HDI) pharmacovigilance.
                 </p>
 
-                {/* Proof Point Cards for Judges */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="p-3.5 rounded-2xl bg-white border border-emerald-500/25 shadow-sm">
-                    <div className="text-2xl font-black text-emerald-600 font-mono">75% ↓</div>
-                    <div className="text-xs font-bold text-slate-800 mt-0.5">Intake Time Reduction</div>
-                    <div className="text-[11px] text-slate-500">From 8–12 mins to 90s conversational triage</div>
+                <div className="grid grid-cols-3 gap-2.5 pt-2">
+                  <div className="p-3 rounded-2xl bg-white border border-teal-200 shadow-sm">
+                    <div className="text-base font-extrabold text-teal-700">90-Sec</div>
+                    <div className="text-[11px] font-bold text-slate-700">Triage Summary</div>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-white border border-teal-500/25 shadow-sm">
-                    <div className="text-2xl font-black text-teal-600 font-mono">70–80%</div>
-                    <div className="text-xs font-bold text-slate-800 mt-0.5">Diagnostic Accuracy</div>
-                    <div className="text-[11px] text-slate-500">Pre-consultation SOCRATES case synthesis</div>
+                  <div className="p-3 rounded-2xl bg-white border border-emerald-200 shadow-sm">
+                    <div className="text-base font-extrabold text-emerald-700">IMPPAT 2.0</div>
+                    <div className="text-[11px] font-bold text-slate-700">Herb-Drug Safety</div>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-white border border-blue-500/25 shadow-sm">
-                    <div className="text-2xl font-black text-blue-600 font-mono">3 Languages</div>
-                    <div className="text-xs font-bold text-slate-800 mt-0.5">Voice ASR (Bhashini)</div>
-                    <div className="text-[11px] text-slate-500">Hindi, Marathi & English speech capture</div>
+                  <div className="p-3 rounded-2xl bg-white border border-blue-200 shadow-sm">
+                    <div className="text-base font-extrabold text-blue-700">NAMASTE</div>
+                    <div className="text-[11px] font-bold text-slate-700">Ayush Coding</div>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-white border border-purple-500/25 shadow-sm">
-                    <div className="text-2xl font-black text-purple-600 font-mono">DPDP 2023</div>
-                    <div className="text-xs font-bold text-slate-800 mt-0.5">Zero Retention Ephemeral</div>
-                    <div className="text-[11px] text-slate-500">Session cleared post-consultation submission</div>
+                </div>
+              </div>
+            ) : activePortal === 'lab' ? (
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-bold">
+                  <TestTubes className="w-3.5 h-3.5 text-cyan-600" />
+                  <span>Central Diagnostic Laboratory</span>
+                </div>
+                <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                  Laboratory <span className="text-cyan-700">Result Workbench</span> & Verification
+                </h3>
+                <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
+                  Process investigations with automated reference ranges, flag critical values instantly, and sync verified lab reports into patient ABDM records.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2.5 pt-2">
+                  <div className="p-3 rounded-2xl bg-white border border-cyan-200 shadow-sm">
+                    <div className="text-base font-extrabold text-cyan-700">Fast Entry</div>
+                    <div className="text-[11px] font-bold text-slate-700">Queue Processing</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white border border-amber-200 shadow-sm">
+                    <div className="text-base font-extrabold text-amber-700">Auto-Flags</div>
+                    <div className="text-[11px] font-bold text-slate-700">Critical Ranges</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white border border-emerald-200 shadow-sm">
+                    <div className="text-base font-extrabold text-emerald-700">ABDM Sync</div>
+                    <div className="text-[11px] font-bold text-slate-700">FHIR Records</div>
+                  </div>
+                </div>
+              </div>
+            ) : activePortal === 'admin' ? (
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold">
+                  <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Hospital Administration</span>
+                </div>
+                <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                  OPD Operations & <span className="text-indigo-700">Governance Console</span>
+                </h3>
+                <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
+                  Live hospital OPD counters, queue analytics, department load balancing, and comprehensive audit logs across all clinical consultations.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2.5 pt-2">
+                  <div className="p-3 rounded-2xl bg-white border border-indigo-200 shadow-sm">
+                    <div className="text-base font-extrabold text-indigo-700">Live OPD</div>
+                    <div className="text-[11px] font-bold text-slate-700">Real-Time Flow</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white border border-teal-200 shadow-sm">
+                    <div className="text-base font-extrabold text-teal-700">Analytics</div>
+                    <div className="text-[11px] font-bold text-slate-700">Doctor AI Edits</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                    <div className="text-base font-extrabold text-slate-700">Audit Trail</div>
+                    <div className="text-[11px] font-bold text-slate-700">DPDP Compliant</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                  <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Patient Health Portal</span>
+                </div>
+                <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                  Fast-Track <span className="text-emerald-700">Digital OPD Intake</span> & Vitals
+                </h3>
+                <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed font-medium">
+                  Complete your intake in 90 seconds using trilingual voice or MediKiosk. Connect Google Fit, Apple Health, or smartwatches for effortless vital tracking.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2.5 pt-2">
+                  <div className="p-3 rounded-2xl bg-white border border-emerald-200 shadow-sm">
+                    <div className="text-base font-extrabold text-emerald-700">90s Intake</div>
+                    <div className="text-[11px] font-bold text-slate-700">Voice & Kiosk</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white border border-teal-200 shadow-sm">
+                    <div className="text-base font-extrabold text-teal-700">3 Languages</div>
+                    <div className="text-[11px] font-bold text-slate-700">EN • हिन्दी • मराठी</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white border border-blue-200 shadow-sm">
+                    <div className="text-base font-extrabold text-blue-700">ABHA & Wearables</div>
+                    <div className="text-[11px] font-bold text-slate-700">Auto Vitals Sync</div>
                   </div>
                 </div>
               </div>
@@ -346,14 +397,14 @@ const AuthGateway = ({ initialPortal = null }) => {
           </div>
 
           {/* Feature Badges */}
-          <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex flex-wrap gap-2 pt-1">
             {(activePortal === 'doctor'
               ? ['Live OPD Queue', 'AYUSH NAMASTE & ICD-11', 'Herb-Drug Guard', 'ABDM FHIR R4']
               : activePortal === 'lab'
               ? ['Critical Result Flagging', 'Verified Sign-off', 'Slide to Patient Record', 'Order Workflow']
               : activePortal === 'admin'
               ? ['Live OPD Counters', 'Department Toggles', 'AI-Edit Audit', 'Critical Lab Visibility']
-              : ['ABDM 14-Digit ABHA', 'Bhashini Voice AI', 'DPDP Act 2023 Compliant', 'FHIR Interoperable']
+              : ['14-Digit ABHA Link', 'Google Fit & Wearable Sync', 'Herb-Drug Safety Bridge', 'DPDP 2023 Compliant']
             ).map((feature) => (
               <span
                 key={feature}
