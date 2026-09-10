@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const multer = require('multer');
 const Document = require('../models/Document');
 const OCRExtraction = require('../models/OCRExtraction');
@@ -189,8 +190,12 @@ router.get('/patient/:patientId/timeline', async (req, res) => {
   try {
     const { patientId } = req.params;
     let query = {};
-    if (patientId.match(/^[0-9a-fA-F]{24}$/)) {
-      query.patientId = patientId;
+    if (patientId) {
+      if (mongoose.Types.ObjectId.isValid(patientId)) {
+        query.patientId = { $in: [patientId, new mongoose.Types.ObjectId(patientId)] };
+      } else {
+        query.patientId = patientId;
+      }
     }
 
     const FollowUp = require('../models/FollowUp');

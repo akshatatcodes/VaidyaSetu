@@ -34,15 +34,19 @@ router.post('/check-access', async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'doctorId and patientId are required' });
     }
 
+    const patientQuery = mongoose.Types.ObjectId.isValid(patientId)
+      ? { $in: [patientId, new mongoose.Types.ObjectId(patientId)] }
+      : patientId;
+
     // Check active encounter assignment
     const activeEncounter = await Encounter.findOne({
-      patientId: mongoose.Types.ObjectId.isValid(patientId) ? patientId : null,
+      patientId: patientQuery,
       status: { $in: ['opened', 'in_consultation', 'lab_pending', 'doctor_review'] }
     });
 
     // Check explicit consent
     const consent = await Consent.findOne({
-      patientId: mongoose.Types.ObjectId.isValid(patientId) ? patientId : null,
+      patientId: patientQuery,
       status: 'active'
     });
 
@@ -101,18 +105,22 @@ router.delete('/patients/:patientId/cascade-delete', async (req, res) => {
       reason: 'DPDP Right to Erasure request'
     });
 
+    const queryPid = mongoose.Types.ObjectId.isValid(patientId)
+      ? { $in: [patientId, new mongoose.Types.ObjectId(patientId)] }
+      : patientId;
+
     const results = await Promise.all([
       Patient.findByIdAndDelete(patientId),
-      Encounter.deleteMany({ patientId }),
-      History.deleteMany({ patientId }),
-      Vital.deleteMany({ patientId }),
-      LabResult.deleteMany({ patientId }),
-      Document.deleteMany({ patientId }),
-      Medication.deleteMany({ patientId }),
-      Symptom.deleteMany({ patientId }),
-      FollowUp.deleteMany({ patientId }),
-      Referral.deleteMany({ patientId }),
-      Consent.deleteMany({ patientId })
+      Encounter.deleteMany({ patientId: queryPid }),
+      History.deleteMany({ patientId: queryPid }),
+      Vital.deleteMany({ patientId: queryPid }),
+      LabResult.deleteMany({ patientId: queryPid }),
+      Document.deleteMany({ patientId: queryPid }),
+      Medication.deleteMany({ patientId: queryPid }),
+      Symptom.deleteMany({ patientId: queryPid }),
+      FollowUp.deleteMany({ patientId: queryPid }),
+      Referral.deleteMany({ patientId: queryPid }),
+      Consent.deleteMany({ patientId: queryPid })
     ]);
 
     return res.json({

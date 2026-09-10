@@ -107,23 +107,24 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
         {/* Consultation Stream & Dosha Badges */}
         <div className="flex flex-wrap items-center gap-2">
           {consultationStream === 'ayurvedic' ? (
-            <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-xs font-black flex items-center gap-1.5 shadow-sm">
-              🌿 Ayurvedic OPD (AIIA)
-            </div>
+            <>
+              <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-xs font-black flex items-center gap-1.5 shadow-sm">
+                🌿 Ayurvedic OPD (AIIA)
+              </div>
+              {dasha.prakriti && (
+                <div className="px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30 text-xs font-black">
+                  Prakriti: {dasha.prakriti?.primaryDosha || dasha.prakriti || 'Vata-Pitta'}
+                </div>
+              )}
+              {dasha.agni && (
+                <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-black">
+                  Agni: {dasha.agni}
+                </div>
+              )}
+            </>
           ) : (
             <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/40 text-xs font-black flex items-center gap-1.5 shadow-sm">
               💊 Allopathy General OPD
-            </div>
-          )}
-
-          {dasha.prakriti && (
-            <div className="px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30 text-xs font-black">
-              Prakriti: {dasha.prakriti?.primaryDosha || dasha.prakriti || 'Vata-Pitta'}
-            </div>
-          )}
-          {dasha.agni && (
-            <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-black">
-              Agni: {dasha.agni}
             </div>
           )}
         </div>
@@ -435,180 +436,182 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
         </div>
       )}
 
-      {/* 5. AYUSH CLASSICAL PARIKSHA DOSSIER (TRIVIDHA, ASHTAVIDHA, DASHAVIDHA) */}
-      <div className="p-5 rounded-3xl bg-white dark:bg-slate-800/80 border border-emerald-500/25 shadow-md space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-emerald-500" />
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
-              AYUSH Classical Clinical Examination (Pariksha Findings)
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowParikshaDetails(!showParikshaDetails)}
-            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-          >
-            {showParikshaDetails ? 'Collapse' : 'Expand'}
-            {showParikshaDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {showParikshaDetails && (
-          <div className="space-y-4 pt-1">
-            {/* Pariksha Mode Tabs */}
-            <div className="flex flex-wrap gap-2 p-1 rounded-2xl bg-slate-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-black">
-              <button
-                type="button"
-                onClick={() => setActiveParikshaTab('trividha')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  activeParikshaTab === 'trividha'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
-                }`}
-              >
-                🌿 Trividha (त्रिविध)
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveParikshaTab('ashtavidha')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  activeParikshaTab === 'ashtavidha'
-                    ? 'bg-teal-600 text-white shadow-sm'
-                    : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
-                }`}
-              >
-                🔍 Ashtavidha (अष्टविध)
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveParikshaTab('dashavidha')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  activeParikshaTab === 'dashavidha'
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
-                }`}
-              >
-                ⚖️ Dashavidha (दशविध)
-              </button>
+      {/* 5. AYUSH CLASSICAL PARIKSHA DOSSIER (TRIVIDHA, ASHTAVIDHA, DASHAVIDHA) - Only rendered for Ayurvedic department */}
+      {consultationStream === 'ayurvedic' && (
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-800/80 border border-emerald-500/25 shadow-md space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Compass className="w-4 h-4 text-emerald-500" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                AYUSH Classical Clinical Examination (Pariksha Findings)
+              </h3>
             </div>
-
-            {/* TAB 1: TRIVIDHA */}
-            {activeParikshaTab === 'trividha' && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black uppercase text-gray-500 block mb-1">
-                    १. दर्शन (Darshana - Visual Inspection)
-                  </span>
-                  <p className="font-bold text-slate-800 dark:text-gray-200">
-                    {trividha.darshana || 'प्राकृत (Normal complexion & clear sclera)'}
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black uppercase text-gray-500 block mb-1">
-                    २. स्पर्शन (Sparshana - Tactile/Heat)
-                  </span>
-                  <p className="font-bold text-slate-800 dark:text-gray-200">
-                    {trividha.sparshana || 'समशीतोष्ण (Normal tactile temperature)'}
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black uppercase text-gray-500 block mb-1">
-                    ३. प्रश्न (Prashna - Clinical Interrogation)
-                  </span>
-                  <p className="font-bold text-slate-800 dark:text-gray-200">
-                    {trividha.prashna || 'दाह / जलन (Retrosternal burning sensation)'}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: ASHTAVIDHA */}
-            {activeParikshaTab === 'ashtavidha' && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">१. नाड़ी (Nadi)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.nadi || 'मण्डूक गति (Pitta - Jumping)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">२. जिह्वा (Jihwa)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.jihwa || 'साम (White-coated / Aama)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">३. मल (Mala)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.mala || 'बद्ध (Hard / Constipated)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">४. मूत्र (Mootra)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.mootra || 'रक्त-पीत (Burning / Yellow)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">५. शब्द (Shabda)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.shabda || 'स्पष्ट (Natural Voice)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">६. स्पर्श (Sparsha)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.sparsha || 'उष्ण (Warm / Feverish)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">७. दृक् (Drik)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.drik || 'स्पष्ट (Clear Eyes)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">८. आकृति (Akruti)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {ashtavidha.akruti || 'मध्यम (Medium Balanced)'}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: DASHAVIDHA */}
-            {activeParikshaTab === 'dashavidha' && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">१. प्रकृति (Prakriti)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {dasha.prakriti?.primaryDosha || dasha.prakriti || 'Pitta-Vata'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">२. अग्नि (Agni)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {dasha.agni || 'Tikshnagni (तीक्ष्णाग्नि)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">३. कोष्ठ (Koshtha)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {dasha.koshtha || 'Krura (क्रूर कोष्ठ)'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase">४. सत्व (Satva)</span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
-                    {dasha.satva || 'Madhyama (मध्यम)'}
-                  </span>
-                </div>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowParikshaDetails(!showParikshaDetails)}
+              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+            >
+              {showParikshaDetails ? 'Collapse' : 'Expand'}
+              {showParikshaDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
           </div>
-        )}
-      </div>
+
+          {showParikshaDetails && (
+            <div className="space-y-4 pt-1">
+              {/* Pariksha Mode Tabs */}
+              <div className="flex flex-wrap gap-2 p-1 rounded-2xl bg-slate-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-black">
+                <button
+                  type="button"
+                  onClick={() => setActiveParikshaTab('trividha')}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                    activeParikshaTab === 'trividha'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  🌿 Trividha (त्रिविध)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveParikshaTab('ashtavidha')}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                    activeParikshaTab === 'ashtavidha'
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  🔍 Ashtavidha (अष्टविध)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveParikshaTab('dashavidha')}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                    activeParikshaTab === 'dashavidha'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  ⚖️ Dashavidha (दशविध)
+                </button>
+              </div>
+
+              {/* TAB 1: TRIVIDHA */}
+              {activeParikshaTab === 'trividha' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black uppercase text-gray-500 block mb-1">
+                      १. दर्शन (Darshana - Visual Inspection)
+                    </span>
+                    <p className="font-bold text-slate-800 dark:text-gray-200">
+                      {trividha.darshana || 'प्राकृत (Normal complexion & clear sclera)'}
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black uppercase text-gray-500 block mb-1">
+                      २. स्पर्शन (Sparshana - Tactile/Heat)
+                    </span>
+                    <p className="font-bold text-slate-800 dark:text-gray-200">
+                      {trividha.sparshana || 'समशीतोष्ण (Normal tactile temperature)'}
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black uppercase text-gray-500 block mb-1">
+                      ३. प्रश्न (Prashna - Clinical Interrogation)
+                    </span>
+                    <p className="font-bold text-slate-800 dark:text-gray-200">
+                      {trividha.prashna || 'दाह / जलन (Retrosternal burning sensation)'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: ASHTAVIDHA */}
+              {activeParikshaTab === 'ashtavidha' && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">१. नाड़ी (Nadi)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.nadi || 'मण्डूक गति (Pitta - Jumping)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">२. जिह्वा (Jihwa)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.jihwa || 'साम (White-coated / Aama)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">३. मल (Mala)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.mala || 'बद्ध (Hard / Constipated)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">४. मूत्र (Mootra)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.mootra || 'रक्त-पीत (Burning / Yellow)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">५. शब्द (Shabda)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.shabda || 'स्पष्ट (Natural Voice)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">६. स्पर्श (Sparsha)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.sparsha || 'उष्ण (Warm / Feverish)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">७. दृक् (Drik)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.drik || 'स्पष्ट (Clear Eyes)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">८. आकृति (Akruti)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {ashtavidha.akruti || 'मध्यम (Medium Balanced)'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: DASHAVIDHA */}
+              {activeParikshaTab === 'dashavidha' && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">१. प्रकृति (Prakriti)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {dasha.prakriti?.primaryDosha || dasha.prakriti || 'Pitta-Vata'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">२. अग्नि (Agni)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {dasha.agni || 'Tikshnagni (तीक्ष्णाग्नि)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">३. कोष्ठ (Koshtha)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {dasha.koshtha || 'Krura (क्रूर कोष्ठ)'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-400 block uppercase">४. सत्व (Satva)</span>
+                    <span className="font-bold text-slate-800 dark:text-gray-200 mt-0.5 block">
+                      {dasha.satva || 'Madhyama (मध्यम)'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 6. VITALS TELEMETRY STRIP */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

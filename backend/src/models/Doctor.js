@@ -117,19 +117,31 @@ const DoctorSchema = new mongoose.Schema({
   hospital: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Hospital',
-    required: true,
+    required: false,
     index: true
   },
   /** Primary department. Cross-department work goes in `additionalDepartments`. */
   department: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department',
-    required: true,
+    required: false,
     index: true
   },
   additionalDepartments: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Department' }],
     default: []
+  },
+
+  hospitalName: { type: String, trim: true, default: 'All India Institute of Ayurveda (AIIA)' },
+  departmentName: { type: String, trim: true, default: 'Department of Kayachikitsa' },
+  roomNumber: { type: String, trim: true, default: 'OPD Room 104' },
+  consultationTimings: { type: String, trim: true, default: '09:00 AM - 02:00 PM (Mon - Sat)' },
+  availableAppointmentSlots: { type: String, trim: true, default: '15 mins / slot • Max 25 patients / day' },
+
+  professionalDetails: {
+    registrationNumber: { type: String, trim: true, default: 'AIIA-2024-8891' },
+    registrationCouncil: { type: String, trim: true, default: 'Delhi Bharatiya Chikitsa Parishad' },
+    bio: { type: String, trim: true, default: 'Senior Consultant Physician specializing in gastro-metabolic & musculoskeletal disorders.' }
   },
 
   fullName: { type: String, required: true, trim: true },
