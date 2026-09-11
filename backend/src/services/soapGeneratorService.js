@@ -338,7 +338,7 @@ Return JSON ONLY:
 
       const completion = await groq.chat.completions.create({
         messages: [{ role: 'system', content: prompt }],
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama3-70b-8192',
         response_format: { type: 'json_object' }
       });
 
@@ -375,10 +375,95 @@ Return JSON ONLY:
   };
 }
 
+/**
+ * Build a plain-language handover summary for the doctor's cockpit.
+ *
+ * This is deliberately deterministic — no LLM call — so the doctor ALWAYS gets a
+ * real summary of what the patient actually entered at the kiosk, even with no
+ * network or no API key. It only states facts present on the encounter; it never
+ * invents clinical findings.
+ */
+function buildAiSummary(session = {}) {
+  const {
+    patientName, age, gender, chiefComplaint, socrates = {}, vitals = {},
+    allergies = [], consultationType, department, visitMode,
+    dashavidhaPariksha = {}, redFlags = [], documents = []
+  } = session;
+
+  const who = [
+    patientName || 'Patient',
+    age ? `${age}y` : null,
+    gender || null
+  ].filter(Boolean).join(', ');
+
+  const parts = [];
+
+  // Opening line: who, and why they are here.
+  parts.push(
+    `${who} presented via ${visitMode === 'home' ? 'home pre-registration' : 'the OPD kiosk'}` +
+    `${department ? ` for ${department}` : ''}` +
+    `${consultationType ? ` (${consultationType === 'ayurvedic' ? 'Ayurvedic' : 'Allopathic'} stream)` : ''}.`
+  );
+
+  if (chiefComplaint) {
+    parts.push(`Chief complaint: ${chiefComplaint}.`);
+  }
+
+  // SOCRATES — only mention dimensions the patient actually answered.
+  const soc = [];
+  if (socrates.site) soc.push(`site: ${socrates.site}`);
+  if (socrates.onset) soc.push(`onset: ${socrates.onset}`);
+  if (socrates.character) soc.push(`character: ${socrates.character}`);
+  if (socrates.severity) soc.push(`severity: ${socrates.severity}/10`);
+  if (socrates.radiation) soc.push(`radiation: ${socrates.radiation}`);
+  if (Array.isArray(socrates.associations) && socrates.associations.length) {
+    soc.push(`associated: ${socrates.associations.join(', ')}`);
+  }
+  if (soc.length) parts.push(`Symptom profile — ${soc.join('; ')}.`);
+
+  // Vitals — only those recorded.
+  const v = [];
+  if (vitals.systolicBP && vitals.diastolicBP) v.push(`BP ${vitals.systolicBP}/${vitals.diastolicBP} mmHg`);
+  if (vitals.heartRate) v.push(`HR ${vitals.heartRate} bpm`);
+  if (vitals.spo2) v.push(`SpO2 ${vitals.spo2}%`);
+  if (vitals.temperature) v.push(`Temp ${vitals.temperature}°F`);
+  if (v.length) parts.push(`Vitals recorded at kiosk: ${v.join(', ')}.`);
+  else parts.push('No vitals were recorded at the kiosk (station skipped).');
+
+  // Ayurvedic constitution, when the patient chose that stream and filled it.
+  if (consultationType === 'ayurvedic') {
+    const a = [];
+    if (dashavidhaPariksha.prakriti) a.push(`Prakriti: ${dashavidhaPariksha.prakriti}`);
+    if (dashavidhaPariksha.agni) a.push(`Agni: ${dashavidhaPariksha.agni}`);
+    if (dashavidhaPariksha.koshtha) a.push(`Koshtha: ${dashavidhaPariksha.koshtha}`);
+    if (a.length) parts.push(`Dashavidha Pariksha — ${a.join('; ')}.`);
+    else parts.push('Ayurvedic constitution not self-reported; assess Nadi and Prakriti at examination.');
+  }
+
+  // Allergies are safety-critical — always state explicitly, including the negative.
+  if (allergies.length) {
+    parts.push(`⚠ Known allergies: ${allergies.join(', ')}.`);
+  } else {
+    parts.push('No allergies reported by the patient.');
+  }
+
+  if (documents.length) {
+    parts.push(`${documents.length} document(s) uploaded at intake for review.`);
+  }
+
+  if (redFlags.length) {
+    const flags = redFlags.map(f => f.flag || f).join('; ');
+    parts.push(`🚩 Red flags detected: ${flags}.`);
+  }
+
+  return parts.join(' ');
+}
+
 module.exports = {
   CLINICAL_DIAGNOSIS_CATALOG,
   findDiagnosticMatches,
   buildStandardClinicalSummary,
+  buildAiSummary,
   generateSoapCaseSheet
 };
 

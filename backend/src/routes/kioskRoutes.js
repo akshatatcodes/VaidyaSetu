@@ -8,7 +8,7 @@ const { evaluateRiskScore } = require('../ai/riskEngine');
 const { suggestDepartment } = require('../ai/routingService');
 const { runSummaryPipeline } = require('../ai/summaryAiService');
 const { processAdaptiveProbe, detectRedFlags } = require('../services/adaptiveSocratesService');
-const { generateSoapCaseSheet } = require('../services/soapGeneratorService');
+const { generateSoapCaseSheet, buildAiSummary } = require('../services/soapGeneratorService');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 
 /**
@@ -579,6 +579,7 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
 
     // Record patient speech in transcript if session exists
     if (session && userSpeech) {
+      if (!Array.isArray(session.intakeTranscript)) session.intakeTranscript = [];
       session.intakeTranscript.push({
         speaker: 'patient',
         text: userSpeech,
@@ -598,7 +599,8 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
       patientContext: {
         age: session?.age || age,
         gender: session?.gender || gender
-      }
+      },
+      consultationType: session?.consultationType || req.body.consultationType || 'allopathy'
     });
 
     if (session) {
@@ -619,13 +621,20 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
       // Update session SOCRATES fields
       session.socrates = probeResult.socrates;
 
-      // Auto-update department if inferred by AI and not manually overridden
-      if (probeResult.inferredDepartment && probeResult.inferredDepartment.department) {
-        session.department = probeResult.inferredDepartment.department;
+      // Always record what the AI thinks, so the kiosk can show a suggestion.
+      if (probeResult.inferredDepartment?.department) {
+        session.inferredDepartment = probeResult.inferredDepartment;
+
+        // Only auto-apply when the patient has NOT manually chosen a department.
+        // Previously this overwrote the patient's explicit choice on every probe.
+        if (!session.departmentManuallySet) {
+          session.department = probeResult.inferredDepartment.department;
+        }
       }
 
       // Record next question in transcript
       if (probeResult.nextQuestion) {
+        if (!Array.isArray(session.intakeTranscript)) session.intakeTranscript = [];
         session.intakeTranscript.push({
           speaker: 'kiosk',
           text: probeResult.nextQuestion,
@@ -689,6 +698,65 @@ router.post('/session/:id/socrates-probe', async (req, res) => {
 });
 
 /**
+ * 4A. PATCH /api/kiosk/session/:id/care-pathway
+ * Records the patient's care-stream choice made on kiosk Step 2:
+ *   - consultationType: 'allopathy' | 'ayurvedic'
+ *   - visitMode: 'kiosk' | 'home'
+ * When visiting from home the patient also picks hospital / department / doctor up front.
+ */
+router.patch('/session/:id/care-pathway', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      consultationType,
+      visitMode,
+      preferredHospital,
+      preferredDoctor,
+      preferredDoctorId,
+      department
+    } = req.body;
+
+    const session = await findSession(id);
+    if (!session) {
+      return res.status(404).json({ status: 'error', message: 'Intake session not found' });
+    }
+
+    if (consultationType === 'allopathy' || consultationType === 'ayurvedic') {
+      session.consultationType = consultationType;
+    }
+    if (visitMode === 'kiosk' || visitMode === 'home') {
+      session.visitMode = visitMode;
+    }
+    if (preferredHospital) session.preferredHospital = preferredHospital;
+    if (preferredDoctor) session.preferredDoctor = preferredDoctor;
+    if (preferredDoctorId) session.preferredDoctorId = preferredDoctorId;
+
+    // A department chosen here is an explicit human choice — protect it from AI overwrite.
+    if (department) {
+      session.department = department;
+      session.departmentManuallySet = true;
+    }
+
+    await session.save();
+
+    res.json({
+      status: 'success',
+      message: 'Care pathway recorded',
+      data: {
+        consultationType: session.consultationType,
+        visitMode: session.visitMode,
+        preferredHospital: session.preferredHospital,
+        preferredDoctor: session.preferredDoctor,
+        department: session.department
+      }
+    });
+  } catch (error) {
+    console.error('[KioskRoutes] Care pathway error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
  * 4B. PATCH /api/kiosk/session/:id/department
  * Explicitly update or override the consultation department
  */
@@ -704,6 +772,8 @@ router.patch('/session/:id/department', async (req, res) => {
 
     if (department) {
       session.department = department;
+      // Mark as human-chosen so subsequent AI probes do not overwrite it.
+      session.departmentManuallySet = true;
       await session.save();
     }
 
@@ -919,6 +989,10 @@ const handleGenerateSoap = async (req, res) => {
     }
     session.diagnoses = result.diagnoses;
 
+    // Plain-language handover summary for the doctor cockpit (§ AI summary).
+    // Deterministic, so it is always present even when the LLM is unavailable.
+    session.aiSummary = buildAiSummary(session.toObject ? session.toObject() : session);
+
     // Cross-system Herb-Drug Safety check
     const plannedAyushMeds = (session.soapNote?.plan?.ayurvedicMeds || []).map(m => m.name);
     const existingPatientMeds = (session.ocrPrescriptions || []).flatMap(p => (p.extractedMedicines || []).map(m => m.name));
@@ -957,9 +1031,21 @@ const handleGenerateSoap = async (req, res) => {
       data: {
         soapNote: session.soapNote,
         clinicalSummary: session.clinicalSummary,
+        aiSummary: session.aiSummary,
         diagnoses: session.diagnoses,
         interactionAlerts: session.interactionAlerts,
         tokenNumber: session.tokenNumber,
+        department: session.department,
+        consultationType: session.consultationType,
+        patientName: session.patientName,
+        age: session.age,
+        gender: session.gender,
+        abhaId: session.abhaId,
+        allergies: session.allergies,
+        vitals: session.vitals,
+        socrates: session.socrates,
+        chiefComplaint: session.chiefComplaint,
+        redFlags: session.redFlags,
         queueStatus: session.queueStatus
       }
     });
@@ -1062,7 +1148,12 @@ const handleApproveSession = async (req, res) => {
       finalDiagnosis,
       approvedPlan,
       prescribedAllopathicMeds,
-      prescribedAyurvedicMeds
+      prescribedAyurvedicMeds,
+      // Previously destructured nowhere — the doctor's actual decisions were
+      // silently discarded on every sign-off.
+      investigationOrders,
+      followUpDecision,
+      referral
     } = req.body;
 
     const session = await findSession(id);
@@ -1100,15 +1191,133 @@ const handleApproveSession = async (req, res) => {
       reviewedAt: new Date(),
       approved: true
     };
+    if (doctorNotes) session.doctorNotes = doctorNotes;
 
-    session.queueStatus = 'completed';
+    // ── Persist the doctor's outcome decisions ──
+    if (Array.isArray(investigationOrders)) {
+      session.investigationOrders = investigationOrders;
+    }
+    if (referral && Object.keys(referral).length) {
+      session.referral = referral;
+    }
+    if (followUpDecision && Object.keys(followUpDecision).length) {
+      session.followUpDecision = followUpDecision;
+    }
+
+    // ── Outcome routing (§ continuity) ──
+    // The encounter's terminal state depends on what the doctor decided:
+    //   labs ordered   → awaiting lab results, patient stays in the loop
+    //   follow-up set  → scheduled to return
+    //   otherwise      → closed out
+    //
+    // NOTE: lab routing is driven by whether tests were actually ordered, NOT by
+    // the follow-up choice. 'after_lab' is the selector's default value, so keying
+    // off it sent every patient whose doctor never touched the selector to a lab
+    // queue with zero tests attached.
+    const hasLabs = Array.isArray(investigationOrders) && investigationOrders.length > 0;
+    const followChoice = followUpDecision?.choice;
+    const isTerminal = !followChoice || followChoice === 'discharge' || followChoice === 'sos';
+
+    if (hasLabs) {
+      session.queueStatus = 'awaiting_lab';
+      session.status = 'lab_pending';
+    } else if (!isTerminal) {
+      session.queueStatus = 'followup_scheduled';
+      session.status = 'followup_pending';
+
+      // Date the appointment. 'fixed_date' uses the date the doctor picked;
+      // everything else falls back to the standard 2-day OPD review window.
+      if (!followUpDecision.scheduledDate) {
+        let scheduled;
+        if (followChoice === 'fixed_date' && followUpDecision.date) {
+          scheduled = new Date(followUpDecision.date);
+        }
+        if (!scheduled || Number.isNaN(scheduled.getTime())) {
+          const days = Number(followUpDecision.afterDays) || 2;
+          scheduled = new Date();
+          scheduled.setDate(scheduled.getDate() + days);
+          followUpDecision.afterDays = days;
+        }
+        session.followUpDecision = {
+          ...followUpDecision,
+          scheduledDate: scheduled
+        };
+      }
+    } else {
+      session.queueStatus = 'completed';
+      session.status = 'completed';
+      session.closedAt = new Date();
+    }
 
     await session.save();
+
+    // ── Send the patient to the lab with a NEW token ──
+    // The doctor's order list only lives on the encounter; the lab bench reads
+    // InvestigationOrder. Create the real rows here so the order actually arrives,
+    // and mint one fresh LAB- token for the whole visit (not one per test).
+    let labToken = null;
+    if (hasLabs) {
+      try {
+        const InvestigationOrder = require('../models/InvestigationOrder');
+        labToken = await InvestigationOrder.generateLabToken();
+
+        const created = await Promise.all(investigationOrders.map(order => {
+          const testName = typeof order === 'string' ? order : (order.testName || order.name);
+          if (!testName) return null;
+          const urgency = (typeof order === 'object' && (order.urgency || order.priority)) || 'routine';
+          return InvestigationOrder.create({
+            encounterId: session._id,
+            patientId: session.patientId || session.abhaId || null,
+            doctorId: doctorId || session.assignedDoctorId || null,
+            testName,
+            labTokenNumber: labToken,
+            tokenNumber: session.tokenNumber,
+            patientName: session.patientName || '',
+            age: Number(session.age) || undefined,
+            gender: session.gender || '',
+            department: session.department || '',
+            doctorName: doctorName || session.assignedDoctor || '',
+            section: (typeof order === 'object' && order.section) || 'Pathology',
+            clinicalNotes: (typeof order === 'object' && order.clinicalNotes) || '',
+            priority: urgency,
+            critical: urgency === 'stat',
+            status: 'ordered',
+            qrPayload: `LAB-ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+          });
+        }).filter(Boolean));
+
+        // Mirror onto the encounter so the patient's own timeline shows the lab leg.
+        session.labOrders = created.map(o => ({
+          testName: o.testName,
+          labTokenNumber: o.labTokenNumber,
+          status: o.status,
+          urgency: o.priority,
+          critical: o.critical,
+          section: o.section,
+          orderedAt: o.orderedAt,
+          investigationOrderId: o._id
+        }));
+        session.labTokenNumber = labToken;
+        await session.save();
+      } catch (labErr) {
+        // A lab-dispatch failure must not void a signed case sheet.
+        console.error('[KioskRoutes] Lab order dispatch failed:', labErr.message);
+      }
+    }
 
     res.json({
       status: 'success',
       message: 'Case Sheet approved and digitally signed by physician',
-      data: session
+      data: {
+        encounterId: session._id,
+        tokenNumber: session.tokenNumber,
+        labTokenNumber: labToken,
+        queueStatus: session.queueStatus,
+        status: session.status,
+        followUpDecision: session.followUpDecision,
+        investigationOrders: session.investigationOrders,
+        closedAt: session.closedAt
+      }
     });
   } catch (error) {
     console.error('[KioskRoutes] Approve session error:', error);

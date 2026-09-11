@@ -25,20 +25,44 @@ const Patient = require('../models/Patient');
  */
 router.post('/orders', async (req, res) => {
   try {
-    const { encounterId, patientId, doctorId, testName, priority = 'routine' } = req.body;
+    const {
+      encounterId, patientId, doctorId, testName,
+      priority = 'routine', urgency,
+      patientName, age, gender, department, doctorName,
+      section, clinicalNotes, critical = false,
+      tokenNumber
+    } = req.body;
 
-    if (!patientId || !testName) {
-      return res.status(400).json({ status: 'error', message: 'patientId and testName are required' });
+    if (!testName) {
+      return res.status(400).json({ status: 'error', message: 'testName is required' });
+    }
+
+    // Pull the patient context off the encounter so the lab bench can identify the
+    // specimen without the doctor UI having to send everything.
+    let encounter = null;
+    if (encounterId && mongoose.Types.ObjectId.isValid(encounterId)) {
+      encounter = await Encounter.findById(encounterId).lean();
     }
 
     const qrPayload = `LAB-ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const labTokenNumber = await InvestigationOrder.generateLabToken();
 
     const order = await InvestigationOrder.create({
-      encounterId: encounterId && mongoose.Types.ObjectId.isValid(encounterId) ? encounterId : new mongoose.Types.ObjectId(),
-      patientId,
-      doctorId: doctorId && mongoose.Types.ObjectId.isValid(doctorId) ? doctorId : new mongoose.Types.ObjectId(),
+      encounterId: encounterId || null,
+      patientId: patientId || encounter?.patientId || encounter?.abhaId || null,
+      doctorId: doctorId || encounter?.assignedDoctorId || null,
       testName,
-      priority,
+      labTokenNumber,
+      tokenNumber: tokenNumber || encounter?.tokenNumber || labTokenNumber,
+      patientName: patientName || encounter?.patientName || '',
+      age: Number(age ?? encounter?.age) || undefined,
+      gender: gender || encounter?.gender || '',
+      department: department || encounter?.department || '',
+      doctorName: doctorName || encounter?.assignedDoctor || '',
+      section: section || 'Pathology',
+      clinicalNotes: clinicalNotes || '',
+      critical: Boolean(critical) || priority === 'stat' || urgency === 'stat',
+      priority: urgency || priority,
       status: 'ordered',
       qrPayload
     });
@@ -49,6 +73,80 @@ router.post('/orders', async (req, res) => {
     return res.status(500).json({ status: 'error', message: error.message });
   }
 });
+
+/**
+ * 1b. PATCH /api/lab/orders/:orderId/status
+ * Lab bench status advance. Accepts either a real InvestigationOrder _id or the
+ * demo composite id "<encounterId>_<index>" used by Encounter.labOrders.
+ */
+router.patch('/orders/:orderId/status', handleOrderStatus);
+// The lab dashboard sends /orders/<sessionId>/<orderId>/status. Accept that shape too
+// so the bench buttons work without a frontend change.
+router.patch('/orders/:sessionId/:orderId/status', handleOrderStatus);
+
+async function handleOrderStatus(req, res) {
+  try {
+    const { orderId } = req.params;
+    const { status, technicianId = 'Lab Technician' } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ status: 'error', message: 'status is required' });
+    }
+
+    const stamp = {
+      collected: 'collectedAt',
+      resulted: 'resultedAt',
+      verified: 'verifiedAt'
+    }[status];
+
+    if (mongoose.Types.ObjectId.isValid(orderId)) {
+      const order = await InvestigationOrder.findById(orderId);
+      if (order) {
+        order.status = status;
+        if (stamp) order[stamp] = new Date();
+        await order.save();
+
+        if (status === 'collected') {
+          const existing = await LabSample.findOne({ investigationOrderId: order._id });
+          if (!existing) {
+            await LabSample.create({
+              investigationOrderId: order._id,
+              patientId: order.patientId,
+              sampleId: `SMP-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+              collectedBy: technicianId,
+              status: 'collected'
+            });
+          }
+        }
+
+        return res.json({ status: 'success', message: `Order marked ${status}.`, data: order });
+      }
+    }
+
+    // Demo composite id: "<encounterId>_<index>"
+    const [encId, idxRaw] = String(orderId).split('_');
+    const idx = Number(idxRaw);
+    if (encId && mongoose.Types.ObjectId.isValid(encId) && Number.isInteger(idx)) {
+      const encounter = await Encounter.findById(encId);
+      if (encounter && Array.isArray(encounter.labOrders) && encounter.labOrders[idx]) {
+        encounter.labOrders[idx].status = status;
+        if (status === 'verified') encounter.labOrders[idx].verified = true;
+        encounter.markModified('labOrders');
+        await encounter.save();
+        return res.json({
+          status: 'success',
+          message: `Order marked ${status}.`,
+          data: { _id: orderId, ...encounter.labOrders[idx] }
+        });
+      }
+    }
+
+    return res.status(404).json({ status: 'error', message: 'Lab order not found' });
+  } catch (error) {
+    console.error('Error updating lab order status:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+}
 
 /**
  * 2. POST /api/lab/samples/collect
@@ -177,7 +275,35 @@ router.post('/results/:resultId/verify', async (req, res) => {
     const { resultId } = req.params;
     const { supervisorId = 'LAB-SUPERVISOR-01' } = req.body;
 
-    const resultDoc = await LabResult.findById(resultId);
+    // The lab UI hands us whichever id it has on the card — sometimes a LabResult id,
+    // sometimes the InvestigationOrder id. Resolve either to the latest result row.
+    let resultDoc = null;
+    if (mongoose.Types.ObjectId.isValid(resultId)) {
+      resultDoc = await LabResult.findById(resultId);
+      if (!resultDoc) {
+        resultDoc = await LabResult.findOne({ investigationOrderId: resultId }).sort({ version: -1 });
+      }
+    }
+
+    // No result row yet (bench verified straight off the order) — create one so the
+    // verification is still recorded and the doctor gets something to read.
+    if (!resultDoc && mongoose.Types.ObjectId.isValid(resultId)) {
+      const srcOrder = await InvestigationOrder.findById(resultId);
+      if (srcOrder) {
+        resultDoc = await LabResult.create({
+          investigationOrderId: srcOrder._id,
+          patientId: srcOrder.patientId || null,
+          encounterId: srcOrder.encounterId || null,
+          testName: srcOrder.testName,
+          parameters: [],
+          resultValue: 'Completed',
+          version: 1,
+          originalValuePreserved: true,
+          clerkId: supervisorId
+        });
+      }
+    }
+
     if (!resultDoc) {
       return res.status(404).json({ status: 'error', message: 'Lab result not found' });
     }
@@ -361,8 +487,21 @@ router.get('/dashboard-counts', async (req, res) => {
  */
 router.get('/pending', async (req, res) => {
   try {
-    const orders = await InvestigationOrder.find({ status: { $ne: 'verified' } }).sort({ orderedAt: -1 }).lean();
-    
+    // Return every non-cancelled order, not just unverified ones: the dashboard
+    // derives all seven tab counts (including Verified) from this single list.
+    const orders = await InvestigationOrder.find({ status: { $ne: 'cancelled' } })
+      .sort({ orderedAt: -1 }).limit(200).lean();
+
+    const mapped = orders.map(o => ({
+      ...o,
+      orderId: o._id,
+      tokenNumber: o.labTokenNumber || o.tokenNumber || '—',
+      opdToken: o.tokenNumber || '',
+      patientName: o.patientName || 'Unknown patient',
+      urgency: o.priority || 'routine',
+      critical: Boolean(o.critical) || o.priority === 'stat'
+    }));
+
     // Also aggregate from Encounter labOrders for demo fallback
     const sessions = await Encounter.find({ 'labOrders.0': { $exists: true } }).lean();
     const demoOrders = [];
@@ -370,13 +509,22 @@ router.get('/pending', async (req, res) => {
       (s.labOrders || []).forEach((lo, idx) => {
         demoOrders.push({
           _id: `${s._id}_${idx}`,
+          orderId: `${s._id}_${idx}`,
           sessionId: s._id,
-          tokenNumber: s.tokenNumber,
+          encounterId: s._id,
+          tokenNumber: lo.labTokenNumber || s.tokenNumber,
+          opdToken: s.tokenNumber,
           patientName: s.patientName,
+          age: s.age,
+          gender: s.gender,
+          department: s.department,
+          doctorName: s.assignedDoctor || '',
           testName: lo.testName,
+          section: lo.section || 'Pathology',
+          clinicalNotes: lo.clinicalNotes || '',
           urgency: lo.urgency || lo.priority || 'routine',
           priority: lo.urgency || lo.priority || 'routine',
-          status: lo.status || 'ordered',
+          status: lo.verified ? 'verified' : (lo.status || 'ordered'),
           critical: !!lo.critical,
           orderedAt: lo.orderedAt || s.createdAt
         });
@@ -385,8 +533,8 @@ router.get('/pending', async (req, res) => {
 
     return res.json({
       status: 'success',
-      count: orders.length + demoOrders.length,
-      data: [...orders, ...demoOrders]
+      count: mapped.length + demoOrders.length,
+      data: [...mapped, ...demoOrders]
     });
   } catch (error) {
     console.error('Error fetching pending lab orders:', error);

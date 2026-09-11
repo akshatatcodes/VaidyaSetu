@@ -96,8 +96,35 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+// Bind to 0.0.0.0 so devices on the same WiFi (phones, tablets) can reach the
+// API, not just the host machine. Without this the kiosk loads on a phone but
+// every API call fails, because the browser resolves the LAN IP while the
+// server only listens on loopback.
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
   console.log(`Server is running on port ${PORT}`);
+
+  // Print the LAN URLs so the demo machine's IP doesn't have to be looked up
+  // manually. Open the frontend one of these on the phone.
+  try {
+    const nets = require('os').networkInterfaces();
+    const lanIps = Object.values(nets)
+      .flat()
+      .filter((n) => n && n.family === 'IPv4' && !n.internal)
+      .map((n) => n.address);
+
+    if (lanIps.length) {
+      console.log('\n  Reachable from other devices on this WiFi:');
+      lanIps.forEach((ip) => {
+        console.log(`    API      →  http://${ip}:${PORT}/api/health`);
+        console.log(`    Frontend →  http://${ip}:5173`);
+      });
+      console.log('');
+    }
+  } catch {
+    // Never let a logging convenience take down startup.
+  }
 
   // Start the background monitoring heartbeat (Step 59, 60)
   runReminderService();

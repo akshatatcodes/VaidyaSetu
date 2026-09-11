@@ -10,14 +10,21 @@ const {
 const isValidGroqKey = process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim().length > 15;
 const groq = isValidGroqKey ? new Groq({ apiKey: process.env.GROQ_API_KEY.trim() }) : null;
 
-// Multi-model Groq fallback list optimized for speed and clinical reasoning on active key
+// Multi-model Groq fallback list. Ordered fastest-reliable first: a kiosk patient is
+// standing at the screen, so latency matters more than model size.
+// NOTE: 'qwen/qwen3.8-27b' was previously first here but is not a real Groq model id,
+// so every single probe burned a failed round-trip before reaching a working model.
 const GROQ_FALLBACK_MODELS = [
-  'qwen/qwen3.8-27b',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
-  'groq/compound',
   'groq/compound-mini'
 ];
+
+// A patient is waiting at the kiosk — never let a stalled LLM hold the screen.
+// On timeout we fall through to the deterministic templates.
+const GROQ_TIMEOUT_MS = Number(process.env.GROQ_TIMEOUT_MS) || 6000;
 
 /**
  * Robust Groq caller with multi-model fallback and structured response handling
@@ -39,7 +46,12 @@ async function callGroqWithFallback({ systemPrompt, userPrompt, json = false, te
       if (json) {
         params.response_format = { type: 'json_object' };
       }
-      const completion = await groq.chat.completions.create(params);
+      const completion = await Promise.race([
+        groq.chat.completions.create(params),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`timeout after ${GROQ_TIMEOUT_MS}ms`)), GROQ_TIMEOUT_MS)
+        )
+      ]);
       const content = completion.choices[0]?.message?.content?.trim();
       if (content) {
         return content;
@@ -247,7 +259,8 @@ async function processAdaptiveProbe({
   vitals = {},
   language = 'hi',
   transcript = [],
-  patientContext = {}
+  patientContext = {},
+  consultationType = 'allopathy'
 }) {
   const lang = resolveLang(language);
 
@@ -317,13 +330,16 @@ Existing Known Context: ${JSON.stringify(updatedSocrates)}`;
     }
   }
 
-  // 4. Auto-infer OPD Department based on cumulative symptoms, age, and gender
-  const inferredDepartment = inferDepartmentFromSymptoms({
+  // 4. Auto-infer OPD Department based on cumulative symptoms, age, and gender.
+  // Routed through the stream mapper so an allopathy patient gets a modern-medicine
+  // department name rather than the AYUSH specialty.
+  const inferredDepartment = inferDepartmentForStream({
     chiefComplaint,
     userSpeech,
     socratesState: updatedSocrates,
     age: patientContext?.age || vitals.age,
-    gender: patientContext?.gender || vitals.gender
+    gender: patientContext?.gender || vitals.gender,
+    consultationType
   });
 
   // 5. Determine next missing step (Max 4 steps)
@@ -491,11 +507,44 @@ function inferDepartmentFromSymptoms({ chiefComplaint = '', userSpeech = '', soc
   };
 }
 
+/**
+ * The symptom matcher above is written in AYUSH terms. A patient who chose the
+ * allopathy stream should not be routed to "Shalakya Tantra" — translate the
+ * inferred specialty into its modern-medicine equivalent, keeping the same
+ * confidence and reason so the kiosk can still explain *why* it picked it.
+ */
+const ALLOPATHIC_EQUIVALENT = {
+  Kaumarbhritya: { department: 'Paediatrics', sub: 'Child & Adolescent Health' },
+  Prasuti: { department: 'Obstetrics & Gynaecology', sub: "Women's Health & Maternity" },
+  Shalakya: { department: 'ENT', sub: 'Ear, Nose, Throat, Eye & Dental' },
+  Shalya: { department: 'Orthopaedics', sub: 'Bones, Joints & General Surgery' },
+  Kayachikitsa: { department: 'General Medicine', sub: 'Internal & General Medicine' }
+};
+
+function inferDepartmentForStream(args = {}) {
+  const base = inferDepartmentFromSymptoms(args);
+  if (!base) return null;
+  if (args.consultationType !== 'allopathy') return base;
+
+  const mapped = ALLOPATHIC_EQUIVALENT[base.department];
+  if (!mapped) return base;
+
+  return {
+    ...base,
+    department: mapped.department,
+    departmentId: mapped.department,
+    departmentName: mapped.department,
+    sub: mapped.sub,
+    ayushEquivalent: base.department
+  };
+}
+
 module.exports = {
   SOCRATES_STEPS,
   QUESTION_TEMPLATES,
   detectRedFlags,
   getNextStep,
   processAdaptiveProbe,
-  inferDepartmentFromSymptoms
+  inferDepartmentFromSymptoms,
+  inferDepartmentForStream
 };

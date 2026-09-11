@@ -7,18 +7,17 @@ import {
   Shield, User, QrCode, Printer, Check, Phone, Info, Stethoscope,
   Sparkles, Layers, Maximize2, Minimize2, ChevronRight, Upload,
   Camera, FileText, Pill, AlertOctagon, Clock, UserCheck, Flame,
-  Wind, Droplets, Zap, ShieldAlert, Sparkle, Download, X, Trash2
+  Wind, Droplets, Zap, ShieldAlert, Sparkle, Download, X, Trash2,
+  Globe, ChevronDown
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { useCaregiver } from '../context/CaregiverContext';
 import SymptomIconPicker from '../components/kiosk/SymptomIconPicker';
-import ConsentPolicyModal from '../components/kiosk/ConsentPolicyModal';
 import ConsentScreen from '../components/kiosk/ConsentScreen';
 import DocumentVerification from '../components/kiosk/DocumentVerification';
 import { saveKioskDraft, loadKioskDraft, installOnlineFlush, queueOfflineRequest, clearKioskLocalCache } from '../utils/kioskOffline';
 import NeedStaffHelp from '../components/NeedStaffHelp';
-import { generateOpdTokenPDF } from '../utils/pdfGenerator';
 
 const LANG_OPTIONS = [
   { code: 'en', label: 'English' },
@@ -275,6 +274,25 @@ const I18N = {
 };
 
 // Department Catalog with clinical icons
+// Facilities offered when the patient books from home rather than at the kiosk.
+const HOSPITALS = [
+  { id: 'VS-CHC-01', name: 'VaidyaSetu Community Health Centre, Wardha' },
+  { id: 'VS-DH-02', name: 'District Hospital, Nagpur' },
+  { id: 'VS-AYU-03', name: 'Govt. Ayurvedic Hospital, Nashik' },
+  { id: 'VS-PHC-04', name: 'Primary Health Centre, Seloo' }
+];
+
+const DOCTORS_BY_DEPT = {
+  Kayachikitsa: ['Dr. Anjali Deshmukh', 'Dr. Ramesh Patil'],
+  Panchakarma: ['Dr. Suresh Kulkarni'],
+  'General Medicine': ['Dr. Meera Nair', 'Dr. Vikram Joshi'],
+  Cardiology: ['Dr. Arun Mehta'],
+  Orthopaedics: ['Dr. Sanjay Rao'],
+  Paediatrics: ['Dr. Kavita Sharma'],
+  Dermatology: ['Dr. Neha Gupta'],
+  ENT: ['Dr. Rahul Bose']
+};
+
 const DEPARTMENTS = [
   { id: 'Kayachikitsa', label: 'कायचिकित्सा (Kayachikitsa)', sub: 'Internal Medicine & General Care', icon: Stethoscope, color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-400' },
   { id: 'Shalya', label: 'शल्य तंत्र (Shalya Tantra)', sub: 'Musculoskeletal, Joints & Surgery', icon: Activity, color: 'from-blue-500/20 to-cyan-500/20 border-blue-500/30 text-blue-400' },
@@ -407,6 +425,13 @@ const KioskIntake = ({ isStandalone = false }) => {
     }
   }, [isAuthenticated, userRole, currentUser]);
 
+  // Step 1.5: Care pathway selection (stream + where the patient is sitting)
+  const [visitMode, setVisitMode] = useState('kiosk'); // 'kiosk' | 'home'
+  const [preferredHospital, setPreferredHospital] = useState('');
+  const [preferredDoctor, setPreferredDoctor] = useState('');
+  const [doctorOptions, setDoctorOptions] = useState([]);
+  const [savingPathway, setSavingPathway] = useState(false);
+
   // Step 2 (Voice Intake & AI Department Recommendation)
   const [chiefComplaint, setChiefComplaint] = useState('');
   const [speechInput, setSpeechInput] = useState('');
@@ -418,11 +443,9 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [transcript, setTranscript] = useState([]);
   const [redFlags, setRedFlags] = useState([]);
   const [inferredDept, setInferredDept] = useState(null);
+  const [deptManuallySet, setDeptManuallySet] = useState(false);
   const [showManualDeptModal, setShowManualDeptModal] = useState(false);
   const [quickReplies, setQuickReplies] = useState([]);
-  const [showConsentPolicyModal, setShowConsentPolicyModal] = useState(false);
-  const [symptomsConfirmed, setSymptomsConfirmed] = useState(false);
-  const fileInputRef = useRef(null);
   const [pendingSpeechConfirm, setPendingSpeechConfirm] = useState(null);
   const chatEndRef = useRef(null);
   const [extractedHistory, setExtractedHistory] = useState({ illnesses: [], allergies: [] });
@@ -514,6 +537,8 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [capturedPhotos, setCapturedPhotos] = useState([]);
+  const [uploadedDocs, setUploadedDocs] = useState([]);
+  const fileInputRef = useRef(null);
   const videoRef = useRef(null);
 
   // Step 6: Generated Final Case Sheet & Token
@@ -584,8 +609,6 @@ const KioskIntake = ({ isStandalone = false }) => {
     setInferredDept(null);
     setShowManualDeptModal(false);
     setQuickReplies([]);
-    setSymptomsConfirmed(false);
-    setShowConsentPolicyModal(false);
     setPendingSpeechConfirm(null);
     setExtractedHistory({ illnesses: [], allergies: [] });
 
@@ -651,20 +674,20 @@ const KioskIntake = ({ isStandalone = false }) => {
     }
   };
 
-  // Text-To-Speech audio helper (GC-safe & natural pacing)
+  // Text-To-Speech audio helper (Faster speed: 1.25x & GC-safe)
   const speakText = (text) => {
     if (!voiceAssist || !('speechSynthesis' in window) || !text) return;
     try {
       window.speechSynthesis.cancel();
       setTimeout(() => {
         const cleanText = String(text)
-          .replace(/[🤖⚡🏥✍️⏭️✓❌🔥💨💧🩺💊🌿]/g, '')
+          .replace(/[🤖⚡🏥✍️⏭️✓❌🔥💨💧🩺]/g, '')
           .replace(/Step \d of \d •/gi, '')
           .trim();
         if (!cleanText) return;
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = SPEECH_LOCALE[lang] || 'en-IN';
-        utterance.rate = 1.15;
+        utterance.rate = 1.25; // Faster speed as requested
         utterance.pitch = 1.0;
 
         // Try to pick appropriate locale voice if loaded
@@ -689,87 +712,147 @@ const KioskIntake = ({ isStandalone = false }) => {
 
   // Centralized step navigator with voice guidance and mandatory validation
   const goToStep = (targetStep) => {
-    // If trying to proceed past Step 2 without selecting department, require selection
+    // Department is inferred during Step 2 questioning, so only gate the steps
+    // that come after it. Step 1.5 (care pathway) must stay reachable.
     if (targetStep > 2 && !patientForm.department) {
       setShowManualDeptModal(true);
       speakText('कृपया पहले ओपीडी विभाग का चयन करें या लक्षण बताएं।');
       return;
     }
-
-    // Step 4 (Dashavidha Pariksha) is COMPLETELY DISABLED and SKIPPED for Allopathy OPD
-    if (targetStep === 4 && consultationType === 'allopathy') {
-      const skipNotice = lang === 'hi' 
-        ? 'एलोपैथी सामान्य ओपीडी के लिए आयुष दशविध परीक्षा लागू नहीं है। सीधे अगले चरण पर जाएं।' 
-        : lang === 'mr' 
-        ? 'अ‍ॅलोपॅथी ओपीडीसाठी आयुष परीक्षा लागू नाही. कृपया पुढील टप्प्यावर जा.' 
-        : 'AYUSH Dashavidha Pariksha is skipped for Allopathy General OPD. Moving forward.';
-      speakText(skipNotice);
-      setCurrentStep(5);
-      return;
-    }
-
     setCurrentStep(targetStep);
-
-    // Speak full professional guidance for the step
-    const stepInstruction = STEP_VOICE_INSTRUCTIONS[targetStep]?.[lang] || STEP_VOICE_INSTRUCTIONS[targetStep]?.en;
-    if (stepInstruction) {
-      speakText(stepInstruction);
+    if (targetStep === 1) {
+      speakText(t.step1);
+    } else if (targetStep === 1.5) {
+      speakText(lang === 'hi'
+        ? 'कृपया चुनें कि आप एलोपैथी या आयुर्वेदिक चिकित्सा लेना चाहते हैं।'
+        : 'Please choose whether you want Allopathy or Ayurvedic care.');
+    } else if (targetStep === 2) {
+      speakText(nextQuestion || t.socratesHeading);
+    } else if (targetStep === 3) {
+      speakText(t.vitalsHeading || 'शारीरिक मापदंड एवं वाइटल्स स्टेशन');
+    } else if (targetStep === 4) {
+      speakText(t.dashaHeading || 'आयुष दशविध परीक्षा');
+    } else if (targetStep === 5) {
+      speakText(t.ocrHeading || 'पुराना पर्चा, रिपोर्ट या बीमारी स्कैन करें');
+    } else if (targetStep === 6) {
+      speakText(t.tokenHeading || 'ओपीडी पंजीयन व जांच सफलतापूर्वक पूर्ण हुई');
     }
   };
 
-  // Automatically speak step instructions on step navigation or language change
-  useEffect(() => {
-    if (voiceAssist) {
-      const inst = STEP_VOICE_INSTRUCTIONS[currentStep]?.[lang] || STEP_VOICE_INSTRUCTIONS[currentStep]?.en;
-      if (inst) {
-        speakText(inst);
-      }
-    }
-  }, [currentStep, lang, voiceAssist]);
-
-  // Guard: if Allopathy is selected, Step 4 cannot remain open
-  useEffect(() => {
-    if (consultationType === 'allopathy' && currentStep === 4) {
-      setCurrentStep(5);
-    }
-  }, [consultationType, currentStep]);
-
-  // Initialize MediKiosk AI greeting in Step 2 if chat transcript is empty
-  useEffect(() => {
-    if (currentStep === 2 && transcript.length === 0) {
-      const welcome = lang === 'hi'
-        ? 'नमस्ते! मुझे अपनी मुख्य बीमारी या तकलीफ के बारे में बताएं, अथवा नीचे दिए गए सामान्य लक्षणों में से चुनें।'
-        : lang === 'mr'
-        ? 'नमस्कार! मला आपल्या मुख्य आजाराबद्दल सांगा, किंवा खालील सामान्य लक्षणांमधून निवडा.'
-        : 'Hello! Please tell me your chief symptoms or complaints, or choose from the options below.';
-      setTranscript([{ speaker: 'kiosk', text: welcome }]);
-      setNextQuestion(welcome);
-    }
-  }, [currentStep, lang, transcript.length]);
-
   // Camera capture handlers for live scanning of prescriptions & reports
-  useEffect(() => {
-    if (isCameraActive && cameraStream && videoRef.current) {
-      videoRef.current.srcObject = cameraStream;
-      videoRef.current.play().catch(e => console.warn('Video playback warning:', e));
-    }
-  }, [isCameraActive, cameraStream]);
-
   const startCamera = async () => {
     try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
+      // Browsers only expose the camera on a "secure context": HTTPS, or
+      // localhost. When the kiosk is opened from a phone over the LAN
+      // (http://192.168.x.x:5173) `navigator.mediaDevices` is simply undefined
+      // — which is NOT a browser-support problem, so say what's actually wrong
+      // and point at the upload path that still works.
+      const isSecure =
+        typeof window !== 'undefined' &&
+        (window.isSecureContext ||
+          ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname));
+
+      if (!isSecure) {
+        alert(
+          'Camera is blocked because this page was opened over plain http:// from another device.\n\n' +
+            'Browsers only allow the camera on https:// or on the kiosk machine itself.\n\n' +
+            'Please use "Upload file" to attach the prescription or report instead.'
+        );
+        return;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Camera access is not supported by your current browser. Please use "Upload file" instead.');
+        return;
+      }
+
+      // Kiosk tablets have a rear camera; demo laptops do not. Asking for
+      // `environment` as a hard constraint fails outright on a laptop, so fall
+      // back to any available camera rather than showing an error.
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: 'environment' } }
         });
-        setCameraStream(stream);
-        setIsCameraActive(true);
-      } else {
-        alert('Camera access is not supported by your current browser.');
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
+
+      setCameraStream(stream);
+      setIsCameraActive(true);
+      // srcObject is bound by the effect above, once the <video> exists.
     } catch (err) {
       console.error('Camera access error:', err);
-      alert('Unable to access device camera. Please upload file or check camera permissions.');
+      const msg = err?.name === 'NotAllowedError'
+        ? 'Camera permission was denied. Please allow camera access in your browser, or use "Upload file" instead.'
+        : err?.name === 'NotFoundError'
+          ? 'No camera was found on this device. Please use "Upload file" instead.'
+          : 'Unable to access device camera. Please upload a file or check camera permissions.';
+      alert(msg);
+      setIsCameraActive(false);
     }
+  };
+
+  /**
+   * Real document upload (replaces the old simulated scan that invented medicines).
+   * Each file is posted to the session so the doctor can actually open it. If the
+   * upload fails we keep the file listed rather than dropping it silently — the
+   * patient should never be told a report was attached when it wasn't.
+   */
+  const handleDocumentUpload = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+
+    const startIndex = uploadedDocs.length;
+    setUploadedDocs(prev => [
+      ...prev,
+      ...files.map(f => ({ name: f.name, size: f.size, uploading: true, error: false }))
+    ]);
+    setOcrLoading(true);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const slot = startIndex + i;
+      try {
+        if (!sessionId || String(sessionId).startsWith('session_')) {
+          throw new Error('No server session');
+        }
+        const form = new FormData();
+        form.append('document', file);
+        form.append('documentType', 'prescription');
+
+        const res = await axios.post(
+          `${API_URL}/kiosk/session/${sessionId}/documents`,
+          form,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+
+        const payload = res.data?.data || {};
+        setUploadedDocs(prev => prev.map((d, idx) =>
+          idx === slot ? { ...d, uploading: false, error: false, serverDoc: payload.document } : d
+        ));
+
+        // Surface anything OCR actually found — never fabricate.
+        const meds = payload.document?.extractedMedicines || payload.document?.medicines;
+        if (Array.isArray(meds) && meds.length) {
+          setExtractedMeds(prev => [...prev, ...meds.map(m => ({
+            name: m.name || m,
+            dosage: m.dosage || '',
+            frequency: m.frequency || 'As directed',
+            route: m.route || 'Oral'
+          }))]);
+          setHasSampleOcr(true);
+        }
+      } catch (err) {
+        console.warn('[Kiosk] Document upload failed:', err?.message);
+        setUploadedDocs(prev => prev.map((d, idx) =>
+          idx === slot ? { ...d, uploading: false, error: true } : d
+        ));
+      }
+    }
+
+    setOcrLoading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const stopCamera = () => {
@@ -780,6 +863,30 @@ const KioskIntake = ({ isStandalone = false }) => {
     setIsCameraActive(false);
   };
 
+  /**
+   * Attach the stream *after* the <video> has mounted.
+   *
+   * startCamera() used to assign videoRef.current.srcObject in the same tick that it
+   * set isCameraActive(true) — but the <video> is conditionally rendered on that flag,
+   * so the ref was still null and the preview stayed black. Binding here runs after
+   * React commits the element, which is what actually makes the camera show up.
+   */
+  useEffect(() => {
+    if (isCameraActive && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch(err => {
+        console.warn('[Kiosk] Video autoplay blocked:', err?.message);
+      });
+    }
+  }, [isCameraActive, cameraStream]);
+
+  // Release the camera if the patient navigates away mid-capture.
+  useEffect(() => {
+    return () => {
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+    };
+  }, [cameraStream]);
+
   const capturePhoto = async () => {
     if (!videoRef.current) return;
     const canvas = document.createElement('canvas');
@@ -787,60 +894,9 @@ const KioskIntake = ({ isStandalone = false }) => {
     canvas.height = videoRef.current.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-
-    // Guard against all-black frames from webcam initialization
-    let isAllBlack = false;
-    try {
-      const sample = ctx.getImageData(0, 0, Math.min(canvas.width, 40), Math.min(canvas.height, 40)).data;
-      let brightness = 0;
-      for (let i = 0; i < sample.length; i += 4) {
-        brightness += sample[i] + sample[i + 1] + sample[i + 2];
-      }
-      if (brightness === 0) isAllBlack = true;
-    } catch (e) {}
-
-    if (isAllBlack || !videoRef.current.videoWidth) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#065f46';
-      ctx.fillRect(0, 0, canvas.width, 50);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 16px sans-serif';
-      ctx.fillText('ALL INDIA INSTITUTE OF AYURVEDA (AIIA) - OPD RECORD', 16, 32);
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText(`Patient: ${patientForm.patientName || 'Ayush Patient'} | Age: ${patientForm.age || '35'} | Date: ${new Date().toLocaleDateString()}`, 16, 80);
-      ctx.fillStyle = '#64748b';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('Rx Physical Prescription & Clinical Diagnosis Sheet', 16, 105);
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(16, 120);
-      ctx.lineTo(canvas.width - 16, 120);
-      ctx.stroke();
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 15px sans-serif';
-      ctx.fillText('Rx Prescribed Medications:', 16, 150);
-      ctx.font = '13px sans-serif';
-      ctx.fillText('1. Tab. Pantoprazole 40mg - 1 OD (Empty Stomach)', 24, 180);
-      ctx.fillText('2. Tab. Metformin 500mg - 1 BD (After Food)', 24, 210);
-      ctx.fillText('3. Ashwagandha Churna 3g - HS with Warm Milk', 24, 240);
-      ctx.fillStyle = '#059669';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillText('✓ Scanned & Verified via MediKiosk Vision Terminal', 16, canvas.height - 20);
-    }
-
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     setCapturedPhotos(prev => [...prev, dataUrl]);
     stopCamera();
-
-    // Persist document immediately into session
-    if (sessionId && !String(sessionId).startsWith('session_')) {
-      await axios.patch(`${API_URL}/kiosk/session/${sessionId}/documents`, {
-        imageUrl: dataUrl
-      }).catch(() => {});
-    }
     
     // Trigger real AI Vision OCR scan
     setOcrLoading(true);
@@ -922,80 +978,10 @@ const KioskIntake = ({ isStandalone = false }) => {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const dataUrl = event.target.result;
-      setCapturedPhotos(prev => [...prev, dataUrl]);
-
-      setOcrLoading(true);
-      try {
-        const form = new FormData();
-        form.append('image', file, file.name);
-
-        let parsedMeds = [];
-        let ocrMethod = 'File-Upload-Vision';
-
-        try {
-          const ocrRes = await axios.post(`${API_URL}/ocr/scan`, form);
-          if (ocrRes.data?.status === 'success' && Array.isArray(ocrRes.data.medicines)) {
-            ocrMethod = ocrRes.data.method || 'File-Upload-Vision';
-            parsedMeds = ocrRes.data.medicines.map((m) => {
-              if (typeof m === 'string') {
-                const parts = m.split(' ');
-                return { name: parts[0], dosage: parts.slice(1).join(' ') || 'Standard Dosage', frequency: 'As directed', system: 'Allopathic' };
-              }
-              return { name: m.name || 'Medicine', dosage: m.dosage || '', frequency: m.frequency || '', system: m.system || 'Allopathic' };
-            });
-          }
-        } catch (scanErr) {
-          console.warn('OCR file upload scan fallback:', scanErr.message);
-        }
-
-        if (!parsedMeds.length) {
-          parsedMeds = [
-            { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Before Food)', system: 'Allopathic' },
-            { name: 'Metformin', dosage: '500mg', frequency: 'BD (Post Meals)', system: 'Allopathic' }
-          ];
-        }
-
-        setHasSampleOcr(true);
-        setExtractedMeds(parsedMeds);
-        setPendingDoc({
-          verificationStatus: 'pending_patient_confirm',
-          extractedFields: parsedMeds.map((m) => ({
-            field: 'medication',
-            value: `${m.name} ${m.dosage}`.trim(),
-            confidence: 95,
-            patientConfirmed: true,
-            doctorAction: 'pending'
-          }))
-        });
-
-        if (sessionId && !String(sessionId).startsWith('session_')) {
-          await axios.patch(`${API_URL}/kiosk/session/${sessionId}/documents`, {
-            medicines: parsedMeds,
-            ocrMethod,
-            confidence: 95,
-            imageUrl: dataUrl
-          }).catch(() => {});
-        }
-      } catch (err) {
-        console.warn('File upload OCR error:', err.message);
-      } finally {
-        setOcrLoading(false);
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
   // Explicitly update department override
   const handleSelectDepartment = async (deptId) => {
     setPatientForm(prev => ({ ...prev, department: deptId }));
+    setDeptManuallySet(true); // stop the AI from re-inferring over this choice
     setShowManualDeptModal(false);
     if (sessionId && !sessionId.startsWith('session_')) {
       await axios.patch(`${API_URL}/kiosk/session/${sessionId}/department`, { department: deptId }).catch(() => {});
@@ -1224,23 +1210,40 @@ const KioskIntake = ({ isStandalone = false }) => {
   };
 
   // Step 1: Submit Standard Check-in -> Proceed to Voice Intake (Step 2)
-  const handleStartSession = async () => {
-    if (!patientForm.patientName?.trim()) {
-      alert(lang === 'hi' ? 'कृपया आगे बढ़ने के लिए रोगी का नाम दर्ज करें।' : lang === 'mr' ? 'कृपया पुढे जाण्यासाठी रुग्णाचे नाव प्रविष्ट करा.' : 'Please enter patient full name to proceed.');
-      return;
+  /**
+   * Step 1.5 → Step 2.
+   * Persists the care pathway so the doctor cockpit knows which stream to render
+   * and, for home bookings, which hospital/doctor the patient picked. A backend
+   * failure must not trap the patient on this screen — we advance regardless.
+   */
+  const handleConfirmPathway = async () => {
+    setSavingPathway(true);
+    try {
+      if (sessionId && !String(sessionId).startsWith('session_')) {
+        await axios.patch(`${API_URL}/kiosk/session/${sessionId}/care-pathway`, {
+          consultationType,
+          visitMode,
+          preferredHospital,
+          preferredDoctor,
+          department: patientForm.department || undefined
+        });
+      }
+    } catch (err) {
+      console.warn('[Kiosk] Care pathway save deferred:', err?.message);
+    } finally {
+      setSavingPathway(false);
+      goToStep(2);
     }
-    if (!patientForm.age || Number(patientForm.age) <= 0) {
-      alert(lang === 'hi' ? 'कृपया सही आयु दर्ज करें।' : lang === 'mr' ? 'कृपया योग्य वय प्रविष्ट करा.' : 'Please enter a valid age.');
-      return;
-    }
+  };
 
+  const handleStartSession = async () => {
     setIsSubmitting(true);
     try {
       const res = await axios.post(`${API_URL}/kiosk/session/start`, {
         abhaId: patientForm.abhaId,
         patientName: patientForm.patientName,
         age: Number(patientForm.age),
-        gender: patientForm.gender || 'male',
+        gender: patientForm.gender,
         contactNumber: patientForm.contactNumber,
         enteredBy: isCaregiverMode ? {
           type: 'caregiver',
@@ -1264,10 +1267,14 @@ const KioskIntake = ({ isStandalone = false }) => {
           ...consent,
           language: lang
         }).catch(() => {});
-        setCurrentStep(2); // Step 2 is Voice Intake (SOCRATES)
+        setCurrentStep(1.5); // Care pathway choice comes before symptom questioning
         speakText(nextQuestion);
       }
     } catch (err) {
+      if (err.response?.status === 429 && err.response?.data?.code === 'RATE_LIMIT_COOLDOWN') {
+        setCooldownAlert(err.response.data.message);
+        return;
+      }
       console.warn('Backend start session fallback:', err?.message);
       queueOfflineRequest({
         method: 'post',
@@ -1276,7 +1283,7 @@ const KioskIntake = ({ isStandalone = false }) => {
           abhaId: patientForm.abhaId,
           patientName: patientForm.patientName,
           age: Number(patientForm.age),
-          gender: patientForm.gender || 'male',
+          gender: patientForm.gender,
           contactNumber: patientForm.contactNumber,
           enteredBy: isCaregiverMode ? {
             type: 'caregiver',
@@ -1293,73 +1300,14 @@ const KioskIntake = ({ isStandalone = false }) => {
           consent: { ...consent, language: lang }
         }
       });
-      // Fallback token so intake NEVER hangs
+      // Fallback token
       setSessionId('session_' + Date.now());
       setTokenNumber(`OPD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-007`);
-      setCurrentStep(2);
+      setCurrentStep(1.5);
       speakText(nextQuestion);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Deterministic local state machine fallback progression (Guarantees AI questions & voice never stall)
-  const triggerFallbackProgression = (userUtterance) => {
-    let nextStep = 'onset';
-    let followUp = '';
-    let options = [];
-
-    if (socratesProgressStep === 'site') {
-      nextStep = 'onset';
-      followUp = lang === 'hi'
-        ? 'यह समस्या कितने दिनों से है? क्या यह अचानक शुरू हुई या धीरे-धीरे बढ़ रही है?'
-        : lang === 'mr'
-        ? 'हा त्रास किती दिवसांपासून आहे? तो अचानक सुरू झाला की हळूहळू वाढला?'
-        : 'How many days have you had this problem? Did it start suddenly or gradually?';
-      options = lang === 'hi'
-        ? ['1-2 दिन से', '3-5 दिन से', 'लगभग 1 सप्ताह', '1 महीने से अधिक']
-        : lang === 'mr'
-        ? ['1-2 दिवस', '3-5 दिवस', '1 आठवडा', '1 महिन्याहून अधिक']
-        : ['1-2 days', '3-5 days', 'About 1 week', 'Over a month'];
-    } else if (socratesProgressStep === 'onset') {
-      nextStep = 'severity';
-      followUp = lang === 'hi'
-        ? 'तकलीफ या दर्द की तीव्रता कैसी है?'
-        : lang === 'mr'
-        ? 'त्रास किंवा वेदनेची तीव्रता कशी आहे?'
-        : 'How severe is the pain or discomfort right now?';
-      options = lang === 'hi'
-        ? ['हल्का (1-3)', 'मध्यम (4-6)', 'तीव्र / गंभीर (7-8)', 'असहनीय (9-10)']
-        : lang === 'mr'
-        ? ['कमी त्रास (1-3)', 'मध्यम (4-6)', 'तीव्र / जास्त (7-8)', 'असह्य वेदना (9-10)']
-        : ['Mild (1-3)', 'Moderate (4-6)', 'Severe (7-8)', 'Unbearable (9-10)'];
-    } else if (socratesProgressStep === 'severity') {
-      nextStep = 'associations';
-      followUp = lang === 'hi'
-        ? 'क्या इसके साथ आपको बुखार, उल्टी, कमजोरी या कोई अन्य लक्षण भी हैं?'
-        : lang === 'mr'
-        ? 'यासोबत तुम्हाला ताप, उलट्या, अशक्तपणा अशी काही इतर लक्षणे आहेत का?'
-        : 'Are you having any other symptoms like fever, nausea, vomiting, or weakness?';
-      options = lang === 'hi'
-        ? ['कोई अन्य लक्षण नहीं', 'बुखार / हरारत', 'उल्टी व जी मिचलाना', 'कमजोरी व थकान']
-        : lang === 'mr'
-        ? ['इतर कोणतीही लक्षणे नाहीत', 'ताप', 'उलट्या व मळमळ', 'अशक्तपणा']
-        : ['No other symptoms', 'Fever / Chills', 'Nausea / Vomiting', 'Weakness & Fatigue'];
-    } else {
-      nextStep = 'completed';
-      followUp = lang === 'hi'
-        ? 'धन्यवाद। आपके लक्षणों का पूरा विवरण डॉक्टर के अवलोकन हेतु सुरक्षित कर लिया गया है। कृपया आगे बढ़ें।'
-        : lang === 'mr'
-        ? 'धन्यवाद. आपल्या लक्षणांचा संपूर्ण तपशील डॉक्टरांच्या तपासणीसाठी नोंदवला गेला आहे. कृपया पुढे जा.'
-        : 'Thank you. Your symptom details have been recorded for the doctor. Please proceed.';
-      options = [];
-    }
-
-    setSocratesProgressStep(nextStep);
-    setNextQuestion(followUp);
-    setQuickReplies(options);
-    setTranscript(prev => [...prev, { speaker: 'kiosk', text: followUp }]);
-    speakText(followUp);
   };
 
   // Step 2: Socrates Probe Submission with auto-department inference
@@ -1367,27 +1315,12 @@ const KioskIntake = ({ isStandalone = false }) => {
     const userUtterance = overrideText || speechInput || chiefComplaint;
     if (!userUtterance) return;
 
-    // Immediately mark symptoms as confirmed if not already
-    setSymptomsConfirmed(true);
-
-    // Auto-parse severity score if patient answered severity
-    if (userUtterance.includes('हल्का') || userUtterance.includes('Mild') || userUtterance.includes('कमी')) {
-      setSeverityScore(2);
-    } else if (userUtterance.includes('मध्यम') || userUtterance.includes('Moderate')) {
-      setSeverityScore(5);
-    } else if (userUtterance.includes('तीव्र') || userUtterance.includes('गंभीर') || userUtterance.includes('Severe')) {
-      setSeverityScore(8);
-    } else if (userUtterance.includes('असहनीय') || userUtterance.includes('Unbearable') || userUtterance.includes('असह्य')) {
-      setSeverityScore(10);
-    }
-
     const newTranscript = [
       ...transcript,
       { speaker: 'patient', text: userUtterance }
     ];
     setTranscript(newTranscript);
     setSpeechInput('');
-    setQuickReplies([]); // Instantly clear previous options so they disappear as requested
     setPendingSpeechConfirm(null);
     setIsSubmitting(true);
 
@@ -1397,19 +1330,22 @@ const KioskIntake = ({ isStandalone = false }) => {
           chiefComplaint,
           userSpeech: userUtterance,
           currentStep: socratesProgressStep,
-          language: lang
+          language: lang,
+          consultationType
         });
 
-        if (res.data?.status === 'success' && res.data.data?.nextQuestion) {
+        if (res.data.status === 'success') {
           const data = res.data.data;
           setNextQuestion(data.nextQuestion);
-          setSocratesProgressStep(data.nextStep || 'completed');
+          setSocratesProgressStep(data.nextStep || 'severity');
           setQuickReplies(data.quickReplies || []);
           if (data.redFlags?.length > 0) setRedFlags(data.redFlags);
           if (data.triagePriority === 'emergency') setTriagePriority('emergency');
           if (data.inferredDepartment) {
             setInferredDept(data.inferredDepartment);
-            if (data.inferredDepartment.department) {
+            // Only auto-apply while the patient hasn't picked one themselves —
+            // otherwise each answer would silently undo their explicit choice.
+            if (data.inferredDepartment.department && !deptManuallySet) {
               setPatientForm(prev => ({ ...prev, department: data.inferredDepartment.department }));
             }
           }
@@ -1436,23 +1372,27 @@ const KioskIntake = ({ isStandalone = false }) => {
             { speaker: 'kiosk', text: data.nextQuestion }
           ]);
           speakText(data.nextQuestion);
-        } else {
-          triggerFallbackProgression(userUtterance);
         }
       } else {
-        triggerFallbackProgression(userUtterance);
+        const followUp = lang === 'hi'
+          ? 'यह तकलीफ कितने दिनों से है और इसकी तीव्रता कैसी है?'
+          : lang === 'mr'
+          ? 'हा त्रास किती दिवसांपासून आहे आणि तीव्रता कशी आहे?'
+          : 'How long have you had this issue, and how severe is it?';
+        setNextQuestion(followUp);
+        setQuickReplies(['1-2 दिवस', '3-5 दिवस', '1 आठवडा', '1 महिन्याहून अधिक']);
+        setTranscript(prev => [...prev, { speaker: 'kiosk', text: followUp }]);
+        speakText(followUp);
       }
     } catch (err) {
-      console.warn('Socrates probe API fallback triggered:', err?.message);
-      triggerFallbackProgression(userUtterance);
+      console.warn('Socrates fallback:', err?.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleSelectQuickReply = (chipText) => {
-    setQuickReplies([]); // Instantly clear previous options so they disappear
-    setSpeechInput('');
+    setSpeechInput(chipText);
     handleSendSocratesResponse(chipText);
   };
 
@@ -1506,10 +1446,10 @@ const KioskIntake = ({ isStandalone = false }) => {
         }
       }).catch(console.error);
 
-      goToStep(consultationType === 'allopathy' ? 5 : 4);
+      goToStep(4);
     } catch (err) {
       console.warn('Vitals save fallback:', err?.message);
-      goToStep(consultationType === 'allopathy' ? 5 : 4);
+      goToStep(4);
     } finally {
       setIsSubmitting(false);
     }
@@ -1517,33 +1457,40 @@ const KioskIntake = ({ isStandalone = false }) => {
 
 
   // Step 4: Save AYUSH Classical Pariksha (Trividha, Ashtavidha, Dashavidha)
+  //
+  // Every field here is optional — the patient fills whichever groups they want.
+  // We deliberately send ONLY what was actually answered. The previous version
+  // defaulted blanks to 'Samagni', 'Madhyama', and even invented a Vata-Pitta
+  // prakriti with dosha scores, which reached the doctor indistinguishable from
+  // a real examination finding.
   const handleSaveDashavidha = async () => {
-    // If Ayurvedic is selected and patient left everything blank, default gracefully so they aren't stuck
-    if (consultationType === 'ayurvedic' && !dasha.prakriti && !trividha.darshana && !ashtavidha.nadi) {
-      setDasha(prev => ({
-        ...prev,
-        prakriti: prev.prakriti || 'Vata-Pitta',
-        prakritiDetails: prev.prakritiDetails || { primaryDosha: 'Vata', secondaryDosha: 'Pitta', vataScore: 50, pittaScore: 35, kaphaScore: 15 }
-      }));
-    }
     setIsSubmitting(true);
     try {
       if (sessionId && !sessionId.startsWith('session_')) {
+        const pariksha = { consultationType };
+        const put = (key, value) => {
+          if (value !== undefined && value !== null && value !== '') pariksha[key] = value;
+        };
+
+        put('prakriti', dasha.prakritiDetails || (dasha.prakriti ? { primaryDosha: dasha.prakriti } : null));
+        put('sara', dasha.sara);
+        put('samhanana', dasha.samhanana);
+        put('agni', dasha.agni);
+        put('koshtha', dasha.koshtha);
+        put('satva', dasha.satva);
+        put('vyayamaShakti', dasha.vyayamaShakti);
+
+        const filledTrividha = Object.fromEntries(
+          Object.entries(trividha || {}).filter(([, v]) => v !== '' && v != null)
+        );
+        const filledAshtavidha = Object.fromEntries(
+          Object.entries(ashtavidha || {}).filter(([, v]) => v !== '' && v != null)
+        );
+        if (Object.keys(filledTrividha).length) pariksha.trividhaPariksha = filledTrividha;
+        if (Object.keys(filledAshtavidha).length) pariksha.ashtavidhaPariksha = filledAshtavidha;
+
         await axios.patch(`${API_URL}/kiosk/session/${sessionId}/dashavidha`, {
-          dashavidhaPariksha: {
-            consultationType,
-            prakriti: dasha.prakritiDetails || { primaryDosha: dasha.prakriti || 'Vata-Pitta' },
-            vikriti: dasha.prakriti || 'Sama Dosha',
-            sara: dasha.sara || 'Madhyama (Medium)',
-            samhanana: dasha.samhanana || 'Susamhata',
-            agni: dasha.agni || 'Samagni',
-            koshtha: dasha.koshtha || 'Madhyama',
-            satva: dasha.satva || 'Madhyama',
-            aharaShakti: { abhyavaharana: 'Madhyama (Moderate)', jaranaShakti: dasha.agni || 'Samagni' },
-            vyayamaShakti: dasha.vyayamaShakti || 'Madhyama',
-            trividhaPariksha: trividha,
-            ashtavidhaPariksha: ashtavidha
-          }
+          dashavidhaPariksha: pariksha
         });
       }
       goToStep(5);
@@ -1563,17 +1510,8 @@ const KioskIntake = ({ isStandalone = false }) => {
         // Persist past medical history and allergies
         await axios.patch(`${API_URL}/kiosk/session/${sessionId}/medical-history`, {
           pastMedicalHistory: pastDiseases,
-          allergies: allergies,
-          isCurrentKioskIntake: true
+          allergies: allergies
         }).catch(() => {});
-
-        // Persist captured or uploaded document photos
-        if (capturedPhotos && capturedPhotos.length > 0) {
-          await axios.patch(`${API_URL}/kiosk/session/${sessionId}/documents`, {
-            photos: capturedPhotos,
-            medicines: extractedMeds
-          }).catch(() => {});
-        }
 
         const res = await axios.post(`${API_URL}/kiosk/session/${sessionId}/generate-soap`);
         if (res.data.status === 'success') {
@@ -1591,111 +1529,150 @@ const KioskIntake = ({ isStandalone = false }) => {
     }
   };
 
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
-
-  // Dedicated clean print handler for official OPD Token Slip
-  const handlePrintTokenSlip = () => {
-    const slipEl = document.getElementById('printable-opd-token-slip');
-    if (!slipEl) {
-      window.print();
-      return;
-    }
-
-    // Open an isolated, clean print window
-    const printWin = window.open('', '_blank', 'width=780,height=960');
-    if (!printWin) {
-      // Pop-up blocked, fall back to in-page print which is isolated via @media print CSS
-      window.print();
-      return;
-    }
-
-    const slipHtml = slipEl.innerHTML;
-    printWin.document.open();
-    printWin.document.write(`
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="utf-8" />
-          <title>AIIA OPD Token Slip - ${tokenNumber || 'SLIP'}</title>
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 12mm 15mm;
-            }
-            * {
-              box-sizing: border-box;
-              margin: 0;
-              padding: 0;
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-              color: #0f172a;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            body {
-              background: #ffffff;
-              padding: 16px;
-            }
-            .slip-sheet {
-              max-width: 700px;
-              margin: 0 auto;
-              border: 2px solid #0f172a;
-              border-radius: 16px;
-              padding: 24px;
-              background: #ffffff;
-            }
-            .no-print {
-              display: none !important;
-            }
-            .border-dashed {
-              border-style: dashed !important;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="slip-sheet">
-            ${slipHtml}
-          </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.focus();
-                window.print();
-                window.onafterprint = function() {
-                  window.close();
-                };
-              }, 250);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWin.document.close();
-  };
-
-  // Dedicated PDF generation & download handler using jsPDF
-  const handleDownloadTokenPdf = () => {
-    setIsExportingPdf(true);
+  /**
+   * Client-side token slip PDF (jsPDF).
+   *
+   * Prints only what was actually captured — blank vitals stay blank rather than
+   * being filled with plausible-looking numbers, because this slip travels with the
+   * patient and a doctor may read it as fact.
+   */
+  const handleDownloadTokenPdf = async () => {
     try {
-      generateOpdTokenPDF({
-        tokenNumber: tokenNumber || 'OPD-20260910-007',
-        triagePriority,
-        patientName: patientForm.patientName || 'Rahul Sharma',
-        age: patientForm.age || '42',
-        gender: patientForm.gender || 'Male',
-        abhaId: patientForm.abhaId || '14-1122-3344-5566',
-        contactNumber: patientForm.contactNumber || '+91 98765 43210',
-        consultationType,
-        consultationStream: consultationType === 'allopathy' ? 'Allopathy General OPD' : 'Ayurvedic OPD',
-        department: patientForm.department || (consultationType === 'allopathy' ? 'General Medicine' : 'Kayachikitsa (Internal Medicine)'),
-        assignedRoom: consultationType === 'allopathy' ? 'Room 205 • Dr. A. K. Verma (MBBS, MD)' : 'Room 104 • Dr. V. Sharma (MD Ayur)',
-        vitals,
-        chiefComplaint: chiefComplaint || (transcript.length > 0 ? transcript[0].text : 'Joint pain & morning joint stiffness')
-      });
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      let y = 18;
+
+      // Header
+      doc.setFillColor(5, 150, 105);
+      doc.rect(0, 0, pageW, 26, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.text('VaidyaSetu MediKiosk', 14, 13);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('OPD Registration & AI Pre-Consultation Summary', 14, 20);
+      y = 36;
+
+      // Token block
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.text(tokenNumber || '—', 14, y);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Issued ${new Date().toLocaleString('en-IN')}`, 14, y + 6);
+      y += 16;
+
+      const line = (label, value) => {
+        if (value === undefined || value === null || value === '') return;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(71, 85, 105);
+        doc.setFontSize(10);
+        doc.text(`${label}:`, 14, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(15, 23, 42);
+        const wrapped = doc.splitTextToSize(String(value), pageW - 60);
+        doc.text(wrapped, 52, y);
+        y += wrapped.length * 5 + 2;
+      };
+
+      const section = (title) => {
+        y += 3;
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, y, pageW - 14, y);
+        y += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(5, 150, 105);
+        doc.text(title, 14, y);
+        y += 7;
+      };
+
+      section('Patient');
+      line('Name', patientForm.patientName);
+      line('ABHA ID', patientForm.abhaId);
+      line('Age / Gender', [patientForm.age, patientForm.gender].filter(Boolean).join(' / '));
+      line('Contact', patientForm.contactNumber);
+      line('Department', patientForm.department);
+      line('Care pathway', consultationType === 'ayurvedic' ? 'Ayurvedic' : 'Allopathy');
+      line('Visit mode', visitMode === 'home' ? 'Booked from home' : 'Hospital kiosk');
+      if (visitMode === 'home') {
+        line('Hospital', preferredHospital);
+        line('Doctor', preferredDoctor);
+      }
+
+      section('Chief complaint');
+      const complaintText = chiefComplaint || finalCaseSheet?.chiefComplaint;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      const cc = doc.splitTextToSize(complaintText || 'Not recorded', pageW - 28);
+      doc.text(cc, 14, y);
+      y += cc.length * 5 + 2;
+
+      // Vitals — only those actually measured
+      const vitalPairs = [
+        ['Blood pressure', vitals.systolicBP && vitals.diastolicBP ? `${vitals.systolicBP}/${vitals.diastolicBP} mmHg` : ''],
+        ['Heart rate', vitals.heartRate ? `${vitals.heartRate} bpm` : ''],
+        ['SpO2', vitals.spo2 ? `${vitals.spo2} %` : ''],
+        ['Temperature', vitals.temperature ? `${vitals.temperature} °F` : ''],
+        ['Height', vitals.heightCm ? `${vitals.heightCm} cm` : ''],
+        ['Weight', vitals.weightKg ? `${vitals.weightKg} kg` : '']
+      ].filter(([, v]) => v);
+
+      if (vitalPairs.length) {
+        section('Vitals recorded');
+        vitalPairs.forEach(([k, v]) => line(k, v));
+      }
+
+      if (allergies?.length) {
+        section('Allergies');
+        line('Reported', allergies.map(a => a.substance || a.name || a).join(', '));
+      }
+
+      if (pastDiseases?.length) {
+        section('Past medical history');
+        line('Conditions', pastDiseases.map(d => d.condition || d.name || d).join(', '));
+      }
+
+      const summaryText = finalCaseSheet?.aiSummary || finalCaseSheet?.summary;
+      if (summaryText) {
+        section('AI pre-consultation summary');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        const wrapped = doc.splitTextToSize(summaryText, pageW - 28);
+        wrapped.forEach(ln => {
+          if (y > 275) { doc.addPage(); y = 20; }
+          doc.text(ln, 14, y);
+          y += 5;
+        });
+      }
+
+      if (uploadedDocs.length || capturedPhotos.length) {
+        section('Attachments');
+        line('Documents', `${uploadedDocs.length} uploaded, ${capturedPhotos.length} captured`);
+      }
+
+      // Footer disclaimer
+      if (y > 262) { doc.addPage(); y = 20; }
+      y = Math.max(y + 6, 268);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, y, pageW - 14, y);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        'AI-assisted pre-consultation summary. Not a diagnosis. Final clinical decisions rest with the attending physician.',
+        14, y + 5, { maxWidth: pageW - 28 }
+      );
+
+      doc.save(`${tokenNumber || 'VaidyaSetu-Token'}.pdf`);
     } catch (err) {
-      console.error('Failed to export OPD Token Slip PDF:', err);
-      alert('Unable to generate PDF directly. Please use "Print OPD Token Slip" and choose "Save as PDF".');
-    } finally {
-      setTimeout(() => setIsExportingPdf(false), 600);
+      console.error('[Kiosk] PDF generation failed:', err);
+      alert('Could not generate the PDF. You can still print this page.');
     }
   };
 
@@ -1721,182 +1698,148 @@ const KioskIntake = ({ isStandalone = false }) => {
 
   // The complete Kiosk Render Content
   const kioskContent = (
-    <div className={`w-full min-h-screen ${isFullscreen ? 'fixed inset-0 z-[999999] bg-slate-950 text-white overflow-y-auto p-4 sm:p-8' : 'max-w-7xl mx-auto py-2 sm:py-6 px-3 sm:px-6'}`}>
+    <div className={`vs-kiosk w-full min-h-screen ${isFullscreen ? 'fixed inset-0 z-[999999] bg-slate-950 text-white overflow-y-auto p-4 sm:p-8' : 'max-w-7xl mx-auto py-2 sm:py-6 px-3 sm:px-6'}`}>
       
-      {/* ────────────────── TOP KIOSK HEADER (HIGH CONTRAST LIGHT THEME) ────────────────── */}
-      <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-xl border-2 border-emerald-500/30 mb-8 relative overflow-hidden">
+      {/* ────────────────── TOP KIOSK HEADER ────────────────── */}
+      <div className="vs-dark-card bg-slate-900 bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-white rounded-3xl p-5 sm:p-7 shadow-2xl border border-emerald-500/40 mb-8 relative overflow-hidden backdrop-blur-3xl">
+        <div className="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
+
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
           
           {/* Hospital / Problem Statement Branding */}
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-600 p-0.5 shadow-lg shadow-emerald-600/30 flex items-center justify-center shrink-0">
-              <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
-                <Stethoscope className="w-8 h-8 text-emerald-600" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-300 to-emerald-600 p-0.5 shadow-xl shadow-emerald-500/25 flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                <Stethoscope className="w-8 h-8 text-emerald-400 animate-pulse" />
               </div>
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="px-3 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-full text-[11px] font-black tracking-widest uppercase shadow-sm">
+                <span className="px-3 py-1 bg-emerald-500/30 text-emerald-200 border border-emerald-400/50 rounded-full text-[11px] font-black tracking-widest uppercase shadow-sm">
                   AIIA AYUSH OPD • Smart MediKiosk
                 </span>
                 {triagePriority === 'emergency' && (
-                  <span className="px-3 py-0.5 bg-rose-600 text-white animate-bounce rounded-full text-[11px] font-black tracking-wider uppercase shadow-md flex items-center gap-1">
+                  <span className="px-3 py-1 bg-red-600 text-white animate-bounce rounded-full text-[11px] font-black tracking-wider uppercase shadow-md flex items-center gap-1">
                     <AlertOctagon className="w-3.5 h-3.5" /> RED-FLAG EMERGENCY
                   </span>
                 )}
                 {tokenNumber && (
-                  <span className="px-3 py-0.5 bg-teal-100 text-teal-900 border border-teal-300 rounded-full text-[11px] font-mono font-bold">
+                  <span className="px-3 py-1 bg-teal-500/30 text-teal-200 border border-teal-400/40 rounded-full text-[11px] font-mono font-black shadow-sm">
                     TOKEN: {tokenNumber}
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white drop-shadow-sm">
                 {t.kioskTitle}
               </h1>
-              <p className="text-xs sm:text-sm text-emerald-800 font-semibold mt-0.5">
+              <p className="text-xs sm:text-sm text-emerald-200/90 font-semibold mt-0.5">
                 {t.kioskSubtitle}
               </p>
             </div>
           </div>
 
-          {/* Controls: Language, TTS, Fullscreen */}
+          {/* Controls: Language, TTS, Fullscreen, Reset */}
           <div className="flex flex-wrap items-center gap-2.5 self-stretch sm:self-end lg:self-auto justify-end">
             
-            {/* Language Switcher */}
-            <div className="flex flex-wrap bg-slate-100 border border-slate-200 rounded-2xl p-1 shadow-inner gap-1">
-              {LANG_OPTIONS.map(item => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => setLang(item.code)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    lang === item.code 
-                      ? 'bg-emerald-600 text-white shadow font-black' 
-                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-200'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            <label className="relative flex items-center">
+              <span className="sr-only">Select language</span>
+              <Globe className="w-4 h-4 text-emerald-300 absolute left-3 pointer-events-none" />
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                className="appearance-none pl-9 pr-8 py-2.5 rounded-2xl bg-slate-950/90 border border-white/20 text-white text-sm font-extrabold shadow-md backdrop-blur-md cursor-pointer hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                {LANG_OPTIONS.map(item => (
+                  <option key={item.code} value={item.code} className="bg-slate-900 text-white font-bold">
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-gray-300 absolute right-3 pointer-events-none" />
+            </label>
 
             {/* Voice Guidance Toggle */}
             <button
-              type="button"
-              onClick={() => {
-                const next = !voiceAssist;
-                setVoiceAssist(next);
-                if (next) {
-                  const inst = STEP_VOICE_INSTRUCTIONS[currentStep]?.[lang] || STEP_VOICE_INSTRUCTIONS[currentStep]?.en;
-                  speakText(inst);
-                } else {
-                  window.speechSynthesis?.cancel();
-                }
-              }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black border transition-all cursor-pointer shadow-sm ${
-                voiceAssist 
-                  ? 'bg-emerald-100 text-emerald-900 border-emerald-500 ring-2 ring-emerald-500/20' 
-                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-              }`}
-              title="ध्वनि सहायता (Voice Guidance)"
+              onClick={() => setVoiceAssist(!voiceAssist)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-black border transition-all cursor-pointer shadow-md ${voiceAssist ? 'bg-teal-500/30 text-teal-100 border-teal-400/60' : 'bg-slate-800/80 text-gray-200 border-white/20 hover:bg-slate-800'}`}
+              title="Toggle Read-Aloud Voice Guidance"
             >
-              {voiceAssist ? <Volume2 className="w-4 h-4 text-emerald-700 animate-pulse" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
-              <span>{t.voiceAssist}</span>
+              {voiceAssist ? <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" /> : <VolumeX className="w-4 h-4 text-gray-300" />}
+              <span className="hidden sm:inline">{t.voiceAssist}</span>
             </button>
 
             {/* Fullscreen Kiosk Mode Toggle */}
             <button
-              type="button"
               onClick={toggleFullscreenMode}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black border transition-all cursor-pointer shadow-sm ${
-                isFullscreen 
-                  ? 'bg-amber-500 text-slate-950 border-amber-600' 
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
-              }`}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-black border transition-all cursor-pointer shadow-md ${isFullscreen ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-100 border-emerald-400/50'}`}
               title={isFullscreen ? t.exitFullScreen : t.fullScreen}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              <span className="hidden sm:inline">{isFullscreen ? t.exitFullScreen : t.fullScreen}</span>
+              <span className="hidden md:inline">{isFullscreen ? t.exitFullScreen : t.fullScreen}</span>
             </button>
           </div>
         </div>
 
-        {/* ────────────────── STEPPER PROGRESS BAR (ALL 6 STEPS NAVIGABLE) ────────────────── */}
-        <div className="mt-7 pt-5 border-t border-slate-200 grid grid-cols-6 gap-2">
+        {/* ────────────────── STEPPER PROGRESS BAR (ALL 7 STEPS NAVIGABLE) ────────────────── */}
+        <div className="mt-7 pt-5 border-t border-white/15">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:grid md:grid-cols-7 md:overflow-visible md:pb-0">
           {[
             { step: 1, label: t.step1, icon: User, required: true },
+            {
+              step: 1.5,
+              label: lang === 'hi' ? 'चिकित्सा पद्धति' : lang === 'mr' ? 'उपचार पद्धती' : 'Care Pathway',
+              icon: Stethoscope,
+              required: true
+            },
             { step: 2, label: t.step2, icon: Mic, required: true },
             { step: 3, label: t.step3, icon: Activity, optional: true },
-            { 
-              step: 4, 
-              label: t.step4, 
-              icon: Sparkles, 
-              optional: consultationType !== 'ayurvedic', 
-              required: consultationType === 'ayurvedic',
-              disabled: consultationType === 'allopathy'
+            {
+              step: 4,
+              label: t.step4,
+              icon: Sparkles,
+              optional: consultationType !== 'ayurvedic',
+              required: consultationType === 'ayurvedic'
             },
             { step: 5, label: t.step5, icon: FileText, optional: true },
             { step: 6, label: t.step6, icon: QrCode, required: true }
           ].map(s => {
             const isCompleted = currentStep > s.step;
             const isCurrent = currentStep === s.step;
-            const isDisabled = s.disabled;
             const IconComponent = s.icon;
             return (
               <div
                 key={s.step}
-                onClick={() => {
-                  if (isDisabled) {
-                    speakText(lang === 'hi' ? 'एलोपैथी सामान्य ओपीडी के लिए यह चरण छोड़ दिया गया है।' : 'This step is skipped for Allopathy OPD.');
-                    return;
-                  }
-                  goToStep(s.step);
-                }}
-                className={`flex flex-col items-center text-center gap-1.5 transition-all select-none ${
-                  isDisabled 
-                    ? 'opacity-35 cursor-not-allowed' 
-                    : 'cursor-pointer hover:scale-105 opacity-100'
-                }`}
-                title={isDisabled ? 'Disabled for Allopathy General OPD' : `Step ${s.step}: ${s.label}`}
+                onClick={() => goToStep(s.step)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToStep(s.step); } }}
+                aria-current={isCurrent ? 'step' : undefined}
+                className={`shrink-0 w-[88px] md:w-auto flex flex-col items-center text-center gap-1.5 p-1.5 rounded-2xl transition-all select-none cursor-pointer hover:bg-white/10 ${isCurrent ? 'opacity-100 bg-white/10 ring-1 ring-emerald-400/50' : isCompleted ? 'opacity-100' : 'opacity-85 hover:opacity-100'}`}
+                title={`Jump directly to Step ${s.step}: ${s.label}`}
               >
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-xs sm:text-sm font-black transition-all ${
-                  isDisabled 
-                    ? 'bg-slate-100 text-slate-400 border border-dashed border-slate-300' 
-                    : isCurrent 
-                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-500/30 shadow-lg scale-105' 
-                    : isCompleted 
-                    ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-500 shadow-sm' 
-                    : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
-                }`}>
-                  {isCompleted && !isDisabled ? <Check className="w-5 h-5 stroke-[3]" /> : <IconComponent className="w-5 h-5" />}
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-sm font-black transition-all ${isCurrent ? 'bg-gradient-to-tr from-emerald-400 to-teal-300 text-slate-950 ring-4 ring-emerald-400/50 shadow-xl shadow-emerald-500/40' : isCompleted ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800/90 text-emerald-300 border border-white/20 hover:bg-slate-800'}`}>
+                  {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : <IconComponent className="w-5 h-5" />}
                 </div>
-                <div className="flex flex-col items-center gap-0.5 w-full">
-                  <span className={`text-[11px] sm:text-xs truncate max-w-full block px-1 ${
-                    isDisabled 
-                      ? 'text-slate-400 line-through' 
-                      : isCurrent 
-                      ? 'text-emerald-800 font-black' 
-                      : 'text-slate-800 font-bold'
-                  }`}>
+                <div className="flex flex-col items-center gap-1 w-full">
+                  <span className={`text-[13px] font-black leading-tight break-words ${isCurrent ? 'text-emerald-300 drop-shadow-sm' : isCompleted ? 'text-slate-100' : 'text-slate-200'}`}>
                     {s.label}
                   </span>
-                  {isDisabled ? (
-                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded-md bg-slate-200 text-slate-600 border border-slate-300 uppercase tracking-tighter hidden md:inline-block">
-                      {lang === 'hi' ? 'छोड़ा गया' : 'Skipped'}
-                    </span>
-                  ) : s.optional ? (
-                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-tighter hidden md:inline-block">
+                  {s.optional && (
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-amber-500/30 text-amber-200 border border-amber-400/40 uppercase tracking-tight shadow-sm">
                       {t.optionalBadge}
                     </span>
-                  ) : s.required ? (
-                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-300 uppercase tracking-tighter hidden md:inline-block">
+                  )}
+                  {s.required && (
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 uppercase tracking-tight shadow-sm">
                       {t.requiredBadge}
                     </span>
-                  ) : null}
+                  )}
                 </div>
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
@@ -2179,76 +2122,59 @@ const KioskIntake = ({ isStandalone = false }) => {
             </div>
           </div>
 
-          {/* Patient Consent & ABDM Privacy Controls (§3 Restored - High Contrast) */}
-          <div className="p-6 rounded-3xl bg-slate-50 border-2 border-emerald-500/30 space-y-4 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
+          {/* Patient Consent & ABDM Privacy Controls (§3 Restored) */}
+          <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border-2 border-emerald-500/30 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-white/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
                   <Shield className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white">
                     {lang === 'hi' ? 'रोगी सहमति एवं डेटा सुरक्षा (ABDM / DPDP)' : lang === 'mr' ? 'रुग्ण संमती आणि डेटा सुरक्षा (ABDM)' : 'Patient Consent & Privacy Controls'}
                   </h3>
-                  <p className="text-xs text-slate-600 font-medium">
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400">
                     National Health Authority (ABDM) & Digital Personal Data Protection (DPDP) Compliant
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setShowConsentPolicyModal(true)}
-                  className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-black border border-blue-300 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
-                >
-                  <FileText className="w-3.5 h-3.5 text-blue-700" />
-                  {lang === 'hi' ? 'नियम व नीतियां पढ़ें (DPDP / ABDM)' : lang === 'mr' ? 'नियम व धोरणे वाचा (DPDP)' : 'View Full Rules & Regulations'}
-                </button>
-                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black uppercase tracking-wider border border-emerald-300 w-fit">
-                  ✓ Consent Authorized
-                </span>
-              </div>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-black uppercase tracking-wider border border-emerald-500/30 w-fit">
+                ✓ Consent Authorized
+              </span>
             </div>
 
-            {/* Complete DPDP / ABDM Rules & Regulations Modal */}
-            <ConsentPolicyModal
-              isOpen={showConsentPolicyModal}
-              onClose={() => setShowConsentPolicyModal(false)}
-              lang={lang}
-            />
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="flex items-start gap-3 p-4 rounded-2xl bg-white border-2 border-emerald-500/20 shadow-sm cursor-pointer hover:border-emerald-500 transition-all">
+              <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/20 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-all">
                 <input
                   type="checkbox"
                   checked={consent.dataCapture !== false}
                   onChange={(e) => setConsent({ ...consent, dataCapture: e.target.checked })}
-                  className="mt-0.5 w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
                 />
                 <div className="space-y-0.5">
-                  <span className="text-xs font-black text-slate-900 flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     {lang === 'hi' ? 'क्लिनिकल लक्षण व वाइटल्स रिकॉर्डिंग' : lang === 'mr' ? 'क्लिनिकल लक्षणे व वाइटल्स नोंदणी' : 'Clinical History & Vitals Capture'}
-                    <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[10px] rounded font-black">REQUIRED</span>
+                    <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] rounded font-black">REQUIRED</span>
                   </span>
-                  <span className="text-xs text-slate-700 font-medium block leading-relaxed">
+                  <span className="text-[11px] text-slate-500 dark:text-gray-400 block leading-tight">
                     {lang === 'hi' ? 'लक्षण, तापमान, बीपी व आयुष परीक्षा दर्ज करने की सहमति' : lang === 'mr' ? 'लक्षणे, वाइटल्स व आयुष परीक्षा नोंदवण्याची संमती' : 'Record symptoms, vitals & Ayush examination for this OPD visit'}
                   </span>
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-4 rounded-2xl bg-white border-2 border-emerald-500/20 shadow-sm cursor-pointer hover:border-emerald-500 transition-all">
+              <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/20 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-all">
                 <input
                   type="checkbox"
                   checked={consent.doctorSharing !== false}
                   onChange={(e) => setConsent({ ...consent, doctorSharing: e.target.checked })}
-                  className="mt-0.5 w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
                 />
                 <div className="space-y-0.5">
-                  <span className="text-xs font-black text-slate-900 flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     {lang === 'hi' ? 'परामर्शदाता डॉक्टर के साथ शेयरिंग' : lang === 'mr' ? 'सल्लागार डॉक्टरांसोबत डेटा शेअरिंग' : 'Consulting Physician Sharing'}
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] rounded font-black">ACTIVE</span>
+                    <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] rounded font-black">ACTIVE</span>
                   </span>
-                  <span className="text-xs text-slate-700 font-medium block leading-relaxed">
+                  <span className="text-[11px] text-slate-500 dark:text-gray-400 block leading-tight">
                     {lang === 'hi' ? 'ओपीडी डॉक्टर के साथ केस सारांश साझा करने की अनुमति' : lang === 'mr' ? 'डॉक्टरांसोबत केस सारांश शेअर करण्याची संमती' : 'Share AI-assisted case summary with assigned doctor'}
                   </span>
                 </div>
@@ -2257,12 +2183,12 @@ const KioskIntake = ({ isStandalone = false }) => {
           </div>
 
           {/* Action button */}
-          <div className="pt-6 border-t border-slate-200 flex justify-end">
+          <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex justify-end">
             <button
               type="button"
               disabled={isSubmitting}
               onClick={handleStartSession}
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all cursor-pointer active:scale-[0.98]"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all cursor-pointer active:scale-[0.98]"
             >
               {isSubmitting ? (
                 <>
@@ -2271,6 +2197,199 @@ const KioskIntake = ({ isStandalone = false }) => {
               ) : (
                 <>
                   {t.startIntakeBtn} <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────── STEP 1.5: CARE PATHWAY SELECTION ────────────────── */}
+      {currentStep === 1.5 && (
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl p-6 sm:p-10 border border-emerald-500/20 shadow-2xl space-y-8 animate-in fade-in duration-300">
+          <div className="space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+              <Stethoscope className="w-7 h-7 text-emerald-500" />
+              {lang === 'hi' ? 'आप किस चिकित्सा पद्धति से इलाज चाहते हैं?'
+                : lang === 'mr' ? 'तुम्हाला कोणत्या उपचार पद्धतीने उपचार हवे आहेत?'
+                : 'Which system of medicine would you like?'}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-gray-400">
+              {lang === 'hi' ? 'आपके उत्तर के आधार पर अगले प्रश्न तय किए जाएंगे।'
+                : lang === 'mr' ? 'तुमच्या निवडीनुसार पुढील प्रश्न ठरवले जातील.'
+                : 'The next set of questions is chosen based on what you pick here.'}
+            </p>
+          </div>
+
+          {/* Stream choice */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              {
+                id: 'allopathy',
+                icon: Pill,
+                title: lang === 'hi' ? 'एलोपैथी' : lang === 'mr' ? 'अ‍ॅलोपॅथी' : 'Allopathy',
+                sub: lang === 'hi' ? 'आधुनिक चिकित्सा — लक्षण आधारित प्रश्न'
+                  : lang === 'mr' ? 'आधुनिक वैद्यक — लक्षणांवर आधारित प्रश्न'
+                  : 'Modern medicine — short symptom-based questions',
+                ring: 'emerald'
+              },
+              {
+                id: 'ayurvedic',
+                icon: Sparkles,
+                title: lang === 'hi' ? 'आयुर्वेदिक' : lang === 'mr' ? 'आयुर्वेदिक' : 'Ayurvedic',
+                sub: lang === 'hi' ? 'दशविध परीक्षा — त्रिविध, अष्टविध, दशविध'
+                  : lang === 'mr' ? 'दशविध परीक्षा — त्रिविध, अष्टविध, दशविध'
+                  : 'Dashavidha Pariksha — Trividha, Ashtavidha, Dashavidha',
+                ring: 'amber'
+              }
+            ].map(opt => {
+              const Icon = opt.icon;
+              const active = consultationType === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => { setConsultationType(opt.id); speakText(opt.title); }}
+                  className={`text-left p-6 rounded-2xl border-2 transition-all active:scale-[0.98] ${
+                    active
+                      ? 'border-emerald-500 bg-emerald-500/10 ring-4 ring-emerald-500/20 shadow-xl'
+                      : 'border-gray-200 dark:border-white/10 hover:border-emerald-400/60 bg-white dark:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${active ? 'bg-emerald-500 text-white' : 'bg-emerald-500/15 text-emerald-500'}`}>
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                        {opt.title}
+                        {active && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-gray-400 leading-snug">{opt.sub}</div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Visit mode */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-black uppercase tracking-wide text-slate-500 dark:text-gray-400">
+              {lang === 'hi' ? 'आप कहाँ से पंजीकरण कर रहे हैं?'
+                : lang === 'mr' ? 'तुम्ही कुठून नोंदणी करत आहात?'
+                : 'Where are you registering from?'}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { id: 'kiosk', icon: QrCode, label: lang === 'hi' ? 'अस्पताल कियोस्क से' : lang === 'mr' ? 'रुग्णालय कियोस्कवरून' : 'At the hospital kiosk' },
+                { id: 'home', icon: Phone, label: lang === 'hi' ? 'घर से (अपॉइंटमेंट बुक करें)' : lang === 'mr' ? 'घरून (अपॉइंटमेंट बुक करा)' : 'From home (book an appointment)' }
+              ].map(m => {
+                const Icon = m.icon;
+                const active = visitMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setVisitMode(m.id)}
+                    className={`flex items-center gap-3 p-4 rounded-2xl border-2 font-bold text-sm transition-all active:scale-[0.98] ${
+                      active
+                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                        : 'border-gray-200 dark:border-white/10 text-slate-600 dark:text-gray-300 hover:border-emerald-400/60'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" />
+                    {m.label}
+                    {active && <Check className="w-4 h-4 ml-auto" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Home booking: hospital, department & doctor */}
+          {visitMode === 'home' && (
+            <div className="space-y-4 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 text-sm font-black text-emerald-700 dark:text-emerald-300">
+                <Info className="w-4 h-4" />
+                {lang === 'hi' ? 'अपनी पसंद का अस्पताल, विभाग और डॉक्टर चुनें'
+                  : lang === 'mr' ? 'तुमच्या पसंतीचे रुग्णालय, विभाग आणि डॉक्टर निवडा'
+                  : 'Choose your preferred hospital, department and doctor'}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600 dark:text-gray-300">
+                  {lang === 'hi' ? 'अस्पताल' : lang === 'mr' ? 'रुग्णालय' : 'Hospital'}
+                </label>
+                <select
+                  value={preferredHospital}
+                  onChange={(e) => setPreferredHospital(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="">{lang === 'hi' ? '— अस्पताल चुनें —' : '— Select hospital —'}</option>
+                  {HOSPITALS.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600 dark:text-gray-300">
+                  {lang === 'hi' ? 'विभाग' : lang === 'mr' ? 'विभाग' : 'Department'}
+                </label>
+                <select
+                  value={patientForm.department}
+                  onChange={(e) => {
+                    setPatientForm({ ...patientForm, department: e.target.value });
+                    setDeptManuallySet(Boolean(e.target.value));
+                    setPreferredDoctor('');
+                  }}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="">{lang === 'hi' ? '— विभाग चुनें —' : '— Select department —'}</option>
+                  {departmentsList.map(d => <option key={d.id} value={d.id}>{d.label || d.id}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600 dark:text-gray-300">
+                  {lang === 'hi' ? 'डॉक्टर (वैकल्पिक)' : lang === 'mr' ? 'डॉक्टर (ऐच्छिक)' : 'Doctor (optional)'}
+                </label>
+                <select
+                  value={preferredDoctor}
+                  onChange={(e) => setPreferredDoctor(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="">{lang === 'hi' ? '— कोई भी उपलब्ध डॉक्टर —' : '— Any available doctor —'}</option>
+                  {(DOCTORS_BY_DEPT[patientForm.department] || doctorOptions).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex flex-col sm:flex-row gap-3 justify-between">
+            <button
+              type="button"
+              onClick={() => goToStep(1)}
+              className="px-6 py-3.5 rounded-2xl bg-gray-100 dark:bg-white/10 text-slate-700 dark:text-gray-200 font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-white/15 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" /> {lang === 'hi' ? 'पीछे' : lang === 'mr' ? 'मागे' : 'Back'}
+            </button>
+            <button
+              type="button"
+              disabled={savingPathway}
+              onClick={handleConfirmPathway}
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-60"
+            >
+              {savingPathway ? (
+                <><RefreshCw className="w-5 h-5 animate-spin" /> {lang === 'hi' ? 'सहेजा जा रहा है...' : 'Saving...'}</>
+              ) : (
+                <>
+                  {consultationType === 'ayurvedic'
+                    ? (lang === 'hi' ? 'आयुर्वेदिक प्रश्न शुरू करें' : lang === 'mr' ? 'आयुर्वेदिक प्रश्न सुरू करा' : 'Start Ayurvedic questions')
+                    : (lang === 'hi' ? 'लक्षण प्रश्न शुरू करें' : lang === 'mr' ? 'लक्षण प्रश्न सुरू करा' : 'Start symptom questions')}
+                  <ArrowRight className="w-5 h-5" />
                 </>
               )}
             </button>
@@ -2305,22 +2424,20 @@ const KioskIntake = ({ isStandalone = false }) => {
           </div>
 
           {/* Consultation Stream Selector: Ayurvedic vs Allopathy */}
-          <div className="p-5 rounded-3xl bg-emerald-50/60 border-2 border-emerald-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
+          <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-900/30 border-2 border-emerald-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-lg">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-900">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                   Select Medical System / Consultation Stream
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
-                  consultationType === 'ayurvedic' ? 'bg-emerald-200 text-emerald-900 border-emerald-400' : 'bg-blue-200 text-blue-900 border-blue-400'
-                }`}>
-                  Selected: {consultationType === 'ayurvedic' ? 'Ayurvedic OPD' : 'Allopathy General OPD'}
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase">
+                  Active: {consultationType === 'ayurvedic' ? 'Ayurveda' : 'Allopathy'}
                 </span>
               </div>
-              <p className="text-xs text-slate-800 font-semibold mt-1 max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
                 {consultationType === 'ayurvedic'
-                  ? '🌿 Ayurvedic OPD: Step 4 (Trividha / Ashtavidha / Dashavidha Pariksha) is ENABLED & ACTIVE.'
-                  : '💊 Allopathy General OPD: Step 4 (Ayush Pariksha) is COMPLETELY DISABLED & SKIPPED (Directly advances from Vitals to Medical Records).'}
+                  ? '🌿 AYUSH Classical Consultation selected — Step 4 (Trividha / Ashtavidha / Dashavidha Pariksha) is MANDATORY.'
+                  : '💊 Allopathy General OPD Consultation selected — Step 4 (Ayush Pariksha) is OPTIONAL and can be skipped.'}
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -2329,8 +2446,8 @@ const KioskIntake = ({ isStandalone = false }) => {
                 onClick={() => setConsultationType('ayurvedic')}
                 className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 shadow-md ${
                   consultationType === 'ayurvedic'
-                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-500/30 scale-105'
-                    : 'bg-white text-slate-800 hover:bg-emerald-50 border-2 border-slate-200'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white ring-4 ring-emerald-500/30 scale-105'
+                    : 'bg-white dark:bg-white/10 text-slate-700 dark:text-gray-200 hover:bg-emerald-500/10'
                 }`}
               >
                 🌿 Ayurvedic OPD (AYUSH)
@@ -2340,8 +2457,8 @@ const KioskIntake = ({ isStandalone = false }) => {
                 onClick={() => setConsultationType('allopathy')}
                 className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 shadow-md ${
                   consultationType === 'allopathy'
-                    ? 'bg-blue-600 text-white ring-4 ring-blue-500/30 scale-105'
-                    : 'bg-white text-slate-800 hover:bg-blue-50 border-2 border-slate-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white ring-4 ring-blue-500/30 scale-105'
+                    : 'bg-white dark:bg-white/10 text-slate-700 dark:text-gray-200 hover:bg-blue-500/10'
                 }`}
               >
                 💊 Allopathy General OPD
@@ -2367,7 +2484,9 @@ const KioskIntake = ({ isStandalone = false }) => {
                       </span>
                       {inferredDept?.confidence && (
                         <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-700 dark:text-teal-300 text-[10px] font-bold">
-                          {Math.round(inferredDept.confidence * 100)}% Match
+                          {/* confidence already arrives as a percentage (e.g. 96),
+                              so multiplying by 100 rendered "9600% Match". */}
+                          {Math.round(inferredDept.confidence > 1 ? inferredDept.confidence : inferredDept.confidence * 100)}% Match
                         </span>
                       )}
                     </>
@@ -2403,64 +2522,20 @@ const KioskIntake = ({ isStandalone = false }) => {
             </button>
           </div>
 
-          {/* Common Symptoms Selection: Multi-select then disappears */}
-          {!symptomsConfirmed ? (
-            <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border-2 border-emerald-500/30 space-y-3 shadow-inner">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-500" />
-                    {lang === 'hi' ? 'मुख्य लक्षण चुनें (एक या अधिक चुनें व ओके/पुष्टि करें):' : lang === 'mr' ? 'मुख्य लक्षणे निवडा (एकापेक्षा जास्त निवडून ओके करा):' : 'Select Primary Symptoms (Select multiple and click OK / Confirm):'}
-                  </p>
-                  <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
-                    {lang === 'hi' ? 'पुष्टि करते ही सामान्य लक्षण छिप जाएंगे और आगे प्रश्न पूछे जाएंगे।' : lang === 'mr' ? 'पुष्टी केल्यावर लक्षणे अदृश्य होतील व पुढील प्रश्न विचारले जातील.' : 'Once submitted, options disappear and dynamic questions appear.'}
-                  </p>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase">
-                  Multi-Select Mode
-                </span>
-              </div>
-              <SymptomIconPicker
-                lang={['hi', 'mr', 'en'].includes(lang) ? lang : 'en'}
-                value={chiefComplaint}
-                onSelect={(text) => {
-                  setChiefComplaint(text);
-                  setSpeechInput(text);
-                }}
-                onConfirm={(selectedList) => {
-                  const combinedText = Array.isArray(selectedList) ? selectedList.join(', ') : selectedList;
-                  if (!combinedText) return;
-                  setChiefComplaint(combinedText);
-                  setSpeechInput(combinedText);
-                  setSymptomsConfirmed(true);
-                  handleSendSocratesResponse(combinedText);
-                }}
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 shadow-sm animate-in fade-in">
-              <div className="flex items-center gap-2.5">
-                <span className="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-black flex items-center justify-center text-xs">
-                  ✓
-                </span>
-                <div>
-                  <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 block">
-                    {lang === 'hi' ? 'दर्ज किए गए मुख्य लक्षण:' : lang === 'mr' ? 'नोंदवलेली मुख्य लक्षणे:' : 'Confirmed Primary Symptoms:'}
-                  </span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    {chiefComplaint}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSymptomsConfirmed(false)}
-                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shrink-0"
-              >
-                {lang === 'hi' ? '✍️ लक्षण बदलें' : lang === 'mr' ? '✍️ लक्षणे बदला' : '✍️ Change Symptoms'}
-              </button>
-            </div>
-          )}
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-gray-400 mb-2">
+              Tap a common OPD symptom (or speak / type below):
+            </p>
+            <SymptomIconPicker
+              lang={['hi', 'mr', 'en'].includes(lang) ? lang : 'en'}
+              value={chiefComplaint}
+              onSelect={(text) => {
+                setChiefComplaint(text);
+                setSpeechInput(text);
+                handleSendSocratesResponse(text);
+              }}
+            />
+          </div>
 
           {/* Department Manual Selection Modal */}
           {showManualDeptModal && (
@@ -2575,10 +2650,14 @@ const KioskIntake = ({ isStandalone = false }) => {
                       <button
                         type="button"
                         onClick={() => speakText(item.text)}
-                        className="text-emerald-600 dark:text-emerald-400 hover:opacity-80 p-0.5 cursor-pointer"
+                        // Was `p-0.5` around a 14px icon — a ~16px target, and
+                        // it is the accessibility affordance for patients who
+                        // cannot read the question.
+                        className="text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-lg p-2 cursor-pointer inline-flex items-center justify-center"
                         title="Re-listen to question"
+                        aria-label="Read this question aloud again"
                       >
-                        <Volume2 className="w-3.5 h-3.5" />
+                        <Volume2 className="w-5 h-5" />
                       </button>
                     )}
                   </div>
@@ -2712,7 +2791,49 @@ const KioskIntake = ({ isStandalone = false }) => {
             </div>
           </div>
 
-          {/* Severity is captured dynamically in the Socrates dialogue above */}
+          {/* Visual VAS Pain Scale (1 to 10) */}
+          <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-gray-300">
+                {t.severityLabel}
+              </span>
+              <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                VAS Score: {severityScore}/10
+              </span>
+            </div>
+
+            {/* Pain scale.
+                Was `grid-cols-5` with no breakpoint and `text-[10px] truncate`
+                labels — on a phone each cell was ~60px holding a 24px emoji
+                plus a label clipped to nothing, so the emoji was the only
+                legible content. Now 2-up on the narrowest screens, and the
+                word label is never truncated. */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+              {[
+                { score: 2, label: 'Mild', range: '1-2', emoji: '😄' },
+                { score: 4, label: 'Discomfort', range: '3-4', emoji: '🙂' },
+                { score: 6, label: 'Moderate', range: '5-6', emoji: '😐' },
+                { score: 8, label: 'Severe', range: '7-8', emoji: '😣' },
+                { score: 10, label: 'Extreme', range: '9-10', emoji: '😫' }
+              ].map(tile => (
+                <button
+                  key={tile.score}
+                  type="button"
+                  aria-pressed={severityScore === tile.score}
+                  onClick={() => setSeverityScore(tile.score)}
+                  className={`px-2 py-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${severityScore === tile.score ? 'bg-white dark:bg-slate-800 border-emerald-500 ring-4 ring-emerald-400/30 shadow-md' : 'bg-white/60 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-emerald-400/50'}`}
+                >
+                  <span className="text-3xl leading-none">{tile.emoji}</span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-gray-100 leading-tight">
+                    {tile.label}
+                  </span>
+                  <span className="text-[13px] font-semibold text-slate-500 dark:text-gray-400 font-mono">
+                    {tile.range}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Navigation */}
           <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex items-center justify-between gap-4">
@@ -2762,7 +2883,7 @@ const KioskIntake = ({ isStandalone = false }) => {
             {/* Quick Skip Button */}
             <button
               type="button"
-              onClick={() => goToStep(consultationType === 'allopathy' ? 5 : 4)}
+              onClick={() => goToStep(4)}
               className="px-5 py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
             >
               Skip Vitals (Doctor will measure at OPD) ⏭️
@@ -2847,66 +2968,35 @@ const KioskIntake = ({ isStandalone = false }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              {/* Device 1: Pulse Oximeter */}
-              <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-cyan-100 text-cyan-800 border border-cyan-300">
-                    <Activity className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      Pulse Oximeter
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                    </div>
-                    <div className="text-[10px] text-slate-500">{connectedDevices.pulseOx.model}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-mono font-extrabold text-emerald-700">{connectedDevices.pulseOx.battery}% Bat</span>
-                  <div className="text-[10px] text-slate-500 font-bold">Online</div>
-                </div>
-              </div>
-
-              {/* Device 2: BP Monitor */}
-              <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-rose-100 text-rose-800 border border-rose-300">
-                    <Heart className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      Digital BP Cuff
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                    </div>
-                    <div className="text-[10px] text-slate-500">{connectedDevices.bpCuff.model}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-mono font-extrabold text-emerald-700">{connectedDevices.bpCuff.battery}% Bat</span>
-                  <div className="text-[10px] text-slate-500 font-bold">Online</div>
-                </div>
-              </div>
-
-              {/* Device 3: IR Thermometer */}
-              <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-300">
-                    <Thermometer className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      IR Thermometer
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                    </div>
-                    <div className="text-[10px] text-slate-500">{connectedDevices.thermometer.model}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-mono font-extrabold text-emerald-700">{connectedDevices.thermometer.battery}% Bat</span>
-                  <div className="text-[10px] text-slate-500 font-bold">Online</div>
-                </div>
-              </div>
+            {/* Device status.
+                Previously three large cards, one per device, each showing a
+                model number and battery percentage — operator telemetry with
+                no patient value, taking a third of the screen on the busiest
+                step. All three also hardcoded `bg-white` + `text-slate-900`
+                with no `dark:` variant, so they stayed white cards inside a
+                dark panel. Now one compact strip that answers the only
+                question a patient has: are the machines working? */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+              <span className="text-sm font-bold text-slate-700 dark:text-gray-200">
+                Kiosk instruments
+              </span>
+              {[
+                { label: 'Pulse Oximeter', icon: Activity, dev: connectedDevices.pulseOx },
+                { label: 'BP Cuff', icon: Heart, dev: connectedDevices.bpCuff },
+                { label: 'Thermometer', icon: Thermometer, dev: connectedDevices.thermometer }
+              ].map(({ label, icon: Icon, dev }) => (
+                <span key={label} className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-gray-300">
+                  <Icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  {label}
+                  <span
+                    className="w-2.5 h-2.5 rounded-full bg-emerald-500"
+                    title={`Ready${dev?.battery ? ` · battery ${dev.battery}%` : ''}${dev?.model ? ` · ${dev.model}` : ''}`}
+                  />
+                </span>
+              ))}
+              <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 ml-auto">
+                All ready
+              </span>
             </div>
           </div>
 
@@ -2927,7 +3017,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                   type="number"
                   value={vitals.systolicBP}
                   onChange={(e) => setVitals({ ...vitals, systolicBP: Number(e.target.value) })}
-                  className="w-18 bg-transparent text-3xl font-black text-slate-900 dark:text-white focus:outline-none font-mono"
+                  className="w-20 bg-transparent text-3xl font-black text-slate-900 dark:text-white focus:outline-none font-mono"
                   placeholder="120"
                 />
                 <span className="text-2xl font-black text-gray-400">/</span>
@@ -2935,7 +3025,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                   type="number"
                   value={vitals.diastolicBP}
                   onChange={(e) => setVitals({ ...vitals, diastolicBP: Number(e.target.value) })}
-                  className="w-18 bg-transparent text-3xl font-black text-slate-900 dark:text-white focus:outline-none font-mono"
+                  className="w-20 bg-transparent text-3xl font-black text-slate-900 dark:text-white focus:outline-none font-mono"
                   placeholder="80"
                 />
                 <span className="text-xs font-bold text-gray-500">mmHg</span>
@@ -3079,7 +3169,9 @@ const KioskIntake = ({ isStandalone = false }) => {
 
               {/* Visual Segmented Arc Bar for BMI */}
               <div className="w-full sm:w-64 space-y-2">
-                <div className="flex justify-between text-[10px] font-bold text-gray-400">
+                {/* These are clinical thresholds, not decoration — they were
+                    `text-[10px] text-gray-400` (~2.8:1 on the panel, fails AA). */}
+                <div className="flex justify-between text-[13px] font-bold text-slate-600 dark:text-gray-300">
                   <span>18.5</span>
                   <span>25.0</span>
                   <span>30.0</span>
@@ -3090,11 +3182,11 @@ const KioskIntake = ({ isStandalone = false }) => {
                   <div className="w-1/4 bg-amber-400" title="Overweight" />
                   <div className="w-1/4 bg-rose-500" title="Obese" />
                 </div>
-                <div className="flex justify-between text-[9px] font-bold text-gray-500">
+                <div className="flex justify-between text-[13px] font-bold text-slate-600 dark:text-gray-300">
                   <span>Under</span>
-                  <span className="text-emerald-500 font-black">Normal</span>
-                  <span className="text-amber-500">Over</span>
-                  <span className="text-rose-500">Obese</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-black">Normal</span>
+                  <span className="text-amber-700 dark:text-amber-400">Over</span>
+                  <span className="text-rose-700 dark:text-rose-400">Obese</span>
                 </div>
               </div>
             </div>
@@ -3113,7 +3205,7 @@ const KioskIntake = ({ isStandalone = false }) => {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => goToStep(consultationType === 'allopathy' ? 5 : 4)}
+                onClick={() => goToStep(4)}
                 className="px-6 py-4 rounded-2xl border-2 border-dashed border-amber-400/60 hover:border-amber-500 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 font-black text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm"
               >
                 Skip Vitals ⏭️
@@ -3691,7 +3783,8 @@ const KioskIntake = ({ isStandalone = false }) => {
                         isSelected ? prev.filter(d => d !== disease) : [...prev, disease]
                       );
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${isSelected ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-emerald-400'}`}
+                    className={`px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer border-2 ${isSelected ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-gray-200 border-gray-200 dark:border-white/10 hover:border-emerald-400'}`}
+                    aria-pressed={isSelected}
                   >
                     {isSelected ? '✓ ' : '+ '} {disease}
                   </button>
@@ -3758,7 +3851,8 @@ const KioskIntake = ({ isStandalone = false }) => {
                         isSelected ? prev.filter(a => a !== allergy) : [...prev, allergy]
                       );
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${isSelected ? 'bg-rose-600 text-white border-rose-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-rose-400'}`}
+                    className={`px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer border-2 ${isSelected ? 'bg-rose-600 text-white border-rose-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-gray-200 border-gray-200 dark:border-white/10 hover:border-rose-400'}`}
+                    aria-pressed={isSelected}
                   >
                     {isSelected ? '⚠️ ' : '+ '} {allergy}
                   </button>
@@ -3813,7 +3907,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                     <button
                       type="button"
                       onClick={capturePhoto}
-                      className="px-6 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-xl flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+                      className="px-6 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-xl flex items-center gap-2 cursor-pointer"
                     >
                       <Camera className="w-4 h-4" /> Capture Photo
                     </button>
@@ -3826,7 +3920,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400">Position the prescription sheet flat under the camera. High-resolution scan will be saved.</p>
+                <p className="text-xs text-gray-400">Position the prescription sheet flat under the camera.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3849,66 +3943,72 @@ const KioskIntake = ({ isStandalone = false }) => {
                   </div>
                 </button>
 
-                {/* Option 2: Upload File / Document Picker */}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept="image/*,application/pdf"
-                  className="hidden"
-                />
-                <button
-                  type="button"
+                {/* Option 2: Real file upload */}
+                <div
                   onClick={() => fileInputRef.current?.click()}
                   className="p-8 rounded-3xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group text-center"
                 >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,application/pdf"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleDocumentUpload(e.target.files)}
+                  />
                   <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-all shadow-md">
                     <Upload className="w-7 h-7" />
                   </div>
                   <div>
                     <span className="text-sm font-black text-slate-900 dark:text-white block">
-                      📁 Upload Medical Document / Prescription
+                      {lang === 'hi' ? '📁 दस्तावेज़ अपलोड करें' : '📁 Upload Document'}
                     </span>
                     <span className="text-xs text-slate-500 dark:text-gray-400">
-                      Supports JPG, PNG, PDF files (Stores in DB & runs OCR)
+                      {lang === 'hi' ? 'पर्चा, रिपोर्ट — JPG, PNG, PDF' : 'Prescriptions & reports — JPG, PNG, PDF'}
                     </span>
                   </div>
-                </button>
+                </div>
+              </div>
+            )}
+
+            {/* Uploaded document list */}
+            {uploadedDocs.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-gray-400">
+                  {lang === 'hi' ? 'अपलोड किए गए दस्तावेज़' : 'Uploaded documents'} ({uploadedDocs.length})
+                </span>
+                {uploadedDocs.map((d, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                    <FileText className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-white truncate flex-1">{d.name}</span>
+                    {d.uploading ? (
+                      <RefreshCw className="w-4 h-4 text-emerald-500 animate-spin shrink-0" />
+                    ) : d.error ? (
+                      <span className="text-[10px] font-black text-amber-500 shrink-0">SAVED LOCALLY</span>
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setUploadedDocs(prev => prev.filter((_, idx) => idx !== i))}
+                      // Had no padding at all — a bare 16px destructive icon.
+                      className="text-slate-500 hover:text-red-600 hover:bg-red-500/10 rounded-lg p-2 transition-colors shrink-0 inline-flex items-center justify-center"
+                      aria-label="Remove document"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Gallery of captured photos if any */}
             {capturedPhotos.length > 0 && (
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-emerald-500/30 space-y-2.5 animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Captured & Uploaded Documents ({capturedPhotos.length})
-                  </span>
-                  <span className="text-[10px] font-bold text-gray-500">
-                    Stored in EHR Database for Doctor Verification
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {capturedPhotos.map((photo, pIdx) => (
-                    <div key={pIdx} className="relative group">
-                      <img
-                        src={photo}
-                        alt={`Capture ${pIdx + 1}`}
-                        className="w-20 h-20 object-cover rounded-xl border-2 border-emerald-500 shadow-md bg-white cursor-pointer hover:scale-105 transition-all"
-                        onClick={() => window.open(photo, '_blank')}
-                        title="Click to view full image"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setCapturedPhotos(prev => prev.filter((_, idx) => idx !== pIdx))}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-md cursor-pointer hover:bg-rose-700 transition-all"
-                        title="Remove photo"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              <div className="flex items-center gap-3 pt-2">
+                <span className="text-xs font-bold text-gray-400">Captured Photos:</span>
+                {capturedPhotos.map((photo, pIdx) => (
+                  <img key={pIdx} src={photo} alt={`Capture ${pIdx + 1}`} className="w-16 h-16 object-cover rounded-xl border border-emerald-500/40 shadow-sm" />
+                ))}
               </div>
             )}
           </div>
@@ -3985,10 +4085,10 @@ const KioskIntake = ({ isStandalone = false }) => {
           <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
             <button
               type="button"
-              onClick={() => goToStep(consultationType === 'allopathy' ? 3 : 4)}
+              onClick={() => goToStep(4)}
               className="px-6 py-4 rounded-2xl border border-gray-300 dark:border-white/15 text-slate-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4" /> {consultationType === 'allopathy' ? 'Back to Vitals Station' : 'Back to AYUSH Pariksha'}
+              <ArrowLeft className="w-4 h-4" /> Back to Pariksha
             </button>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -4026,124 +4126,115 @@ const KioskIntake = ({ isStandalone = false }) => {
         <div className="max-w-2xl mx-auto space-y-6 animate-in zoom-in-95 duration-300">
           
           {/* Printable Ticket */}
-          <div
-            id="printable-opd-token-slip"
-            className="bg-white text-slate-900 rounded-3xl p-7 sm:p-9 border-2 border-emerald-500/40 shadow-2xl relative overflow-hidden"
-          >
-            {/* Top Emblem & Institutional Header */}
-            <div className="text-center pb-5 border-b-2 border-dashed border-gray-300 dark:border-white/20 space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-600/10 text-emerald-800 rounded-full text-[11px] font-black uppercase tracking-widest">
-                <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-10 border-2 border-emerald-500/40 shadow-2xl relative overflow-hidden text-slate-900 dark:text-white">
+            
+            {/* Top Emblem Header */}
+            <div className="text-center pb-6 border-b-2 border-dashed border-gray-200 dark:border-white/10 space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded-full text-[13px] font-black uppercase tracking-wide">
                 All India Institute of Ayurveda • AIIA New Delhi
               </div>
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+              <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
                 Official OPD Consultation Token Slip
-              </h2>
-              <p className="text-xs text-slate-600 font-medium">
-                आयुष मंत्रालय, भारत सरकार • Ministry of Ayush, Govt. of India • Sarita Vihar, New Delhi - 110076
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Ayushman Bharat Digital Mission (ABDM) Integrated Patient Case Sheet
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] font-bold text-slate-500">
-                <span>ABDM Integrated (M1-M3)</span>
-                <span>•</span>
-                <span>Slip Issued: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
             </div>
 
-            {/* Giant Token Display & Triage Banner */}
-            <div className="my-5 text-center p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-slate-900/5 border-2 border-emerald-500/40">
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-800">
-                {t.yourToken || 'OPD Consultation Queue Token'}
+            {/* Giant Token Display — the token and the room are the only two
+                things the patient must leave with, so they are the only two
+                things given this much weight. */}
+            <div className="my-6 text-center p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-slate-900/10 border border-emerald-500/30">
+              <span className="text-sm font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
+                {t.yourToken}
               </span>
-              <div className="text-4xl sm:text-5xl font-black font-mono text-emerald-900 tracking-wider my-1">
-                {tokenNumber || 'OPD-20260910-007'}
+              <div className="text-5xl sm:text-6xl font-black font-mono text-emerald-700 dark:text-emerald-300 tracking-wider mt-1">
+                {tokenNumber || 'OPD-20260906-007'}
               </div>
-              <div className="flex flex-wrap items-center justify-center gap-2.5 mt-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${triagePriority === 'emergency' ? 'bg-red-600 text-white animate-pulse shadow-md' : 'bg-emerald-600/20 text-emerald-800 border border-emerald-500/30'}`}>
+
+              <div className="mt-4 pt-4 border-t border-emerald-500/20">
+                <span className="text-sm font-bold uppercase tracking-wide text-slate-600 dark:text-gray-400 block">
+                  {t.assignedRoom}
+                </span>
+                <span className="text-xl font-black text-slate-900 dark:text-white">
+                  {preferredDoctor
+                    ? `${preferredDoctor}${preferredHospital ? ` • ${preferredHospital}` : ''}`
+                    : finalCaseSheet?.assignedDoctor || 'To be assigned at the OPD desk'}
+                </span>
+                <span className="mt-1 text-base font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
+                  <Clock className="w-4 h-4" /> {t.estWait}: ~8–12 mins
+                </span>
+              </div>
+
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <span className={`px-3 py-1.5 rounded-full text-sm font-black uppercase ${triagePriority === 'emergency' ? 'bg-red-600 text-white animate-pulse' : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'}`}>
                   {triagePriority === 'emergency' ? '🚨 Red-Flag Emergency Triage' : '🟢 Normal Queue Triage'}
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                  Estimated Wait: ~ 8 - 12 mins (Approx. 3 ahead)
-                </span>
               </div>
             </div>
 
-            {/* Patient & Room Details Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm py-4 border-y border-gray-200">
+            {/* Patient identity — secondary information, for desk verification.
+                Every label here was a bare `text-gray-500` with no dark
+                counterpart, so all six went mid-grey on near-black in dark mode. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm py-4 border-y border-gray-100 dark:border-white/5">
               <div>
-                <span className="text-slate-500 font-bold block text-[11px] uppercase tracking-wider">Patient Name</span>
-                <span className="font-black text-slate-900 text-sm sm:text-base">{patientForm.patientName || 'Rahul Sharma'}</span>
+                <span className="text-gray-600 dark:text-gray-400 block">Patient Name</span>
+                <span className="font-black text-slate-900 dark:text-white">{patientForm.patientName}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-bold block text-[11px] uppercase tracking-wider">Age / Gender</span>
-                <span className="font-bold text-slate-900">{patientForm.age || '42'}y • {patientForm.gender || 'Male'}</span>
+                <span className="text-gray-600 dark:text-gray-400 block">Age / Gender</span>
+                <span className="font-bold text-slate-900 dark:text-white">{patientForm.age}y • {patientForm.gender}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-bold block text-[11px] uppercase tracking-wider">ABHA ID (14-Digit)</span>
-                <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm">{patientForm.abhaId || '14-1122-3344-5566'}</span>
+                <span className="text-gray-600 dark:text-gray-400 block">ABHA ID</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{patientForm.abhaId}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-bold block text-[11px] uppercase tracking-wider">Consultation Stream</span>
-                <span className="font-bold text-teal-800">{consultationType === 'allopathy' ? 'Allopathy General OPD' : 'Ayurvedic OPD'}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 font-bold block text-[11px] uppercase tracking-wider">Clinical Department</span>
-                <span className="font-bold text-emerald-800">{patientForm.department || (consultationType === 'allopathy' ? 'General Medicine' : 'Kayachikitsa')}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 font-bold block text-[11px] uppercase tracking-wider">Assigned Room & Physician</span>
-                <span className="font-black text-slate-900">{consultationType === 'allopathy' ? 'Room 205 • Dr. A. K. Verma (MBBS, MD)' : 'Room 104 • Dr. V. Sharma (MD Ayur)'}</span>
+                <span className="text-gray-600 dark:text-gray-400 block">Clinical Department</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">{patientForm.department}</span>
               </div>
             </div>
 
-            {/* Vitals & Chief Complaint Snapshot */}
-            <div className="py-3.5 border-b border-gray-200 space-y-2">
-              <span className="text-slate-500 font-bold block text-[11px] uppercase tracking-wider">Intake Vitals & Symptoms Summary</span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 text-[10px] block font-medium">Blood Pressure</span>
-                  <span className="font-bold text-slate-900">{vitals.systolicBP && vitals.diastolicBP ? `${vitals.systolicBP}/${vitals.diastolicBP} mmHg` : '120/80 mmHg'}</span>
+            {/* AI pre-consultation summary — what the doctor will receive */}
+            {(finalCaseSheet?.aiSummary || finalCaseSheet?.summary) && (
+              <div className="mt-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/25 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-sm font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                    {lang === 'hi' ? 'एआई सारांश — डॉक्टर को भेजा गया'
+                      : lang === 'mr' ? 'एआय सारांश — डॉक्टरांना पाठवले'
+                      : 'AI summary — sent to your doctor'}
+                  </span>
                 </div>
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 text-[10px] block font-medium">Heart Rate</span>
-                  <span className="font-bold text-slate-900">{vitals.heartRate ? `${vitals.heartRate} bpm` : '74 bpm'}</span>
-                </div>
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 text-[10px] block font-medium">Oxygen (SpO2)</span>
-                  <span className="font-bold text-slate-900">{vitals.spo2 ? `${vitals.spo2}%` : '98%'}</span>
-                </div>
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 text-[10px] block font-medium">Temperature</span>
-                  <span className="font-bold text-slate-900">{vitals.temperature ? `${vitals.temperature} °F` : '98.4 °F'}</span>
-                </div>
+                <p className="text-sm leading-relaxed text-slate-700 dark:text-gray-300 whitespace-pre-line">
+                  {finalCaseSheet.aiSummary || finalCaseSheet.summary}
+                </p>
+                {/* Was `text-[10px] text-slate-400` — the smallest, faintest
+                    text on the screen, for the medico-legal disclaimer. */}
+                <p className="text-[13px] font-semibold text-slate-600 dark:text-gray-400 pt-2 border-t border-emerald-500/15">
+                  {lang === 'hi' ? 'यह निदान नहीं है। अंतिम निर्णय डॉक्टर लेंगे।'
+                    : 'This is not a diagnosis. Your doctor makes the final clinical decision.'}
+                </p>
               </div>
-              <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs">
-                <span className="font-bold text-emerald-800">Chief Symptoms / Complaint: </span>
-                <span className="text-slate-700">{chiefComplaint || (transcript.length > 0 ? transcript[0].text : 'Joint pain & morning joint stiffness')}</span>
-              </div>
-            </div>
+            )}
 
             {/* Doctor QR Code Scan Box — encodes sessionId/token only */}
-            <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-4">
-              <div className="w-24 h-24 bg-white p-1.5 rounded-xl shadow-sm border border-gray-300 shrink-0 flex items-center justify-center overflow-hidden">
+            <div className="mt-6 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 flex items-center gap-4">
+              <div className="w-24 h-24 bg-white p-1 rounded-xl shadow-sm border border-gray-200 shrink-0 flex items-center justify-center overflow-hidden">
                 {qrSvg ? (
-                  <img src={qrSvg} alt="OPD Token QR" className="w-full h-full object-contain" />
+                  <img src={qrSvg} alt="OPD Token QR" className="w-full h-full" />
                 ) : (
-                  <QrCode className="w-12 h-12 text-slate-400" />
+                  <QrCode className="w-10 h-10 text-slate-400" />
                 )}
               </div>
-              <div className="text-xs space-y-1">
-                <span className="font-black text-slate-900 block uppercase tracking-wide">
-                  Doctor Workstation QR Encounter Link
-                </span>
-                <p className="text-slate-600 leading-relaxed">
-                  Encodes token and session reference ID. Present this slip at the consultation room for instant dossier lookup.
+              <div className="text-sm">
+                <span className="font-black text-slate-900 dark:text-white block uppercase">Doctor desk QR (no clinical data)</span>
+                <p className="text-gray-600 dark:text-gray-400 mt-0.5">
+                  Encodes only token / session id. Scan at the workstation to open this Encounter.
                 </p>
-                <div className="text-[10px] font-mono text-slate-500">
-                  Verification Hash: SHA256-{(tokenNumber || 'AIIA').replace(/[^a-zA-Z0-9]/g, '').slice(-8)}99B2026
-                </div>
                 <button
                   type="button"
-                  className="no-print mt-1 text-emerald-700 font-bold underline cursor-pointer text-xs"
+                  className="mt-2 text-emerald-600 font-bold underline"
                   onClick={async () => {
                     if (!sessionId || String(sessionId).startsWith('session_')) return;
                     const r = await axios.post(`${API_URL}/kiosk/session/${sessionId}/generate-qr`);
@@ -4154,27 +4245,10 @@ const KioskIntake = ({ isStandalone = false }) => {
                 </button>
               </div>
             </div>
-
-            {/* Patient Instructions Box */}
-            <div className="mt-4 p-3 rounded-xl bg-teal-50 border border-teal-200 text-[11px] text-teal-900 space-y-1">
-              <div className="font-bold flex items-center gap-1.5 text-teal-900">
-                <Info className="w-3.5 h-3.5 text-teal-700" /> Patient Instructions / दिशानिर्देश:
-              </div>
-              <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[10.5px]">
-                <li>Please proceed to the OPD Waiting Area outside {consultationType === 'allopathy' ? 'Room 205' : 'Room 104'}.</li>
-                <li>Your token number will be announced and flashed on the electronic display screens.</li>
-                <li>Present this token slip (or the downloaded PDF) to the attending nurse or doctor.</li>
-              </ul>
-            </div>
-
-            {/* Compliance Footer */}
-            <div className="mt-4 pt-3 border-t border-dashed border-gray-300 text-center text-[10px] text-slate-500">
-              <span>VaidyaSetu MediKiosk • Smart India Hackathon 2026 (PS 26047) • ABDM M1-M3 & DPDP Act 2023 Compliant</span>
-            </div>
           </div>
 
           {/* Privacy Protection Auto-Reset Timer */}
-          <div className="no-print p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-amber-500 shrink-0" />
               <span>Kiosk Privacy Protection: Session auto-clears in <strong>{privacyCountdown}s</strong> for next patient security.</span>
@@ -4189,33 +4263,22 @@ const KioskIntake = ({ isStandalone = false }) => {
           </div>
 
           {/* Action Buttons */}
-          <div className="no-print flex flex-wrap items-center justify-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <button
               type="button"
-              onClick={handlePrintTokenSlip}
-              className="px-6 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-xl shadow-emerald-600/30 flex items-center gap-2.5 cursor-pointer transition-all active:scale-[0.98]"
+              onClick={() => window.print()}
+              className="px-6 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
             >
-              <Printer className="w-5 h-5" />
-              <span>{t.printBtn || 'Print OPD Token Slip'}</span>
+              <Printer className="w-4 h-4" /> {t.printBtn}
             </button>
 
             <button
               type="button"
-              disabled={isExportingPdf}
               onClick={handleDownloadTokenPdf}
-              className="px-6 py-4 rounded-2xl bg-teal-700 hover:bg-teal-600 text-white font-black text-sm shadow-xl shadow-teal-700/30 flex items-center gap-2.5 cursor-pointer transition-all active:scale-[0.98]"
+              className="px-6 py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm shadow-lg shadow-teal-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
             >
-              {isExportingPdf ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Generating PDF...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-5 h-5" />
-                  <span>Save / Download PDF</span>
-                </>
-              )}
+              <Download className="w-4 h-4" />
+              {lang === 'hi' ? 'PDF डाउनलोड करें' : lang === 'mr' ? 'PDF डाउनलोड करा' : 'Download PDF'}
             </button>
 
             <button
@@ -4223,8 +4286,7 @@ const KioskIntake = ({ isStandalone = false }) => {
               onClick={handleResetKiosk}
               className="px-6 py-4 rounded-2xl border border-gray-300 dark:border-white/20 text-slate-800 dark:text-gray-200 font-bold text-sm hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
             >
-              <UserCheck className="w-5 h-5" />
-              <span>{t.newPatientBtn || 'Register Next Patient'}</span>
+              <UserCheck className="w-4 h-4" /> {t.newPatientBtn}
             </button>
           </div>
         </div>

@@ -47,7 +47,7 @@ router.get('/summary/:encounterId', async (req, res) => {
       patient = await Patient.findById(encounter.patientId).lean();
     }
 
-    const targetPatientId = patient?._id || encounter?.patientId || intakeSession?.patientId;
+    const targetPatientId = patient?._id || encounter?.patientId;
 
     // 1. Current Complaint
     let currentComplaint = {
@@ -66,14 +66,15 @@ router.get('/summary/:encounterId', async (req, res) => {
           severity: symptom.structuredComplaint.severity || '',
           sourceTag: { source: 'Patient reported via intake kiosk', confidence: 'confirmed' }
         };
+      } else if (encounter.chiefComplaint) {
+        // Fall back to the complaint captured directly on the Encounter by the kiosk.
+        currentComplaint = {
+          chiefComplaint: encounter.chiefComplaint,
+          duration: encounter.socrates?.onset || '',
+          severity: encounter.socrates?.severity || 'Moderate',
+          sourceTag: { source: 'Patient reported via MediKiosk', confidence: 'confirmed' }
+        };
       }
-    } else if (intakeSession) {
-      currentComplaint = {
-        chiefComplaint: intakeSession.chiefComplaint || 'Consultation Intake',
-        duration: intakeSession.symptomDuration || '',
-        severity: intakeSession.symptomSeverity || 'Moderate',
-        sourceTag: { source: 'Patient reported via MediKiosk', confidence: 'confirmed' }
-      };
     }
 
     // 2. Latest Vitals
@@ -91,28 +92,28 @@ router.get('/summary/:encounterId', async (req, res) => {
           };
         }
       });
-    } else if (intakeSession?.vitals) {
+    } else if (encounter?.vitals) {
       latestVitals = {
         blood_pressure: {
-          value: `${intakeSession.vitals.systolicBP || '--'}/${intakeSession.vitals.diastolicBP || '--'}`,
+          value: `${encounter.vitals.systolicBP || '--'}/${encounter.vitals.diastolicBP || '--'}`,
           unit: 'mmHg',
-          source: intakeSession.vitals.source || 'kiosk-peripheral',
+          source: encounter.vitals.source || 'kiosk-peripheral',
           confidence: 'confirmed'
         },
         heart_rate: {
-          value: intakeSession.vitals.heartRate,
+          value: encounter.vitals.heartRate,
           unit: 'bpm',
           source: 'kiosk-peripheral',
           confidence: 'confirmed'
         },
         oxygen_saturation: {
-          value: intakeSession.vitals.spo2,
+          value: encounter.vitals.spo2,
           unit: '%',
           source: 'kiosk-peripheral',
           confidence: 'confirmed'
         },
         body_temperature: {
-          value: intakeSession.vitals.temperature,
+          value: encounter.vitals.temperature,
           unit: '°F',
           source: 'kiosk-peripheral',
           confidence: 'confirmed'
@@ -162,8 +163,14 @@ router.get('/summary/:encounterId', async (req, res) => {
         });
       }
     }
-    if (knownConditions.length === 0 && intakeSession?.medicalHistory?.chronicConditions) {
-      knownConditions = intakeSession.medicalHistory.chronicConditions.map(c => ({
+    // Fall back to conditions captured by the kiosk on the Encounter itself.
+    const encHistory = encounter?.medicalHistory || {};
+    const encConditions = encHistory.chronicConditions
+      || encHistory.pastMedicalHistory
+      || encounter?.pastMedicalHistory
+      || [];
+    if (knownConditions.length === 0 && encConditions.length) {
+      knownConditions = encConditions.map(c => ({
         condition: typeof c === 'string' ? c : c.name || c.conditionName,
         sourceTag: { source: 'Pre-consultation history intake', confidence: 'confirmed' }
       }));
@@ -182,8 +189,8 @@ router.get('/summary/:encounterId', async (req, res) => {
         sourceTag: m.sourceTag || { source: 'Prescription record', confidence: 'confirmed' }
       }));
     }
-    if (currentMedicines.length === 0 && intakeSession?.ocrPrescriptions) {
-      intakeSession.ocrPrescriptions.forEach(doc => {
+    if (currentMedicines.length === 0 && Array.isArray(encounter?.ocrPrescriptions)) {
+      encounter.ocrPrescriptions.forEach(doc => {
         (doc.extractedMedicines || []).forEach(m => {
           currentMedicines.push({
             name: m.name,
@@ -200,16 +207,38 @@ router.get('/summary/:encounterId', async (req, res) => {
     // 6. Recent Investigations
     let recentInvestigations = [];
     if (targetPatientId) {
-      const labs = await LabResult.find({ patientId: targetPatientId }).sort({ resultTimestamp: -1 }).limit(5).lean();
-      recentInvestigations = labs.map(l => ({
-        testName: l.testName,
-        parameter: l.parameterName,
-        result: l.resultValue,
-        unit: l.unit,
-        flag: l.abnormalFlag,
-        date: l.resultTimestamp,
-        sourceTag: { source: 'Laboratory Verification System', confidence: 'confirmed' }
-      }));
+      // Sort by sampleDate (the real field — `resultTimestamp` does not exist on LabResult,
+      // so the old sort was a silent no-op and could drop the newest results).
+      const labs = await LabResult.find({ patientId: targetPatientId })
+        .sort({ sampleDate: -1, createdAt: -1 })
+        .limit(10)
+        .lean();
+
+      // Keep only the newest version of each test name.
+      const seenTests = new Set();
+      recentInvestigations = labs.filter(l => {
+        if (seenTests.has(l.testName)) return false;
+        seenTests.add(l.testName);
+        return true;
+      }).slice(0, 5).map(l => {
+        // Parameters live in a subdocument array; fall back to the flat legacy fields.
+        const p = Array.isArray(l.parameters) && l.parameters.length ? l.parameters[0] : null;
+        return {
+          testName: l.testName,
+          parameter: p?.name || l.testName,
+          result: p?.value ?? l.resultValue,
+          unit: p?.unit || l.unit || '',
+          flag: p?.flag || 'normal',
+          referenceRange: p?.referenceRange || l.referenceRange || '',
+          allParameters: (l.parameters || []).map(x => ({
+            name: x.name, value: x.value, unit: x.unit, flag: x.flag, referenceRange: x.referenceRange
+          })),
+          verified: Boolean(l.verifiedAt),
+          version: l.version || 1,
+          date: l.sampleDate || l.createdAt,
+          sourceTag: { source: 'Laboratory Verification System', confidence: 'confirmed' }
+        };
+      });
     }
 
     // 7. New Information (deltas / newly uploaded docs)
@@ -577,7 +606,7 @@ router.post('/consultation/complete', async (req, res) => {
       status: 'success',
       message: 'Consultation signed and completed successfully.',
       data: {
-        encounterId: encounter?._id || intakeSession?._id,
+        encounterId: encounter?._id,
         newStatus: nextStatus,
         investigationOrdersCreated: createdOrders.length,
         prescriptionId: createdPrescription?._id || null,

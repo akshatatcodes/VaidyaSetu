@@ -123,23 +123,23 @@ router.post('/session/:id/documents', upload.single('document'), async (req, res
       }
     }
 
-    // Demo fallback when OCR unavailable
-    if (!medicines.length && !handwritten && method !== 'failed') {
-      medicines = [
-        { name: 'Paracetamol', dosage: '500mg', frequency: 'SOS', system: 'Allopathic' }
-      ];
-      method = 'demo-fallback';
-      rawText = 'Paracetamol 500mg';
+    // NOTE: this used to invent "Paracetamol 500mg" whenever OCR returned nothing,
+    // so an unreadable scan reached the doctor as a confirmed medication the patient
+    // never takes. A document we could not read must report zero findings.
+    if (!medicines.length && !handwritten) {
+      method = method === 'failed' ? 'failed' : 'no-text-found';
     }
 
-    const verificationStatus = handwritten || method === 'failed'
+    const needsReview = handwritten || method === 'failed' || method === 'no-text-found';
+    const verificationStatus = needsReview
       ? 'needs_staff_review'
       : 'pending_patient_confirm';
 
+    // Confidence is only meaningful if the OCR engine actually reported one.
     const extractedFields = medicines.map(m => ({
       field: 'medication',
       value: [m.name, m.dosage, m.frequency].filter(Boolean).join(' '),
-      confidence: method === 'demo-fallback' ? 70 : 92,
+      confidence: typeof m.confidence === 'number' ? m.confidence : null,
       patientConfirmed: false,
       doctorAction: 'pending'
     }));
@@ -200,9 +200,14 @@ router.post('/session/:id/documents', upload.single('document'), async (req, res
       status: 'success',
       message: handwritten
         ? 'Handwritten document stored for staff review — not auto-applied to medications.'
-        : 'Document processed. Please confirm extracted fields.',
+        : medicines.length
+          ? 'Document processed. Please confirm extracted fields.'
+          : 'Document stored. No medication text could be read — flagged for staff review.',
       data: {
-        document: saved,
+        // `doc` is the object we pushed; the previous `saved` identifier was never
+        // declared and threw a ReferenceError after a successful save.
+        document: doc,
+        documentIndex: session.documents.length - 1,
         ocrMethod: method,
         requiresPatientConfirmation: verificationStatus === 'pending_patient_confirm'
       }
