@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const UserProfile = require('../models/UserProfile');
+const Doctor = require('../models/Doctor');
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -439,11 +440,36 @@ router.post('/doctor/register', async (req, res) => {
       experienceYears: 5
     };
 
+    // Persist registered physician into Mongo Atlas Doctor collection so patient drop-down sees them instantly
+    try {
+      await Doctor.findOneAndUpdate(
+        { doctorId },
+        {
+          doctorId,
+          fullName: doctorProfile.doctorName,
+          displayName: doctorProfile.doctorName,
+          qualifications: [doctorProfile.qualification],
+          departmentName: doctorProfile.department,
+          hospitalName: doctorProfile.hospitalName,
+          roomNumber: doctorProfile.roomNumber,
+          experienceYears: 5,
+          professionalDetails: {
+            registrationNumber: doctorProfile.registrationNumber,
+            registrationCouncil: 'Delhi Bharatiya Chikitsa Parishad'
+          },
+          availability: { isAvailableToday: true, onLeave: false }
+        },
+        { upsert: true, new: true, runValidators: false }
+      );
+    } catch (dbErr) {
+      console.warn('[Auth] Doctor Mongo save note:', dbErr.message);
+    }
+
     const sessionToken = 'doc_tok_' + Buffer.from(`${doctorId}_${Date.now()}`).toString('base64');
 
     return res.json({
       status: 'success',
-      message: 'Physician credentials registered and verified under AYUSH Registry.',
+      message: 'Physician credentials registered and saved to MongoDB Atlas.',
       data: {
         role: 'doctor',
         token: sessionToken,

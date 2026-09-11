@@ -1046,6 +1046,9 @@ const handleGenerateSoap = async (req, res) => {
         socrates: session.socrates,
         chiefComplaint: session.chiefComplaint,
         redFlags: session.redFlags,
+        assignedDoctor: session.preferredDoctor || '',
+        preferredHospital: session.preferredHospital || '',
+        roomNumber: session.roomNumber || '',
         queueStatus: session.queueStatus
       }
     });
@@ -1064,40 +1067,18 @@ router.post('/session/:id/synthesize-soap', handleGenerateSoap);
  */
 router.get('/queue', async (req, res) => {
   try {
-    const { status, department, isDemo, limit = 50 } = req.query;
-
-    if (isDemo === 'true') {
-      const demoSessions = await Encounter.find({
-        tokenNumber: { $in: ['OPD-DEMO-001', 'OPD-DEMO-002', 'OPD-DEMO-003'] }
-      }).limit(3);
-
-      return res.json({
-        status: 'success',
-        stats: {
-          totalInQueue: demoSessions.length,
-          emergencyCount: demoSessions.filter(s => s.triagePriority === 'emergency').length,
-          urgentCount: demoSessions.filter(s => s.triagePriority === 'urgent').length,
-          readyForReview: demoSessions.length
-        },
-        data: demoSessions
-      });
-    }
+    const { status, department, limit = 100 } = req.query;
 
     const filter = {};
     if (status) {
       filter.queueStatus = status;
     } else {
-      // Default: show all active uncompleted OPD queue sessions
+      // Default: show all active uncompleted OPD queue sessions in MongoDB
       filter.queueStatus = { $nin: ['completed', 'cancelled'] };
     }
     if (department && department !== 'all' && department !== 'All Departments') {
       filter.department = new RegExp(department.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), 'i');
     }
-
-    // Return active sessions within the last 48 hours for real doctors (handles timezone boundaries)
-    const past48Hours = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    filter.createdAt = { $gte: past48Hours };
-    filter.tokenNumber = { $not: /^OPD-DEMO/ };
 
     // Sort order: Emergency first, then Urgent, then Normal, then by arrival time
     const priorityWeight = { emergency: 0, urgent: 1, normal: 2 };

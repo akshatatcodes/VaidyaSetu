@@ -620,6 +620,128 @@ router.post('/consultation/complete', async (req, res) => {
 });
 
 /**
+ * GET /api/doctor/public-list
+ * Public API listing all active doctors and hospitals from MongoDB Atlas
+ */
+router.get('/public-list', async (req, res) => {
+  try {
+    const { hospitalName, departmentName } = req.query;
+    let allDoctors = [];
+    try {
+      allDoctors = await Doctor.find().lean().maxTimeMS(5000);
+    } catch (e) {
+      console.warn('[DoctorList] Mongo find warning:', e.message);
+    }
+
+    // Seed default doctors into Mongo if collection is empty
+    if (!allDoctors || allDoctors.length === 0) {
+      const defaultDocs = [
+        {
+          doctorId: 'DOC-AIIA-101',
+          fullName: 'Dr. Vikramaditya Sharma',
+          displayName: 'Dr. Vikramaditya Sharma',
+          qualifications: ['BAMS', 'MD (Ayurveda)', 'PhD'],
+          hospitalName: 'All India Institute of Ayurveda (AIIA), New Delhi',
+          departmentName: 'Department of Kayachikitsa (Internal Medicine)',
+          roomNumber: 'OPD Room 104',
+          consultationTimings: '09:00 AM - 02:00 PM (Mon - Sat)',
+          availability: { isAvailableToday: true }
+        },
+        {
+          doctorId: 'DOC-AIIA-102',
+          fullName: 'Dr. Anjali Deshmukh',
+          displayName: 'Dr. Anjali Deshmukh',
+          qualifications: ['BAMS', 'MD (Kayachikitsa)'],
+          hospitalName: 'District Hospital, Nagpur',
+          departmentName: 'Department of Kayachikitsa (Internal Medicine)',
+          roomNumber: 'OPD Room 202',
+          availability: { isAvailableToday: true }
+        },
+        {
+          doctorId: 'DOC-AIIA-103',
+          fullName: 'Dr. Ramesh Patil',
+          displayName: 'Dr. Ramesh Patil',
+          qualifications: ['BAMS', 'MS (Shalya Tantra)'],
+          hospitalName: 'District Hospital, Nagpur',
+          departmentName: 'Department of Kayachikitsa (Internal Medicine)',
+          roomNumber: 'OPD Room 108',
+          availability: { isAvailableToday: true }
+        },
+        {
+          doctorId: 'DOC-AIIA-104',
+          fullName: 'Dr. Suresh Kulkarni',
+          displayName: 'Dr. Suresh Kulkarni',
+          qualifications: ['BAMS', 'MD (Panchakarma)'],
+          hospitalName: 'Govt. Ayurvedic Hospital, Nashik',
+          departmentName: 'Department of Panchakarma',
+          roomNumber: 'Panchakarma Block B',
+          availability: { isAvailableToday: true }
+        }
+      ];
+      await Doctor.insertMany(defaultDocs).catch(() => {});
+      allDoctors = await Doctor.find().lean();
+    }
+
+    // Collect all unique hospital names
+    const hospitalSet = new Set([
+      'All India Institute of Ayurveda (AIIA), New Delhi',
+      'Govt. Ayurvedic Hospital, Nashik',
+      'District Hospital, Nagpur',
+      'Primary Health Centre, Seloo'
+    ]);
+
+    allDoctors.forEach(d => {
+      if (d.hospitalName) hospitalSet.add(d.hospitalName);
+    });
+
+    const hospitalsList = Array.from(hospitalSet).map((h, i) => ({
+      id: `HOSP-${i + 1}`,
+      name: h
+    }));
+
+    let filtered = allDoctors;
+    if (hospitalName) {
+      const cleanH = hospitalName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      filtered = filtered.filter(d => {
+        const dh = (d.hospitalName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return dh.includes(cleanH) || cleanH.includes(dh);
+      });
+    }
+
+    if (departmentName) {
+      const cleanD = departmentName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      filtered = filtered.filter(d => {
+        const dd = (d.departmentName || d.department || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return dd.includes(cleanD) || cleanD.includes(dd);
+      });
+    }
+
+    const doctorsList = filtered.map(d => ({
+      doctorId: d.doctorId || String(d._id),
+      fullName: d.fullName || d.displayName || 'Dr. Physician',
+      displayName: d.displayName || d.fullName || 'Dr. Physician',
+      systemOfMedicine: d.systemOfMedicine || 'Ayurvedic',
+      hospitalName: d.hospitalName || 'All India Institute of Ayurveda (AIIA), New Delhi',
+      departmentName: d.departmentName || d.department || 'Department of Kayachikitsa',
+      qualifications: Array.isArray(d.qualifications) ? d.qualifications.join(', ') : (d.qualifications || ''),
+      specialities: Array.isArray(d.specialities) ? d.specialities.join(', ') : (d.specialities || ''),
+      roomNumber: d.roomNumber || d.defaultRoomNumber || 'OPD Room 104',
+      isAvailableToday: d.availability?.isAvailableToday !== false && !d.availability?.onLeave
+    }));
+
+    return res.json({
+      status: 'success',
+      count: doctorsList.length,
+      hospitals: hospitalsList,
+      doctors: doctorsList
+    });
+  } catch (error) {
+    console.error('Error fetching public doctors list:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
  * GET /api/doctor/profile
  * Returns doctor profile fields from MongoDB Atlas
  */
@@ -681,6 +803,7 @@ router.get('/profile', async (req, res) => {
         fullName: doctor.fullName || doctor.displayName,
         displayName: doctor.displayName || doctor.fullName,
         qualifications: Array.isArray(doctor.qualifications) ? doctor.qualifications.join(', ') : (doctor.qualifications || ''),
+        systemOfMedicine: doctor.systemOfMedicine || 'Ayurvedic',
         departmentName: doctor.departmentName || 'Department of Kayachikitsa',
         hospitalName: doctor.hospitalName || 'All India Institute of Ayurveda (AIIA)',
         roomNumber: doctor.roomNumber || doctor.defaultRoomNumber || 'OPD Room 104',
@@ -714,6 +837,7 @@ router.put('/profile', async (req, res) => {
       fullName,
       displayName,
       qualifications,
+      systemOfMedicine,
       departmentName,
       hospitalName,
       roomNumber,
@@ -757,6 +881,7 @@ router.put('/profile', async (req, res) => {
       fullName: finalName,
       displayName: displayName || finalName,
       qualifications: qualificationsArray,
+      systemOfMedicine: systemOfMedicine || 'Ayurvedic',
       specialities: specialitiesArray,
       departmentName: departmentName || 'Department of Kayachikitsa',
       hospitalName: hospitalName || 'All India Institute of Ayurveda (AIIA)',
@@ -796,6 +921,7 @@ router.put('/profile', async (req, res) => {
         fullName: doctor.fullName,
         displayName: doctor.displayName,
         qualifications: Array.isArray(doctor.qualifications) ? doctor.qualifications.join(', ') : (doctor.qualifications || ''),
+        systemOfMedicine: doctor.systemOfMedicine,
         departmentName: doctor.departmentName,
         hospitalName: doctor.hospitalName,
         roomNumber: doctor.roomNumber || doctor.defaultRoomNumber || 'OPD Room 104',
