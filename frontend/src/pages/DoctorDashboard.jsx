@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import {
   Stethoscope, ShieldAlert, AlertOctagon, CheckCircle2, Clock, Shield,
@@ -555,9 +556,9 @@ const DoctorDashboard = () => {
         onRefresh={() => fetchQueue()}
       />
 
-      <div className="rounded-2xl border border-amber-500/50 bg-amber-500/15 px-4 py-3 text-amber-900 dark:text-amber-100 text-sm sm:text-base font-semibold flex items-center gap-2">
-        <ShieldAlert className="w-5 h-5 shrink-0" />
-        {AI_DRAFT_BANNER}
+      <div className="rounded-2xl border border-amber-300/80 dark:border-amber-500/30 bg-gradient-to-r from-amber-50/95 via-orange-50/80 to-amber-50/95 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-amber-950/30 px-4 py-2.5 text-amber-900 dark:text-amber-200 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-2xs">
+        <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+        <span>{AI_DRAFT_BANNER}</span>
       </div>
 
 
@@ -694,8 +695,8 @@ const DoctorDashboard = () => {
       />
 
       {/* ABDM FHIR R4 INSPECTOR MODAL */}
-      {isFhirModalOpen && (
-        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:pl-72">
+      {isFhirModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[999999] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-white/10 flex items-center justify-between bg-slate-950/60">
               <div className="flex items-center gap-3">
@@ -714,9 +715,7 @@ const DoctorDashboard = () => {
               <button
                 type="button"
                 onClick={() => setIsFhirModalOpen(false)}
-                // `hover:text-white` turned the X white on a white drawer in
-                // light mode — the close affordance disappeared on hover.
-                className="p-2 rounded-xl text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -757,12 +756,13 @@ const DoctorDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EVIDENCE & ORIGINAL CLINICAL DATA DRAWER */}
-      {isEvidenceDrawerOpen && (
-        <div className="fixed inset-0 z-[99999] bg-slate-950/75 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
+      {isEvidenceDrawerOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[999999] bg-slate-950/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
           <div className="w-full max-w-2xl bg-white dark:bg-slate-900 h-full shadow-2xl border-l border-emerald-500/30 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto space-y-6">
             <div className="space-y-6">
               {/* Header */}
@@ -1037,82 +1037,99 @@ const DoctorDashboard = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-      {isConfirmApproveModalOpen && (
-        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:pl-72">
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+      {/* CONFIRMATION MODAL 1: Confirm Case Sheet Signature */}
+      {isConfirmApproveModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[999999] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div 
+            className="bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 w-full shadow-2xl space-y-5 text-slate-900 dark:text-white animate-in zoom-in-95 duration-200"
+            style={{ maxWidth: '500px' }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
                 <ShieldCheck className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white">Confirm Case Sheet Signature</h3>
-                <p className="text-xs text-gray-400">Token: {selectedSession?.tokenNumber}</p>
+                <h3 className="text-xl font-black !text-slate-900 dark:!text-white tracking-tight">
+                  Confirm Case Sheet Signature
+                </h3>
+                <p className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                  Token: {selectedSession?.tokenNumber}
+                </p>
               </div>
             </div>
-            <p className="text-xs text-gray-300 leading-relaxed font-medium">
-              Are you sure you want to approve and digitally sign the consultation case sheet for <strong className="text-emerald-400">{selectedSession?.patientName}</strong>? This action will generate the certified ABDM FHIR bundle and archive the clinical record.
+            
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+              Are you sure you want to approve and digitally sign the consultation case sheet for <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{selectedSession?.patientName}</strong>? This action will generate the certified ABDM FHIR bundle and archive the clinical record.
             </p>
+            
             <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setIsConfirmApproveModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-white/20 text-gray-300 font-bold text-xs hover:bg-white/10 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel / Edit Case Sheet
               </button>
               <button
                 type="button"
                 onClick={executeApproveCaseSheet}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20 transition-all"
               >
                 <CheckCircle2 className="w-4 h-4" /> Yes, Sign & Approve
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* CONFIRMATION MODAL 2: Next Patient Prompt */}
-      {isNextPatientModalOpen && (
-        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:pl-72">
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+      {isNextPatientModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[999999] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div 
+            className="bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 w-full shadow-2xl space-y-5 text-slate-900 dark:text-white animate-in zoom-in-95 duration-200"
+            style={{ maxWidth: '520px' }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
                 <CheckCircle2 className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white">Case Sheet Signed & Saved</h3>
-                <p className="text-xs text-emerald-400 font-medium">
+                <h3 className="text-xl font-black !text-slate-900 dark:!text-white tracking-tight">
+                  Case Sheet Signed & Saved
+                </h3>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5">
                   {outcomeResult?.demo
                     ? 'Demo case — nothing was written to the record'
-                    : 'Consultation recorded'}
+                    : 'Consultation recorded & archived'}
                 </p>
               </div>
             </div>
 
             {/* The outcome the doctor needs to read out to the patient. */}
             {outcomeResult?.labTokenNumber && (
-              <div className="p-4 rounded-2xl bg-violet-500/15 border border-violet-500/40 space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-violet-300">
+              <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-500/30 space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-teal-800 dark:text-teal-300 block">
                   Send patient to the laboratory
                 </span>
-                <p className="text-2xl font-black font-mono text-white">
+                <p className="text-2xl font-black font-mono text-teal-900 dark:text-white">
                   {outcomeResult.labTokenNumber}
                 </p>
-                <p className="text-[11px] text-violet-200 font-medium">
+                <p className="text-[11px] text-teal-700 dark:text-teal-200 font-medium">
                   New lab token issued. The order is already on the lab dashboard.
                 </p>
               </div>
             )}
 
             {outcomeResult?.followUpDate && (
-              <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 block">
                   Follow-up scheduled
                 </span>
-                <p className="text-base font-black text-white">
+                <p className="text-base font-black text-amber-950 dark:text-white">
                   {new Date(outcomeResult.followUpDate).toLocaleDateString(undefined, {
                     weekday: 'long', day: 'numeric', month: 'short'
                   })}
@@ -1121,38 +1138,40 @@ const DoctorDashboard = () => {
             )}
 
             {!outcomeResult?.labTokenNumber && !outcomeResult?.followUpDate && (
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-bold text-center">
-                Treatment complete — encounter closed and signed.
+              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-200 text-xs font-bold text-center">
+                Treatment complete — encounter closed and digitally signed.
               </div>
             )}
 
-            <p className="text-xs text-gray-300 leading-relaxed font-medium">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
               Load the next waiting patient, or stay on this record?
             </p>
+            
             <div className="flex flex-col gap-2.5 pt-2">
               {nextPatientCandidate ? (
                 <button
                   type="button"
                   onClick={loadNextPatientAndCloseModal}
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20 transition-all"
                 >
                   <UserCheck className="w-4 h-4" /> Proceed to Next Patient ({nextPatientCandidate.patientName} - {nextPatientCandidate.tokenNumber})
                 </button>
               ) : (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs text-center font-bold">
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs text-center font-bold">
                   All OPD Patients in your department queue have been attended!
                 </div>
               )}
               <button
                 type="button"
                 onClick={stayOnCurrentPatientAndCloseModal}
-                className="w-full py-2.5 rounded-xl border border-white/20 text-gray-300 font-bold text-xs hover:bg-white/10 cursor-pointer text-center"
+                className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-center"
               >
                 Stay on Current Record / View Roster
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

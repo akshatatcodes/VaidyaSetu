@@ -34,8 +34,9 @@ html {
   .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
   .gap-8 { gap: 1.5rem !important; }
 
-  /* Ensure all modals fill the screen more efficiently on mobile */
-  .fixed.inset-0 > div {
+  /* Ensure specific full-screen modals fill the screen on mobile */
+  .fixed.inset-0.modal-full-mobile > div,
+  .fixed.inset-0.vs-kiosk-modal > div {
     max-height: 100vh;
     border-radius: 0 !important;
     width: 100% !important;
@@ -89,11 +90,11 @@ p, span, h1, h2, h3, h4, h5, h6, li {
 }
 
 /* Hide scrollbar on webkit but keep scrollability */
-.scrollbar-hide {
+.scrollbar-hide, .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Mobile bottom safe area padding */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {

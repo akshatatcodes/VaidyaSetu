@@ -67,15 +67,20 @@ export default function DoctorFollowUps() {
   return (
     <div className="max-w-7xl mx-auto pb-16 space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-950 via-teal-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-emerald-50/90 via-white/95 to-teal-50/90 dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-950/95 text-slate-900 dark:text-white rounded-3xl p-4 sm:p-6 shadow-md shadow-emerald-900/5 border border-emerald-200/80 dark:border-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4 backdrop-blur-xl select-none">
         <div>
-          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-black uppercase tracking-wider">
-            🔄 CONTINUITY OF CARE & FOLLOW-UP ENGINE (§35–§37)
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
+            🔄 CONTINUITY OF CARE & FOLLOW-UP ENGINE
           </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-2 flex items-center gap-2">
-            <RotateCcw className="w-7 h-7 text-emerald-400" /> Follow-up Consultation Roster
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black !text-slate-900 dark:!text-white tracking-tight mt-1.5 flex items-center gap-2.5">
+            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-500 p-0.5 shadow-md shadow-emerald-600/20 inline-flex items-center justify-center shrink-0">
+              <span className="w-full h-full bg-white dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
+              </span>
+            </span>
+            <span>Follow-up Consultation Roster</span>
           </h1>
-          <p className="text-xs text-emerald-200/70 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium mt-0.5">
             Complete report reviews and next-day follow-ups directly without restarting OPD registration.
           </p>
         </div>
