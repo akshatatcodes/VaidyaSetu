@@ -182,15 +182,31 @@ router.get('/:patientId', async (req, res) => {
     }
 
     if (!patient) {
-      // Auto-create Patient document to ensure zero data orphans (§4)
+      // Check UserProfile collection for genuine registered user data
+      const UserProfile = require('../models/UserProfile');
+      const userProfile = await UserProfile.findOne({
+        $or: [
+          { clerkId: patientId },
+          ...(cleanDigits.length === 10 ? [{ 'phone.value': new RegExp(cleanDigits) }] : []),
+          ...(String(patientId).includes('-') ? [{ 'abhaId.value': patientId }] : [])
+        ]
+      });
+
+      const actualName = req.query.patientName || req.query.name || userProfile?.name?.value || userProfile?.displayName || (cleanDigits ? `Patient (+91 ${cleanDigits})` : 'Registered Patient');
+      const actualAge = req.query.age ? Number(req.query.age) : (userProfile?.age?.value || 32);
+      const actualGender = req.query.gender || userProfile?.gender?.value || 'Male';
+      const actualAbha = (userProfile?.abhaId?.value || (String(patientId).includes('-') ? patientId : undefined));
+      const actualPhone = cleanDigits.length === 10 ? `+91 ${cleanDigits}` : (userProfile?.phone?.value || '');
+
       patient = await Patient.create({
         basicInfo: {
-          fullName: 'Ayush Patient',
-          age: 30,
-          gender: 'Male',
-          contactNumber: cleanDigits.length === 10 ? `+91 ${cleanDigits}` : ''
+          fullName: actualName,
+          age: actualAge,
+          gender: actualGender,
+          contactNumber: actualPhone
         },
-        abhaId: String(patientId).includes('-') ? patientId : undefined
+        abhaId: actualAbha,
+        mobileNumber: cleanDigits || undefined
       });
     }
 

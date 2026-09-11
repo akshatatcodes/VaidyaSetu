@@ -23,6 +23,7 @@ export default function DoctorProfile() {
 
   // 9 Required Profile State Attributes
   const [profile, setProfile] = useState({
+    systemOfMedicine: currentUser?.systemOfMedicine || 'Ayurvedic',
     doctorId: activeDocId,
     fullName: activeDocName,
     qualifications: currentUser?.qualification || 'BAMS, MD (Ayurveda), PhD',
@@ -165,6 +166,9 @@ export default function DoctorProfile() {
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-black uppercase tracking-wider">
+                  🌿 System: {profile.systemOfMedicine || 'Ayurvedic'}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-mono font-black uppercase tracking-wider">
                   🩺 {profile.departmentName}
                 </span>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-mono font-black uppercase tracking-wider border ${
@@ -351,6 +355,23 @@ export default function DoctorProfile() {
                     className="w-full px-4 py-2.5 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     placeholder="e.g. BAMS, MD (Kayachikitsa), PhD"
                   />
+                </div>
+
+                {/* System of Medicine */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-gray-300">System of Medicine</label>
+                  <select
+                    value={formData.systemOfMedicine || 'Ayurvedic'}
+                    onChange={(e) => handleInputChange('systemOfMedicine', e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                  >
+                    <option value="Ayurvedic">Ayurvedic (BAMS, MD - Ayurveda)</option>
+                    <option value="Allopathy">Allopathy (MBBS, MD, MS)</option>
+                    <option value="Integrative">Integrative (Ayurveda + Modern Medicine)</option>
+                    <option value="Homeopathy">Homeopathy (BHMS)</option>
+                    <option value="Siddha">Siddha (BSMS)</option>
+                    <option value="Unani">Unani (BUMS)</option>
+                  </select>
                 </div>
 
                 {/* 3. Department Select Dropdown */}

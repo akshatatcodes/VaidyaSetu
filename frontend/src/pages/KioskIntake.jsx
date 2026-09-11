@@ -459,7 +459,67 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [preferredHospital, setPreferredHospital] = useState('');
   const [preferredDoctor, setPreferredDoctor] = useState('');
   const [doctorOptions, setDoctorOptions] = useState([]);
+  const [mongoHospitals, setMongoHospitals] = useState([]);
+  const [mongoDoctors, setMongoDoctors] = useState([]);
   const [savingPathway, setSavingPathway] = useState(false);
+
+  // Fetch dynamic doctors & hospitals registered in Mongo Atlas
+  useEffect(() => {
+    axios.get(`${API_URL}/doctor/public-list`)
+      .then(res => {
+        if (res.data?.status === 'success') {
+          if (Array.isArray(res.data.hospitals) && res.data.hospitals.length > 0) {
+            setMongoHospitals(res.data.hospitals);
+          }
+          if (Array.isArray(res.data.doctors) && res.data.doctors.length > 0) {
+            setMongoDoctors(res.data.doctors);
+          }
+        }
+      })
+      .catch(err => console.warn('Public doctor list fetch:', err?.message));
+  }, []);
+
+  // Helper to filter doctors based on System of Medicine (consultationType), Hospital, and Department
+  const getFilteredDoctors = () => {
+    if (!mongoDoctors || mongoDoctors.length === 0) return [];
+    let list = mongoDoctors;
+
+    // 1. Filter by System of Medicine (ayurvedic vs allopathy)
+    if (consultationType) {
+      const isAyur = consultationType === 'ayurvedic';
+      list = list.filter(d => {
+        const sys = (d.systemOfMedicine || '').toLowerCase();
+        const qual = (d.qualifications || '').toLowerCase();
+        if (isAyur) {
+          return sys.includes('ayurved') || sys.includes('integrative') || qual.includes('bams') || qual.includes('ayurved');
+        } else {
+          return sys.includes('allopath') || sys.includes('integrative') || qual.includes('mbbs') || qual.includes('md') || qual.includes('ms');
+        }
+      });
+    }
+
+    // 2. Filter by Hospital if selected
+    if (preferredHospital) {
+      const cleanH = preferredHospital.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const hospitalFiltered = list.filter(d => {
+        const dh = (d.hospitalName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return dh.includes(cleanH) || cleanH.includes(dh);
+      });
+      if (hospitalFiltered.length > 0) list = hospitalFiltered;
+    }
+
+    // 3. Filter by Department if selected
+    if (patientForm.department) {
+      const cleanD = patientForm.department.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const deptFiltered = list.filter(d => {
+        const dd = (d.departmentName || d.department || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return dd.includes(cleanD) || cleanD.includes(dd);
+      });
+      if (deptFiltered.length > 0) list = deptFiltered;
+    }
+
+    return list;
+  };
 
   // Step 2 (Voice Intake & AI Department Recommendation)
   const [chiefComplaint, setChiefComplaint] = useState('');
@@ -1247,13 +1307,38 @@ const KioskIntake = ({ isStandalone = false }) => {
    */
   const handleConfirmPathway = async () => {
     setSavingPathway(true);
+    let finalDocName = preferredDoctor;
+    let finalDocId = undefined;
+    let finalRoomNumber = undefined;
+
+    // Auto-assign matching doctor if patient did not explicitly select one
+    if (!finalDocName || finalDocName.includes('Auto-assign') || finalDocName.includes('Any available doctor') || finalDocName.includes('कोई भी उपलब्ध')) {
+      const candidates = getFilteredDoctors();
+      if (candidates.length > 0) {
+        // Random selection among doctors in the same department & hospital
+        const selectedDoc = candidates[Math.floor(Math.random() * candidates.length)];
+        finalDocName = selectedDoc.fullName;
+        finalDocId = selectedDoc.doctorId || selectedDoc._id;
+        finalRoomNumber = selectedDoc.roomNumber;
+        setPreferredDoctor(finalDocName);
+      }
+    } else {
+      const matched = mongoDoctors.find(d => d.fullName === finalDocName);
+      if (matched) {
+        finalDocId = matched.doctorId || matched._id;
+        finalRoomNumber = matched.roomNumber;
+      }
+    }
+
     try {
       if (sessionId && !String(sessionId).startsWith('session_')) {
         await axios.patch(`${API_URL}/kiosk/session/${sessionId}/care-pathway`, {
           consultationType,
           visitMode,
           preferredHospital,
-          preferredDoctor,
+          preferredDoctor: finalDocName,
+          preferredDoctorId: finalDocId,
+          roomNumber: finalRoomNumber,
           department: patientForm.department || undefined
         });
       }
@@ -2100,11 +2185,18 @@ const KioskIntake = ({ isStandalone = false }) => {
                     type="text"
                     value={patientForm.abhaId}
                     onChange={(e) => setPatientForm({ ...patientForm, abhaId: e.target.value })}
+                    readOnly={Boolean(currentUser?.abhaId)}
                     placeholder={t.abhaPlaceholder}
-                    className="w-full px-4 py-4 rounded-2xl border-2 border-emerald-500/40 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white font-mono text-lg font-bold focus:ring-4 focus:ring-emerald-500/30 focus:border-emerald-500 focus:outline-none transition-all shadow-inner"
+                    className={`w-full px-4 py-4 rounded-2xl border-2 border-emerald-500/40 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white font-mono text-lg font-bold focus:ring-4 focus:ring-emerald-500/30 focus:border-emerald-500 focus:outline-none transition-all shadow-inner ${
+                      currentUser?.abhaId ? 'cursor-not-allowed opacity-90' : ''
+                    }`}
                   />
                   <span className="absolute right-3.5 top-3.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 text-xs font-black tracking-wider uppercase border border-emerald-500/30 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> ABHA LINKED
+                    {currentUser?.abhaId ? (
+                      <>🔒 PRIMARY KEY (LOCKED)</>
+                    ) : (
+                      <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> ABHA LINKED</>
+                    )}
                   </span>
                 </div>
                 <button
@@ -2380,11 +2472,16 @@ const KioskIntake = ({ isStandalone = false }) => {
                 </label>
                 <select
                   value={preferredHospital}
-                  onChange={(e) => setPreferredHospital(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                  onChange={(e) => {
+                    setPreferredHospital(e.target.value);
+                    setPreferredDoctor('');
+                  }}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
                 >
                   <option value="">{lang === 'hi' ? '— अस्पताल चुनें —' : '— Select hospital —'}</option>
-                  {HOSPITALS.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
+                  {(mongoHospitals.length > 0 ? mongoHospitals : HOSPITALS).map(h => (
+                    <option key={h.id || h.name} value={h.name}>{h.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -2399,7 +2496,7 @@ const KioskIntake = ({ isStandalone = false }) => {
                     setDeptManuallySet(Boolean(e.target.value));
                     setPreferredDoctor('');
                   }}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
                 >
                   <option value="">{lang === 'hi' ? '— विभाग चुनें —' : '— Select department —'}</option>
                   {departmentsList.map(d => <option key={d.id} value={d.id}>{d.label || d.id}</option>)}
@@ -2408,17 +2505,25 @@ const KioskIntake = ({ isStandalone = false }) => {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-600 dark:text-gray-300">
-                  {lang === 'hi' ? 'डॉक्टर (वैकल्पिक)' : lang === 'mr' ? 'डॉक्टर (ऐच्छिक)' : 'Doctor (optional)'}
+                  {lang === 'hi' ? 'डॉक्टर का चयन (वैकल्पिक)' : lang === 'mr' ? 'डॉक्टर (ऐच्छिक)' : 'Doctor Selection'}
                 </label>
                 <select
                   value={preferredDoctor}
                   onChange={(e) => setPreferredDoctor(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
                 >
-                  <option value="">{lang === 'hi' ? '— कोई भी उपलब्ध डॉक्टर —' : '— Any available doctor —'}</option>
-                  {(DOCTORS_BY_DEPT[patientForm.department] || doctorOptions).map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                  <option value="">
+                    {lang === 'hi' ? '— स्वचालित रूप से डॉक्टर आवंटित करें (Auto-Assign) —' : '— Auto-Assign Matching Doctor —'}
+                  </option>
+                  {(() => {
+                    const filtered = getFilteredDoctors();
+                    const docsToRender = filtered.length > 0 ? filtered : mongoDoctors;
+                    return docsToRender.map(d => (
+                      <option key={d.doctorId || d.fullName} value={d.fullName}>
+                        {d.fullName} ({d.qualifications || 'Physician'} • {d.systemOfMedicine || (consultationType === 'ayurvedic' ? 'Ayurvedic' : 'Allopathy')}) {d.roomNumber ? `[${d.roomNumber}]` : ''} {d.hospitalName ? `• ${d.hospitalName.split(',')[0]}` : ''}
+                      </option>
+                    ));
+                  })()}
                 </select>
               </div>
             </div>

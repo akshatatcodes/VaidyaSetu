@@ -9,9 +9,7 @@ const DoctorQueuePanel = ({
   waitingCount,
   emergencyCount,
   selectedSession,
-  loadSessionDetails,
-  showDemoQueue,
-  toggleQueueMode
+  loadSessionDetails
 }) => {
   const navigate = useNavigate();
 
@@ -62,9 +60,7 @@ const DoctorQueuePanel = ({
                 Queue Clear — All Patients Attended
               </h4>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                {showDemoQueue
-                  ? 'Demo queue completed. Toggle mode or refresh to restart test queue.'
-                  : 'No patients currently waiting in line. New check-ins from MediKiosk will appear automatically.'}
+                No patients currently waiting in line. Real patient check-ins from MediKiosk or Patient Portal will appear automatically.
               </p>
             </div>
             <div className="pt-2 flex flex-col gap-2">
@@ -76,16 +72,6 @@ const DoctorQueuePanel = ({
                 <Stethoscope className="w-3.5 h-3.5" />
                 Open MediKiosk Check-In
               </button>
-              {!showDemoQueue && (
-                <button
-                  type="button"
-                  onClick={() => toggleQueueMode(true)}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 text-slate-800 dark:text-gray-200 text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  Load Demo Patients
-                </button>
-              )}
             </div>
           </div>
         ) : (

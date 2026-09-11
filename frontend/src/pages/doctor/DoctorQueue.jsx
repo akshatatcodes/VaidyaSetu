@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config/api';
 import QueueTable from '../../components/doctor/QueueTable';
-import { FALLBACK_DEMO_CASES } from '../DoctorDashboard';
 
 export default function DoctorQueue() {
   const navigate = useNavigate();
@@ -19,14 +18,14 @@ export default function DoctorQueue() {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/kiosk/queue`);
-      if (res.data?.status === 'success' && res.data.data?.length > 0) {
+      if (res.data?.status === 'success' && Array.isArray(res.data.data)) {
         setQueue(res.data.data);
       } else {
-        setQueue(FALLBACK_DEMO_CASES);
+        setQueue([]);
       }
     } catch (err) {
-      console.warn('Error fetching queue, using demo fallback:', err.message);
-      setQueue(FALLBACK_DEMO_CASES);
+      console.warn('Error fetching queue:', err.message);
+      setQueue([]);
     } finally {
       setLoading(false);
     }

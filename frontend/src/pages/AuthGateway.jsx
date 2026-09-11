@@ -136,14 +136,20 @@ const AuthGateway = ({ initialPortal = null }) => {
       }
 
       if (!targetAbha) {
-        const p1 = targetMobile.slice(0, 4);
-        const p2 = targetMobile.slice(4, 8);
-        const p3 = targetMobile.slice(8, 10) + Math.floor(10 + Math.random() * 90);
-        targetAbha = `14-${p1}-${p2}-${p3}`;
+        const r1 = Math.floor(1000 + Math.random() * 9000);
+        const r2 = Math.floor(1000 + Math.random() * 9000);
+        const r3 = Math.floor(1000 + Math.random() * 9000);
+        targetAbha = `14-${r1}-${r2}-${r3}`;
+      }
+
+      if (!patientForm.patientName || !patientForm.patientName.trim()) {
+        setErrorMessage('Please enter your full name.');
+        setLoading(false);
+        return;
       }
 
       const res = await registerPatient({
-        patientName: patientForm.patientName || 'Ayush Patient',
+        patientName: patientForm.patientName.trim(),
         abhaId: targetAbha,
         mobile: targetMobile || patientForm.identifier,
         age: patientForm.age,

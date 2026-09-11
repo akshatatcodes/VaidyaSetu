@@ -754,12 +754,11 @@ router.post('/patient/register', async (req, res) => {
       // User entered 14 digits, format properly if hyphens were missing
       finalAbha = `${rawAbhaDigits.slice(0, 2)}-${rawAbhaDigits.slice(2, 6)}-${rawAbhaDigits.slice(6, 10)}-${rawAbhaDigits.slice(10, 14)}`;
     } else if (!finalAbha) {
-      // Only generate if user did not provide an ABHA ID
-      if (cleanMobileDigits.length === 10) {
-        finalAbha = `14-${cleanMobileDigits.slice(0, 4)}-${cleanMobileDigits.slice(4, 8)}-${cleanMobileDigits.slice(8, 10)}${Math.floor(10 + Math.random() * 90)}`;
-      } else {
-        finalAbha = `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
-      }
+      // Generate a unique 14-digit ABHA ID conforming to ABDM standards
+      const r1 = Math.floor(1000 + Math.random() * 9000);
+      const r2 = Math.floor(1000 + Math.random() * 9000);
+      const r3 = Math.floor(1000 + Math.random() * 9000);
+      finalAbha = `14-${r1}-${r2}-${r3}`;
     }
 
     const patientProfile = {
@@ -781,7 +780,7 @@ router.post('/patient/register', async (req, res) => {
       });
     }
 
-    // Save genuine UserProfile in MongoDB with onboardingCompleted: false (no fake biometrics!)
+    // Save genuine UserProfile in MongoDB
     const existing = await UserProfile.findOne({
       $or: [
         { clerkId: patientId },
@@ -806,6 +805,26 @@ router.post('/patient/register', async (req, res) => {
         abhaId: { value: finalAbha, lastUpdated: new Date() },
         onboardingCompleted: false
       });
+    }
+
+    // Also persist genuine Patient document in MongoDB so Patient & Doctor dashboards match
+    try {
+      await Patient.findOneAndUpdate(
+        { $or: [{ abhaId: finalAbha }, ...(cleanMobileDigits ? [{ mobileNumber: cleanMobileDigits }] : [])] },
+        {
+          abhaId: finalAbha,
+          mobileNumber: cleanMobileDigits || undefined,
+          basicInfo: {
+            fullName: patientName,
+            age: Number(age) || 30,
+            gender: gender || 'Male',
+            contactNumber: patientProfile.mobile
+          }
+        },
+        { upsert: true, returnDocument: 'after' }
+      );
+    } catch (patErr) {
+      console.warn('[AuthRoutes] Patient document sync note:', patErr.message);
     }
 
     const sessionToken = 'pat_tok_' + Buffer.from(`${patientId}_${Date.now()}`).toString('base64');
