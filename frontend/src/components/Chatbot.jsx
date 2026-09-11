@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   MessageCircle, X, Send, Bot, User, Mic, Volume2, Sparkles, 
   Activity, Shield, Stethoscope, Watch, QrCode, ArrowRight 
@@ -37,6 +37,7 @@ const TypingDots = () => (
 const Chatbot = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isOpen, setIsOpen] = useState(false);
@@ -389,6 +390,11 @@ const Chatbot = () => {
       width: '100%',
     }
   };
+
+  // Hide general web floating chatbot on the kiosk intake page
+  if (location.pathname.startsWith('/patient/opd') || location.pathname.startsWith('/kiosk')) {
+    return null;
+  }
 
   return (
     <>

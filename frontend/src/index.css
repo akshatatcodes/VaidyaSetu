@@ -828,7 +828,6 @@ html:not(.dark) .bg-amber-500\/10 {
 
 /* ── INPUTS WARM (Excluding dark containers) ────────────────────────────────── */
 html:not(.dark) input:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="bg-slate-950"] *),
-html:not(.dark) select:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="bg-slate-950"] *),
 html:not(.dark) textarea:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="bg-slate-950"] *) {
   background: var(--vs-surface-1) !important;
   border: 1px solid var(--vs-border) !important;
@@ -837,7 +836,6 @@ html:not(.dark) textarea:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([
 }
 
 html:not(.dark) input:not(.vs-dark-card *):not([class*="bg-slate-9"] *):focus,
-html:not(.dark) select:not(.vs-dark-card *):not([class*="bg-slate-9"] *):focus,
 html:not(.dark) textarea:not(.vs-dark-card *):not([class*="bg-slate-9"] *):focus {
   border-color: var(--vs-border-focus) !important;
   box-shadow: 0 0 0 3px rgba(13,148,136,0.12), 0 2px 8px rgba(0,0,0,0.03) inset !important;
@@ -1039,5 +1037,95 @@ html.dark .border-white\/5,
   .no-print {
     display: none !important;
   }
+}
+
+/* ================================================================
+   GLOBAL THEME ELEMENT STYLING FOR ALL SELECT & OPTION ELEMENTS
+   Consistent medical aesthetic across all selects (Kiosk, Modals, Forms)
+   ================================================================ */
+select {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+/* Light mode select styling */
+html:not(.dark) select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1.5px solid rgba(13, 148, 136, 0.35) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+html:not(.dark) select:hover {
+  border-color: rgba(13, 148, 136, 0.75) !important;
+}
+
+html:not(.dark) select:focus {
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18) !important;
+  outline: none !important;
+}
+
+/* Styled option tags in light mode */
+html:not(.dark) select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+html:not(.dark) select option:checked {
+  background-color: #0d9488 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* Dark mode select styling */
+html.dark select,
+.dark select,
+[class*="bg-slate-900"] select,
+[class*="bg-slate-950"] select,
+.vs-dark-card select {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1.5px solid rgba(45, 212, 191, 0.4) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark select:hover,
+.dark select:hover,
+[class*="bg-slate-900"] select:hover,
+[class*="bg-slate-950"] select:hover {
+  border-color: rgba(45, 212, 191, 0.8) !important;
+}
+
+html.dark select:focus,
+.dark select:focus,
+[class*="bg-slate-900"] select:focus,
+[class*="bg-slate-950"] select:focus {
+  border-color: #14b8a6 !important;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28) !important;
+  outline: none !important;
+}
+
+/* Styled option tags in dark mode */
+html.dark select option,
+.dark select option,
+[class*="bg-slate-900"] select option,
+[class*="bg-slate-950"] select option,
+.vs-dark-card select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+html.dark select option:checked,
+.dark select option:checked {
+  background-color: #0d9488 !important;
+  color: #ffffff !important;
+  font-weight: 700;
 }
 
