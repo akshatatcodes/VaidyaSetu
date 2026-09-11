@@ -761,37 +761,37 @@ html:not(.dark) .vs-sidebar {
   box-shadow: 4px 0 24px rgba(13,148,136,0.07), 2px 0 8px rgba(249,115,22,0.04) !important;
 }
 
-/* ── WARM TYPOGRAPHY ─────────────────────────────────────────────── */
-html:not(.dark) h1:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
-html:not(.dark) h2:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
-html:not(.dark) h3:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
-html:not(.dark) h4:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
-html:not(.dark) h5:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
-html:not(.dark) h6:not(.text-white):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *) {
+/* ── WARM TYPOGRAPHY (Excluding dark containers & vs-dark-card) ────────────────── */
+html:not(.dark) h1:not(.text-white):not(.vs-dark-card *):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h2:not(.text-white):not(.vs-dark-card *):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h3:not(.text-white):not(.vs-dark-card *):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h4:not(.text-white):not(.vs-dark-card *):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h5:not(.text-white):not(.vs-dark-card *):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *),
+html:not(.dark) h6:not(.text-white):not(.vs-dark-card *):not([class*="bg-slate"] *):not([class*="bg-teal"] *):not([class*="bg-emerald"] *) {
   color: var(--vs-text-base);
 }
 
-html:not(.dark) p:not(.text-white):not(.text-emerald-200\/70):not(.text-emerald-300):not(.text-teal-300):not([class*="bg-slate"] *):not([class*="bg-teal"] *) { 
+html:not(.dark) p:not(.text-white):not(.vs-dark-card *):not(.text-emerald-200\/70):not(.text-emerald-300):not(.text-teal-300):not([class*="bg-slate"] *):not([class*="bg-teal"] *) { 
   color: var(--vs-text-base); 
 }
 
-html:not(.dark) .text-gray-400:not([class*="bg-slate"] *),
-html:not(.dark) .text-gray-300:not([class*="bg-slate"] *) { 
+html:not(.dark) .text-gray-400:not(.vs-dark-card *):not([class*="bg-slate"] *),
+html:not(.dark) .text-gray-300:not(.vs-dark-card *):not([class*="bg-slate"] *) { 
   color: var(--vs-text-muted); 
 }
 
-html:not(.dark) .text-slate-900,
-html:not(.dark) .text-gray-900  { color: var(--vs-text-base); }
-html:not(.dark) .text-slate-800 { color: #3d2c18; }
-html:not(.dark) .text-slate-700 { color: #4a3520; }
-html:not(.dark) .text-slate-600 { color: var(--vs-text-muted); }
+html:not(.dark) .text-slate-900:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="from-emerald-9"] *),
+html:not(.dark) .text-gray-900:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="from-emerald-9"] *)  { color: var(--vs-text-base); }
+html:not(.dark) .text-slate-800:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="from-emerald-9"] *) { color: #3d2c18; }
+html:not(.dark) .text-slate-700:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="from-emerald-9"] *) { color: #4a3520; }
+html:not(.dark) .text-slate-600:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="from-emerald-9"] *) { color: var(--vs-text-muted); }
 
 /* ── WARM TEAL ACCENT (replaces emerald) ─────────────────────────── */
-html:not(.dark) .text-emerald-600,
-html:not(.dark) .text-emerald-700 { color: var(--vs-teal-600) !important; }
+html:not(.dark) .text-emerald-600:not(.vs-dark-card *),
+html:not(.dark) .text-emerald-700:not(.vs-dark-card *) { color: var(--vs-teal-600) !important; }
 
-html:not(.dark) .text-emerald-400,
-html:not(.dark) .text-emerald-500 { color: var(--vs-teal-500) !important; }
+html:not(.dark) .text-emerald-400:not(.vs-dark-card *),
+html:not(.dark) .text-emerald-500:not(.vs-dark-card *) { color: var(--vs-teal-500) !important; }
 
 html:not(.dark) .bg-emerald-600,
 html:not(.dark) button.bg-emerald-600 {
@@ -826,27 +826,67 @@ html:not(.dark) .bg-amber-500\/10 {
   border: 1px solid rgba(249,115,22,0.15) !important;
 }
 
-/* ── INPUTS WARM ────────────────────────────────────────────────── */
-html:not(.dark) input,
-html:not(.dark) select,
-html:not(.dark) textarea {
+/* ── INPUTS WARM (Excluding dark containers) ────────────────────────────────── */
+html:not(.dark) input:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="bg-slate-950"] *),
+html:not(.dark) select:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="bg-slate-950"] *),
+html:not(.dark) textarea:not(.vs-dark-card *):not([class*="bg-slate-9"] *):not([class*="bg-slate-950"] *) {
   background: var(--vs-surface-1) !important;
   border: 1px solid var(--vs-border) !important;
   color: var(--vs-text-base) !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03) inset !important;
 }
 
-html:not(.dark) input:focus,
-html:not(.dark) select:focus,
-html:not(.dark) textarea:focus {
+html:not(.dark) input:not(.vs-dark-card *):not([class*="bg-slate-9"] *):focus,
+html:not(.dark) select:not(.vs-dark-card *):not([class*="bg-slate-9"] *):focus,
+html:not(.dark) textarea:not(.vs-dark-card *):not([class*="bg-slate-9"] *):focus {
   border-color: var(--vs-border-focus) !important;
   box-shadow: 0 0 0 3px rgba(13,148,136,0.12), 0 2px 8px rgba(0,0,0,0.03) inset !important;
   outline: none !important;
 }
 
-html:not(.dark) input::placeholder,
-html:not(.dark) textarea::placeholder {
+html:not(.dark) input:not(.vs-dark-card *)::placeholder,
+html:not(.dark) textarea:not(.vs-dark-card *)::placeholder {
   color: var(--vs-text-faint) !important;
+}
+
+/* ── HIGH CONTRAST DARK CARD & HEADER OVERRIDES ───────────────── */
+.vs-dark-card,
+[class*="bg-slate-900"],
+[class*="bg-slate-950"],
+[class*="bg-emerald-950"] {
+  color: #ffffff !important;
+}
+
+.vs-dark-card h1,
+.vs-dark-card h2,
+.vs-dark-card h3,
+.vs-dark-card h4,
+[class*="bg-slate-900"] h1,
+[class*="bg-slate-950"] h1,
+[class*="bg-emerald-950"] h1 {
+  color: #ffffff !important;
+}
+
+.vs-dark-card p,
+[class*="bg-slate-900"] p,
+[class*="bg-slate-950"] p {
+  color: #cbd5e1 !important;
+}
+
+.vs-dark-card select,
+.vs-dark-card input,
+[class*="bg-slate-900"] select,
+[class*="bg-slate-950"] select {
+  background-color: rgba(2, 6, 23, 0.9) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.vs-dark-card select option,
+[class*="bg-slate-900"] select option,
+[class*="bg-slate-950"] select option {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
 }
 
 /* Scrollbar warm */

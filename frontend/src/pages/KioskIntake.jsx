@@ -410,20 +410,49 @@ const KioskIntake = ({ isStandalone = false }) => {
     department: ''
   });
 
-  // Automatically prefill when an authenticated patient accesses the kiosk
+  // Automatically prefill when an authenticated patient or user accesses the kiosk
   useEffect(() => {
-    if (isAuthenticated && userRole === 'patient' && currentUser) {
-      setPatientForm(prev => ({
-        ...prev,
-        abhaId: currentUser.abhaId || currentUser.patientId || prev.abhaId || '',
-        patientName: currentUser.patientName || currentUser.name || prev.patientName || '',
-        age: currentUser.age || prev.age || '',
-        gender: currentUser.gender || prev.gender || '',
-        contactNumber: currentUser.mobile || currentUser.phone || prev.contactNumber || '',
-        department: prev.department || ''
-      }));
+    let activeUser = currentUser;
+    if (!activeUser) {
+      try {
+        const savedSession = localStorage.getItem('vaidya_auth_session');
+        if (savedSession) {
+          activeUser = JSON.parse(savedSession)?.user;
+        }
+      } catch (e) {}
     }
-  }, [isAuthenticated, userRole, currentUser]);
+
+    if (activeUser) {
+      let name = activeUser.patientName || activeUser.name || activeUser.fullName || activeUser.basicInfo?.fullName || '';
+      if (!name || name === 'Ayush Patient' || name === 'Patient') {
+        if (activeUser.email && activeUser.email.includes('@')) {
+          const prefix = activeUser.email.split('@')[0];
+          name = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+        } else {
+          name = '';
+        }
+      }
+      const abha = activeUser.abhaId || activeUser.patientId || activeUser.basicInfo?.abhaId || '';
+      const ageVal = activeUser.age || activeUser.basicInfo?.age || '';
+      const genderVal = activeUser.gender || activeUser.basicInfo?.gender || '';
+      const phoneVal = activeUser.mobile || activeUser.phone || activeUser.contactNumber || activeUser.basicInfo?.contactNumber || '';
+
+      setPatientForm(prev => {
+        let currentFormName = prev.patientName;
+        if (currentFormName === 'Ayush Patient' || currentFormName === 'Patient') {
+          currentFormName = '';
+        }
+        return {
+          abhaId: prev.abhaId ? prev.abhaId : abha,
+          patientName: currentFormName ? currentFormName : name,
+          age: prev.age ? prev.age : ageVal,
+          gender: prev.gender ? prev.gender : genderVal,
+          contactNumber: prev.contactNumber ? prev.contactNumber : phoneVal,
+          department: prev.department || ''
+        };
+      });
+    }
+  }, [currentUser, isAuthenticated]);
 
   // Step 1.5: Care pathway selection (stream + where the patient is sitting)
   const [visitMode, setVisitMode] = useState('kiosk'); // 'kiosk' | 'home'
@@ -1716,39 +1745,68 @@ const KioskIntake = ({ isStandalone = false }) => {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="px-3 py-1 bg-emerald-500/30 text-emerald-200 border border-emerald-400/50 rounded-full text-[11px] font-black tracking-widest uppercase shadow-sm">
+                <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-emerald-500/40 text-white border border-emerald-400/60 rounded-full text-[11px] font-black tracking-widest uppercase shadow-sm">
                   AIIA AYUSH OPD • Smart MediKiosk
                 </span>
+                <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-teal-500/40 text-white border border-teal-400/50 rounded-full text-[11px] font-black shadow-sm flex items-center gap-1">
+                  🏥 {preferredHospital || 'AIIA New Delhi'}
+                </span>
                 {triagePriority === 'emergency' && (
-                  <span className="px-3 py-1 bg-red-600 text-white animate-bounce rounded-full text-[11px] font-black tracking-wider uppercase shadow-md flex items-center gap-1">
+                  <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-red-600 text-white animate-bounce rounded-full text-[11px] font-black tracking-wider uppercase shadow-md flex items-center gap-1">
                     <AlertOctagon className="w-3.5 h-3.5" /> RED-FLAG EMERGENCY
                   </span>
                 )}
                 {tokenNumber && (
-                  <span className="px-3 py-1 bg-teal-500/30 text-teal-200 border border-teal-400/40 rounded-full text-[11px] font-mono font-black shadow-sm">
+                  <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-teal-500/40 text-white border border-teal-400/50 rounded-full text-[11px] font-mono font-black shadow-sm">
                     TOKEN: {tokenNumber}
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white drop-shadow-sm">
+              <h1
+                style={{ color: '#ffffff', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
+                className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight drop-shadow-md text-white"
+              >
                 {t.kioskTitle}
               </h1>
-              <p className="text-xs sm:text-sm text-emerald-200/90 font-semibold mt-0.5">
+              <p
+                style={{ color: '#ffffff', opacity: 0.95, textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
+                className="text-xs sm:text-sm font-extrabold mt-1 text-white"
+              >
                 {t.kioskSubtitle}
               </p>
             </div>
           </div>
 
-          {/* Controls: Language, TTS, Fullscreen, Reset */}
+          {/* Controls: Hospital Facility, Language, TTS, Fullscreen, Reset */}
           <div className="flex flex-wrap items-center gap-2.5 self-stretch sm:self-end lg:self-auto justify-end">
             
+            {/* Hospital Facility Selector */}
+            <label className="relative flex items-center">
+              <span className="sr-only">Hospital Facility</span>
+              <Shield className="w-4 h-4 text-emerald-300 absolute left-3 pointer-events-none" />
+              <select
+                value={preferredHospital}
+                onChange={(e) => setPreferredHospital(e.target.value)}
+                style={{ color: '#ffffff', backgroundColor: 'rgba(2, 6, 23, 0.9)' }}
+                className="appearance-none pl-9 pr-8 py-2.5 rounded-2xl bg-slate-950/90 border border-white/20 text-white text-xs sm:text-sm font-extrabold shadow-md backdrop-blur-md cursor-pointer hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                {HOSPITALS.map(h => (
+                  <option key={h.id} value={h.name} className="bg-slate-900 text-white font-bold">
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-gray-300 absolute right-3 pointer-events-none" />
+            </label>
+
             <label className="relative flex items-center">
               <span className="sr-only">Select language</span>
               <Globe className="w-4 h-4 text-emerald-300 absolute left-3 pointer-events-none" />
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
-                className="appearance-none pl-9 pr-8 py-2.5 rounded-2xl bg-slate-950/90 border border-white/20 text-white text-sm font-extrabold shadow-md backdrop-blur-md cursor-pointer hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                style={{ color: '#ffffff', backgroundColor: 'rgba(2, 6, 23, 0.9)' }}
+                className="appearance-none pl-9 pr-8 py-2.5 rounded-2xl bg-slate-950/90 border border-white/20 text-white text-xs sm:text-sm font-extrabold shadow-md backdrop-blur-md cursor-pointer hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               >
                 {LANG_OPTIONS.map(item => (
                   <option key={item.code} value={item.code} className="bg-slate-900 text-white font-bold">
@@ -1756,7 +1814,6 @@ const KioskIntake = ({ isStandalone = false }) => {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-gray-300 absolute right-3 pointer-events-none" />
             </label>
 
             {/* Voice Guidance Toggle */}
@@ -1815,23 +1872,23 @@ const KioskIntake = ({ isStandalone = false }) => {
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToStep(s.step); } }}
                 aria-current={isCurrent ? 'step' : undefined}
-                className={`shrink-0 w-[88px] md:w-auto flex flex-col items-center text-center gap-1.5 p-1.5 rounded-2xl transition-all select-none cursor-pointer hover:bg-white/10 ${isCurrent ? 'opacity-100 bg-white/10 ring-1 ring-emerald-400/50' : isCompleted ? 'opacity-100' : 'opacity-85 hover:opacity-100'}`}
+                className={`shrink-0 w-[95px] md:w-auto flex flex-col items-center text-center gap-2 p-2 rounded-2xl transition-all select-none cursor-pointer hover:bg-white/10 ${isCurrent ? 'opacity-100 bg-white/15 ring-2 ring-emerald-400' : isCompleted ? 'opacity-100' : 'opacity-90 hover:opacity-100'}`}
                 title={`Jump directly to Step ${s.step}: ${s.label}`}
               >
-                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-sm font-black transition-all ${isCurrent ? 'bg-gradient-to-tr from-emerald-400 to-teal-300 text-slate-950 ring-4 ring-emerald-400/50 shadow-xl shadow-emerald-500/40' : isCompleted ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800/90 text-emerald-300 border border-white/20 hover:bg-slate-800'}`}>
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-sm font-black transition-all ${isCurrent ? 'bg-gradient-to-tr from-emerald-400 to-teal-300 text-slate-950 ring-4 ring-emerald-400/50 shadow-xl shadow-emerald-500/40' : isCompleted ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-emerald-300 border border-white/30 hover:bg-slate-700'}`}>
                   {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : <IconComponent className="w-5 h-5" />}
                 </div>
                 <div className="flex flex-col items-center gap-1 w-full">
-                  <span className={`text-[13px] font-black leading-tight break-words ${isCurrent ? 'text-emerald-300 drop-shadow-sm' : isCompleted ? 'text-slate-100' : 'text-slate-200'}`}>
+                  <span className={`text-xs sm:text-sm font-extrabold leading-tight break-words ${isCurrent ? 'text-emerald-300 drop-shadow-md' : isCompleted ? 'text-white' : 'text-slate-100'}`}>
                     {s.label}
                   </span>
                   {s.optional && (
-                    <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-amber-500/30 text-amber-200 border border-amber-400/40 uppercase tracking-tight shadow-sm">
+                    <span className="text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md bg-amber-500/40 text-amber-200 border border-amber-400/60 uppercase tracking-tight shadow-sm">
                       {t.optionalBadge}
                     </span>
                   )}
                   {s.required && (
-                    <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 uppercase tracking-tight shadow-sm">
+                    <span className="text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md bg-emerald-500/40 text-emerald-100 border border-emerald-400/60 uppercase tracking-tight shadow-sm">
                       {t.requiredBadge}
                     </span>
                   )}

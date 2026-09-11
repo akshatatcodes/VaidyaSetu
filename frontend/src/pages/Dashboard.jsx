@@ -58,78 +58,36 @@ const Dashboard = () => {
       setProfile(p);
       if (q && Array.isArray(q) && q.length > 0) {
         setActiveQueue(q[0]);
-      } else if (q && typeof q === 'object' && !Array.isArray(q)) {
+      } else if (q && typeof q === 'object' && !Array.isArray(q) && (q.tokenNumber || q._id)) {
         setActiveQueue(q);
       } else {
-        // Look up any recently active kiosk token from local storage
-        const savedToken = localStorage.getItem('vaidyasetu_last_token') || 'OPD-20260910-007';
-        setActiveQueue({
-          tokenNumber: savedToken,
-          department: 'Kayachikitsa (Internal Medicine)',
-          roomNumber: 'Room 104',
-          doctorName: 'Dr. Vaidya Ramanathan',
-          queuePosition: 2,
-          estimatedWaitTime: '12 mins',
-          status: 'In Line'
-        });
+        setActiveQueue(null);
       }
 
       if (f && Array.isArray(f) && f.length > 0) {
         setNextFollowUp(f[0]);
-      } else if (f && typeof f === 'object' && !Array.isArray(f)) {
+      } else if (f && typeof f === 'object' && !Array.isArray(f) && (f.scheduledDate || f.doctorName)) {
         setNextFollowUp(f);
       } else {
-        setNextFollowUp({
-          scheduledDate: '2026-09-24',
-          doctorName: 'Vaidya Ramanathan',
-          department: 'Kayachikitsa',
-          type: 'Post-Treatment Evaluation'
-        });
+        setNextFollowUp(null);
       }
 
       if (Array.isArray(meds) && meds.length > 0) {
         setMedicationsList(meds);
       } else {
-        setMedicationsList([
-          { name: 'Yogaraj Guggulu', dosage: '2 tablets', frequency: 'Twice daily (Post Meals)', system: 'Ayurvedic', purpose: 'Joint inflammation & Sandhivata' },
-          { name: 'Ashwagandha Churna', dosage: '3 grams', frequency: 'Bedtime with warm milk', system: 'Ayurvedic', purpose: 'Dhatu rejuvenation & vitality' },
-          { name: 'Metformin', dosage: '500 mg', frequency: 'Once daily (Morning)', system: 'Allopathic', purpose: 'Glycemic control' }
-        ]);
+        setMedicationsList([]);
       }
 
-      if (vitals && (vitals.bp || vitals.systolicBP || vitals.heartRate)) {
+      if (vitals && (vitals.bp || vitals.systolicBP || vitals.heartRate || vitals.spo2)) {
         setLatestVitals(vitals);
       } else {
-        setLatestVitals({
-          systolicBP: 128,
-          diastolicBP: 82,
-          heartRate: 74,
-          spo2: 98,
-          temperature: 98.4,
-          bmi: 24.9,
-          recordedAt: 'Today, 10:15 AM'
-        });
+        setLatestVitals(null);
       }
 
       if (Array.isArray(visits) && visits.length > 0) {
         setRecentVisits(visits);
       } else {
-        setRecentVisits([
-          {
-            date: '24 Jan 2026',
-            department: 'Kayachikitsa',
-            doctor: 'Dr. Vaidya Ramanathan',
-            diagnosis: 'Sandhivata (Osteoarthritis of Knee)',
-            summary: 'Significant pain reduction noted. Continued herbal regimen with gentle Janu Basti therapy.'
-          },
-          {
-            date: '10 Dec 2025',
-            department: 'Shalya Tantra',
-            doctor: 'Dr. K. S. Sharma',
-            diagnosis: 'Knee Joint Stiffness & Crepitus',
-            summary: 'Pre-consultation baseline intake completed via MediKiosk. X-Ray verified grade-2 wear.'
-          }
-        ]);
+        setRecentVisits([]);
       }
 
       setLoading(false);
@@ -141,17 +99,17 @@ const Dashboard = () => {
 
   const displayName =
     profile?.basicInfo?.fullName || profile?.fullName?.value ||
-    currentUser?.patientName || currentUser?.name || currentUser?.firstName || 'Rahul Sharma';
+    currentUser?.patientName || currentUser?.name || currentUser?.firstName || 'Patient';
 
   const abhaId =
-    currentUser?.abhaId || profile?.abhaId || profile?.basicInfo?.abhaId || '14-1122-3344-5566';
+    currentUser?.abhaId || profile?.abhaId || profile?.basicInfo?.abhaId || 'Not Linked';
 
   const mobileNumber =
-    currentUser?.mobile || currentUser?.phone || profile?.basicInfo?.phone || '+91 9811223344';
+    currentUser?.mobile || currentUser?.phone || profile?.basicInfo?.phone || 'Not provided';
 
-  const age = profile?.basicInfo?.age || currentUser?.age || 58;
-  const gender = profile?.basicInfo?.gender || currentUser?.gender || 'Male';
-  const bloodGroup = profile?.basicInfo?.bloodGroup || 'B+';
+  const age = profile?.basicInfo?.age || currentUser?.age || '--';
+  const gender = profile?.basicInfo?.gender || currentUser?.gender || '--';
+  const bloodGroup = profile?.basicInfo?.bloodGroup || 'Not reported';
 
   if (loading) {
     return (
@@ -190,12 +148,11 @@ const Dashboard = () => {
     const randSeq = String(Math.floor(Math.random() * 900) + 100);
     const newToken = `OPD-${yyyy}${mm}${dd}-${randSeq}`;
 
-    localStorage.setItem('vaidyasetu_last_token', newToken);
     setActiveQueue({
       tokenNumber: newToken,
       department: activeQueue?.department || 'Kayachikitsa (Internal Medicine)',
       roomNumber: activeQueue?.roomNumber || 'Room 104',
-      doctorName: activeQueue?.doctorName || 'Dr. Vaidya Ramanathan',
+      doctorName: activeQueue?.doctorName || 'OPD Duty Doctor',
       queuePosition: 8,
       estimatedWaitTime: '20 mins',
       status: 'In Line',
@@ -307,104 +264,128 @@ const Dashboard = () => {
 
         {/* Right: Active OPD Token & Consultation Tracker (7 cols) */}
         <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 shadow-sm border-2 border-slate-200 flex flex-col justify-between space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold border border-emerald-200">
-                <Clock className="w-5 h-5" />
+          {activeQueue ? (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold border border-emerald-200">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                      Live OPD Queue & Token Status
+                    </span>
+                    <h3 className="text-base font-black text-slate-900">
+                      {activeQueue.department || 'General OPD'}
+                    </h3>
+                  </div>
+                </div>
+                {isTokenExpired() ? (
+                  <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black border border-amber-300 w-fit">
+                    ⚠️ Expired at 11:59 PM
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300 w-fit">
+                    ● Queue Position: #{activeQueue.queuePosition || 1}
+                  </span>
+                )}
               </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
-                  Live OPD Queue & Token Status
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Your Token</span>
+                  <span className={`text-lg font-black font-mono ${isTokenExpired() ? 'text-slate-400 line-through' : 'text-emerald-700'}`}>
+                    {activeQueue.tokenNumber}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Room</span>
+                  <span className="text-lg font-black text-slate-900">
+                    {activeQueue.roomNumber || 'Room 104'}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Doctor</span>
+                  <span className="text-sm font-black text-slate-900 truncate block">
+                    {activeQueue.doctorName || 'Duty Doctor'}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Est. Wait</span>
+                  <span className="text-lg font-black text-emerald-600">
+                    {isTokenExpired() ? 'Expired' : (activeQueue.estimatedWaitTime || '10 mins')}
+                  </span>
+                </div>
+              </div>
+
+              {isTokenExpired() ? (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-amber-900">
+                      This token was unconsulted and expired at midnight (11:59 PM).
+                    </p>
+                    <p className="text-[11px] text-amber-800">
+                      Re-generate a token to rejoin today's live OPD queue at the end of the line.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRegenerateToken}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Re-generate Token</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                    <span className="flex items-center gap-1.5 text-emerald-700">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Kiosk Check-In Completed
+                    </span>
+                    <span className="text-slate-500 font-semibold">Next: Doctor Encounter</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+                    <div className="w-3/4 bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full" />
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-medium">
+                  Please be near Room 104 when your token is called.
                 </span>
-                <h3 className="text-base font-black text-slate-900">
-                  {activeQueue?.department || 'Kayachikitsa (Internal Medicine)'}
-                </h3>
+                <button
+                  type="button"
+                  onClick={() => navigate('/patient/queue')}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  Open Live Queue <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-            </div>
-            {isTokenExpired() ? (
-              <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black border border-amber-300 w-fit">
-                ⚠️ Expired at 11:59 PM
-              </span>
-            ) : (
-              <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300 w-fit">
-                ● Queue Position: #{activeQueue?.queuePosition || 2}
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
-              <span className="text-[10px] text-slate-500 block uppercase font-bold">Your Token</span>
-              <span className={`text-lg font-black font-mono ${isTokenExpired() ? 'text-slate-400 line-through' : 'text-emerald-700'}`}>
-                {activeQueue?.tokenNumber || 'OPD-007'}
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
-              <span className="text-[10px] text-slate-500 block uppercase font-bold">Room</span>
-              <span className="text-lg font-black text-slate-900">
-                {activeQueue?.roomNumber || 'Room 104'}
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
-              <span className="text-[10px] text-slate-500 block uppercase font-bold">Doctor</span>
-              <span className="text-sm font-black text-slate-900 truncate block">
-                {activeQueue?.doctorName || 'Dr. Ramanathan'}
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-slate-50 border border-gray-200">
-              <span className="text-[10px] text-slate-500 block uppercase font-bold">Est. Wait</span>
-              <span className="text-lg font-black text-emerald-600">
-                {isTokenExpired() ? 'Expired' : (activeQueue?.estimatedWaitTime || '10 mins')}
-              </span>
-            </div>
-          </div>
-
-          {/* Queue Progress Bar or Expired Re-generate Section */}
-          {isTokenExpired() ? (
-            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            </>
+          ) : (
+            <div className="py-8 text-center space-y-3 flex flex-col items-center justify-center my-auto">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+                <Clock className="w-6 h-6" />
+              </div>
               <div>
-                <p className="text-xs font-bold text-amber-900">
-                  This token was unconsulted and expired at midnight (11:59 PM).
-                </p>
-                <p className="text-[11px] text-amber-800">
-                  Re-generate a token to rejoin today's live OPD queue at the end of the line.
+                <h3 className="text-base font-black text-slate-900">No Active OPD Check-In</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  You do not currently have an active OPD token. Start your pre-consultation intake to enter the live doctor queue.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={handleRegenerateToken}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                onClick={() => navigate('/patient/opd')}
+                className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md flex items-center gap-2 transition-all cursor-pointer"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Re-generate Token for Today</span>
+                <Stethoscope className="w-4 h-4" />
+                <span>Start Pre-Consultation Check-In</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
-          ) : (
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                <span className="flex items-center gap-1.5 text-emerald-700">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Kiosk Check-In Completed
-                </span>
-                <span className="text-slate-500 font-semibold">Next: Doctor Encounter</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-                <div className="w-3/4 bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full" />
-              </div>
-            </div>
           )}
-
-          <div className="pt-2 flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">
-              Please be near Room 104 when your token is called.
-            </span>
-            <button
-              type="button"
-              onClick={() => navigate('/patient/queue')}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              Open Live Queue <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
       </div>
 
@@ -442,11 +423,11 @@ const Dashboard = () => {
               <Heart className="w-4 h-4" />
             </div>
             <div className="text-2xl font-black text-slate-900 font-mono">
-              {latestVitals?.systolicBP || 128}/{latestVitals?.diastolicBP || 82}
+              {latestVitals?.systolicBP ? `${latestVitals.systolicBP}/${latestVitals.diastolicBP}` : '--'}
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-slate-500">mmHg</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Optimal</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold">{latestVitals ? 'Optimal' : 'No Reading'}</span>
             </div>
           </div>
 
@@ -457,11 +438,11 @@ const Dashboard = () => {
               <Activity className="w-4 h-4" />
             </div>
             <div className="text-2xl font-black text-slate-900 font-mono">
-              {latestVitals?.heartRate || 74}
+              {latestVitals?.heartRate ? latestVitals.heartRate : '--'}
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-slate-500">bpm</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Normal</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold">{latestVitals ? 'Normal' : 'No Reading'}</span>
             </div>
           </div>
 
@@ -472,11 +453,11 @@ const Dashboard = () => {
               <Wind className="w-4 h-4" />
             </div>
             <div className="text-2xl font-black text-slate-900 font-mono">
-              {latestVitals?.spo2 || 98}%
+              {latestVitals?.spo2 ? `${latestVitals.spo2}%` : '--'}
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-slate-500">Room Air</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Healthy</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold">{latestVitals ? 'Healthy' : 'No Reading'}</span>
             </div>
           </div>
 
@@ -487,11 +468,11 @@ const Dashboard = () => {
               <Thermometer className="w-4 h-4" />
             </div>
             <div className="text-2xl font-black text-slate-900 font-mono">
-              {latestVitals?.temperature || 98.4}°F
+              {latestVitals?.temperature ? `${latestVitals.temperature}°F` : '--'}
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-slate-500">Oral/Sensor</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Afebrile</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold">{latestVitals ? 'Afebrile' : 'No Reading'}</span>
             </div>
           </div>
 
@@ -502,11 +483,11 @@ const Dashboard = () => {
               <User className="w-4 h-4" />
             </div>
             <div className="text-2xl font-black text-slate-900 font-mono">
-              {latestVitals?.bmi || 24.9}
+              {latestVitals?.bmi ? latestVitals.bmi : '--'}
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-slate-500">kg/m²</span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold">Vata-Pitta</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold">{latestVitals ? 'Measured' : 'No Reading'}</span>
             </div>
           </div>
         </div>
@@ -547,7 +528,7 @@ const Dashboard = () => {
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                 <span className="text-xs font-bold text-emerald-900">
-                  AYUSH Herb-Drug Safety Verification: <strong>Passed</strong> (No harmful interactions detected with Allopathic medicines)
+                  AYUSH Herb-Drug Safety Verification: <strong>Active Engine</strong>
                 </span>
               </div>
               <button
@@ -560,67 +541,99 @@ const Dashboard = () => {
             </div>
 
             <div className="space-y-2.5 mt-4">
-              {medicationsList.map((med, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-2xl bg-slate-50 border border-gray-200 flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black ${med.system === 'Ayurvedic' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {med.system === 'Ayurvedic' ? '🌿' : '💊'}
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-slate-900 flex items-center gap-2">
-                        {med.name}
-                        <span className="text-xs font-mono font-normal text-slate-500">({med.dosage})</span>
+              {medicationsList.length > 0 ? (
+                medicationsList.map((med, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-2xl bg-slate-50 border border-gray-200 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black ${med.system === 'Ayurvedic' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {med.system === 'Ayurvedic' ? '🌿' : '💊'}
                       </div>
-                      <div className="text-xs text-slate-500">
-                        {med.frequency} • {med.purpose}
+                      <div>
+                        <div className="text-sm font-black text-slate-900 flex items-center gap-2">
+                          {med.name}
+                          {med.dosage && <span className="text-xs font-mono font-normal text-slate-500">({med.dosage})</span>}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {med.frequency || 'Daily'} {med.purpose ? `• ${med.purpose}` : ''}
+                        </div>
                       </div>
                     </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${med.system === 'Ayurvedic' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
+                      {med.system || 'Medication'}
+                    </span>
                   </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${med.system === 'Ayurvedic' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
-                    {med.system}
-                  </span>
+                ))
+              ) : (
+                <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-gray-200 space-y-2">
+                  <Pill className="w-8 h-8 text-slate-400 mx-auto opacity-50" />
+                  <p className="text-xs font-bold text-slate-700">No Active Medications Recorded</p>
+                  <p className="text-[11px] text-slate-500">Scan your prescription photo or add medications to monitor compatibility.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
         {/* Scheduled Follow-Up & Clinical Advice (4 cols) */}
         <div className="lg:col-span-4 bg-white text-slate-900 rounded-3xl p-6 sm:p-7 shadow-xl border border-teal-500/20 flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="px-3 py-1 rounded-full bg-teal-500/15 text-teal-800 text-[11px] font-black uppercase tracking-wider border border-teal-500/30">
-                Next Appointment
-              </span>
-              <CalendarClock className="w-5 h-5 text-teal-600" />
-            </div>
+          {nextFollowUp ? (
+            <>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-teal-500/15 text-teal-800 text-[11px] font-black uppercase tracking-wider border border-teal-500/30">
+                    Next Appointment
+                  </span>
+                  <CalendarClock className="w-5 h-5 text-teal-600" />
+                </div>
 
-            <div>
-              <div className="text-2xl font-black text-slate-900">
-                {nextFollowUp?.scheduledDate || '24 Sep 2026'}
+                <div>
+                  <div className="text-2xl font-black text-slate-900">
+                    {nextFollowUp.scheduledDate || nextFollowUp.scheduledWindow?.date || 'Scheduled'}
+                  </div>
+                  <p className="text-xs font-bold text-slate-600 mt-1">
+                    Consultation with {nextFollowUp.doctorName ? `Dr. ${nextFollowUp.doctorName}` : 'Attending Physician'}
+                  </p>
+                  {nextFollowUp.advice && (
+                    <div className="mt-3 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/70 text-xs text-slate-800 font-medium leading-relaxed">
+                      "{nextFollowUp.advice}"
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-xs font-bold text-slate-600 mt-1">
-                Consultation with {nextFollowUp?.doctorName ? `Dr. ${nextFollowUp.doctorName}` : 'Dr. Vaidya Ramanathan'}
-              </p>
-              <div className="mt-3 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/70 text-xs text-slate-800 font-medium leading-relaxed">
-                "Patient advised to continue light dietary Ahara-Vihara (Koshna Jala) and avoid heavy night curd intake."
-              </div>
-            </div>
-          </div>
 
-          <div className="pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => navigate('/patient/opd')}
-              className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>Reschedule or Book Consultation</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              <div className="pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => navigate('/patient/opd')}
+                  className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Reschedule or Book Consultation</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="py-8 text-center space-y-3 flex flex-col items-center justify-center my-auto">
+              <CalendarClock className="w-10 h-10 text-teal-500 mx-auto opacity-50" />
+              <div>
+                <h4 className="text-sm font-black text-slate-900">No Upcoming Appointments</h4>
+                <p className="text-xs text-slate-500 mt-1">
+                  You have no scheduled follow-up visits.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/patient/opd')}
+                className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Book Check-In</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -651,35 +664,43 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {recentVisits.map((visit, idx) => (
-            <div
-              key={idx}
-              className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-2 hover:border-purple-300 transition-all"
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-500">{visit.date}</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-black text-[10px] uppercase">
-                  {visit.department}
-                </span>
+          {recentVisits.length > 0 ? (
+            recentVisits.map((visit, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-2 hover:border-purple-300 transition-all"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-500">{visit.date}</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-black text-[10px] uppercase">
+                    {visit.department}
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-900">
+                  {visit.diagnosis}
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {visit.summary}
+                </p>
+                <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-gray-200">
+                  <span>Physician: <strong>{visit.doctor}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/medical-history')}
+                    className="text-purple-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    View Case Sheet <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
-              <h4 className="text-sm font-black text-slate-900">
-                {visit.diagnosis}
-              </h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {visit.summary}
-              </p>
-              <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-gray-200">
-                <span>Physician: <strong>{visit.doctor}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => navigate('/medical-history')}
-                  className="text-purple-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  View Case Sheet <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
+            ))
+          ) : (
+            <div className="col-span-2 p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-gray-200 space-y-2">
+              <FileText className="w-10 h-10 text-slate-400 mx-auto opacity-50" />
+              <p className="text-sm font-bold text-slate-700">No Prior Clinical Encounters Recorded</p>
+              <p className="text-xs text-slate-500">Doctor consultation notes and digital case sheets will automatically save here after your visit.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 

@@ -155,21 +155,21 @@ const HealthProfile = () => {
   }
 
   const basic = patient?.basicInfo || {
-    fullName: currentUser?.patientName || currentUser?.name || 'Rahul Sharma',
-    age: currentUser?.age || 58,
-    gender: currentUser?.gender || 'Male',
-    bloodGroup: 'B+',
-    contactNumber: currentUser?.mobile || '+91 9811223344'
+    fullName: currentUser?.patientName || currentUser?.name || 'Ayush Patient',
+    age: currentUser?.age || '--',
+    gender: currentUser?.gender || '--',
+    bloodGroup: 'Not reported',
+    contactNumber: currentUser?.mobile || currentUser?.phone || 'Not reported'
   };
 
-  const health = patient?.healthMetrics || {};
+  const health = patient?.healthMetrics || patient?.healthProfile || {};
   const ayush = patient?.ayushProfile || {
-    prakriti: 'Vata-Pitta',
-    vikriti: 'Sama Dosha',
-    ahara: 'Vegetarian (Agni Dominant)',
-    vihara: 'Active Walking',
-    agni: 'Samagni',
-    koshtha: 'Madhyama'
+    prakriti: 'Not reported',
+    vikriti: 'Not reported',
+    ahara: 'Not reported',
+    vihara: 'Not reported',
+    agni: 'Not reported',
+    koshtha: 'Not reported'
   };
 
   return (
@@ -234,14 +234,14 @@ const HealthProfile = () => {
                 ABDM Verified Patient Record
               </span>
               <span className="text-[10px] font-extrabold text-teal-800 uppercase tracking-wider bg-teal-100 border border-teal-300 px-2.5 py-0.5 rounded-full">
-                SIH 2026 • AIIA Case Dossier
+                VaidyaSetu Health Dossier
               </span>
             </div>
             <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
               {basic.fullName || 'Patient Profile'}
             </h1>
             <p className="text-slate-600 text-xs sm:text-sm font-medium mt-0.5">
-              {basic.age} Yrs &bull; {basic.gender} &bull; Blood Group: <span className="text-emerald-800 font-extrabold">{basic.bloodGroup || 'Unknown'}</span> &bull; {basic.contactNumber}
+              {basic.age} Yrs &bull; {basic.gender} &bull; Blood Group: <span className="text-emerald-800 font-extrabold">{basic.bloodGroup || 'Not reported'}</span> &bull; {basic.contactNumber}
             </p>
           </div>
 
@@ -283,7 +283,7 @@ const HealthProfile = () => {
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-500 italic">Type 2 Diabetes, Hypertension</span>
+                  <span className="text-xs text-slate-400 italic">None reported</span>
                 )}
               </div>
             </div>
@@ -297,7 +297,7 @@ const HealthProfile = () => {
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-500 italic">Penicillin, NSAIDs (Epigastric distress)</span>
+                  <span className="text-xs text-slate-400 italic">None reported</span>
                 )}
               </div>
             </div>
@@ -321,10 +321,10 @@ const HealthProfile = () => {
         <Card accent="#059669">
           <CardHeader icon={Shield} title="ABDM Digital Health Record" iconColor="#059669" />
           <div className="px-6 py-5 space-y-1">
-            <StatRow label="ABHA Health ID" value={currentUser?.abhaId || patient?.abhaId || '14-8921-3401-9921'} highlight />
-            <StatRow label="ABHA Address" value={currentUser?.abhaAddress || 'rahul.sharma@abdm'} />
+            <StatRow label="ABHA Health ID" value={currentUser?.abhaId || patient?.abhaId || 'Not Linked'} highlight />
+            <StatRow label="ABHA Address" value={currentUser?.abhaAddress || 'Not registered'} />
             <StatRow label="M1 / M2 / M3 Status" value="FHIR R4 Certified" />
-            <StatRow label="Aadhaar Verification" value="e-KYC Completed" highlight />
+            <StatRow label="Aadhaar Verification" value={currentUser?.abhaId ? "e-KYC Completed" : "Pending Link"} highlight />
             <StatRow label="Consent Mode" value="DPDP Ephemeral Gateway" />
           </div>
         </Card>
@@ -333,20 +333,21 @@ const HealthProfile = () => {
         <Card accent="#6366f1">
           <CardHeader icon={Users} title="Family Members & Beneficiaries" iconColor="#4f46e5" />
           <div className="px-6 py-5 space-y-2.5">
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
-              <div>
-                <span className="font-bold text-slate-900 block">Kavita Sharma</span>
-                <span className="text-[11px] text-slate-500">Spouse &bull; ABHA: 14-8921-3401-9922</span>
+            {familyMembers.length > 0 ? (
+              familyMembers.map((fm, idx) => (
+                <div key={idx} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-slate-900 block">{fm.patient?.basicInfo?.fullName || 'Family Member'}</span>
+                    <span className="text-[11px] text-slate-500">{fm.relation}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Linked</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-xs text-slate-400 italic">
+                No linked family members
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Linked</span>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
-              <div>
-                <span className="font-bold text-slate-900 block">Aarav Sharma</span>
-                <span className="text-[11px] text-slate-500">Child &bull; ABHA: 14-8921-3401-9923</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Linked</span>
-            </div>
+            )}
           </div>
         </Card>
 

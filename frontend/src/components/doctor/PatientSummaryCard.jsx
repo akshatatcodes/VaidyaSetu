@@ -108,36 +108,36 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
     .filter((k) => has(vitals[k])).length;
 
   return (
-    <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl p-6 border border-emerald-500/20 shadow-xl space-y-5 animate-in fade-in duration-300">
+    <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 border border-emerald-500/30 shadow-xl space-y-6 animate-in fade-in duration-300">
 
       {/* 1. PATIENT IDENTIFIER & CONSULTATION STREAM */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-white/10">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black text-xl shadow-md shadow-emerald-500/20 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-gray-200 dark:border-white/10">
+        <div className="flex items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-500/25 shrink-0">
             {selectedSession.patientName?.charAt(0) || '?'}
           </div>
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono font-black text-xs px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="font-mono font-black text-sm px-3 py-1 rounded-xl bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 border border-emerald-400/40 shadow-sm">
                 <Value>{selectedSession.tokenNumber}</Value>
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 font-mono font-bold">
                 ABHA: <Value>{selectedSession.abhaId}</Value>
               </span>
               {selectedSession.isReturningPatient && (
-                <span className="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[10px] font-bold border border-blue-500/30">
+                <span className="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-black border border-blue-400/40">
                   Returning Patient
                 </span>
               )}
               {selectedSession.visitMode === 'home' && (
-                <span className="px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400 text-[10px] font-bold border border-violet-500/30">
+                <span className="px-2.5 py-1 rounded-lg bg-violet-500/20 text-violet-700 dark:text-violet-300 text-xs font-black border border-violet-400/40">
                   Pre-registered from home
                 </span>
               )}
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5 flex flex-wrap items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex flex-wrap items-center gap-3">
               <Value>{selectedSession.patientName}</Value>
-              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+              <span className="text-base sm:text-lg font-bold text-slate-600 dark:text-gray-300">
                 ({has(selectedSession.age) ? `${selectedSession.age}y` : 'age not recorded'}
                 {has(selectedSession.gender) ? `, ${selectedSession.gender}` : ''})
               </span>
@@ -145,42 +145,42 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {consultationStream === 'ayurvedic' ? (
             <>
-              <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-xs font-black flex items-center gap-1.5 shadow-sm">
+              <div className="px-4 py-2 rounded-2xl bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-400/50 text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm">
                 🌿 Ayurvedic OPD
               </div>
               {has(prakriti) && (
-                <div className="px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30 text-xs font-black">
+                <div className="px-3.5 py-2 rounded-2xl bg-teal-500/15 text-teal-800 dark:text-teal-200 border border-teal-400/40 text-xs sm:text-sm font-black">
                   Prakriti: {prakriti}
                 </div>
               )}
               {has(dasha.agni) && (
-                <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-black">
+                <div className="px-3.5 py-2 rounded-2xl bg-amber-500/15 text-amber-900 dark:text-amber-200 border border-amber-400/40 text-xs sm:text-sm font-black">
                   Agni: {dasha.agni}
                 </div>
               )}
             </>
           ) : (
-            <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/40 text-xs font-black flex items-center gap-1.5 shadow-sm">
+            <div className="px-4 py-2 rounded-2xl bg-blue-500/20 text-blue-800 dark:text-blue-200 border border-blue-400/50 text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm">
               💊 Allopathy General OPD
             </div>
           )}
         </div>
       </div>
 
-      {/* 2. AI CLINICAL SUMMARY — rendered only when the backend actually produced one */}
-      <div className="relative p-5 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-900/5 dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-slate-900/60 border-2 border-emerald-500/30 shadow-lg space-y-3">
+      {/* 2. AI CLINICAL SUMMARY */}
+      <div className="relative p-6 rounded-3xl bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-slate-900/10 dark:from-emerald-950/50 dark:via-teal-950/30 dark:to-slate-900/80 border-2 border-emerald-500/40 shadow-xl space-y-3.5">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-              <Sparkles className="w-4 h-4" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-500/25 text-emerald-600 dark:text-emerald-400">
+              <Sparkles className="w-5 h-5" />
             </div>
-            <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-200 flex flex-wrap items-center gap-2">
               AI Intake Summary
               {hasAiSummary && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 text-[10px] font-mono font-bold">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-bold border border-emerald-500/30">
                   Generated from intake answers
                 </span>
               )}
@@ -191,62 +191,62 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
             <button
               type="button"
               onClick={handleCopy}
-              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-slate-800 dark:text-emerald-200 border border-emerald-500/30 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 shrink-0"
+              className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 text-slate-900 dark:text-emerald-100 border border-emerald-500/40 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95 shrink-0"
               title="Paste the intake summary into the SOAP Subjective field"
             >
               {copied ? (
-                <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copied to SOAP</>
+                <><Check className="w-4 h-4 text-emerald-500" /> Copied to SOAP</>
               ) : (
-                <><Copy className="w-3.5 h-3.5 text-emerald-500" /> Copy to SOAP</>
+                <><Copy className="w-4 h-4 text-emerald-500" /> Copy to SOAP</>
               )}
             </button>
           )}
         </div>
 
         {hasAiSummary ? (
-          <p className="text-xs sm:text-sm text-slate-700 dark:text-gray-200 leading-relaxed font-medium">
+          <p className="text-sm sm:text-base text-slate-800 dark:text-gray-100 leading-relaxed font-semibold">
             {aiSummary}
           </p>
         ) : (
-          <p className="text-xs text-gray-500 dark:text-gray-400 italic font-medium">
+          <p className="text-sm text-gray-500 dark:text-gray-400 italic font-medium">
             No summary generated yet — the patient has not completed kiosk intake.
           </p>
         )}
       </div>
 
       {/* 3. CHIEF COMPLAINT & SOCRATES */}
-      <div className="p-5 rounded-3xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-4">
+      <div className="p-6 rounded-3xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-            <FileText className="w-4 h-4 text-emerald-500" /> Chief Complaint & Symptom Detail
+          <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-emerald-500" /> Chief Complaint & Symptom Detail
           </h3>
-          <span className="text-[11px] font-bold text-slate-500 dark:text-gray-400">
+          <span className="text-xs font-bold text-slate-600 dark:text-gray-300">
             {socratesAnswered} of 4 questions answered at kiosk
           </span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-emerald-500/20 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white leading-relaxed flex items-start gap-3">
-          <span className="text-2xl text-emerald-500 leading-none">“</span>
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/90 border border-emerald-500/30 text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-relaxed flex items-start gap-3 shadow-sm">
+          <span className="text-3xl text-emerald-500 leading-none">“</span>
           <div className="flex-1">
             <Value>{selectedSession.chiefComplaint}</Value>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {/* Severity — no invented midpoint */}
-          <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          {/* Severity */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
+            <span className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block mb-1">
               Pain / Severity
             </span>
             {severityScore !== null ? (
               <div className="flex items-baseline gap-2 mt-1">
-                <span className={`text-xl font-black font-mono ${
+                <span className={`text-2xl font-black font-mono ${
                   severityScore >= 7 ? 'text-red-500' : severityScore >= 4 ? 'text-amber-500' : 'text-emerald-500'
                 }`}>
                   {severityScore}/10
                 </span>
-                <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300">
-                  {severityScore >= 7 ? 'Severe (तीव्र)' : severityScore >= 4 ? 'Moderate (मध्यम)' : 'Mild (सौम्य)'}
+                <span className="text-xs font-bold text-slate-700 dark:text-gray-200">
+                  {severityScore >= 7 ? 'Severe' : severityScore >= 4 ? 'Moderate' : 'Mild'}
                 </span>
               </div>
             ) : (
@@ -254,29 +254,29 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
             )}
           </div>
 
-          <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
+            <span className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block mb-1">
               Symptom Character
             </span>
-            <span className="text-xs font-bold text-slate-800 dark:text-gray-200 block mt-1">
+            <span className="text-sm font-extrabold text-slate-900 dark:text-gray-100 block mt-1">
               <Value>{socrates.character}</Value>
             </span>
           </div>
 
-          <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
+            <span className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block mb-1">
               Onset / Duration
             </span>
-            <span className="text-xs font-bold text-slate-800 dark:text-gray-200 block mt-1">
+            <span className="text-sm font-extrabold text-slate-900 dark:text-gray-100 block mt-1">
               <Value>{socrates.onset || socrates.timing || socrates.duration}</Value>
             </span>
           </div>
 
-          <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10">
+            <span className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 block mb-1">
               Site
             </span>
-            <span className="text-xs font-bold text-slate-800 dark:text-gray-200 block mt-1">
+            <span className="text-sm font-extrabold text-slate-900 dark:text-gray-100 block mt-1">
               <Value>{socrates.site}</Value>
             </span>
           </div>

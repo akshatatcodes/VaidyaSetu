@@ -1087,15 +1087,16 @@ router.get('/queue', async (req, res) => {
     if (status) {
       filter.queueStatus = status;
     } else {
-      // Default: show active OPD queue
-      filter.queueStatus = { $in: ['waiting_intake', 'intake_completed', 'in_consultation', 'flagged_emergency'] };
+      // Default: show all active uncompleted OPD queue sessions
+      filter.queueStatus = { $nin: ['completed', 'cancelled'] };
     }
-    if (department) filter.department = department;
+    if (department && department !== 'all' && department !== 'All Departments') {
+      filter.department = new RegExp(department.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), 'i');
+    }
 
-    // Only return today's active sessions for real doctors
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    filter.createdAt = { $gte: startOfToday };
+    // Return active sessions within the last 48 hours for real doctors (handles timezone boundaries)
+    const past48Hours = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    filter.createdAt = { $gte: past48Hours };
     filter.tokenNumber = { $not: /^OPD-DEMO/ };
 
     // Sort order: Emergency first, then Urgent, then Normal, then by arrival time

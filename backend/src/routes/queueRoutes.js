@@ -284,9 +284,10 @@ router.post('/consult-end', async (req, res) => {
 
 /**
  * @route GET /api/queue/my/:patientId
+ * @route GET /api/queue/patient/:patientId
  * @desc Patient-facing live queue and follow-up slot status (§19, §33-34)
  */
-router.get('/my/:patientId', async (req, res) => {
+const getPatientQueueStatus = async (req, res) => {
   try {
     const { patientId } = req.params;
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -364,6 +365,9 @@ router.get('/my/:patientId', async (req, res) => {
     console.warn('[Queue] Non-critical queue status check notice:', error.message);
     return res.json({ status: 'success', data: null, message: 'No active queue token found.' });
   }
-});
+};
+
+router.get('/my/:patientId', getPatientQueueStatus);
+router.get('/patient/:patientId', getPatientQueueStatus);
 
 module.exports = router;

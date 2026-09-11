@@ -141,7 +141,7 @@ const AppLayout = () => {
       {!isFullscreen && <Sidebar />}
       {/* md:ml-72 offsets fixed sidebar (w-72) unless fullscreen */}
       <div className={`flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 ${!isFullscreen ? 'md:ml-72' : ''} h-full md:h-screen overflow-y-auto overflow-x-hidden scrollbar-hide`}>
-        <main className={`flex-1 ${isFullscreen ? 'p-0' : 'px-3 pt-20 sm:px-6 sm:pt-20 md:px-8 md:pt-6'} w-full max-w-[100vw] min-w-0 vs-main-content bg-transparent pb-28 md:pb-12 text-slate-900`}>
+        <main className={`flex-1 ${isFullscreen ? 'p-0' : 'px-2 pt-16 sm:px-4 sm:pt-16 md:px-6 md:pt-4'} w-full max-w-full min-w-0 vs-main-content bg-transparent pb-28 md:pb-12 text-slate-900`}>
           <ErrorBoundary>
             <Routes>
               {/* Patient Only Route: Root lands on Health Sanctuary for patients */}

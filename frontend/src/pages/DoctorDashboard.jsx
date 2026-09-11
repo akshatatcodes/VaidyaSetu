@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Stethoscope, ShieldAlert, AlertOctagon, CheckCircle2, Clock,
+  Stethoscope, ShieldAlert, AlertOctagon, CheckCircle2, Clock, Shield,
   RefreshCw, UserCheck, Sparkles, Layers, ShieldCheck, Share2, Download, X, Printer, Plus, Trash2, Eye, FileText
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -204,6 +204,8 @@ const DoctorDashboard = () => {
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // all | emergency | waiting | completed
+  const [selectedHospital, setSelectedHospital] = useState(currentUser?.hospitalName || 'All India Institute of Ayurveda (AIIA), New Delhi');
+  const [selectedDept, setSelectedDept] = useState(currentUser?.department || 'Kayachikitsa');
 
   // SOAP & Prescription Editing State — Initialized EMPTY per Phase D1 specifications
   const [soapData, setSoapData] = useState({
@@ -254,6 +256,7 @@ const DoctorDashboard = () => {
   // Source & Evidence Verification Drawer State
   const [isEvidenceDrawerOpen, setIsEvidenceDrawerOpen] = useState(false);
   const [evidenceList, setEvidenceList] = useState([]);
+  const [evidenceTab, setEvidenceTab] = useState('ocr');
 
   useEffect(() => {
     if (selectedSession?.evidenceSnippets?.length > 0) {
@@ -292,15 +295,38 @@ const DoctorDashboard = () => {
 
   const openEvidenceDrawer = async () => {
     setIsEvidenceDrawerOpen(true);
+    setEvidenceTab('ocr');
     if (selectedSession?._id) {
       try {
         const res = await axios.get(`${API_URL}/kiosk/session/${selectedSession._id}/evidence`);
         if (res.data?.status === 'success' && res.data.data?.evidenceSnippets?.length > 0) {
           setEvidenceList(res.data.data.evidenceSnippets);
+        } else if (selectedSession?.evidenceSnippets?.length > 0) {
+          setEvidenceList(selectedSession.evidenceSnippets);
         }
       } catch (err) {
         console.warn('Evidence fetch note:', err?.message);
       }
+    }
+  };
+
+  const handleDoctorVerifyEvidence = async (index, action, editedValue = null) => {
+    if (!selectedSession?._id) return;
+    try {
+      const payload = {
+        doctorId: currentUser?.id || 'DOC-DEFAULT',
+        doctorName: currentUser?.fullName || 'Dr. Physician',
+        evidenceActions: [{ index, action, editedValue }]
+      };
+      const res = await axios.patch(`${API_URL}/kiosk/session/${selectedSession._id}/doctor-verify`, payload);
+      if (res.data?.status === 'success') {
+        setSelectedSession(res.data.data);
+        if (res.data.data.evidenceSnippets) {
+          setEvidenceList(res.data.data.evidenceSnippets);
+        }
+      }
+    } catch (err) {
+      console.warn('Error verifying evidence:', err?.message);
     }
   };
 
@@ -715,12 +741,23 @@ const DoctorDashboard = () => {
 
     if (!matchesSearch) return false;
 
-    // Department Scoping: Doctor only sees queue data for their specific department if department is set
+    // Department Scoping: Robust normalization so variations match cleanly
     if (currentUser?.department && item.department) {
-      const docDept = currentUser.department.toLowerCase().replace('department of ', '').trim();
-      const itemDept = item.department.toLowerCase().replace('department of ', '').trim();
-      if (!docDept.includes(itemDept) && !itemDept.includes(docDept)) {
-        return false;
+      const clean = (str) =>
+        (str || '')
+          .toLowerCase()
+          .replace(/department of\s*/g, '')
+          .replace(/\(.*?\)/g, '')
+          .trim();
+      const docDept = clean(currentUser.department);
+      const itemDept = clean(item.department);
+      
+      if (docDept && itemDept && docDept !== itemDept) {
+        const matches = docDept.includes(itemDept) || itemDept.includes(docDept);
+        const wordMatch = docDept.split(/\s+/).some(w => w.length >= 4 && itemDept.includes(w));
+        if (!matches && !wordMatch) {
+          return false;
+        }
       }
     }
 
@@ -735,7 +772,7 @@ const DoctorDashboard = () => {
   const completedCount = queue.filter((s) => s.queueStatus === 'completed').length;
 
   return (
-    <div className="max-w-[1700px] mx-auto pb-20 space-y-6">
+    <div className="w-full max-w-full px-1 sm:px-3 md:px-4 pb-20 space-y-6">
       <DoctorHeaderNavbar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -745,12 +782,12 @@ const DoctorDashboard = () => {
         onRefresh={() => fetchQueue(showDemoQueue)}
       />
 
-      <div className="rounded-2xl border border-amber-500/50 bg-amber-500/15 px-4 py-3 text-amber-900 dark:text-amber-100 text-sm font-semibold flex items-center gap-2">
+      <div className="rounded-2xl border border-amber-500/50 bg-amber-500/15 px-4 py-3 text-amber-900 dark:text-amber-100 text-sm sm:text-base font-semibold flex items-center gap-2">
         <ShieldAlert className="w-5 h-5 shrink-0" />
         {AI_DRAFT_BANNER}
       </div>
 
-      {/* Demo mode must be unmistakable — these are scripted cases, not patients. */}
+      {/* Demo mode banner */}
       {showDemoQueue && (
         <div className="rounded-2xl border-2 border-violet-500/60 bg-violet-500/15 px-4 py-3 text-violet-900 dark:text-violet-100 text-sm font-bold flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
           <span className="flex items-center gap-2">
@@ -760,20 +797,19 @@ const DoctorDashboard = () => {
           <button
             type="button"
             onClick={() => toggleQueueMode(false)}
-            className="px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all cursor-pointer shrink-0"
+            className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0"
           >
             Switch to live queue
           </button>
         </div>
       )}
 
-      {/* MAIN 2-PANEL LAYOUT */}
-      {/* Split at `lg` (1024px) rather than `xl` (1280px). On a typical clinic
-          laptop the queue used to stack full-width above the workspace, pushing
-          the patient record below the fold on every visit. */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT PANEL: OPD LIVE PATIENT QUEUE */}
-        <div className="lg:col-span-4">
+
+
+      {/* MAIN FULL-WIDTH 2-PANEL LAYOUT */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-6 items-start w-full">
+        {/* LEFT PANEL: OPD LIVE PATIENT QUEUE (3/12 cols on XL screens) */}
+        <div className="lg:col-span-4 xl:col-span-3">
           <DoctorQueuePanel
             filteredQueue={filteredQueue}
             searchQuery={searchQuery}
@@ -787,8 +823,8 @@ const DoctorDashboard = () => {
           />
         </div>
 
-        {/* RIGHT PANEL: CLINICAL WORKSPACE */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* RIGHT PANEL: CLINICAL WORKSPACE (9/12 cols on XL screens) */}
+        <div className="lg:col-span-8 xl:col-span-9 space-y-6">
           {selectedSession ? (
             <>
               {/* 30-Second Summary Card */}
@@ -978,76 +1014,280 @@ const DoctorDashboard = () => {
         </div>
       )}
 
-      {/* EVIDENCE DRAWER */}
+      {/* EVIDENCE & ORIGINAL CLINICAL DATA DRAWER */}
       {isEvidenceDrawerOpen && (
-        <div className="fixed inset-0 z-[99999] bg-slate-950/70 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
-          <div className="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl border-l border-emerald-500/30 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto space-y-6">
+        <div className="fixed inset-0 z-[99999] bg-slate-950/75 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 h-full shadow-2xl border-l border-emerald-500/30 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto space-y-6">
             <div className="space-y-6">
+              {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-white/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-black">
-                    <Eye className="w-5 h-5" />
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black shadow-lg shadow-emerald-500/25">
+                    <Eye className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                      Source & Evidence Verification
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      Clinical Source & Original Evidence
                     </h3>
-                    <p className="text-xs text-gray-500">
-                      Verify AI-extracted medications & lab metrics directly against original clinical documents.
+                    <p className="text-xs text-slate-500 dark:text-gray-400">
+                      Verify AI extractions against original patient documents, kiosk inputs, & OCR attachments.
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsEvidenceDrawerOpen(false)}
-                  // `hover:text-white` turned the X white on a white drawer in
-                // light mode — the close affordance disappeared on hover.
-                className="p-2 rounded-xl text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {evidenceList.length === 0 ? (
-                  <div className="text-center py-12 p-6 rounded-2xl border border-dashed border-gray-300 dark:border-white/10">
-                    <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm font-bold text-slate-700 dark:text-gray-300">No Verified OCR Documents Attached</p>
-                  </div>
-                ) : (
-                  evidenceList.map((item) => (
-                    <div key={item.id} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-emerald-500/20 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                            {item.type}
-                          </span>
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
-                            {item.target}
-                          </h4>
-                        </div>
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-bold border border-emerald-500/30">
-                          {item.ocrConfidence} OCR
-                        </span>
-                      </div>
+              {/* Evidence Category Tabs */}
+              <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-white/10 text-xs font-black">
+                <button
+                  type="button"
+                  onClick={() => setEvidenceTab('ocr')}
+                  className={`flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    evidenceTab === 'ocr'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-slate-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" /> OCR & AI Snippets
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEvidenceTab('documents')}
+                  className={`flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    evidenceTab === 'documents'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-slate-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" /> Uploaded Docs ({selectedSession?.documents?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEvidenceTab('original')}
+                  className={`flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    evidenceTab === 'original'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-slate-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4" /> Original Kiosk Data
+                </button>
+              </div>
 
-                      <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 font-mono text-xs text-slate-800 dark:text-emerald-300 leading-relaxed">
-                        <span className="text-[10px] font-bold text-gray-400 font-sans block mb-1 uppercase">Extracted Document Snippet:</span>
-                        "{item.extractedSnippet}"
+              {/* Tab 1: OCR & AI Snippets */}
+              {evidenceTab === 'ocr' && (
+                <div className="space-y-4">
+                  {evidenceList.length === 0 ? (
+                    <div className="text-center py-12 p-6 rounded-2xl border border-dashed border-gray-300 dark:border-white/10 space-y-2">
+                      <FileText className="w-10 h-10 text-gray-400 mx-auto opacity-50" />
+                      <p className="text-sm font-bold text-slate-700 dark:text-gray-300">No OCR Snippets Extracted Yet</p>
+                      <p className="text-xs text-gray-400">Documents uploaded by patient will show AI extracted confidence metrics here.</p>
+                    </div>
+                  ) : (
+                    evidenceList.map((item, idx) => (
+                      <div key={item.id || idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-emerald-500/20 space-y-3 shadow-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                              {item.type || item.item || 'Extracted Clinical Data'}
+                            </span>
+                            <h4 className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                              {item.target || item.item || 'Clinical Value'}
+                            </h4>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 block mt-0.5">
+                              Source: {item.sourceDoc || item.sourceDocName || 'Uploaded Document'} {item.date ? `· ${item.date}` : ''}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-black border border-emerald-500/30">
+                              {item.ocrConfidence || (item.confidence ? `${item.confidence}%` : '92%')} OCR
+                            </span>
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                              item.verified
+                                ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                            }`}>
+                              {item.verified ? '✓ Physician Verified' : 'Pending Verification'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {(item.extractedSnippet || item.rawText) && (
+                          <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 font-mono text-xs text-slate-800 dark:text-emerald-300 leading-relaxed">
+                            <span className="text-[10px] font-bold text-gray-400 font-sans block mb-1 uppercase">Raw Extracted Snippet:</span>
+                            "{item.extractedSnippet || item.rawText}"
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          {!item.verified ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDoctorVerifyEvidence(idx, 'accept')}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Verify & Confirm Fact
+                            </button>
+                          ) : (
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                              <ShieldCheck className="w-4 h-4" /> Verified by Doctor
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Uploaded Documents */}
+              {evidenceTab === 'documents' && (
+                <div className="space-y-4">
+                  {(!selectedSession?.documents || selectedSession.documents.length === 0) ? (
+                    <div className="text-center py-12 p-6 rounded-2xl border border-dashed border-gray-300 dark:border-white/10 space-y-2">
+                      <FileText className="w-10 h-10 text-gray-400 mx-auto opacity-50" />
+                      <p className="text-sm font-bold text-slate-700 dark:text-gray-300">No Patient Document Attachments</p>
+                      <p className="text-xs text-gray-400">The patient did not attach any prescriptions or lab test files during kiosk pre-consultation.</p>
+                    </div>
+                  ) : (
+                    selectedSession.documents.map((doc, idx) => (
+                      <div key={idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-white/10 space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                              {doc.originalName || `Document #${idx + 1}`}
+                            </h4>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Type: {doc.type || 'Prescription / Lab'} {doc.isHandwritten ? '· Handwritten Document' : ''}
+                            </span>
+                          </div>
+                          <span className={`px-3 py-1 rounded-xl text-xs font-black uppercase ${
+                            doc.verificationStatus === 'needs_staff_review'
+                              ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                              : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40'
+                          }`}>
+                            {doc.verificationStatus || 'Uploaded'}
+                          </span>
+                        </div>
+
+                        {doc.imageUrl && doc.imageUrl.startsWith('data:') && (
+                          <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 max-h-48 bg-slate-950 flex items-center justify-center">
+                            <img src={doc.imageUrl} alt="Document Attachment" className="max-h-48 object-contain" />
+                          </div>
+                        )}
+
+                        {doc.extractedFields?.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-gray-300">
+                              AI Extracted Medication Items:
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {doc.extractedFields.map((field, fIdx) => (
+                                <div key={fIdx} className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 text-xs font-bold text-slate-900 dark:text-emerald-200 flex items-center gap-2">
+                                  <span>{field.value}</span>
+                                  <span className="text-[10px] text-emerald-500 font-mono">({field.confidence || 90}%)</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {doc.rawOcrText && (
+                          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 text-xs font-mono text-slate-800 dark:text-gray-300">
+                            <strong>Raw OCR Output:</strong> {doc.rawOcrText}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Tab 3: Original Kiosk Input Data */}
+              {evidenceTab === 'original' && (
+                <div className="space-y-4 text-xs">
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-emerald-500/20 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                      Patient Chief Complaint (Kiosk Recorded)
+                    </span>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+                      "{selectedSession?.chiefComplaint || 'No chief complaint recorded.'}"
+                    </p>
+                  </div>
+
+                  {selectedSession?.socrates && (
+                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-white/10 space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-gray-300 block">
+                        SOCRATES Detailed Analysis
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10">
+                          <span className="text-[10px] text-gray-400 uppercase font-bold block">Pain Site</span>
+                          <span className="font-extrabold text-slate-900 dark:text-white">{selectedSession.socrates.site || 'Not reported'}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10">
+                          <span className="text-[10px] text-gray-400 uppercase font-bold block">Onset / Duration</span>
+                          <span className="font-extrabold text-slate-900 dark:text-white">{selectedSession.socrates.onset || selectedSession.socrates.duration || 'Not reported'}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10">
+                          <span className="text-[10px] text-gray-400 uppercase font-bold block">Character</span>
+                          <span className="font-extrabold text-slate-900 dark:text-white">{selectedSession.socrates.character || 'Not reported'}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10">
+                          <span className="text-[10px] text-gray-400 uppercase font-bold block">Severity Rating</span>
+                          <span className="font-extrabold text-slate-900 dark:text-white">{selectedSession.socrates.severity ? `${selectedSession.socrates.severity}/10` : 'Not rated'}</span>
+                        </div>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  )}
+
+                  {selectedSession?.vitals && (
+                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-white/10 space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-gray-300 block">
+                        Peripheral Vitals Measured
+                      </span>
+                      <div className="grid grid-cols-3 gap-3 font-mono">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 text-center">
+                          <span className="text-[10px] text-gray-400 font-sans block uppercase">Blood Pressure</span>
+                          <span className="font-black text-slate-900 dark:text-white text-sm">{selectedSession.vitals.systolicBP ? `${selectedSession.vitals.systolicBP}/${selectedSession.vitals.diastolicBP} mmHg` : 'Not measured'}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 text-center">
+                          <span className="text-[10px] text-gray-400 font-sans block uppercase">Heart Rate</span>
+                          <span className="font-black text-slate-900 dark:text-white text-sm">{selectedSession.vitals.heartRate ? `${selectedSession.vitals.heartRate} bpm` : 'Not measured'}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 text-center">
+                          <span className="text-[10px] text-gray-400 font-sans block uppercase">SpO2 Oxygen</span>
+                          <span className="font-black text-slate-900 dark:text-white text-sm">{selectedSession.vitals.spo2 ? `${selectedSession.vitals.spo2}%` : 'Not measured'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 font-medium space-y-1">
+                    <p><strong>Intake Language:</strong> {selectedSession?.languagePreference || 'Hindi/English'}</p>
+                    <p><strong>Consent Timestamp:</strong> {selectedSession?.consent?.consentedAt ? new Date(selectedSession.consent.consentedAt).toLocaleString() : 'Granted during kiosk check-in'}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="pt-4 border-t border-gray-200 dark:border-white/10 flex justify-end">
+            {/* Drawer Footer */}
+            <div className="pt-4 border-t border-gray-200 dark:border-white/10 flex items-center justify-between gap-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-bold">
+                Session Token: {selectedSession?.tokenNumber}
+              </span>
               <button
                 type="button"
                 onClick={() => setIsEvidenceDrawerOpen(false)}
                 className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
               >
-                Close Verification Drawer
+                Close Evidence Drawer
               </button>
             </div>
           </div>

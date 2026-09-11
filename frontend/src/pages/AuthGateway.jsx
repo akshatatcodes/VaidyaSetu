@@ -922,22 +922,44 @@ const AuthGateway = ({ initialPortal = null }) => {
                   </>
                 )}
 
+                {/* Hospital / Health Facility Selector */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Clinical Department
+                    Hospital / Health Facility *
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <select
+                      value={doctorForm.hospitalName}
+                      onChange={e => setDoctorForm({ ...doctorForm, hospitalName: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white cursor-pointer"
+                    >
+                      <option value="All India Institute of Ayurveda (AIIA), New Delhi">All India Institute of Ayurveda (AIIA), New Delhi</option>
+                      <option value="Govt. Ayurvedic Hospital, Nashik">Govt. Ayurvedic Hospital, Nashik</option>
+                      <option value="District Hospital, Nagpur">District Hospital, Nagpur</option>
+                      <option value="Primary Health Centre, Seloo">Primary Health Centre, Seloo</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Clinical Department *
                   </label>
                   <div className="relative">
                     <Hospital className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
                       value={doctorForm.department}
                       onChange={e => setDoctorForm({ ...doctorForm, department: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white cursor-pointer"
                     >
                       <option value="Kayachikitsa">कायचिकित्सा (Kayachikitsa - Internal Medicine)</option>
                       <option value="Shalya">शल्य तंत्र (Shalya Tantra - Musculoskeletal & Surgery)</option>
                       <option value="Shalakya">शालाक्य तंत्र (Shalakya Tantra - ENT & Eye Care)</option>
                       <option value="Prasuti">प्रसूति व स्त्री रोग (Prasuti - Women's Health)</option>
                       <option value="Kaumarbhritya">कौमारभृत्य (Kaumarbhritya - Pediatrics)</option>
+                      <option value="Panchakarma">पंचकर्म (Panchakarma Detox & Therapy)</option>
+                      <option value="General Medicine">General Medicine</option>
                     </select>
                   </div>
                 </div>

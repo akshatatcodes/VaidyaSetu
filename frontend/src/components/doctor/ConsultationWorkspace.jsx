@@ -334,70 +334,70 @@ const ConsultationWorkspace = ({
 
           {/* S: Subjective */}
           <div>
-            <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold text-xs">S</span>
+            <label className="block text-xs sm:text-sm font-black text-slate-800 dark:text-gray-200 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black text-xs">S</span>
               Subjective (History & Patient Voice)
             </label>
             <textarea
-              rows={2}
+              rows={3}
               value={soapData.subjective}
               onChange={(e) => setSoapData({ ...soapData, subjective: e.target.value })}
               placeholder="Enter subjective symptoms and chief history..."
-              className="w-full p-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full p-4 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-white text-sm sm:text-base font-semibold leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm"
             />
           </div>
 
           {/* O: Objective */}
           <div>
-            <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-md bg-teal-500/20 text-teal-600 flex items-center justify-center font-bold text-xs">O</span>
+            <label className="block text-xs sm:text-sm font-black text-slate-800 dark:text-gray-200 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-teal-500/25 text-teal-700 dark:text-teal-300 flex items-center justify-center font-black text-xs">O</span>
               Objective (Vitals & Physical Examination Findings)
             </label>
             <textarea
-              rows={2}
+              rows={3}
               value={soapData.objective}
               onChange={(e) => setSoapData({ ...soapData, objective: e.target.value })}
               placeholder="Enter physical examination and clinical findings..."
-              className="w-full p-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full p-4 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-white text-sm sm:text-base font-semibold leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm"
             />
           </div>
 
           {/* A: Assessment & Dual Diagnosis Codes */}
           <div className="space-y-3">
-            <label className="block text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-md bg-blue-500/20 text-blue-600 flex items-center justify-center font-bold text-xs">A</span>
+            <label className="block text-xs sm:text-sm font-black text-slate-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-blue-500/25 text-blue-700 dark:text-blue-300 flex items-center justify-center font-black text-xs">A</span>
               Assessment & Dual-Coded Diagnoses (ICD-11 & NAMASTE)
             </label>
 
             {diagnoses.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {diagnoses.map((diag, i) => (
                   <div
                     key={i}
-                    className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/30 dark:from-slate-800 dark:to-emerald-950/20 border border-emerald-500/30 flex items-center justify-between"
+                    className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/40 dark:from-slate-800 dark:to-emerald-950/30 border border-emerald-500/40 flex items-center justify-between shadow-sm"
                   >
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-black">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2.5 py-1 rounded-md bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 text-xs font-mono font-black border border-emerald-400/40">
                           {diag.system}: {diag.code}
                         </span>
                       </div>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white block mt-1">
+                      <span className="text-sm font-black text-slate-900 dark:text-white block">
                         {diag.term}
                       </span>
                     </div>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   </div>
                 ))}
               </div>
             )}
 
             <textarea
-              rows={2}
+              rows={3}
               value={soapData.assessment}
               onChange={(e) => setSoapData({ ...soapData, assessment: e.target.value })}
               placeholder="Clinical evaluation assessment notes..."
-              className="w-full p-3 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full p-4 rounded-2xl border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-white text-sm sm:text-base font-semibold leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm"
             />
           </div>
 
@@ -708,23 +708,23 @@ const ConsultationWorkspace = ({
               type="button"
               disabled={isApproving || approvalSuccess}
               onClick={handleApproveCaseSheet}
-              className={`px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl flex items-center gap-2.5 transition-all cursor-pointer ${
+              className={`px-10 py-4 rounded-2xl font-black text-base sm:text-lg shadow-xl flex items-center gap-3 transition-all cursor-pointer ${
                 approvalSuccess
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/30 active:scale-[0.98]'
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/40 active:scale-[0.98]'
               }`}
             >
               {isApproving ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Signing & Committing...
+                  <RefreshCw className="w-5 h-5 animate-spin" /> Signing & Committing...
                 </>
               ) : approvalSuccess ? (
                 <>
-                  <ShieldCheck className="w-5 h-5 text-white" /> Signed & Completed!
+                  <ShieldCheck className="w-6 h-6 text-white" /> Signed & Completed!
                 </>
               ) : (
                 <>
-                  <Check className="w-5 h-5" /> Approve & Sign Case Sheet
+                  <Check className="w-6 h-6" /> Approve & Sign Case Sheet
                 </>
               )}
             </button>

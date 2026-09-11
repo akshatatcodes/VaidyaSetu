@@ -80,6 +80,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/encounters', encounterRoutes);
 app.use('/api/routing', queueRoutes);
 app.use('/api/queue', queueRoutes);
+app.use('/api/queues', queueRoutes);
 app.use('/api/doctor', doctorRoutes);
 app.use('/api/continuity', continuityRoutes);
 app.use('/api/ai', aiLayerRoutes);

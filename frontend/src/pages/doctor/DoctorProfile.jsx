@@ -101,6 +101,8 @@ export default function DoctorProfile() {
               session.user.doctorName = updatedData.fullName || updatedData.displayName;
               session.user.displayName = updatedData.displayName || updatedData.fullName;
               session.user.department = updatedData.departmentName;
+              session.user.hospitalName = updatedData.hospitalName;
+              session.user.roomNumber = updatedData.roomNumber;
               localStorage.setItem('vaidya_auth_session', JSON.stringify(session));
               window.dispatchEvent(new Event('vaidya:auth-change'));
             }
@@ -371,17 +373,19 @@ export default function DoctorProfile() {
                   </select>
                 </div>
 
-                {/* 4. Hospital */}
+                {/* 4. Hospital Dropdown */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-gray-300">Hospital / Institute</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.hospitalName || ''}
+                  <select
+                    value={formData.hospitalName || 'All India Institute of Ayurveda (AIIA), New Delhi'}
                     onChange={(e) => handleInputChange('hospitalName', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    placeholder="e.g. All India Institute of Ayurveda (AIIA)"
-                  />
+                    className="w-full px-4 py-2.5 rounded-2xl border border-gray-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                  >
+                    <option value="All India Institute of Ayurveda (AIIA), New Delhi">All India Institute of Ayurveda (AIIA), New Delhi</option>
+                    <option value="Govt. Ayurvedic Hospital, Nashik">Govt. Ayurvedic Hospital, Nashik</option>
+                    <option value="District Hospital, Nagpur">District Hospital, Nagpur</option>
+                    <option value="Primary Health Centre, Seloo">Primary Health Centre, Seloo</option>
+                  </select>
                 </div>
 
                 {/* 9. Room Number */}
