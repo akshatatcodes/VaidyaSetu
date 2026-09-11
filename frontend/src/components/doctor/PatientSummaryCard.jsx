@@ -44,22 +44,41 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
   const [copied, setCopied] = useState(false);
   const [activeParikshaTab, setActiveParikshaTab] = useState('trividha');
   const [showParikshaDetails, setShowParikshaDetails] = useState(true);
+  const [selectedDocPreview, setSelectedDocPreview] = useState(null);
 
   if (!selectedSession) return null;
 
-  const pastIllnesses = Array.from(new Set([
-    ...(selectedSession.pastMedicalHistory || []),
+  // Distinguish between Current Visit Intake vs Previously on File (Historical Record)
+  const currentVisitIllnesses = Array.from(new Set([
+    ...(selectedSession.medicalHistory?.currentKioskIllnesses || []),
     ...(selectedSession.pastDiseases || []),
-    ...(selectedSession.medicalHistory?.pastMedicalHistory || []),
-    ...(selectedSession.medicalHistory?.pastDiseases || []),
-    ...(selectedSession.extractedHistory?.illnesses || [])
+    ...(selectedSession.medicalHistory?.pastDiseases || [])
   ])).filter(Boolean);
 
-  const patientAllergies = Array.from(new Set([
+  const previousIllnesses = Array.from(new Set([
+    ...(selectedSession.patientId?.chronicDiseases || []),
+    ...(selectedSession.historicalIllnesses || []),
+    ...(selectedSession.previousMedicalHistory || []),
+    ...(selectedSession.pastMedicalHistory || []),
+    ...(selectedSession.medicalHistory?.pastMedicalHistory || []),
+    ...(selectedSession.extractedHistory?.illnesses || [])
+  ])).filter(ill => !currentVisitIllnesses.includes(ill));
+
+  const allIllnesses = [...currentVisitIllnesses, ...previousIllnesses];
+
+  const currentVisitAllergies = Array.from(new Set([
+    ...(selectedSession.medicalHistory?.currentKioskAllergies || []),
     ...(selectedSession.allergies || []),
-    ...(selectedSession.medicalHistory?.allergies || []),
-    ...(selectedSession.extractedHistory?.allergies || [])
+    ...(selectedSession.medicalHistory?.allergies || [])
   ])).filter(Boolean);
+
+  const previousAllergies = Array.from(new Set([
+    ...(selectedSession.patientId?.allergies || []),
+    ...(selectedSession.historicalAllergies || []),
+    ...(selectedSession.extractedHistory?.allergies || [])
+  ])).filter(all => !currentVisitAllergies.includes(all));
+
+  const allAllergies = [...currentVisitAllergies, ...previousAllergies];
 
   // The AI summary is generated server-side by buildAiSummary() from the encounter.
   // It is NOT synthesized here: the old code string-concatenated a sentence in the
@@ -313,23 +332,36 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" /> Past Illnesses & Comorbidities
             </h4>
-            {/* Completeness counters were `text-gray-400` with no dark variant
-                — the faintest thing on the card, despite being the signal that
-                tells the doctor how sparse this intake actually was. */}
-            <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300">
-              {pastIllnesses.length} Documented
-            </span>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                {currentVisitIllnesses.length} Today (Kiosk)
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-300">
+                {previousIllnesses.length} Previous
+              </span>
+            </div>
           </div>
 
-          {pastIllnesses.length > 0 ? (
+          {allIllnesses.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {pastIllnesses.map((illness, idx) => (
+              {currentVisitIllnesses.map((illness, idx) => (
                 <span
-                  key={idx}
+                  key={`curr-${idx}`}
                   className="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-sm"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   {illness}
+                  <span className="text-[9px] opacity-75 font-semibold">(Today)</span>
+                </span>
+              ))}
+              {previousIllnesses.map((illness, idx) => (
+                <span
+                  key={`prev-${idx}`}
+                  className="px-3 py-1.5 rounded-xl bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30 text-xs font-medium flex items-center gap-1.5 shadow-sm"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  {illness}
+                  <span className="text-[9px] opacity-75 font-semibold">(On File)</span>
                 </span>
               ))}
             </div>
@@ -345,26 +377,43 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
             <h4 className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-500" /> Known Drug & Substance Allergies
             </h4>
-            {patientAllergies.length > 0 && (
-              <span className="text-[10px] font-bold text-rose-500">CRITICAL SAFETY</span>
-            )}
+            <div className="flex items-center gap-1.5 text-[10px] font-bold">
+              {currentVisitAllergies.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                  {currentVisitAllergies.length} Today
+                </span>
+              )}
+              {previousAllergies.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                  {previousAllergies.length} On File
+                </span>
+              )}
+              {allAllergies.length > 0 && (
+                <span className="text-[10px] font-bold text-rose-500">CRITICAL SAFETY</span>
+              )}
+            </div>
           </div>
 
-          {patientAllergies.length > 0 ? (
+          {allAllergies.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {patientAllergies.map((allergy, idx) => (
+              {currentVisitAllergies.map((allergy, idx) => (
                 <span
-                  key={idx}
+                  key={`curr-alg-${idx}`}
                   className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-xs font-black flex items-center gap-1.5 shadow-sm"
                 >
-                  ⚠️ {allergy}
+                  ⚠️ {allergy} <span className="text-[9px] opacity-75 font-semibold">(Today)</span>
+                </span>
+              ))}
+              {previousAllergies.map((allergy, idx) => (
+                <span
+                  key={`prev-alg-${idx}`}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                >
+                  ⚠️ {allergy} <span className="text-[9px] opacity-75 font-semibold">(On File)</span>
                 </span>
               ))}
             </div>
           ) : (
-            /* "None reported" is a patient statement, not a cleared allergy screen.
-               The old copy read "✓ No known adverse drug reactions" in reassuring
-               green, which reads as a verified finding. */
             <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-dashed border-gray-300 dark:border-white/10 text-center text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center justify-center gap-1.5">
               <HelpCircle className="w-3.5 h-3.5 text-gray-400" />
               None reported at intake — confirm verbally before prescribing.
@@ -597,16 +646,66 @@ const PatientSummaryCard = ({ selectedSession, openEvidenceDrawer, onCopyAiSumma
                       </span>
                     )}
                   </div>
-                  <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg shrink-0 ${
-                    needsReview
-                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
-                      : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
-                  }`}>
-                    {needsReview ? 'Needs review' : 'Awaiting confirm'}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {Boolean(doc.url || doc.originalFileUrl || doc.fileData || (typeof doc === 'string' ? doc : null)) && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDocPreview(doc.url || doc.originalFileUrl || doc.fileData || (typeof doc === 'string' ? doc : null))}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-sm"
+                      >
+                        <Eye className="w-3 h-3" /> View Scan
+                      </button>
+                    )}
+                    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg shrink-0 ${
+                      needsReview
+                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                    }`}>
+                      {needsReview ? 'Needs review' : 'Awaiting confirm'}
+                    </span>
+                  </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Full Original Document / Prescription Inspection */}
+      {selectedDocPreview && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border-2 border-emerald-500/40 shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-white/10">
+              <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-500" /> Original Clinical Document / Prescription Scan
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedDocPreview(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-gray-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-all"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/15 bg-black flex items-center justify-center min-h-[300px]">
+              <img src={selectedDocPreview} alt="Original Clinical Document" className="max-w-full max-h-[70vh] object-contain" />
+            </div>
+            <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => window.open(selectedDocPreview, '_blank')}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-md transition-all"
+              >
+                Open in New Tab ↗
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDocPreview(null)}
+                className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 text-slate-800 dark:text-white font-bold text-xs cursor-pointer transition-all"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

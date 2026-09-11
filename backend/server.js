@@ -78,6 +78,7 @@ app.use('/api/consent', consentRoutes);
 app.use('/api/abha', abhaRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/encounters', encounterRoutes);
+app.use('/api/visits', encounterRoutes);
 app.use('/api/routing', queueRoutes);
 app.use('/api/queue', queueRoutes);
 app.use('/api/queues', queueRoutes);
