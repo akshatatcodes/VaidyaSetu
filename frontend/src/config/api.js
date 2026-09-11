@@ -39,7 +39,7 @@ if (isLocalDev && !forceRemote) {
   const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
   rawUrl = `${protocol}//${hostname || 'localhost'}:${BACKEND_PORT}/api`;
 } else {
-  rawUrl = envUrl || 'https://vaidyasetu-eyg9.onrender.com/api';
+  rawUrl = envUrl || 'https://vaidyasetu-eyg8.onrender.com/api';
 }
 
 // Normalize to ensure we always end up with `${backendRoot}/api`
