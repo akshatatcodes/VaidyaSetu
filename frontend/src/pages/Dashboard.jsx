@@ -32,7 +32,7 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
       const safeGet = async (url) => {
         try {
-          const res = await axios.get(url);
+          const res = await axios.get(url, { timeout: 2000 });
           return res.data?.status === 'success' ? res.data.data : null;
         } catch {
           return null;
@@ -42,6 +42,11 @@ const Dashboard = () => {
       if (!activePatientId) {
         setLoading(false);
         return;
+      }
+
+      // If currentUser is already available in context, reveal UI immediately
+      if (currentUser) {
+        setLoading(false);
       }
 
       const [p, q, f, meds, vitals, visits] = await Promise.all([
@@ -55,7 +60,8 @@ const Dashboard = () => {
 
       if (cancelled) return;
 
-      setProfile(p);
+      if (p) setProfile(p);
+
       if (q && Array.isArray(q) && q.length > 0) {
         setActiveQueue(q[0]);
       } else if (q && typeof q === 'object' && !Array.isArray(q) && (q.tokenNumber || q._id)) {
@@ -95,7 +101,7 @@ const Dashboard = () => {
 
     loadDashboardData();
     return () => { cancelled = true; };
-  }, [activePatientId]);
+  }, [activePatientId, currentUser]);
 
   const displayName =
     profile?.basicInfo?.fullName || profile?.fullName?.value ||

@@ -62,7 +62,7 @@ const SettingsNav = ({ active, onSelect }) => {
 
 const Settings = () => {
   const { currentUser } = useAuth();
-  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || 'demo_user';
+  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || currentUser?.abhaId || '';
   const { 
     theme, toggleTheme, 
     fontSize, setFontSize, 

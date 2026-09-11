@@ -7,273 +7,24 @@ import {
   Check, X, FileCheck, Layers, ArrowUpRight, ArrowDownRight, Minus
 } from 'lucide-react';
 
-// Default rich clinical sample data for demonstration / walk-in patients
+// Baseline clinical history schema
 const DEFAULT_MEDICAL_HISTORY = {
-  chronicIllnesses: [
-    {
-      id: 'ci-1',
-      name: 'Type 2 Diabetes Mellitus',
-      code: 'ICD-10: E11.9 / AYUSH: Prameha',
-      diagnosedDate: 'March 2021',
-      status: 'Uncontrolled',
-      severity: 'high',
-      notes: 'HbA1c elevated at 8.2%. Managed on Metformin 1000mg BD.',
-      physician: 'Dr. A. Sharma (AIIA Kayachikitsa)'
-    },
-    {
-      id: 'ci-2',
-      name: 'Essential Hypertension',
-      code: 'ICD-10: I10 / AYUSH: Raktachapa Vriddhi',
-      diagnosedDate: 'November 2022',
-      status: 'Controlled',
-      severity: 'moderate',
-      notes: 'Systolic maintained at 130-136 mmHg with Telmisartan 40mg.',
-      physician: 'Dr. V. K. Nair (AIIMS Delhi)'
-    },
-    {
-      id: 'ci-3',
-      name: 'Osteoarthritis (Bilateral Knees)',
-      code: 'ICD-10: M17.0 / AYUSH: Sandhigata Vata',
-      diagnosedDate: 'June 2024',
-      status: 'Active Flare-up',
-      severity: 'moderate',
-      notes: 'Crepitus and early morning stiffness lasting > 30 mins.',
-      physician: 'Dr. R. Joshi (Shalya Tantra)'
-    }
-  ],
-  allergies: [
-    {
-      id: 'al-1',
-      substance: 'Penicillin / Amoxicillin',
-      category: 'Drug',
-      reaction: 'Severe Urticaria, Facial Angioedema & Dyspnea',
-      severity: 'Critical / Anaphylactic',
-      diagnosedDate: '12 May 2019',
-      verified: true,
-      alertNote: 'CONTRAINDICATED: Do not administer beta-lactam antibiotics.'
-    },
-    {
-      id: 'al-2',
-      substance: 'NSAIDs (Diclofenac & Ibuprofen)',
-      category: 'Drug',
-      reaction: 'Acute Epigastric Burning & Bronchospasm',
-      severity: 'Moderate',
-      diagnosedDate: '18 Aug 2022',
-      verified: true,
-      alertNote: 'Use Paracetamol or Ayurvedic Shalaki/Guggulu formulations instead.'
-    },
-    {
-      id: 'al-3',
-      substance: 'Peanuts & Tree Nuts',
-      category: 'Food',
-      reaction: 'Contact dermatitis & itching',
-      severity: 'Mild',
-      diagnosedDate: 'Childhood',
-      verified: false,
-      alertNote: 'Avoid food items containing crushed peanut oils.'
-    }
-  ],
-  labReports: [
-    {
-      id: 'lr-1',
-      testName: 'HbA1c (Glycated Hemoglobin)',
-      category: 'Metabolic Panel',
-      currentValue: '8.2%',
-      previousValue: '7.1%',
-      normalRange: '< 5.7% (Normal), 5.7 - 6.4% (Prediabetic)',
-      date: '04 Sep 2026',
-      status: 'abnormal',
-      trend: 'elevated',
-      delta: '+1.1%',
-      labName: 'Dr. Lal PathLabs, New Delhi',
-      significance: 'Glycemic control worsening over last 3 months. Needs dosage review.'
-    },
-    {
-      id: 'lr-2',
-      testName: 'Fasting Blood Sugar (FBS)',
-      category: 'Metabolic Panel',
-      currentValue: '158 mg/dL',
-      previousValue: '132 mg/dL',
-      normalRange: '70 - 99 mg/dL',
-      date: '04 Sep 2026',
-      status: 'abnormal',
-      trend: 'elevated',
-      delta: '+26 mg/dL',
-      labName: 'Dr. Lal PathLabs, New Delhi',
-      significance: 'Marked morning fasting hyperglycemia.'
-    },
-    {
-      id: 'lr-3',
-      testName: 'Serum Creatinine',
-      category: 'Renal Function (KFT)',
-      currentValue: '1.0 mg/dL',
-      previousValue: '0.9 mg/dL',
-      normalRange: '0.7 - 1.2 mg/dL',
-      date: '04 Sep 2026',
-      status: 'normal',
-      trend: 'stable',
-      delta: '+0.1 mg/dL',
-      labName: 'AIIA Central Laboratory',
-      significance: 'Renal function within normal physiological limits.'
-    },
-    {
-      id: 'lr-4',
-      testName: 'Lipid Profile - Triglycerides',
-      category: 'Cardiovascular',
-      currentValue: '210 mg/dL',
-      previousValue: '190 mg/dL',
-      normalRange: '< 150 mg/dL',
-      date: '12 Jul 2026',
-      status: 'abnormal',
-      trend: 'elevated',
-      delta: '+20 mg/dL',
-      labName: 'AIIA Central Laboratory',
-      significance: 'Mild hypertriglyceridemia, dietary modifications advised.'
-    },
-    {
-      id: 'lr-5',
-      testName: 'Hemoglobin (Hb)',
-      category: 'Complete Blood Count (CBC)',
-      currentValue: '13.4 g/dL',
-      previousValue: '12.8 g/dL',
-      normalRange: '13.0 - 17.0 g/dL',
-      date: '04 Sep 2026',
-      status: 'normal',
-      trend: 'improved',
-      delta: '+0.6 g/dL',
-      labName: 'Dr. Lal PathLabs, New Delhi',
-      significance: 'Anemia ruled out. Satisfactory oxygen-carrying capacity.'
-    }
-  ],
-  pastVisits: [
-    {
-      id: 'pv-1',
-      visitDate: '12 Aug 2026',
-      type: 'OPD Consultation',
-      facility: 'All India Institute of Ayurveda (AIIA), New Delhi',
-      department: 'Kayachikitsa (Room 104)',
-      doctor: 'Dr. Priya Sharma (MD Ayur)',
-      primaryComplaint: 'Burning epigastric pain & fatigue for 1 week',
-      diagnosis: 'Amlapitta (Hyperacidity) with uncontrolled Prameha',
-      rxSummary: 'Kamadudha Rasa 250mg BD, Avipattikar Churna 3g HS with warm water, Metformin continued.',
-      vitalsAtVisit: 'BP: 138/86 mmHg, Pulse: 78 bpm, SpO2: 98%'
-    },
-    {
-      id: 'pv-2',
-      visitDate: '15 Mar 2026',
-      type: 'Routine Follow-up',
-      facility: 'AIIMS New Delhi',
-      department: 'General Medicine (OPD Block 3)',
-      doctor: 'Dr. S. K. Verma',
-      primaryComplaint: 'Quarterly diabetic check-up and knee soreness',
-      diagnosis: 'Type 2 Diabetes Mellitus + Bilateral Knee Osteoarthritis',
-      rxSummary: 'Metformin 500mg BD, Calcium + Vitamin D3 supplements, Quad exercises advised.',
-      vitalsAtVisit: 'BP: 132/84 mmHg, Pulse: 74 bpm, Weight: 76 kg'
-    },
-    {
-      id: 'pv-3',
-      visitDate: '10 Nov 2025',
-      type: 'Hospital Admission (IPD)',
-      facility: 'Safdarjung Hospital, New Delhi',
-      department: 'Cardiology / Acute Observation',
-      doctor: 'Dr. M. Grover',
-      primaryComplaint: 'Severe retrosternal chest discomfort following heavy meal',
-      diagnosis: 'Atypical GERD chest pain, Acute Coronary Syndrome ruled out by negative Trop-I',
-      rxSummary: 'Discharge Summary: Pantoprazole 40mg IV stepped down to oral. Stress Echo Normal.',
-      vitalsAtVisit: 'BP: 154/92 mmHg, ECG: Normal Sinus Rhythm'
-    }
-  ],
-  medications: [
-    {
-      id: 'med-1',
-      name: 'Metformin Hydrochloride',
-      dosage: '1000 mg',
-      frequency: 'Twice daily (BD) - Post Meals',
-      type: 'Allopathic / Antidiabetic',
-      startedDate: 'March 2021',
-      status: 'Active',
-      adherence: '94%',
-      prescriber: 'Dr. Priya Sharma'
-    },
-    {
-      id: 'med-2',
-      name: 'Telmisartan',
-      dosage: '40 mg',
-      frequency: 'Once daily (OD) - Morning',
-      type: 'Allopathic / Antihypertensive',
-      startedDate: 'Nov 2022',
-      status: 'Active',
-      adherence: '98%',
-      prescriber: 'Dr. V. K. Nair'
-    },
-    {
-      id: 'med-3',
-      name: 'Avipattikar Churna',
-      dosage: '3 grams',
-      frequency: 'Bedtime (HS) with Lukewarm Water',
-      type: 'Classical AYUSH / Pitta Samana',
-      startedDate: 'Aug 2026',
-      status: 'Active',
-      adherence: '85%',
-      prescriber: 'AIIA Kayachikitsa'
-    },
-    {
-      id: 'med-4',
-      name: 'Ashwagandha Churna',
-      dosage: '3 grams',
-      frequency: 'Night with warm milk',
-      type: 'Classical AYUSH / Rasayana',
-      startedDate: 'May 2026',
-      status: 'Active',
-      adherence: '90%',
-      prescriber: 'Self / Wellness'
-    },
-    {
-      id: 'med-5',
-      name: 'Diclofenac Sodium 50mg',
-      dosage: '50 mg',
-      frequency: 'SOS for knee pain',
-      type: 'Allopathic / NSAID',
-      startedDate: 'June 2022',
-      status: 'Discontinued',
-      adherence: 'Discontinued due to allergic gastric distress',
-      prescriber: 'Discontinued Aug 2022'
-    }
-  ],
-  surgeries: [
-    {
-      id: 'surg-1',
-      procedure: 'Laparoscopic Appendectomy',
-      date: 'September 2018',
-      hospital: 'Deen Dayal Upadhyay Hospital, New Delhi',
-      indication: 'Acute appendicitis with localized peritonitis',
-      implants: 'None',
-      outcome: 'Full recovery, uneventful healing.'
-    },
-    {
-      id: 'surg-2',
-      procedure: 'Right Knee Diagnostic Arthroscopy',
-      date: 'January 2025',
-      hospital: 'AIIA Shalya Department, New Delhi',
-      indication: 'Medial meniscus fraying & degenerative cartilage debridement',
-      implants: 'None',
-      outcome: 'Relieved acute locking sensation.'
-    }
-  ],
-  familyHistory: [
-    { relative: 'Father', condition: 'Type 2 Diabetes Mellitus & Myocardial Infarction at age 58', status: 'Deceased' },
-    { relative: 'Mother', condition: 'Hypertension & Osteoporosis', status: 'Living (Age 72)' },
-    { relative: 'Elder Brother', condition: 'Type 2 Diabetes (Diagnosed age 44)', status: 'Living (Age 52)' }
-  ],
+  chronicIllnesses: [],
+  allergies: [],
+  labReports: [],
+  pastVisits: [],
+  medications: [],
+  surgeries: [],
+  familyHistory: [],
   aharaVihara: {
-    prakriti: 'Pitta-Vata (Agni Dominant)',
-    dietType: 'Vegetarian (Occasional spicy / deep fried snacks)',
-    dominantTaste: 'Lavan (Salty) & Katu (Spicy)',
-    agniState: 'Vishamagni (Irregular digestive fire with hyperacidity flares)',
-    koshtaHabit: 'Madhyama (Regular, occasionally constipated during travel)',
-    sleepPattern: '6 hours / night, disturbed by nocturnal thirst',
-    vyayama: 'Sedentary (desk work, walks ~20 mins daily)',
-    vyasana: 'None (No tobacco or alcohol consumption)'
+    prakriti: 'Not reported',
+    dietType: 'Not reported',
+    dominantTaste: 'Not reported',
+    agniState: 'Not reported',
+    koshtaHabit: 'Not reported',
+    sleepPattern: 'Not reported',
+    vyayama: 'Not reported',
+    vyasana: 'Not reported'
   }
 };
 
@@ -286,25 +37,24 @@ export default function ComprehensiveMedicalHistory({
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [historyData, setHistoryData] = useState(() => {
-    // Merge provided patientData with sample baseline for rich evaluation
     return {
       ...DEFAULT_MEDICAL_HISTORY,
       chronicIllnesses: patientData.pastDiseases?.length
         ? patientData.pastDiseases.map((d, i) => ({
             id: `ci-${i}`,
-            name: d,
-            code: 'Recorded via Kiosk Intake',
+            name: typeof d === 'string' ? d : (d.name || d.condition || 'Condition'),
+            code: 'Recorded via Patient Intake',
             diagnosedDate: 'Prior Medical Record',
             status: 'Active',
             severity: 'moderate',
             notes: 'Reported during clinical case-taking.',
             physician: 'Self-Reported / ABHA'
           }))
-        : DEFAULT_MEDICAL_HISTORY.chronicIllnesses,
+        : (patientData.chronicIllnesses || []),
       allergies: patientData.allergies?.length
         ? patientData.allergies.map((a, i) => ({
             id: `al-${i}`,
-            substance: a,
+            substance: typeof a === 'string' ? a : (a.substance || a.name || 'Sensitivity'),
             category: 'Drug / Substance',
             reaction: 'Known Adverse Sensitivity',
             severity: 'Critical / High-Alert',
@@ -312,7 +62,13 @@ export default function ComprehensiveMedicalHistory({
             verified: true,
             alertNote: 'High-alert adverse reaction history.'
           }))
-        : DEFAULT_MEDICAL_HISTORY.allergies
+        : (patientData.allergies || []),
+      labReports: patientData.labReports || [],
+      pastVisits: patientData.pastVisits || [],
+      medications: patientData.medications || [],
+      surgeries: patientData.surgeries || [],
+      familyHistory: patientData.familyHistory || [],
+      aharaVihara: patientData.aharaVihara || DEFAULT_MEDICAL_HISTORY.aharaVihara
     };
   });
 

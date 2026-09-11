@@ -16,7 +16,7 @@ import { API_URL } from '../config/api';
 
 const Prescriptions = () => {
   const { currentUser } = useAuth();
-  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || 'demo_user';
+  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || currentUser?.abhaId || '';
   const { t } = useTranslation();
   const [inputText, setInputText] = useState('');
   const [scanning, setScanning] = useState(false);

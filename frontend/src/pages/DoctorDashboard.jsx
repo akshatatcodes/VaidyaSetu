@@ -88,33 +88,6 @@ const DoctorDashboard = () => {
   useEffect(() => {
     if (selectedSession?.evidenceSnippets?.length > 0) {
       setEvidenceList(selectedSession.evidenceSnippets);
-    } else if (selectedSession?.isDemo === true || selectedSession?.abhaId === '14-1122-3344-5566') {
-      setEvidenceList([
-        {
-          id: 'ev_1',
-          type: 'Allopathic Medication Extraction',
-          target: 'Atorvastatin 20mg OD at bedtime',
-          sourceDoc: 'Cardiology Discharge Summary',
-          date: '12 Jan 2026',
-          page: 'Discharge Medications (Rx ID: 8841)',
-          ocrConfidence: '98.4%',
-          extractedSnippet: 'Tab. Atorva (Atorvastatin) 20 mg - 1 tab at bedtime PO for Dyslipidemia',
-          verifiedByPatient: true,
-          verifiedDate: '05 Sep 2026 at Home Pre-Visit'
-        },
-        {
-          id: 'ev_2',
-          type: 'Longitudinal Lab Value',
-          target: 'HbA1c: 8.2% (Elevated)',
-          sourceDoc: 'Comprehensive Metabolic Panel',
-          date: '04 Feb 2026',
-          page: 'Clinical Biochemistry',
-          ocrConfidence: '99.1%',
-          extractedSnippet: 'Glycated Hemoglobin (HbA1c): 8.2 % (Normal: < 5.7 %, Diabetic: >= 6.5 %)',
-          verifiedByPatient: true,
-          verifiedDate: '05 Sep 2026 at Home Pre-Visit'
-        }
-      ]);
     } else {
       setEvidenceList([]);
     }
@@ -386,30 +359,7 @@ const DoctorDashboard = () => {
     const doctorId = currentUser?.doctorId || '';
     const doctorName = currentUser?.doctorName || '';
 
-    // Demo cases aren't real encounters, so skip the API round-trip entirely
-    // rather than firing writes at ids the backend has never seen.
-    if (selectedSession.isDemo) {
-      setDemoCases((prevDemo) =>
-        prevDemo.map((item) =>
-          item._id === completedSessionId || item.tokenNumber === completedToken
-            ? { ...item, queueStatus: 'completed' }
-            : item
-        )
-      );
-      const demoSet = new Set(completedSessionIds);
-      if (completedSessionId) demoSet.add(completedSessionId);
-      if (completedToken) demoSet.add(completedToken);
-      setCompletedSessionIds(demoSet);
-      setOutcomeResult({
-        demo: true,
-        labTokenNumber: investigations.length > 0 ? 'LAB-DEMO' : null,
-        followUpDate: null
-      });
-      setApprovalSuccess(true);
-      setIsApproving(false);
-      setIsNextPatientModalOpen(true);
-      return;
-    }
+
 
     const authHeaders = {
       'X-User-Role': 'doctor',
@@ -542,7 +492,7 @@ const DoctorDashboard = () => {
     }
   };
 
-  // Filtered Queue with Department Scoping
+  // Filtered Queue with Department Scoping and Doctor Assignment
   const filteredQueue = queue.filter((item) => {
     const matchesSearch =
       (item.patientName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -550,6 +500,19 @@ const DoctorDashboard = () => {
       (item.abhaId || '').includes(searchQuery);
 
     if (!matchesSearch) return false;
+
+    // Check if directly assigned to this doctor
+    const isAssignedToDoctor =
+      (item.preferredDoctorId && currentUser?.id && String(item.preferredDoctorId) === String(currentUser?.id)) ||
+      (item.preferredDoctor && currentUser?.fullName && item.preferredDoctor.toLowerCase().includes(currentUser.fullName.toLowerCase())) ||
+      (item.preferredDoctor && currentUser?.doctorName && item.preferredDoctor.toLowerCase().includes(currentUser.doctorName.toLowerCase()));
+
+    if (isAssignedToDoctor) {
+      if (activeTab === 'emergency') return item.triagePriority === 'emergency';
+      if (activeTab === 'waiting') return item.queueStatus !== 'completed';
+      if (activeTab === 'completed') return item.queueStatus === 'completed';
+      return true;
+    }
 
     // Department Scoping: Robust normalization so variations match cleanly
     if (currentUser?.department && item.department) {

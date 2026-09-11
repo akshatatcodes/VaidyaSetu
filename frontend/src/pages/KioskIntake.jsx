@@ -2019,35 +2019,7 @@ const KioskIntake = ({ isStandalone = false }) => {
               </p>
             </div>
 
-            {/* Prominent Quick-Load Demo Cards - Only visible for walk-in / non-logged in visitors */}
-            {(!isAuthenticated || userRole !== 'patient') && (
-              <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-2.5 shadow-inner">
-                <span className="text-xs font-black text-slate-700 dark:text-gray-300 px-2 flex items-center gap-1">
-                  {t.demoQuickPick}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => loadQuickDemo('rahul')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${selectedDemo === 'rahul' ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 scale-105' : 'bg-white dark:bg-white/10 text-slate-800 dark:text-gray-200 hover:bg-emerald-50'}`}
-                >
-                  👵 Rahul Sharma (Returning - Knee Follow-up)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => loadQuickDemo('harishchandra')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${selectedDemo === 'harishchandra' ? 'bg-red-600 text-white ring-2 ring-red-400 scale-105' : 'bg-white dark:bg-white/10 text-slate-800 dark:text-gray-200 hover:bg-red-50'}`}
-                >
-                  ⚠️ Harishchandra (Cardiac Emergency)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => loadQuickDemo('ananya')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${selectedDemo === 'ananya' ? 'bg-blue-600 text-white ring-2 ring-blue-400 scale-105' : 'bg-white dark:bg-white/10 text-slate-800 dark:text-gray-200 hover:bg-blue-50'}`}
-                >
-                  👤 Ananya Sen (New Patient Intake)
-                </button>
-              </div>
-            )}
+
           </div>
 
           {/* Cooldown Alert Modal / Banner */}

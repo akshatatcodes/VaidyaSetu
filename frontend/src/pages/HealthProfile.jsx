@@ -111,16 +111,19 @@ const HealthProfile = () => {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (currentUser) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
-      const res = await axios.get(`${API_URL}/patients/${targetId}`);
+      const res = await axios.get(`${API_URL}/patients/${targetId}`, { timeout: 2500 });
       if (res.data.status === 'success') {
         setPatient(res.data.data);
       }
     } catch (err) {
       console.error('Error loading patient data:', err);
-      setError('Patient health record not found.');
     } finally {
       setLoading(false);
     }

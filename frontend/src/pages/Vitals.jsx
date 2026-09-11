@@ -82,10 +82,10 @@ const VitalCard = ({ title, value, unit, type, status, trend, timestamp, icon: I
 const Vitals = () => {
   const { currentUser } = useAuth();
   const { t } = useTranslation();
-  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || 'demo_user';
+  const effectiveUserId = currentUser?.patientId || currentUser?.id || currentUser?.mobile || currentUser?.abhaId || '';
   const activeUser = {
     id: effectiveUserId,
-    fullName: currentUser?.patientName || 'Ayush Patient'
+    fullName: currentUser?.patientName || currentUser?.fullName || 'Patient'
   };
   const [vitals, setVitals] = useState({});
   // Patient profile — needed for height so BMI can be computed from a REAL

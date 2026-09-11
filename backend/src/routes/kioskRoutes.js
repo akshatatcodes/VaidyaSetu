@@ -106,55 +106,11 @@ router.post('/session/start', async (req, res) => {
       }).sort({ createdAt: -1 });
     }
 
-    // Default realistic lab trends if returning patient has none specified
-    const defaultLabTrends = (isReturningPatient || priorSession) ? [
-      {
-        testName: 'HbA1c (Glycated Hemoglobin)',
-        previousValue: '7.1%',
-        previousDate: '14 Aug 2024',
-        currentValue: '8.2%',
-        currentDate: '04 Sep 2026',
-        direction: 'elevated',
-        changeDelta: '+1.1%',
-        clinicalSignificance: 'Elevated since last visit. Glycemic control worsening.'
-      },
-      {
-        testName: 'Hemoglobin (Hb)',
-        previousValue: '10.2 g/dL',
-        previousDate: '14 Aug 2024',
-        currentValue: '11.4 g/dL',
-        currentDate: '04 Sep 2026',
-        direction: 'improved',
-        changeDelta: '+1.2 g/dL',
-        clinicalSignificance: 'Mild improvement in microcytic anemia.'
-      }
-    ] : [];
-
-    // Default evidence snippets for AI trust verification
-    const defaultEvidence = (isReturningPatient || priorSession) ? [
-      {
-        item: 'Metformin 1000mg BD',
-        sourceDocName: 'Prescription_ApolloClinics_Aug2026.jpg',
-        docDate: '12 Aug 2026',
-        snippetUrl: '/evidence/rx_metformin.png',
-        confidence: 98,
-        verified: true
-      },
-      {
-        item: 'HbA1c 8.2% (High)',
-        sourceDocName: 'LabReport_DrLalPathLabs_Sep2026.pdf',
-        docDate: '04 Sep 2026',
-        snippetUrl: '/evidence/lab_hba1c.png',
-        confidence: 96,
-        verified: true
-      }
-    ] : [];
-
     const newSession = new Encounter({
       patientId: patient ? patient._id : undefined,
       tokenNumber,
       idempotencyKey: idempotencyKey || undefined,
-      abhaId: abhaId || `ABHA-${Math.floor(10000000000000 + Math.random() * 90000000000000)}`,
+      abhaId: abhaId || `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
       patientName,
       age: Number(age),
       gender: normalizedGender,
@@ -172,11 +128,11 @@ router.post('/session/start', async (req, res) => {
       queueStatus: 'waiting_intake',
       triagePriority: 'normal',
       isReturningPatient: Boolean(isReturningPatient || priorSession),
-      previousVisitDate: priorSession ? priorSession.createdAt : (isReturningPatient ? new Date(Date.now() - 25 * 86400000) : null),
-      changesSinceLastVisit: changesSinceLastVisit.length > 0 ? changesSinceLastVisit : (isReturningPatient ? ['new_medicine'] : []),
-      changeDetails: changeDetails || (isReturningPatient ? 'Metformin dosage adjusted from 500mg to 1000mg BD by family physician.' : ''),
-      labTrends: labTrends.length > 0 ? labTrends : defaultLabTrends,
-      evidenceSnippets: evidenceSnippets.length > 0 ? evidenceSnippets : defaultEvidence
+      previousVisitDate: priorSession ? priorSession.createdAt : null,
+      changesSinceLastVisit: Array.isArray(changesSinceLastVisit) ? changesSinceLastVisit : [],
+      changeDetails: changeDetails || '',
+      labTrends: Array.isArray(labTrends) ? labTrends : [],
+      evidenceSnippets: Array.isArray(evidenceSnippets) ? evidenceSnippets : []
     });
 
     await newSession.save();

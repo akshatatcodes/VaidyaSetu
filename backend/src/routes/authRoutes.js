@@ -610,93 +610,89 @@ router.post('/patient/login', async (req, res) => {
     }
 
     const cleanId = identifier.trim();
-
-    // 1. Fast-path: Check demo patients FIRST (instant login, even if DB is offline/cold)
-    const matchedDemo = DEMO_PATIENTS.find(p => 
-      p.abhaId === cleanId ||
-      p.mobile === cleanId ||
-      p.email?.toLowerCase() === cleanId.toLowerCase() ||
-      p.patientName.toLowerCase().includes(cleanId.toLowerCase()) ||
-      (p.abhaId && cleanId.includes(p.abhaId.slice(-4)))
-    );
+    const cleanDigits = cleanId.replace(/\D/g, '').slice(-10);
 
     let patientProfile = null;
+    try {
+      // 1. Query UserProfile collection
+      const dbProfile = await UserProfile.findOne({
+        $or: [
+          { clerkId: cleanId },
+          { 'phone.value': cleanId },
+          ...(cleanDigits ? [{ 'phone.value': new RegExp(cleanDigits) }] : []),
+          { 'abhaId.value': cleanId }
+        ]
+      }).maxTimeMS(5000).catch(() => null);
 
-    // 2. Check MongoDB for real registered user profile
-    const isDbConnected = mongoose.connection.readyState === 1;
+      // 2. Query Patient collection
+      const patDoc = await Patient.findOne({
+        $or: [
+          { abhaId: cleanId },
+          { mobileNumber: cleanDigits || cleanId },
+          { 'basicInfo.contactNumber': new RegExp(cleanDigits || cleanId) }
+        ]
+      }).maxTimeMS(5000).catch(() => null);
 
-    if (isDbConnected) {
-      try {
-        const dbProfile = await UserProfile.findOne({
-          $or: [
-            { clerkId: cleanId },
-            { 'phone.value': cleanId },
-            { 'phone.value': new RegExp(cleanId.replace(/\D/g, '').slice(-10)) },
-            { 'abhaId.value': cleanId }
-          ]
-        }).maxTimeMS(3000);
+      if (dbProfile || patDoc) {
+        const resolvedName = patDoc?.basicInfo?.fullName || dbProfile?.name?.value || dbProfile?.displayName || req.body.patientName || (cleanDigits ? `Patient (+91 ${cleanDigits})` : 'Registered Patient');
+        const resolvedAbha = patDoc?.abhaId || dbProfile?.abhaId?.value || (cleanId.includes('-') ? cleanId : `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`);
+        const resolvedAge = patDoc?.basicInfo?.age || dbProfile?.age?.value || 30;
+        const resolvedGender = patDoc?.basicInfo?.gender || dbProfile?.gender?.value || 'Male';
+        const resolvedMobile = patDoc?.basicInfo?.contactNumber || dbProfile?.phone?.value || (cleanDigits ? `+91 ${cleanDigits}` : cleanId);
 
-        if (dbProfile) {
-          patientProfile = {
-            patientId: dbProfile.clerkId,
-            abhaId: dbProfile.abhaId?.value || (cleanId.includes('-') ? cleanId : `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`),
-            patientName: dbProfile.name?.value || 'Ayush Patient',
-            age: dbProfile.age?.value || 35,
-            gender: dbProfile.gender?.value || 'Male',
-            mobile: dbProfile.phone?.value || cleanId,
-            email: `${(dbProfile.name?.value || 'patient').toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-            onboardingCompleted: Boolean(dbProfile.onboardingCompleted)
-          };
-        }
-      } catch (dbErr) {
-        console.warn('MongoDB profile lookup failed:', dbErr.message);
+        patientProfile = {
+          patientId: patDoc?._id || dbProfile?.clerkId || ('PAT-' + (cleanDigits || Math.floor(10000 + Math.random() * 90000))),
+          abhaId: resolvedAbha,
+          patientName: resolvedName,
+          age: resolvedAge,
+          gender: resolvedGender,
+          mobile: resolvedMobile,
+          email: `${resolvedName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+          onboardingCompleted: Boolean(dbProfile?.onboardingCompleted)
+        };
       }
+    } catch (dbErr) {
+      console.warn('MongoDB profile lookup failed:', dbErr.message);
     }
 
-    if (!patientProfile && matchedDemo) {
-      patientProfile = {
-        ...matchedDemo,
-        onboardingCompleted: true
-      };
-    } else if (!patientProfile) {
-      // If DB is offline and not demo profile, let the user know cleanly rather than buffering 10s
-      if (!isDbConnected) {
-        return res.status(503).json({
-          status: 'error',
-          message: 'Database Connection Unavailable: The live backend cannot reach MongoDB Atlas. Please ensure MONGODB_URI is configured in Render Environment Variables and 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access. You can use the 1-Tap Demo Profile in the meantime.'
-        });
-      }
-
-      // New walk-in patient session without prior DB record
-      const newPatientId = 'PAT-' + Math.floor(10000 + Math.random() * 90000);
-      const cleanDigits = cleanId.replace(/\D/g, '').slice(-10);
-      const generatedAbha = cleanId.includes('-') ? cleanId : (
-        cleanDigits.length === 10
-          ? `14-${cleanDigits.slice(0, 4)}-${cleanDigits.slice(4, 8)}-${cleanDigits.slice(8, 10)}${Math.floor(10 + Math.random() * 90)}`
-          : `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`
-      );
+    if (!patientProfile) {
+      // New walk-in patient session with real registration details
+      const newPatientId = 'PAT-' + (cleanDigits || Math.floor(10000 + Math.random() * 90000));
+      const generatedAbha = cleanId.includes('-') ? cleanId : `14-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const registeredName = req.body.patientName || (cleanId.includes('@') ? cleanId.split('@')[0] : (cleanDigits ? `Patient (+91 ${cleanDigits})` : 'Registered Patient'));
 
       patientProfile = {
         patientId: newPatientId,
         abhaId: generatedAbha,
-        patientName: req.body.patientName || (cleanId.includes('@') ? cleanId.split('@')[0] : 'Ayush Patient'),
-        age: req.body.age || null,
+        patientName: registeredName,
+        age: Number(req.body.age) || 30,
         gender: req.body.gender || 'Male',
         mobile: cleanDigits.length === 10 ? `+91 ${cleanDigits}` : cleanId,
-        email: cleanId.includes('@') ? cleanId : 'patient@vaidyasetu.org',
+        email: cleanId.includes('@') ? cleanId : `${registeredName.toLowerCase().replace(/\s+/g, '')}@vaidyasetu.org`,
         onboardingCompleted: false
       };
 
-      // Create blank profile in DB so onboarding state persists
+      // Create genuine UserProfile & Patient documents in MongoDB
       try {
         await UserProfile.create({
           clerkId: newPatientId,
-          name: { value: patientProfile.patientName },
+          name: { value: registeredName },
           phone: { value: patientProfile.mobile },
           gender: { value: patientProfile.gender },
           abhaId: { value: generatedAbha },
           onboardingCompleted: false
-        });
+        }).catch(() => null);
+
+        await Patient.create({
+          abhaId: generatedAbha,
+          mobileNumber: cleanDigits || undefined,
+          basicInfo: {
+            fullName: registeredName,
+            age: patientProfile.age,
+            gender: patientProfile.gender,
+            contactNumber: patientProfile.mobile
+          }
+        }).catch(() => null);
       } catch (e) {
         console.warn('Auto-create user profile warning:', e.message);
       }
@@ -772,39 +768,35 @@ router.post('/patient/register', async (req, res) => {
       onboardingCompleted: false
     };
 
-    const isDbConnected = mongoose.connection.readyState === 1;
-    if (!isDbConnected) {
-      return res.status(503).json({
-        status: 'error',
-        message: 'Database Connection Unavailable: The live backend cannot reach MongoDB Atlas. Please ensure MONGODB_URI is set in Render Environment Variables and 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access.'
-      });
-    }
-
     // Save genuine UserProfile in MongoDB
-    const existing = await UserProfile.findOne({
-      $or: [
-        { clerkId: patientId },
-        ...(cleanMobileDigits ? [{ 'phone.value': new RegExp(cleanMobileDigits) }] : [])
-      ]
-    }).maxTimeMS(3000);
+    try {
+      const existing = await UserProfile.findOne({
+        $or: [
+          { clerkId: patientId },
+          ...(cleanMobileDigits ? [{ 'phone.value': new RegExp(cleanMobileDigits) }] : [])
+        ]
+      }).maxTimeMS(5000);
 
-    if (existing) {
-      existing.name = { value: patientName, lastUpdated: new Date() };
-      existing.phone = { value: patientProfile.mobile, lastUpdated: new Date() };
-      existing.abhaId = { value: finalAbha, lastUpdated: new Date() };
-      if (age) existing.age = { value: Number(age), lastUpdated: new Date() };
-      if (gender) existing.gender = { value: gender, lastUpdated: new Date() };
-      await existing.save();
-    } else {
-      await UserProfile.create({
-        clerkId: patientId,
-        name: { value: patientName, lastUpdated: new Date() },
-        phone: { value: patientProfile.mobile, lastUpdated: new Date() },
-        age: age ? { value: Number(age), lastUpdated: new Date() } : undefined,
-        gender: { value: gender || 'Male', lastUpdated: new Date() },
-        abhaId: { value: finalAbha, lastUpdated: new Date() },
-        onboardingCompleted: false
-      });
+      if (existing) {
+        existing.name = { value: patientName, lastUpdated: new Date() };
+        existing.phone = { value: patientProfile.mobile, lastUpdated: new Date() };
+        existing.abhaId = { value: finalAbha, lastUpdated: new Date() };
+        if (age) existing.age = { value: Number(age), lastUpdated: new Date() };
+        if (gender) existing.gender = { value: gender, lastUpdated: new Date() };
+        await existing.save();
+      } else {
+        await UserProfile.create({
+          clerkId: patientId,
+          name: { value: patientName, lastUpdated: new Date() },
+          phone: { value: patientProfile.mobile, lastUpdated: new Date() },
+          age: age ? { value: Number(age), lastUpdated: new Date() } : undefined,
+          gender: { value: gender || 'Male', lastUpdated: new Date() },
+          abhaId: { value: finalAbha, lastUpdated: new Date() },
+          onboardingCompleted: false
+        });
+      }
+    } catch (upErr) {
+      console.warn('[AuthRoutes] UserProfile Mongo save note:', upErr.message);
     }
 
     // Also persist genuine Patient document in MongoDB so Patient & Doctor dashboards match
