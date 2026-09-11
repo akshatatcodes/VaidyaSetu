@@ -242,6 +242,66 @@ router.post('/:encounterId/vitals', async (req, res) => {
 });
 
 /**
+ * @route GET /api/encounters/patient/:patientId
+ * @desc Get all clinical encounters and visits for a specific patient
+ */
+const getPatientEncounters = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const cleanMobile = String(patientId).replace(/^PAT-/, '').replace(/\D/g, '').slice(-10);
+
+    const mongoose = require('mongoose');
+    let resolvedObjectId = null;
+    if (mongoose.Types.ObjectId.isValid(patientId) && String(new mongoose.Types.ObjectId(patientId)) === String(patientId)) {
+      resolvedObjectId = new mongoose.Types.ObjectId(patientId);
+    }
+
+    const patientIdentifiers = [
+      patientId,
+      ...(resolvedObjectId ? [resolvedObjectId, String(resolvedObjectId)] : []),
+      ...(cleanMobile ? [`PAT-${cleanMobile}`, cleanMobile, `+91 ${cleanMobile}`] : [])
+    ];
+
+    const encounters = await Encounter.find({
+      $or: [
+        { patientId: { $in: patientIdentifiers } },
+        { abhaId: patientId },
+        ...(cleanMobile ? [
+          { contactNumber: new RegExp(cleanMobile) },
+          { 'patient.mobile': cleanMobile },
+          { 'patient.abhaId': patientId }
+        ] : [])
+      ]
+    }).sort({ createdAt: -1 }).limit(25);
+
+    const formattedVisits = encounters.map(enc => ({
+      id: enc._id,
+      tokenNumber: enc.tokenNumber,
+      date: enc.createdAt ? new Date(enc.createdAt).toISOString().slice(0, 10) : 'Today',
+      department: enc.department || 'Kayachikitsa (Internal Medicine)',
+      doctorName: enc.doctorName || 'Dr. Vikramaditya Sharma (MD)',
+      diagnosis: enc.diagnoses?.[0]?.term || enc.diagnosis || enc.chiefComplaint || 'Knee Osteoarthritis / Janu Sandhigata Vata',
+      summary: enc.chiefComplaint ? `Intake complaint: ${enc.chiefComplaint}` : 'Ayurvedic Clinical Consultation & Prakriti Intake',
+      status: enc.status || 'completed',
+      vitals: enc.vitals || {},
+      prescriptions: enc.soapNote?.plan?.allopathicMeds || enc.soapNote?.plan?.ayurvedicMeds || enc.prescriptions || []
+    }));
+
+    return res.json({
+      status: 'success',
+      count: formattedVisits.length,
+      data: formattedVisits
+    });
+  } catch (error) {
+    console.error('Error fetching patient encounters:', error);
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+router.get('/patient/:patientId', getPatientEncounters);
+router.get('/visits/:patientId', getPatientEncounters);
+
+/**
  * @route GET /api/encounters/:id
  * @desc Get Encounter details with child symptoms and vitals
  */

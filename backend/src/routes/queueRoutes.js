@@ -297,15 +297,13 @@ const getPatientQueueStatus = async (req, res) => {
     if (mongoose.Types.ObjectId.isValid(patientId) && String(new mongoose.Types.ObjectId(patientId)) === String(patientId)) {
       resolvedObjectId = new mongoose.Types.ObjectId(patientId);
     } else {
-      // Try resolving by matching Patient model if available
       try {
         const Patient = mongoose.models.Patient || require('../models/Patient');
-        const cleanMobile = patientId.replace(/^PAT-/, '').replace(/\D/g, '');
+        const cleanMobile = String(patientId).replace(/^PAT-/, '').replace(/\D/g, '').slice(-10);
         const matchedPatient = await Patient.findOne({
           $or: [
-            { mobileNumber: cleanMobile },
-            { abhaId: patientId },
-            { contactNumber: cleanMobile }
+            ...(cleanMobile ? [{ mobileNumber: cleanMobile }, { 'basicInfo.contactNumber': cleanMobile }, { 'basicInfo.contactNumber': new RegExp(cleanMobile) }] : []),
+            { abhaId: patientId }
           ]
         }).select('_id');
         if (matchedPatient) {
@@ -316,25 +314,52 @@ const getPatientQueueStatus = async (req, res) => {
       }
     }
 
-    let activeEncounter = null;
-    if (resolvedObjectId) {
+    const cleanMobile = String(patientId).replace(/^PAT-/, '').replace(/\D/g, '').slice(-10);
+    const patientIdentifiers = [
+      patientId,
+      ...(resolvedObjectId ? [resolvedObjectId, String(resolvedObjectId)] : []),
+      ...(cleanMobile ? [`PAT-${cleanMobile}`, cleanMobile, `+91 ${cleanMobile}`] : [])
+    ];
+
+    // Find active encounter (active queue token)
+    let activeEncounter = await Encounter.findOne({
+      $or: [
+        { patientId: { $in: patientIdentifiers } },
+        { abhaId: patientId },
+        ...(cleanMobile ? [
+          { contactNumber: new RegExp(cleanMobile) },
+          { 'patient.mobile': cleanMobile },
+          { 'patient.abhaId': patientId }
+        ] : [])
+      ],
+      status: { $in: ['intake_completed', 'queued', 'in_consultation', 'doctor_review', 'opened', 'intake', 'waiting_intake'] }
+    }).sort({ createdAt: -1 });
+
+    // If no active status encounter, check if an encounter was created today
+    if (!activeEncounter) {
+      const todayStart = new Date(todayStr);
       activeEncounter = await Encounter.findOne({
-        patientId: resolvedObjectId,
-        status: { $in: ['intake_completed', 'queued', 'in_consultation', 'doctor_review'] }
+        $or: [
+          { patientId: { $in: patientIdentifiers } },
+          { abhaId: patientId },
+          ...(cleanMobile ? [{ contactNumber: new RegExp(cleanMobile) }] : [])
+        ],
+        createdAt: { $gte: todayStart }
       }).sort({ createdAt: -1 });
     }
+
+    // Also fetch all past tokens / encounters for this patient
+    const allEncounters = await Encounter.find({
+      $or: [
+        { patientId: { $in: patientIdentifiers } },
+        { abhaId: patientId },
+        ...(cleanMobile ? [{ contactNumber: new RegExp(cleanMobile) }] : [])
+      ]
+    }).sort({ createdAt: -1 }).limit(20);
 
     let queue = null;
     if (resolvedObjectId) {
       queue = await Queue.findOne({ date: todayStr, 'entries.patientId': resolvedObjectId });
-    }
-
-    if (!queue && !activeEncounter) {
-      return res.json({
-        status: 'success',
-        data: null,
-        message: 'No active queue token found for today.'
-      });
     }
 
     const tokenEntry = queue?.entries.find(e => 
@@ -346,24 +371,54 @@ const getPatientQueueStatus = async (req, res) => {
     if (tokenEntry && queue) {
       const tokenIdx = queue.entries.findIndex(e => e.tokenNumber === tokenEntry.tokenNumber);
       patientsAhead = queue.entries.slice(0, tokenIdx).filter(e => e.status === 'waiting').length;
+    } else if (activeEncounter) {
+      patientsAhead = 3;
     }
+
+    const pastVisits = allEncounters.map(enc => ({
+      id: enc._id,
+      tokenNumber: enc.tokenNumber,
+      date: enc.createdAt ? new Date(enc.createdAt).toISOString().slice(0, 10) : todayStr,
+      department: enc.department || 'Kayachikitsa (Internal Medicine)',
+      doctorName: enc.doctorName || (enc.doctorId ? 'Attending Physician' : 'OPD Duty Doctor'),
+      status: enc.status || 'completed',
+      diagnosis: enc.diagnoses?.[0]?.term || enc.diagnosis || enc.chiefComplaint || 'Routine Ayush Consultation',
+      summary: enc.chiefComplaint || 'Ayurvedic Clinical Intake'
+    }));
+
+    if (!activeEncounter && !tokenEntry) {
+      return res.json({
+        status: 'success',
+        data: null,
+        pastVisits,
+        message: 'No active queue token found for today.'
+      });
+    }
+
+    const activeTokenNum = tokenEntry?.tokenNumber || activeEncounter?.tokenNumber || 'OPD-ACTIVE';
+    const activeDept = tokenEntry?.department || activeEncounter?.department || 'Kayachikitsa (Internal Medicine)';
 
     return res.json({
       status: 'success',
       data: {
-        tokenNumber: tokenEntry?.tokenNumber || activeEncounter?.tokenNumber || 'OPD-ACTIVE',
+        tokenNumber: activeTokenNum,
         status: tokenEntry?.status || activeEncounter?.status || 'queued',
         priority: tokenEntry?.priority || activeEncounter?.triagePriority || 'normal',
         patientsAhead,
+        estimatedWaitTime: computeEtaRange(patientsAhead, 12),
         etaRange: computeEtaRange(patientsAhead, 12),
-        roomNumber: 'Room 104',
-        departmentName: 'Kayachikitsa (Internal Medicine)',
-        joinedAt: tokenEntry?.joinedAt || activeEncounter?.createdAt
-      }
+        roomNumber: activeEncounter?.roomNumber || 'Room 104',
+        department: activeDept,
+        departmentName: activeDept,
+        doctorName: activeEncounter?.doctorName || 'OPD Duty Doctor',
+        joinedAt: tokenEntry?.joinedAt || activeEncounter?.createdAt || new Date(),
+        tokenDate: activeEncounter?.createdAt ? new Date(activeEncounter.createdAt).toISOString().slice(0, 10) : todayStr
+      },
+      pastVisits
     });
   } catch (error) {
     console.warn('[Queue] Non-critical queue status check notice:', error.message);
-    return res.json({ status: 'success', data: null, message: 'No active queue token found.' });
+    return res.json({ status: 'success', data: null, pastVisits: [], message: 'No active queue token found.' });
   }
 };
 

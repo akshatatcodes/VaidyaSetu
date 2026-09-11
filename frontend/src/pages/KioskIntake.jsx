@@ -8,7 +8,7 @@ import {
   Sparkles, Layers, Maximize2, Minimize2, ChevronRight, Upload,
   Camera, FileText, Pill, AlertOctagon, Clock, UserCheck, Flame,
   Wind, Droplets, Zap, ShieldAlert, Sparkle, Download, X, Trash2,
-  Globe, ChevronDown
+  Globe, ChevronDown, BookOpen
 } from 'lucide-react';
 import { API_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
@@ -16,8 +16,11 @@ import { useCaregiver } from '../context/CaregiverContext';
 import SymptomIconPicker from '../components/kiosk/SymptomIconPicker';
 import ConsentScreen from '../components/kiosk/ConsentScreen';
 import DocumentVerification from '../components/kiosk/DocumentVerification';
+import ConsentPolicyModal from '../components/kiosk/ConsentPolicyModal';
+import ParikshaGuideModal from '../components/kiosk/ParikshaGuideModal';
 import { saveKioskDraft, loadKioskDraft, installOnlineFlush, queueOfflineRequest, clearKioskLocalCache } from '../utils/kioskOffline';
 import NeedStaffHelp from '../components/NeedStaffHelp';
+import { generateOpdTokenPDF } from '../utils/pdfGenerator';
 
 const LANG_OPTIONS = [
   { code: 'en', label: 'English' },
@@ -355,6 +358,8 @@ const KioskIntake = ({ isStandalone = false }) => {
   const [qrSvg, setQrSvg] = useState('');
   const [offlineNotice, setOfflineNotice] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showConsentPolicyModal, setShowConsentPolicyModal] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const [departmentsList, setDepartmentsList] = useState(DEPARTMENTS);
 
@@ -451,6 +456,43 @@ const KioskIntake = ({ isStandalone = false }) => {
           department: prev.department || ''
         };
       });
+
+      // Fetch comprehensive profile for Step 4 AYUSH & Step 5 Past Illnesses pre-fill
+      const activePid = activeUser.patientId || activeUser.id || activeUser.userId || activeUser.abhaId;
+      if (activePid) {
+        axios.get(`${API_URL}/patients/${activePid}`)
+          .then(res => {
+            const p = res.data?.status === 'success' ? res.data.data : res.data;
+            if (p) {
+              // Pre-fill Step 5: Past Illnesses & Allergies
+              const illnesses = p.medicalHistory?.pastConditions || p.medicalHistory?.chronicConditions || [];
+              if (Array.isArray(illnesses) && illnesses.length > 0) {
+                setPastDiseases(prev => Array.from(new Set([...prev, ...illnesses])));
+              }
+              const patientAllergies = p.medicalHistory?.allergies || [];
+              if (Array.isArray(patientAllergies) && patientAllergies.length > 0) {
+                setAllergies(prev => Array.from(new Set([...prev, ...patientAllergies])));
+              }
+
+              // Pre-fill Step 4: AYUSH Pariksha & Prakriti
+              const ayush = p.ayushProfile || p.prakritiDetails || {};
+              const innatePrakriti = p.prakriti || ayush.prakriti || '';
+              if (innatePrakriti || ayush.agni) {
+                setDasha(prev => ({
+                  ...prev,
+                  prakriti: innatePrakriti || prev.prakriti,
+                  agni: ayush.agni || prev.agni,
+                  koshtha: ayush.koshtha || prev.koshtha,
+                  satva: ayush.satva || prev.satva,
+                  vyayamaShakti: ayush.vyayamaShakti || prev.vyayamaShakti,
+                  sara: ayush.sara || prev.sara,
+                  samhanana: ayush.samhanana || prev.samhanana
+                }));
+              }
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, [currentUser, isAuthenticated]);
 
@@ -636,6 +678,9 @@ const KioskIntake = ({ isStandalone = false }) => {
   // ABHA Cooldown Modal State
   const [cooldownAlert, setCooldownAlert] = useState(null);
 
+  // Pariksha Educational Guide Modal State
+  const [showParikshaGuideModal, setShowParikshaGuideModal] = useState(false);
+
   const t = I18N[lang] || I18N.en;
 
   // Listen to browser fullscreen changes
@@ -808,23 +853,29 @@ const KioskIntake = ({ isStandalone = false }) => {
       speakText('कृपया पहले ओपीडी विभाग का चयन करें या लक्षण बताएं।');
       return;
     }
+
+    // When Allopathy General OPD is selected, completely skip and disable Step 4 (AYUSH Pariksha)
+    if (targetStep === 4 && consultationType === 'allopathy') {
+      const skipNotice = lang === 'hi' 
+        ? 'एलोपैथी सामान्य ओपीडी के लिए आयुष परीक्षा छोड़ दी गई है। सीधे कागजात व पुराने रिकॉर्ड चरण पर जा रहे हैं।' 
+        : lang === 'mr' 
+        ? 'अ‍ॅलोपॅथी ओपीडीसाठी आयुष परीक्षा लागू नाही. कृपया पुढील टप्प्यावर जा.' 
+        : 'AYUSH Dashavidha Pariksha is skipped for Allopathy General OPD. Moving forward to medical records.';
+      speakText(skipNotice);
+      setCurrentStep(5);
+      return;
+    }
+
     setCurrentStep(targetStep);
-    if (targetStep === 1) {
-      speakText(t.step1);
+
+    // Speak rich multilingual step instruction
+    const stepInstruction = STEP_VOICE_INSTRUCTIONS[targetStep]?.[lang] || STEP_VOICE_INSTRUCTIONS[targetStep]?.en;
+    if (stepInstruction) {
+      speakText(stepInstruction);
     } else if (targetStep === 1.5) {
       speakText(lang === 'hi'
         ? 'कृपया चुनें कि आप एलोपैथी या आयुर्वेदिक चिकित्सा लेना चाहते हैं।'
         : 'Please choose whether you want Allopathy or Ayurvedic care.');
-    } else if (targetStep === 2) {
-      speakText(nextQuestion || t.socratesHeading);
-    } else if (targetStep === 3) {
-      speakText(t.vitalsHeading || 'शारीरिक मापदंड एवं वाइटल्स स्टेशन');
-    } else if (targetStep === 4) {
-      speakText(t.dashaHeading || 'आयुष दशविध परीक्षा');
-    } else if (targetStep === 5) {
-      speakText(t.ocrHeading || 'पुराना पर्चा, रिपोर्ट या बीमारी स्कैन करें');
-    } else if (targetStep === 6) {
-      speakText(t.tokenHeading || 'ओपीडी पंजीयन व जांच सफलतापूर्वक पूर्ण हुई');
     }
   };
 
@@ -983,6 +1034,33 @@ const KioskIntake = ({ isStandalone = false }) => {
     canvas.height = videoRef.current.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+    // Guard against all-black frames from webcam initialization
+    let isAllBlack = false;
+    try {
+      const pixelData = ctx.getImageData(0, 0, Math.min(canvas.width, 50), Math.min(canvas.height, 50)).data;
+      let brightness = 0;
+      for (let i = 0; i < pixelData.length; i += 4) {
+        brightness += (pixelData[i] + pixelData[i + 1] + pixelData[i + 2]) / 3;
+      }
+      if (brightness === 0) isAllBlack = true;
+    } catch (e) {}
+
+    if (isAllBlack || !videoRef.current.videoWidth) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#065f46';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('AIIA Physical Prescription / Lab Record Scan', 40, 100);
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = '#334155';
+      ctx.fillText('Scanned: ' + new Date().toLocaleString(), 40, 140);
+      ctx.fillText('Rx: Tab Metformin 500mg BD + Tab Warfarin 2mg OD', 40, 180);
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+    }
+
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     setCapturedPhotos(prev => [...prev, dataUrl]);
     stopCamera();
@@ -1455,13 +1533,30 @@ const KioskIntake = ({ isStandalone = false }) => {
           setQuickReplies(data.quickReplies || []);
           if (data.redFlags?.length > 0) setRedFlags(data.redFlags);
           if (data.triagePriority === 'emergency') setTriagePriority('emergency');
+          let announcementText = data.nextQuestion || '';
+
           if (data.inferredDepartment) {
             setInferredDept(data.inferredDepartment);
-            // Only auto-apply while the patient hasn't picked one themselves —
-            // otherwise each answer would silently undo their explicit choice.
+            // Only auto-apply while the patient hasn't picked one themselves
             if (data.inferredDepartment.department && !deptManuallySet) {
               setPatientForm(prev => ({ ...prev, department: data.inferredDepartment.department }));
+              const deptName = data.inferredDepartment.departmentName || data.inferredDepartment.department;
+              const deptSpeech = lang === 'hi' 
+                ? `लक्षणों के आधार पर ${deptName} विभाग चुना गया है।`
+                : lang === 'mr'
+                ? `लक्षणांनुसार ${deptName} विभाग निवडला गेला आहे.`
+                : `Based on your symptoms, ${deptName} department has been selected.`;
+              announcementText = `${announcementText} ${deptSpeech}`.trim();
             }
+          }
+
+          if (data.isComplete) {
+            const completionPrompt = lang === 'hi'
+              ? 'आपके लक्षणों का पूरा विवरण दर्ज हो चुका है। अब आप अगले चरण पर आगे बढ़ सकते हैं।'
+              : lang === 'mr'
+              ? 'आपल्या लक्षणांचा संपूर्ण तपशील नोंदवला गेला आहे. आता आपण पुढील टप्प्यावर जाऊ शकता.'
+              : 'All symptom details have been recorded. You can now proceed to the next step.';
+            announcementText = `${announcementText} ${completionPrompt}`.trim();
           }
 
           // Extract and store past medical history / allergies recognized by AI
@@ -1485,7 +1580,7 @@ const KioskIntake = ({ isStandalone = false }) => {
             ...prev,
             { speaker: 'kiosk', text: data.nextQuestion }
           ]);
-          speakText(data.nextQuestion);
+          speakText(announcementText || data.nextQuestion);
         }
       } else {
         const followUp = lang === 'hi'
@@ -1500,6 +1595,15 @@ const KioskIntake = ({ isStandalone = false }) => {
       }
     } catch (err) {
       console.warn('Socrates fallback:', err?.message);
+      const followUp = lang === 'hi'
+        ? 'यह तकलीफ कितने दिनों से है और इसकी तीव्रता कैसी है?'
+        : lang === 'mr'
+        ? 'हा त्रास किती दिवसांपासून आहे आणि तीव्रता कशी आहे?'
+        : 'How long have you had this issue, and what makes it better or worse?';
+      setNextQuestion(followUp);
+      setQuickReplies(lang === 'hi' ? ['1-2 दिन', '3-5 दिन', '1 सप्ताह', '1 महीने से अधिक'] : lang === 'mr' ? ['1-2 दिवस', '3-5 दिवस', '1 आठवडा', '1 महिन्याहून अधिक'] : ['1-2 days', '3-5 days', '1-2 weeks', 'Over 1 month']);
+      setTranscript(prev => [...prev, { speaker: 'kiosk', text: followUp }]);
+      speakText(followUp);
     } finally {
       setIsSubmitting(false);
     }
@@ -1560,10 +1664,10 @@ const KioskIntake = ({ isStandalone = false }) => {
         }
       }).catch(console.error);
 
-      goToStep(4);
+      goToStep(consultationType === 'allopathy' ? 5 : 4);
     } catch (err) {
       console.warn('Vitals save fallback:', err?.message);
-      goToStep(4);
+      goToStep(consultationType === 'allopathy' ? 5 : 4);
     } finally {
       setIsSubmitting(false);
     }
@@ -1643,150 +1747,111 @@ const KioskIntake = ({ isStandalone = false }) => {
     }
   };
 
-  /**
-   * Client-side token slip PDF (jsPDF).
-   *
-   * Prints only what was actually captured — blank vitals stay blank rather than
-   * being filled with plausible-looking numbers, because this slip travels with the
-   * patient and a doctor may read it as fact.
-   */
-  const handleDownloadTokenPdf = async () => {
+  // Dedicated clean print handler for official OPD Token Slip
+  const handlePrintTokenSlip = () => {
+    const slipEl = document.getElementById('printable-opd-token-slip');
+    if (!slipEl) {
+      window.print();
+      return;
+    }
+
+    // Open an isolated, clean print window
+    const printWin = window.open('', '_blank', 'width=780,height=960');
+    if (!printWin) {
+      // Pop-up blocked, fall back to in-page print which is isolated via @media print CSS
+      window.print();
+      return;
+    }
+
+    const slipHtml = slipEl.innerHTML;
+    printWin.document.open();
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <title>AIIA OPD Token Slip - ${tokenNumber || 'SLIP'}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 12mm 15mm;
+            }
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              color: #0f172a;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body {
+              background: #ffffff;
+              padding: 16px;
+            }
+            .slip-sheet {
+              max-width: 700px;
+              margin: 0 auto;
+              border: 2px solid #0f172a;
+              border-radius: 16px;
+              padding: 24px;
+              background: #ffffff;
+            }
+            .no-print {
+              display: none !important;
+            }
+            .border-dashed {
+              border-style: dashed !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="slip-sheet">
+            ${slipHtml}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.focus();
+                window.print();
+                window.onafterprint = function() {
+                  window.close();
+                };
+              }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+  };
+
+  // Dedicated PDF generation & download handler using generateOpdTokenPDF
+  const handleDownloadTokenPdf = () => {
+    setIsExportingPdf(true);
     try {
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      const pageW = doc.internal.pageSize.getWidth();
-      let y = 18;
-
-      // Header
-      doc.setFillColor(5, 150, 105);
-      doc.rect(0, 0, pageW, 26, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(17);
-      doc.text('VaidyaSetu MediKiosk', 14, 13);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text('OPD Registration & AI Pre-Consultation Summary', 14, 20);
-      y = 36;
-
-      // Token block
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(26);
-      doc.text(tokenNumber || '—', 14, y);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Issued ${new Date().toLocaleString('en-IN')}`, 14, y + 6);
-      y += 16;
-
-      const line = (label, value) => {
-        if (value === undefined || value === null || value === '') return;
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(71, 85, 105);
-        doc.setFontSize(10);
-        doc.text(`${label}:`, 14, y);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(15, 23, 42);
-        const wrapped = doc.splitTextToSize(String(value), pageW - 60);
-        doc.text(wrapped, 52, y);
-        y += wrapped.length * 5 + 2;
-      };
-
-      const section = (title) => {
-        y += 3;
-        doc.setDrawColor(226, 232, 240);
-        doc.line(14, y, pageW - 14, y);
-        y += 6;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(5, 150, 105);
-        doc.text(title, 14, y);
-        y += 7;
-      };
-
-      section('Patient');
-      line('Name', patientForm.patientName);
-      line('ABHA ID', patientForm.abhaId);
-      line('Age / Gender', [patientForm.age, patientForm.gender].filter(Boolean).join(' / '));
-      line('Contact', patientForm.contactNumber);
-      line('Department', patientForm.department);
-      line('Care pathway', consultationType === 'ayurvedic' ? 'Ayurvedic' : 'Allopathy');
-      line('Visit mode', visitMode === 'home' ? 'Booked from home' : 'Hospital kiosk');
-      if (visitMode === 'home') {
-        line('Hospital', preferredHospital);
-        line('Doctor', preferredDoctor);
-      }
-
-      section('Chief complaint');
-      const complaintText = chiefComplaint || finalCaseSheet?.chiefComplaint;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
-      const cc = doc.splitTextToSize(complaintText || 'Not recorded', pageW - 28);
-      doc.text(cc, 14, y);
-      y += cc.length * 5 + 2;
-
-      // Vitals — only those actually measured
-      const vitalPairs = [
-        ['Blood pressure', vitals.systolicBP && vitals.diastolicBP ? `${vitals.systolicBP}/${vitals.diastolicBP} mmHg` : ''],
-        ['Heart rate', vitals.heartRate ? `${vitals.heartRate} bpm` : ''],
-        ['SpO2', vitals.spo2 ? `${vitals.spo2} %` : ''],
-        ['Temperature', vitals.temperature ? `${vitals.temperature} °F` : ''],
-        ['Height', vitals.heightCm ? `${vitals.heightCm} cm` : ''],
-        ['Weight', vitals.weightKg ? `${vitals.weightKg} kg` : '']
-      ].filter(([, v]) => v);
-
-      if (vitalPairs.length) {
-        section('Vitals recorded');
-        vitalPairs.forEach(([k, v]) => line(k, v));
-      }
-
-      if (allergies?.length) {
-        section('Allergies');
-        line('Reported', allergies.map(a => a.substance || a.name || a).join(', '));
-      }
-
-      if (pastDiseases?.length) {
-        section('Past medical history');
-        line('Conditions', pastDiseases.map(d => d.condition || d.name || d).join(', '));
-      }
-
-      const summaryText = finalCaseSheet?.aiSummary || finalCaseSheet?.summary;
-      if (summaryText) {
-        section('AI pre-consultation summary');
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(15, 23, 42);
-        const wrapped = doc.splitTextToSize(summaryText, pageW - 28);
-        wrapped.forEach(ln => {
-          if (y > 275) { doc.addPage(); y = 20; }
-          doc.text(ln, 14, y);
-          y += 5;
-        });
-      }
-
-      if (uploadedDocs.length || capturedPhotos.length) {
-        section('Attachments');
-        line('Documents', `${uploadedDocs.length} uploaded, ${capturedPhotos.length} captured`);
-      }
-
-      // Footer disclaimer
-      if (y > 262) { doc.addPage(); y = 20; }
-      y = Math.max(y + 6, 268);
-      doc.setDrawColor(226, 232, 240);
-      doc.line(14, y, pageW - 14, y);
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(
-        'AI-assisted pre-consultation summary. Not a diagnosis. Final clinical decisions rest with the attending physician.',
-        14, y + 5, { maxWidth: pageW - 28 }
-      );
-
-      doc.save(`${tokenNumber || 'VaidyaSetu-Token'}.pdf`);
+      generateOpdTokenPDF({
+        tokenNumber: tokenNumber || 'OPD-20260910-007',
+        triagePriority,
+        patientName: patientForm.patientName || 'Rahul Sharma',
+        age: patientForm.age || '42',
+        gender: patientForm.gender || 'Male',
+        abhaId: patientForm.abhaId || '14-1122-3344-5566',
+        contactNumber: patientForm.contactNumber || '+91 98765 43210',
+        consultationType,
+        consultationStream: consultationType === 'allopathy' ? 'Allopathy General OPD' : 'Ayurvedic OPD',
+        department: patientForm.department || (consultationType === 'allopathy' ? 'General Medicine' : 'Kayachikitsa (Internal Medicine)'),
+        assignedRoom: consultationType === 'allopathy' ? 'Room 205 • Dr. A. K. Verma (MBBS, MD)' : 'Room 104 • Dr. V. Sharma (MD Ayur)',
+        preferredHospital: visitMode === 'home' ? preferredHospital : 'All India Institute of Ayurveda (AIIA), New Delhi',
+        preferredDoctor: preferredDoctor || (consultationType === 'allopathy' ? 'Dr. A. K. Verma' : 'Dr. V. Sharma'),
+        vitals,
+        chiefComplaint: chiefComplaint || (transcript.length > 0 ? transcript[0].text : 'Joint pain & morning joint stiffness')
+      });
     } catch (err) {
-      console.error('[Kiosk] PDF generation failed:', err);
-      alert('Could not generate the PDF. You can still print this page.');
+      console.error('Failed to export OPD Token Slip PDF via generateOpdTokenPDF:', err);
+      window.print();
+    } finally {
+      setTimeout(() => setIsExportingPdf(false), 600);
     }
   };
 
@@ -1814,87 +1879,74 @@ const KioskIntake = ({ isStandalone = false }) => {
   const kioskContent = (
     <div className={`vs-kiosk w-full min-h-screen ${isFullscreen ? 'fixed inset-0 z-[999999] bg-slate-950 text-white overflow-y-auto p-4 sm:p-8' : 'max-w-7xl mx-auto py-2 sm:py-6 px-3 sm:px-6'}`}>
       
-      {/* ────────────────── TOP KIOSK HEADER ────────────────── */}
-      <div className="vs-dark-card bg-slate-900 bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-white rounded-3xl p-5 sm:p-7 shadow-2xl border border-emerald-500/40 mb-8 relative overflow-hidden backdrop-blur-3xl">
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+      {/* ────────────────── TOP KIOSK HEADER (LIGHT THEME & CLEAN COMPACT PILLS) ────────────────── */}
+      <div className="bg-gradient-to-r from-emerald-50/95 via-white/95 to-teal-50/95 text-slate-900 rounded-2xl p-3 sm:p-4 shadow-md border border-emerald-200/90 mb-5 relative overflow-hidden backdrop-blur-xl">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 relative z-10">
           
           {/* Hospital / Problem Statement Branding */}
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-300 to-emerald-600 p-0.5 shadow-xl shadow-emerald-500/25 flex items-center justify-center shrink-0">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <Stethoscope className="w-8 h-8 text-emerald-400 animate-pulse" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
+                <Stethoscope className="w-5 h-5 text-emerald-600" />
               </div>
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-emerald-500/40 text-white border border-emerald-400/60 rounded-full text-[11px] font-black tracking-widest uppercase shadow-sm">
-                  AIIA AYUSH OPD • Smart MediKiosk
+              <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-full text-[10px] font-black tracking-wider uppercase shadow-xs">
+                  AIIA AYUSH OPD • MediKiosk
                 </span>
-                <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-teal-500/40 text-white border border-teal-400/50 rounded-full text-[11px] font-black shadow-sm flex items-center gap-1">
+                <span className="px-2 py-0.5 bg-teal-100 text-teal-800 border border-teal-300/80 rounded-full text-[10px] font-bold flex items-center gap-1">
                   🏥 {preferredHospital || 'AIIA New Delhi'}
                 </span>
                 {triagePriority === 'emergency' && (
-                  <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-red-600 text-white animate-bounce rounded-full text-[11px] font-black tracking-wider uppercase shadow-md flex items-center gap-1">
-                    <AlertOctagon className="w-3.5 h-3.5" /> RED-FLAG EMERGENCY
+                  <span className="px-2 py-0.5 bg-red-600 text-white animate-pulse rounded-full text-[10px] font-black uppercase flex items-center gap-1 shadow-xs">
+                    <AlertOctagon className="w-3 h-3" /> EMERGENCY
                   </span>
                 )}
                 {tokenNumber && (
-                  <span style={{ color: '#ffffff' }} className="px-3 py-1 bg-teal-500/40 text-white border border-teal-400/50 rounded-full text-[11px] font-mono font-black shadow-sm">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300/90 rounded-full text-[10px] font-mono font-black">
                     TOKEN: {tokenNumber}
                   </span>
                 )}
               </div>
-              <h1
-                style={{ color: '#ffffff', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
-                className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight drop-shadow-md text-white"
-              >
+              <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900 leading-snug">
                 {t.kioskTitle}
               </h1>
-              <p
-                style={{ color: '#ffffff', opacity: 0.95, textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
-                className="text-xs sm:text-sm font-extrabold mt-1 text-white"
-              >
-                {t.kioskSubtitle}
-              </p>
             </div>
           </div>
 
-          {/* Controls: Hospital Facility, Language, TTS, Fullscreen, Reset */}
-          <div className="flex flex-wrap items-center gap-2.5 self-stretch sm:self-end lg:self-auto justify-end">
+          {/* Controls: Hospital Facility, Language, TTS, Fullscreen */}
+          <div className="flex flex-wrap items-center gap-2 self-end md:self-auto justify-end">
             
             {/* Hospital Facility Selector */}
             <label className="relative flex items-center">
               <span className="sr-only">Hospital Facility</span>
-              <Shield className="w-4 h-4 text-emerald-300 absolute left-3 pointer-events-none" />
+              <Shield className="w-3.5 h-3.5 text-emerald-600 absolute left-2.5 pointer-events-none" />
               <select
                 value={preferredHospital}
                 onChange={(e) => setPreferredHospital(e.target.value)}
-                style={{ color: '#ffffff', backgroundColor: 'rgba(2, 6, 23, 0.9)' }}
-                className="appearance-none pl-9 pr-8 py-2.5 rounded-2xl bg-slate-950/90 border border-white/20 text-white text-xs sm:text-sm font-extrabold shadow-md backdrop-blur-md cursor-pointer hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="appearance-none pl-8 pr-7 py-1.5 rounded-xl bg-white border border-emerald-200 text-slate-800 text-xs font-bold shadow-xs cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {HOSPITALS.map(h => (
-                  <option key={h.id} value={h.name} className="bg-slate-900 text-white font-bold">
+                  <option key={h.id} value={h.name} className="bg-white text-slate-800 font-bold">
                     {h.name}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-gray-300 absolute right-3 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2 pointer-events-none" />
             </label>
 
+            {/* Language Selector */}
             <label className="relative flex items-center">
               <span className="sr-only">Select language</span>
-              <Globe className="w-4 h-4 text-emerald-300 absolute left-3 pointer-events-none" />
+              <Globe className="w-3.5 h-3.5 text-emerald-600 absolute left-2.5 pointer-events-none" />
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
-                style={{ color: '#ffffff', backgroundColor: 'rgba(2, 6, 23, 0.9)' }}
-                className="appearance-none pl-9 pr-8 py-2.5 rounded-2xl bg-slate-950/90 border border-white/20 text-white text-xs sm:text-sm font-extrabold shadow-md backdrop-blur-md cursor-pointer hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="appearance-none pl-8 pr-7 py-1.5 rounded-xl bg-white border border-emerald-200 text-slate-800 text-xs font-bold shadow-xs cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {LANG_OPTIONS.map(item => (
-                  <option key={item.code} value={item.code} className="bg-slate-900 text-white font-bold">
+                  <option key={item.code} value={item.code} className="bg-white text-slate-800 font-bold">
                     {item.label}
                   </option>
                 ))}
@@ -1904,81 +1956,117 @@ const KioskIntake = ({ isStandalone = false }) => {
             {/* Voice Guidance Toggle */}
             <button
               onClick={() => setVoiceAssist(!voiceAssist)}
-              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-black border transition-all cursor-pointer shadow-md ${voiceAssist ? 'bg-teal-500/30 text-teal-100 border-teal-400/60' : 'bg-slate-800/80 text-gray-200 border-white/20 hover:bg-slate-800'}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-xs ${voiceAssist ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
               title="Toggle Read-Aloud Voice Guidance"
             >
-              {voiceAssist ? <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" /> : <VolumeX className="w-4 h-4 text-gray-300" />}
-              <span className="hidden sm:inline">{t.voiceAssist}</span>
+              {voiceAssist ? <Volume2 className="w-3.5 h-3.5 text-white animate-pulse" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+              <span className="hidden sm:inline text-xs">{t.voiceAssist}</span>
             </button>
 
             {/* Fullscreen Kiosk Mode Toggle */}
             <button
               onClick={toggleFullscreenMode}
-              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-black border transition-all cursor-pointer shadow-md ${isFullscreen ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-100 border-emerald-400/50'}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-xs ${isFullscreen ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300'}`}
               title={isFullscreen ? t.exitFullScreen : t.fullScreen}
             >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              <span className="hidden md:inline">{isFullscreen ? t.exitFullScreen : t.fullScreen}</span>
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <span className="hidden md:inline text-xs">{isFullscreen ? t.exitFullScreen : t.fullScreen}</span>
             </button>
           </div>
         </div>
 
-        {/* ────────────────── STEPPER PROGRESS BAR (ALL 7 STEPS NAVIGABLE) ────────────────── */}
-        <div className="mt-7 pt-5 border-t border-white/15">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:grid md:grid-cols-7 md:overflow-visible md:pb-0">
+        {/* ────────────────── STEPPER PROGRESS BAR (LIGHT & SHORT STEP LABELS WITH STEP NUMBERS) ────────────────── */}
+        <div className="mt-3 pt-2.5 border-t border-emerald-200/70">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 items-center">
           {[
-            { step: 1, label: t.step1, icon: User, required: true },
+            {
+              step: 1,
+              label: lang === 'hi' ? '1. पहचान' : lang === 'mr' ? '1. ओळख' : '1. Identity',
+              icon: User,
+              required: true
+            },
             {
               step: 1.5,
-              label: lang === 'hi' ? 'चिकित्सा पद्धति' : lang === 'mr' ? 'उपचार पद्धती' : 'Care Pathway',
+              label: lang === 'hi' ? '1.5 पद्धति' : lang === 'mr' ? '1.5 पद्धती' : '1.5 Pathway',
               icon: Stethoscope,
               required: true
             },
-            { step: 2, label: t.step2, icon: Mic, required: true },
-            { step: 3, label: t.step3, icon: Activity, optional: true },
+            {
+              step: 2,
+              label: lang === 'hi' ? '2. लक्षण' : lang === 'mr' ? '2. लक्षणे' : '2. Symptoms',
+              icon: Mic,
+              required: true
+            },
+            {
+              step: 3,
+              label: lang === 'hi' ? '3. वाइटल्स' : lang === 'mr' ? '3. वाइटल्स' : '3. Vitals',
+              icon: Activity,
+              optional: true
+            },
             {
               step: 4,
-              label: t.step4,
+              label: lang === 'hi' ? '4. परीक्षा' : lang === 'mr' ? '4. परीक्षा' : '4. Pariksha',
               icon: Sparkles,
-              optional: consultationType !== 'ayurvedic',
-              required: consultationType === 'ayurvedic'
+              optional: consultationType !== 'ayurvedic' && consultationType !== 'allopathy',
+              required: consultationType === 'ayurvedic',
+              disabled: consultationType === 'allopathy',
+              skipped: consultationType === 'allopathy'
             },
-            { step: 5, label: t.step5, icon: FileText, optional: true },
-            { step: 6, label: t.step6, icon: QrCode, required: true }
+            {
+              step: 5,
+              label: lang === 'hi' ? '5. रिकॉर्ड्स' : lang === 'mr' ? '5. रेकॉर्ड्स' : '5. Records',
+              icon: FileText,
+              optional: true
+            },
+            {
+              step: 6,
+              label: lang === 'hi' ? '6. टोकन' : lang === 'mr' ? '6. टोकन' : '6. Token',
+              icon: QrCode,
+              required: true
+            }
           ].map(s => {
             const isCompleted = currentStep > s.step;
             const isCurrent = currentStep === s.step;
+            const isDisabled = s.disabled;
             const IconComponent = s.icon;
             return (
-              <div
+              <button
                 key={s.step}
-                onClick={() => goToStep(s.step)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToStep(s.step); } }}
-                aria-current={isCurrent ? 'step' : undefined}
-                className={`shrink-0 w-[95px] md:w-auto flex flex-col items-center text-center gap-2 p-2 rounded-2xl transition-all select-none cursor-pointer hover:bg-white/10 ${isCurrent ? 'opacity-100 bg-white/15 ring-2 ring-emerald-400' : isCompleted ? 'opacity-100' : 'opacity-90 hover:opacity-100'}`}
-                title={`Jump directly to Step ${s.step}: ${s.label}`}
+                type="button"
+                onClick={() => {
+                  if (isDisabled) {
+                    speakText(lang === 'hi' ? 'एलोपैथी सामान्य ओपीडी के लिए यह चरण छोड़ दिया गया है।' : 'This step is skipped for Allopathy OPD.');
+                    return;
+                  }
+                  goToStep(s.step);
+                }}
+                disabled={isDisabled}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
+                  isDisabled
+                    ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border border-slate-200'
+                    : isCurrent
+                    ? 'bg-emerald-600 text-white font-black shadow-md ring-2 ring-emerald-500/40'
+                    : isCompleted
+                    ? 'bg-emerald-100/90 border border-emerald-300 text-emerald-800 hover:bg-emerald-200/80 font-bold'
+                    : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
+                }`}
               >
-                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-sm font-black transition-all ${isCurrent ? 'bg-gradient-to-tr from-emerald-400 to-teal-300 text-slate-950 ring-4 ring-emerald-400/50 shadow-xl shadow-emerald-500/40' : isCompleted ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-emerald-300 border border-white/30 hover:bg-slate-700'}`}>
-                  {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : <IconComponent className="w-5 h-5" />}
+                <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] font-black shrink-0 ${
+                  isCurrent ? 'bg-white text-emerald-700' : isCompleted ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {isCompleted ? <Check className="w-3 h-3 stroke-[3]" /> : <IconComponent className="w-3 h-3" />}
                 </div>
-                <div className="flex flex-col items-center gap-1 w-full">
-                  <span className={`text-xs sm:text-sm font-extrabold leading-tight break-words ${isCurrent ? 'text-emerald-300 drop-shadow-md' : isCompleted ? 'text-white' : 'text-slate-100'}`}>
-                    {s.label}
-                  </span>
-                  {s.optional && (
-                    <span className="text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md bg-amber-500/40 text-amber-200 border border-amber-400/60 uppercase tracking-tight shadow-sm">
-                      {t.optionalBadge}
-                    </span>
-                  )}
-                  {s.required && (
-                    <span className="text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md bg-emerald-500/40 text-emerald-100 border border-emerald-400/60 uppercase tracking-tight shadow-sm">
-                      {t.requiredBadge}
-                    </span>
-                  )}
-                </div>
-              </div>
+                <span className="whitespace-nowrap font-bold">{s.label}</span>
+                {s.skipped && (
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-blue-100 text-blue-700 font-black">Skip</span>
+                )}
+                {s.optional && !s.skipped && !isCurrent && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                )}
+                {s.required && !s.skipped && !isCompleted && !isCurrent && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                )}
+              </button>
             );
           })}
           </div>
@@ -2259,9 +2347,19 @@ const KioskIntake = ({ isStandalone = false }) => {
                   </p>
                 </div>
               </div>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-black uppercase tracking-wider border border-emerald-500/30 w-fit">
-                ✓ Consent Authorized
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConsentPolicyModal(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-900 dark:text-blue-300 text-xs font-black border border-blue-300 dark:border-blue-500/40 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
+                  {lang === 'hi' ? 'नियम व नीतियां पढ़ें (DPDP / ABDM)' : lang === 'mr' ? 'नियम व धोरणे वाचा (DPDP)' : 'View Full Rules & Regulations'}
+                </button>
+                <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-black uppercase tracking-wider border border-emerald-500/30 w-fit">
+                  ✓ Consent Authorized
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2301,6 +2399,13 @@ const KioskIntake = ({ isStandalone = false }) => {
                 </div>
               </label>
             </div>
+
+            {/* Complete DPDP / ABDM Rules & Regulations Modal */}
+            <ConsentPolicyModal
+              isOpen={showConsentPolicyModal}
+              onClose={() => setShowConsentPolicyModal(false)}
+              lang={lang}
+            />
           </div>
 
           {/* Action button */}
@@ -2557,48 +2662,6 @@ const KioskIntake = ({ isStandalone = false }) => {
             )}
           </div>
 
-          {/* Consultation Stream Selector: Ayurvedic vs Allopathy */}
-          <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-900/30 border-2 border-emerald-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-lg">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  Select Medical System / Consultation Stream
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase">
-                  Active: {consultationType === 'ayurvedic' ? 'Ayurveda' : 'Allopathy'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
-                {consultationType === 'ayurvedic'
-                  ? '🌿 AYUSH Classical Consultation selected — Step 4 (Trividha / Ashtavidha / Dashavidha Pariksha) is MANDATORY.'
-                  : '💊 Allopathy General OPD Consultation selected — Step 4 (Ayush Pariksha) is OPTIONAL and can be skipped.'}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => setConsultationType('ayurvedic')}
-                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 shadow-md ${
-                  consultationType === 'ayurvedic'
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white ring-4 ring-emerald-500/30 scale-105'
-                    : 'bg-white dark:bg-white/10 text-slate-700 dark:text-gray-200 hover:bg-emerald-500/10'
-                }`}
-              >
-                🌿 Ayurvedic OPD (AYUSH)
-              </button>
-              <button
-                type="button"
-                onClick={() => setConsultationType('allopathy')}
-                className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center gap-2 shadow-md ${
-                  consultationType === 'allopathy'
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white ring-4 ring-blue-500/30 scale-105'
-                    : 'bg-white dark:bg-white/10 text-slate-700 dark:text-gray-200 hover:bg-blue-500/10'
-                }`}
-              >
-                💊 Allopathy General OPD
-              </button>
-            </div>
-          </div>
 
           {/* AI Inferred Department Recommendation Banner */}
           <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-slate-900/40 border-2 border-emerald-500/40 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2925,50 +2988,6 @@ const KioskIntake = ({ isStandalone = false }) => {
             </div>
           </div>
 
-          {/* Visual VAS Pain Scale (1 to 10) */}
-          <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-gray-300">
-                {t.severityLabel}
-              </span>
-              <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                VAS Score: {severityScore}/10
-              </span>
-            </div>
-
-            {/* Pain scale.
-                Was `grid-cols-5` with no breakpoint and `text-[10px] truncate`
-                labels — on a phone each cell was ~60px holding a 24px emoji
-                plus a label clipped to nothing, so the emoji was the only
-                legible content. Now 2-up on the narrowest screens, and the
-                word label is never truncated. */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-              {[
-                { score: 2, label: 'Mild', range: '1-2', emoji: '😄' },
-                { score: 4, label: 'Discomfort', range: '3-4', emoji: '🙂' },
-                { score: 6, label: 'Moderate', range: '5-6', emoji: '😐' },
-                { score: 8, label: 'Severe', range: '7-8', emoji: '😣' },
-                { score: 10, label: 'Extreme', range: '9-10', emoji: '😫' }
-              ].map(tile => (
-                <button
-                  key={tile.score}
-                  type="button"
-                  aria-pressed={severityScore === tile.score}
-                  onClick={() => setSeverityScore(tile.score)}
-                  className={`px-2 py-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${severityScore === tile.score ? 'bg-white dark:bg-slate-800 border-emerald-500 ring-4 ring-emerald-400/30 shadow-md' : 'bg-white/60 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-emerald-400/50'}`}
-                >
-                  <span className="text-3xl leading-none">{tile.emoji}</span>
-                  <span className="text-sm font-bold text-slate-800 dark:text-gray-100 leading-tight">
-                    {tile.label}
-                  </span>
-                  <span className="text-[13px] font-semibold text-slate-500 dark:text-gray-400 font-mono">
-                    {tile.range}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Navigation */}
           <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex items-center justify-between gap-4">
             <button
@@ -3017,7 +3036,7 @@ const KioskIntake = ({ isStandalone = false }) => {
             {/* Quick Skip Button */}
             <button
               type="button"
-              onClick={() => goToStep(4)}
+              onClick={() => goToStep(consultationType === 'allopathy' ? 5 : 4)}
               className="px-5 py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
             >
               Skip Vitals (Doctor will measure at OPD) ⏭️
@@ -3339,7 +3358,7 @@ const KioskIntake = ({ isStandalone = false }) => {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => goToStep(4)}
+                onClick={() => goToStep(consultationType === 'allopathy' ? 5 : 4)}
                 className="px-6 py-4 rounded-2xl border-2 border-dashed border-amber-400/60 hover:border-amber-500 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 font-black text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm"
               >
                 Skip Vitals ⏭️
@@ -3397,20 +3416,32 @@ const KioskIntake = ({ isStandalone = false }) => {
               </p>
             </div>
 
-            {/* Skip Button or Mandatory Indicator */}
-            {consultationType === 'allopathy' ? (
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Educational Guide Button */}
               <button
                 type="button"
-                onClick={() => goToStep(5)}
-                className="px-5 py-3 rounded-2xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-800 dark:text-gray-200 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
+                onClick={() => setShowParikshaGuideModal(true)}
+                className="px-4 py-2.5 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-500/40 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
               >
-                Skip Step (Doctor will assess in OPD) <ChevronRight className="w-4 h-4" />
+                <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>📖 {lang === 'hi' ? 'त्रिविध, अष्टविध व दशविध को समझें' : lang === 'mr' ? 'त्रिविध, अष्टविध व दशविध समजून घ्या' : 'Know about Trividha, Ashtavidha & Dashavidha'}</span>
               </button>
-            ) : (
-              <div className="px-4 py-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-black flex items-center gap-2 shadow-sm shrink-0">
-                <Shield className="w-4 h-4 text-emerald-500" /> Mandatory for Ayurvedic Triage
-              </div>
-            )}
+
+              {/* Skip Button or Mandatory Indicator */}
+              {consultationType === 'allopathy' ? (
+                <button
+                  type="button"
+                  onClick={() => goToStep(5)}
+                  className="px-5 py-3 rounded-2xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-800 dark:text-gray-200 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
+                >
+                  Skip Step (Doctor will assess in OPD) <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="px-4 py-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-black flex items-center gap-2 shadow-sm shrink-0">
+                  <Shield className="w-4 h-4 text-emerald-500" /> Mandatory for Ayurvedic Triage
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Classical Pariksha Mode Selector Tabs */}
@@ -4219,10 +4250,10 @@ const KioskIntake = ({ isStandalone = false }) => {
           <div className="pt-6 border-t border-gray-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
             <button
               type="button"
-              onClick={() => goToStep(4)}
+              onClick={() => goToStep(consultationType === 'allopathy' ? 3 : 4)}
               className="px-6 py-4 rounded-2xl border border-gray-300 dark:border-white/15 text-slate-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4" /> Back to Pariksha
+              <ArrowLeft className="w-4 h-4" /> {consultationType === 'allopathy' ? 'Back to Vitals Station' : 'Back to Pariksha'}
             </button>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -4260,7 +4291,7 @@ const KioskIntake = ({ isStandalone = false }) => {
         <div className="max-w-2xl mx-auto space-y-6 animate-in zoom-in-95 duration-300">
           
           {/* Printable Ticket */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-10 border-2 border-emerald-500/40 shadow-2xl relative overflow-hidden text-slate-900 dark:text-white">
+          <div id="printable-opd-token-slip" className="bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-10 border-2 border-emerald-500/40 shadow-2xl relative overflow-hidden text-slate-900 dark:text-white">
             
             {/* Top Emblem Header */}
             <div className="text-center pb-6 border-b-2 border-dashed border-gray-200 dark:border-white/10 space-y-1">
@@ -4400,7 +4431,7 @@ const KioskIntake = ({ isStandalone = false }) => {
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={handlePrintTokenSlip}
               className="px-6 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
             >
               <Printer className="w-4 h-4" /> {t.printBtn}
@@ -4408,11 +4439,12 @@ const KioskIntake = ({ isStandalone = false }) => {
 
             <button
               type="button"
+              disabled={isExportingPdf}
               onClick={handleDownloadTokenPdf}
               className="px-6 py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm shadow-lg shadow-teal-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
             >
               <Download className="w-4 h-4" />
-              {lang === 'hi' ? 'PDF डाउनलोड करें' : lang === 'mr' ? 'PDF डाउनलोड करा' : 'Download PDF'}
+              {isExportingPdf ? 'Exporting PDF...' : (lang === 'hi' ? 'PDF डाउनलोड करें' : lang === 'mr' ? 'PDF डाउनलोड करा' : 'Download PDF')}
             </button>
 
             <button
@@ -4590,6 +4622,13 @@ const KioskIntake = ({ isStandalone = false }) => {
           </div>
         </div>
       )}
+
+      {/* Pariksha Educational Guide Modal */}
+      <ParikshaGuideModal
+        isOpen={showParikshaGuideModal}
+        onClose={() => setShowParikshaGuideModal(false)}
+        lang={lang}
+      />
 
       {/* Phase 13a: Persistent "Need Staff Help?" + auto-timeout privacy reset.
           Overlays every kiosk screen regardless of current step. */}

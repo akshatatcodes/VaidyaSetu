@@ -14,10 +14,11 @@ const LiveQueueStatus = () => {
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [queueData, setQueueData] = useState(null);
+  const [pastTokens, setPastTokens] = useState([]);
   const [followUps, setFollowUps] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const activePatientId = currentUser?.patientId || currentUser?.id;
+  const activePatientId = currentUser?.patientId || currentUser?.id || currentUser?.userId;
 
   const loadQueueAndFollowups = async () => {
     if (!activePatientId) {
@@ -26,16 +27,23 @@ const LiveQueueStatus = () => {
     }
     setRefreshing(true);
     try {
-      const [qRes, fRes] = await Promise.all([
+      const [qRes, fRes, encRes] = await Promise.all([
         axios.get(`${API_URL}/queue/my/${activePatientId}`).catch(() => ({ data: { data: null } })),
-        axios.get(`${API_URL}/continuity/followups?patientId=${activePatientId}`).catch(() => ({ data: { data: [] } }))
+        axios.get(`${API_URL}/continuity/followups?patientId=${activePatientId}`).catch(() => ({ data: { data: [] } })),
+        axios.get(`${API_URL}/encounters/patient/${activePatientId}`).catch(() => ({ data: { data: [] } }))
       ]);
 
-      if (qRes.data.status === 'success') {
+      if (qRes.data?.status === 'success') {
         setQueueData(qRes.data.data);
+        if (Array.isArray(qRes.data.pastVisits) && qRes.data.pastVisits.length > 0) {
+          setPastTokens(qRes.data.pastVisits);
+        }
       }
-      if (fRes.data.status === 'success') {
+      if (fRes.data?.status === 'success') {
         setFollowUps(fRes.data.data || []);
+      }
+      if (encRes.data?.status === 'success' && Array.isArray(encRes.data.data) && encRes.data.data.length > 0) {
+        setPastTokens(prev => prev.length > 0 ? prev : encRes.data.data);
       }
     } catch (err) {
       console.error('Error loading live queue status:', err);
@@ -152,6 +160,71 @@ const LiveQueueStatus = () => {
           </Link>
         </div>
       )}
+
+      {/* Past OPD Visits & Token History */}
+      <div className="space-y-4 mb-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-black uppercase tracking-widest text-teal-700 flex items-center gap-2">
+            <Calendar size={15} /> Past OPD Visits & Token History
+          </h2>
+          <span className="text-xs text-slate-500 font-bold">
+            {pastTokens.length} Previous {pastTokens.length === 1 ? 'Visit' : 'Visits'}
+          </span>
+        </div>
+
+        {pastTokens.length > 0 ? (
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="px-5 py-3.5">Token Number</th>
+                    <th className="px-5 py-3.5">Date</th>
+                    <th className="px-5 py-3.5">Department</th>
+                    <th className="px-5 py-3.5">Doctor / Room</th>
+                    <th className="px-5 py-3.5">Diagnosis / Reason</th>
+                    <th className="px-5 py-3.5 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                  {pastTokens.map((vt, idx) => (
+                    <tr key={vt.id || vt._id || idx} className="hover:bg-teal-50/40 transition-colors">
+                      <td className="px-5 py-3.5 font-mono font-black text-teal-700">
+                        {vt.tokenNumber || `OPD-${idx + 1}`}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 font-bold">
+                        {vt.date || 'Recent'}
+                      </td>
+                      <td className="px-5 py-3.5 font-bold">
+                        {vt.department || 'Kayachikitsa (Internal Medicine)'}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600">
+                        {vt.doctorName || vt.doctor || 'OPD Duty Doctor'}
+                      </td>
+                      <td className="px-5 py-3.5 max-w-xs truncate text-slate-600">
+                        {vt.diagnosis || vt.summary || 'Clinical Consultation'}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          (vt.status || '').toLowerCase() === 'queued'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}>
+                          {vt.status || 'Completed'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 bg-white border border-slate-200 rounded-3xl text-center text-slate-500 text-xs shadow-sm">
+            No previous OPD token visits found in records.
+          </div>
+        )}
+      </div>
 
       {/* Scheduled Follow-up Slots Section (§33–34) */}
       <div className="space-y-4">

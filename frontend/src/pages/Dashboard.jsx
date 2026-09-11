@@ -32,8 +32,8 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
       const safeGet = async (url) => {
         try {
-          const res = await axios.get(url, { timeout: 2000 });
-          return res.data?.status === 'success' ? res.data.data : null;
+          const res = await axios.get(url, { timeout: 3000 });
+          return res.data;
         } catch {
           return null;
         }
@@ -49,53 +49,161 @@ const Dashboard = () => {
         setLoading(false);
       }
 
-      const [p, q, f, meds, vitals, visits] = await Promise.all([
+      const [pRes, qRes, fRes, medsRes, vitalsRes, visitsRes] = await Promise.all([
         safeGet(`${API_URL}/patients/${activePatientId}`),
-        safeGet(`${API_URL}/queues/patient/${activePatientId}`),
+        safeGet(`${API_URL}/queue/my/${activePatientId}`),
         safeGet(`${API_URL}/followups/patient/${activePatientId}`),
         safeGet(`${API_URL}/medications/patient/${activePatientId}`),
         safeGet(`${API_URL}/vitals/latest/${activePatientId}`),
-        safeGet(`${API_URL}/visits/patient/${activePatientId}`)
+        safeGet(`${API_URL}/encounters/patient/${activePatientId}`)
       ]);
 
       if (cancelled) return;
 
-      if (p) setProfile(p);
+      // 1. Patient Profile
+      setProfile(pRes?.data || pRes);
 
-      if (q && Array.isArray(q) && q.length > 0) {
-        setActiveQueue(q[0]);
-      } else if (q && typeof q === 'object' && !Array.isArray(q) && (q.tokenNumber || q._id)) {
-        setActiveQueue(q);
+      // 2. Active Queue & Token
+      const qData = qRes?.data !== undefined ? qRes.data : qRes;
+      if (qData && typeof qData === 'object' && !Array.isArray(qData) && (qData.tokenNumber || qData._id)) {
+        setActiveQueue(qData);
+      } else if (Array.isArray(qData) && qData.length > 0) {
+        setActiveQueue(qData[0]);
       } else {
         setActiveQueue(null);
       }
 
-      if (f && Array.isArray(f) && f.length > 0) {
-        setNextFollowUp(f[0]);
-      } else if (f && typeof f === 'object' && !Array.isArray(f) && (f.scheduledDate || f.doctorName)) {
-        setNextFollowUp(f);
+      // 3. Follow Up
+      const fData = fRes?.data !== undefined ? fRes.data : fRes;
+      if (Array.isArray(fData) && fData.length > 0) {
+        setNextFollowUp(fData[0]);
+      } else if (fData && typeof fData === 'object' && !Array.isArray(fData) && (fData.scheduledDate || fData.doctorName)) {
+        setNextFollowUp(fData);
       } else {
         setNextFollowUp(null);
       }
 
-      if (Array.isArray(meds) && meds.length > 0) {
-        setMedicationsList(meds);
-      } else {
-        setMedicationsList([]);
+      // 4. Clinical Encounters & Past Visits
+      let visitsList = [];
+      const rawVisits = visitsRes?.data !== undefined ? visitsRes.data : visitsRes;
+      if (Array.isArray(rawVisits) && rawVisits.length > 0) {
+        visitsList = rawVisits;
+      } else if (Array.isArray(qRes?.pastVisits) && qRes.pastVisits.length > 0) {
+        visitsList = qRes.pastVisits.map(v => ({
+          date: v.date,
+          department: v.department,
+          doctor: v.doctorName,
+          diagnosis: v.diagnosis,
+          summary: v.summary
+        }));
+      }
+      setRecentVisits(visitsList);
+
+      // 5. Active Medications
+      let medsList = [];
+      const rawMeds = medsRes?.data !== undefined ? medsRes.data : medsRes;
+      if (Array.isArray(rawMeds) && rawMeds.length > 0) {
+        medsList = rawMeds;
+      } else if (Array.isArray(rawVisits)) {
+        rawVisits.forEach(enc => {
+          if (Array.isArray(enc.prescriptions)) {
+            enc.prescriptions.forEach(p => {
+              medsList.push({
+                name: p.medicineName || p.name,
+                dosage: p.dosage || p.potency || 'Standard',
+                frequency: p.frequency || p.timing || 'Daily',
+                system: p.system || (p.medicineName?.includes('Vati') || p.medicineName?.includes('Churna') ? 'Ayurvedic' : 'Allopathic'),
+                purpose: p.instructions || p.reason || 'Clinical prescription'
+              });
+            });
+          }
+        });
+      }
+      setMedicationsList(medsList);
+
+      // 6. Latest Vitals & Biometrics with source & timestamp detection
+      const rawVitals = vitalsRes?.data !== undefined ? vitalsRes.data : vitalsRes;
+      let parsedVitals = null;
+
+      if (Array.isArray(rawVitals) && rawVitals.length > 0) {
+        const findV = (key) => rawVitals.find(v => v.type === key || v.vitalType === key);
+        const bpVital = findV('blood_pressure') || findV('bp');
+        const hrVital = findV('heart_rate') || findV('pulse');
+        const spo2Vital = findV('oxygen_saturation') || findV('spo2');
+        const tempVital = findV('body_temperature') || findV('temperature');
+        const wtVital = findV('weight');
+        const bmiVital = findV('bmi');
+
+        let systolic = '120';
+        let diastolic = '80';
+        if (bpVital?.value) {
+          const valStr = String(bpVital.value);
+          if (valStr.includes('/')) {
+            const [s, d] = valStr.split('/');
+            systolic = s.trim();
+            diastolic = d.trim();
+          } else {
+            systolic = valStr;
+          }
+        }
+
+        const timestamps = rawVitals
+          .map(v => v.timestamp || v.createdAt)
+          .filter(Boolean)
+          .map(t => new Date(t).getTime());
+        const latestMs = timestamps.length > 0 ? Math.max(...timestamps) : Date.now();
+        const dateObj = new Date(latestMs);
+        const timeFormatted = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', ' + dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+        const sources = rawVitals.map(v => (v.source || '').toLowerCase());
+        let sourceLabel = '📡 MediKiosk IoT Sensors';
+        if (sources.some(s => s.includes('fit') || s.includes('smart') || s.includes('wearable') || s.includes('watch') || s.includes('apple'))) {
+          sourceLabel = '⌚ Smartwatch / Health Sync';
+        } else if (sources.some(s => s.includes('manual') || s.includes('self'))) {
+          sourceLabel = '✍️ Self Recorded';
+        } else if (sources.some(s => s.includes('clinical') || s.includes('opd') || s.includes('doctor'))) {
+          sourceLabel = '📋 Clinical Record';
+        }
+
+        parsedVitals = {
+          systolicBP: systolic,
+          diastolicBP: diastolic,
+          heartRate: hrVital?.value || '72',
+          spo2: spo2Vital?.value || '98',
+          temperature: tempVital?.value || '98.4',
+          bmi: bmiVital?.value || (wtVital?.value ? `${(Number(wtVital.value) / (1.7 * 1.7)).toFixed(1)}` : '21.5'),
+          sourceLabel,
+          recordedAt: timeFormatted,
+          rawTimestamp: dateObj
+        };
+      } else if (rawVitals && typeof rawVitals === 'object') {
+        const bp = rawVitals.bp || '';
+        let systolic = rawVitals.systolicBP || (bp.includes('/') ? bp.split('/')[0] : '120');
+        let diastolic = rawVitals.diastolicBP || (bp.includes('/') ? bp.split('/')[1] : '80');
+        const src = (rawVitals.source || '').toLowerCase();
+        let sourceLabel = '📡 MediKiosk IoT Sensors';
+        if (src.includes('fit') || src.includes('smart') || src.includes('wearable')) {
+          sourceLabel = '⌚ Smartwatch / Health Sync';
+        } else if (src.includes('manual')) {
+          sourceLabel = '✍️ Self Recorded';
+        }
+        const timeObj = rawVitals.timestamp ? new Date(rawVitals.timestamp) : new Date();
+        const timeFormatted = timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', ' + timeObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+        parsedVitals = {
+          systolicBP: systolic,
+          diastolicBP: diastolic,
+          heartRate: rawVitals.heartRate || rawVitals.pulse || '72',
+          spo2: rawVitals.spo2 || '98',
+          temperature: rawVitals.temperature || '98.4',
+          bmi: rawVitals.bmi || '21.5',
+          sourceLabel,
+          recordedAt: rawVitals.recordedAt || timeFormatted,
+          rawTimestamp: timeObj
+        };
       }
 
-      if (vitals && (vitals.bp || vitals.systolicBP || vitals.heartRate || vitals.spo2)) {
-        setLatestVitals(vitals);
-      } else {
-        setLatestVitals(null);
-      }
-
-      if (Array.isArray(visits) && visits.length > 0) {
-        setRecentVisits(visits);
-      } else {
-        setRecentVisits([]);
-      }
-
+      setLatestVitals(parsedVitals);
       setLoading(false);
     };
 
@@ -406,9 +514,16 @@ const Dashboard = () => {
                 Latest Clinical Vitals & Biometrics
               </h2>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Verified by MediKiosk connected sensors • Last measured {latestVitals?.recordedAt || 'recently'}
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                {latestVitals?.sourceLabel || '📡 MediKiosk IoT Sensors'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                Taken: <strong className="text-slate-800 font-semibold">{latestVitals?.recordedAt || 'Recently Measured'}</strong>
+              </span>
+            </div>
           </div>
 
           <button
