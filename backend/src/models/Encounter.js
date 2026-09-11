@@ -127,6 +127,7 @@ const EncounterSchema = new mongoose.Schema({
   evidenceSnippets: { type: Array, default: [] },
   labTrends: { type: Array, default: [] },
   labOrders: { type: Array, default: [] },
+  labTokenNumber: { type: String, default: '', index: true },
   accessLog: { type: Array, default: [] },
   abdmSync: { type: mongoose.Schema.Types.Mixed, default: {} },
   doctorReview: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -136,7 +137,45 @@ const EncounterSchema = new mongoose.Schema({
   ocrPrescriptions: { type: mongoose.Schema.Types.Mixed, default: [] },
   transcriptConfirmations: { type: Array, default: [] },
   diagnoses: { type: Array, default: [] },
-  allergies: { type: Array, default: [] }
+  allergies: { type: Array, default: [] },
+
+  // ── Intake conversation log (was undefined → caused 500 on socrates-probe) ──
+  intakeTranscript: { type: Array, default: [] },
+
+  // ── Care pathway selection (§ kiosk step 2) ──
+  // Which system of medicine the patient chose at the kiosk.
+  consultationType: {
+    type: String,
+    enum: ['allopathy', 'ayurvedic'],
+    default: 'allopathy',
+    index: true
+  },
+  // Where the intake happened. 'kiosk' = walk-in terminal, 'home' = remote pre-registration.
+  visitMode: {
+    type: String,
+    enum: ['kiosk', 'home'],
+    default: 'kiosk',
+    index: true
+  },
+  // Populated only when visitMode === 'home' (patient picks facility + doctor up front)
+  preferredHospital: { type: String, default: '' },
+  preferredDoctor: { type: String, default: '' },
+  preferredDoctorId: { type: mongoose.Schema.Types.Mixed },
+
+  // Did a human explicitly pick the department? Blocks AI from silently overwriting it.
+  departmentManuallySet: { type: Boolean, default: false },
+  inferredDepartment: { type: mongoose.Schema.Types.Mixed, default: null },
+
+  // ── AI narrative summary shown to the doctor at intake handover ──
+  aiSummary: { type: String, default: '' },
+  clinicalSummary: { type: mongoose.Schema.Types.Mixed, default: {} },
+
+  // ── Doctor consultation outcome (previously dropped by the approve route) ──
+  investigationOrders: { type: Array, default: [] },
+  followUpDecision: { type: mongoose.Schema.Types.Mixed, default: {} },
+  referral: { type: mongoose.Schema.Types.Mixed, default: {} },
+  doctorNotes: { type: String, default: '' },
+  pastMedicalHistory: { type: Array, default: [] }
 }, {
   timestamps: true,
   strict: false

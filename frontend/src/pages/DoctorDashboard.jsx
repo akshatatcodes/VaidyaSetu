@@ -190,11 +190,14 @@ const DoctorDashboard = () => {
   const navigate = useNavigate();
   const { encounterId } = useParams();
   const { currentUser } = useAuth();
-  const isDemoDoctor = currentUser?.doctorId === 'DOC-AIIA-001';
 
   // Queue & Selection State
-  const [showDemoQueue, setShowDemoQueue] = useState(isDemoDoctor);
+  // Demo mode defaults OFF for every account, including the AIIA demo login.
+  // It is a presentation aid the doctor turns on deliberately, never the
+  // silent fallback it used to be.
+  const [showDemoQueue, setShowDemoQueue] = useState(false);
   const [demoCases, setDemoCases] = useState(FALLBACK_DEMO_CASES);
+  const [queueError, setQueueError] = useState('');
   const [completedSessionIds, setCompletedSessionIds] = useState(new Set());
   const [queue, setQueue] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -218,6 +221,10 @@ const DoctorDashboard = () => {
   const [doctorNotes, setDoctorNotes] = useState('');
   const [isApproving, setIsApproving] = useState(false);
   const [approvalSuccess, setApprovalSuccess] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  // What the backend actually recorded on sign-off: the new lab token and/or
+  // the scheduled follow-up date. Shown to the doctor so they can tell the patient.
+  const [outcomeResult, setOutcomeResult] = useState(null);
 
   // Herb-Drug Interaction State
   const [interactionAlerts, setInteractionAlerts] = useState([]);
@@ -298,20 +305,24 @@ const DoctorDashboard = () => {
   };
 
   // Fetch Live OPD Queue
+  //
+  // Demo data is now STRICTLY opt-in via the toggle. Previously an empty queue or
+  // any network error silently swapped in FALLBACK_DEMO_CASES, so a backend outage
+  // was indistinguishable from three real patients waiting — and the doctor could
+  // open a fabricated chart believing it was a live one.
   const fetchQueue = async (overrideDemo = showDemoQueue) => {
     setLoadingQueue(true);
     try {
       let queueData = [];
-      if (overrideDemo || isDemoDoctor) {
-        queueData = demoCases;
+      if (overrideDemo) {
+        queueData = demoCases.map(c => ({ ...c, isDemo: true }));
+        setQueueError('');
       } else {
-        const url = `${API_URL}/kiosk/queue`;
-        const res = await axios.get(url);
-        if (res.data?.status === 'success' && res.data.data?.length > 0) {
-          queueData = res.data.data;
-        } else {
-          queueData = demoCases;
-        }
+        const res = await axios.get(`${API_URL}/kiosk/queue`);
+        queueData = (res.data?.status === 'success' && Array.isArray(res.data.data))
+          ? res.data.data
+          : [];
+        setQueueError('');
       }
 
       // Enforce completedSessionIds override on fetched data
@@ -340,10 +351,11 @@ const DoctorDashboard = () => {
         setSelectedSession(null);
       }
     } catch (err) {
-      console.warn('Fetch queue fallback:', err?.message);
-      const waitingDemo = demoCases.filter(s => s.queueStatus !== 'completed' && !completedSessionIds.has(s._id));
-      setQueue(demoCases);
-      setSelectedSession(waitingDemo.length > 0 ? waitingDemo[0] : null);
+      // Surface the failure instead of papering over it with demo patients.
+      console.error('[DoctorDashboard] Queue fetch failed:', err?.message);
+      setQueueError(err?.message || 'Could not reach the server');
+      setQueue([]);
+      setSelectedSession(null);
     } finally {
       setLoadingQueue(false);
     }
@@ -364,6 +376,9 @@ const DoctorDashboard = () => {
   const loadSessionDetails = (session) => {
     setSelectedSession(session);
     setApprovalSuccess(false);
+    setApprovalError('');
+    setOutcomeResult(null);
+    setInteractionAlerts([]);
 
     // Initialize SOAP case sheet completely EMPTY for new doctor evaluation
     setSoapData({
@@ -518,68 +533,103 @@ const DoctorDashboard = () => {
   };
 
   // Step 1: Execute actual Approval & Sign API requests upon doctor confirmation
+  //
+  // The previous version .catch()'d both requests into a console warning and then
+  // ran setApprovalSuccess(true) — including inside the outer catch block. A failed
+  // signature therefore told the doctor the case sheet was signed and moved them on
+  // to the next patient, losing the consultation. Now a failure is reported and the
+  // patient stays selected so the doctor can retry.
   const executeApproveCaseSheet = async () => {
     if (!selectedSession) return;
     setIsConfirmApproveModalOpen(false);
     setIsApproving(true);
+    setApprovalError('');
     const completedSessionId = selectedSession._id;
     const completedToken = selectedSession.tokenNumber;
 
-    // Track completed session ID permanently in state for this active dashboard session
-    const updatedCompletedSet = new Set(completedSessionIds);
-    if (completedSessionId) updatedCompletedSet.add(completedSessionId);
-    if (completedToken) updatedCompletedSet.add(completedToken);
-    setCompletedSessionIds(updatedCompletedSet);
+    const doctorId = currentUser?.doctorId || '';
+    const doctorName = currentUser?.doctorName || '';
 
-    // Also update demoCases if running in demo mode
-    setDemoCases((prevDemo) =>
-      prevDemo.map((item) =>
-        item._id === completedSessionId || item.tokenNumber === completedToken
-          ? { ...item, queueStatus: 'completed' }
-          : item
-      )
-    );
+    // Demo cases aren't real encounters, so skip the API round-trip entirely
+    // rather than firing writes at ids the backend has never seen.
+    if (selectedSession.isDemo || showDemoQueue) {
+      setDemoCases((prevDemo) =>
+        prevDemo.map((item) =>
+          item._id === completedSessionId || item.tokenNumber === completedToken
+            ? { ...item, queueStatus: 'completed' }
+            : item
+        )
+      );
+      const demoSet = new Set(completedSessionIds);
+      if (completedSessionId) demoSet.add(completedSessionId);
+      if (completedToken) demoSet.add(completedToken);
+      setCompletedSessionIds(demoSet);
+      setOutcomeResult({
+        demo: true,
+        labTokenNumber: investigations.length > 0 ? 'LAB-DEMO' : null,
+        followUpDate: null
+      });
+      setApprovalSuccess(true);
+      setIsApproving(false);
+      setIsNextPatientModalOpen(true);
+      return;
+    }
 
     const authHeaders = {
-      'Authorization': `Bearer doc_tok_DOC-AYU-2024-8891`,
       'X-User-Role': 'doctor',
-      'X-User-Id': currentUser?.doctorId || 'DOC-AYU-2024-8891'
+      'X-User-Id': doctorId
     };
 
     try {
+      // Not fatal on its own — this only flags the encounter as under review.
       await axios.patch(
         `${API_URL}/kiosk/session/${completedSessionId}/doctor-verify`,
-        {
-          doctorId: currentUser?.doctorId || 'DOC-AYU-2024-8891',
-          doctorName: currentUser?.doctorName || 'Dr. Vikramaditya Sharma',
-          doctorNotes,
-          soapEdits: soapData,
-          markInConsultation: true
-        },
+        { doctorId, doctorName, doctorNotes, soapEdits: soapData, markInConsultation: true },
         { headers: authHeaders }
-      ).catch((e) => console.warn('doctor-verify API note:', e?.message));
+      ).catch((e) => console.warn('doctor-verify note:', e?.message));
 
-      await axios.patch(
+      // This one is the signature. If it fails, nothing was signed.
+      const res = await axios.patch(
         `${API_URL}/kiosk/session/${completedSessionId}/approve`,
         {
-          doctorId: currentUser?.doctorId || 'DOC-AYU-2024-8891',
-          doctorName: currentUser?.doctorName || 'Dr. Vikramaditya Sharma',
-          signature: `Digitally Signed: ${currentUser?.doctorName || 'Dr. V. Sharma'}`,
+          doctorId,
+          doctorName,
+          signature: doctorName ? `Digitally Signed: ${doctorName}` : 'Digitally Signed via VaidyaSetu',
           doctorNotes,
           updatedSoapNote: soapData,
           updatedDiagnoses: diagnoses,
           prescribedAllopathicMeds: soapData.plan.allopathicMeds,
           prescribedAyurvedicMeds: soapData.plan.ayurvedicMeds,
           investigationOrders: investigations,
-          followUpDecision: followUpDecision,
-          referral: referralData
+          followUpDecision,
+          // Only send a referral if the doctor actually filled one in — the default
+          // state has a pre-selected department and would create a phantom referral.
+          referral: referralData.reason ? referralData : undefined
         },
         { headers: authHeaders }
-      ).catch((e) => console.warn('approve API note:', e?.message));
+      );
+
+      if (res.data?.status !== 'success') {
+        throw new Error(res.data?.message || 'Server rejected the signature');
+      }
+
+      // Surface the outcome the backend actually recorded: the new lab token for a
+      // lab hand-off, or the scheduled follow-up date.
+      const out = res.data.data || {};
+      setOutcomeResult({
+        demo: false,
+        labTokenNumber: out.labTokenNumber || null,
+        followUpDate: out.followUpDecision?.scheduledDate || null,
+        queueStatus: out.queueStatus || ''
+      });
+
+      const updatedCompletedSet = new Set(completedSessionIds);
+      if (completedSessionId) updatedCompletedSet.add(completedSessionId);
+      if (completedToken) updatedCompletedSet.add(completedToken);
+      setCompletedSessionIds(updatedCompletedSet);
 
       setApprovalSuccess(true);
 
-      // Compute Next Waiting Patient in Queue
       const updatedQueue = queue.map((item) =>
         item._id === completedSessionId || item.tokenNumber === completedToken
           ? { ...item, queueStatus: 'completed' }
@@ -598,9 +648,11 @@ const DoctorDashboard = () => {
       setNextPatientCandidate(nextPatientToLoad || null);
       setIsNextPatientModalOpen(true);
     } catch (err) {
-      console.error('Approve case error:', err);
-      setApprovalSuccess(true);
-      setIsNextPatientModalOpen(true);
+      console.error('[DoctorDashboard] Case sheet signature failed:', err);
+      setApprovalError(
+        err?.response?.data?.message || err?.message || 'Could not reach the server'
+      );
+      setApprovalSuccess(false);
     } finally {
       setIsApproving(false);
     }
@@ -698,10 +750,30 @@ const DoctorDashboard = () => {
         {AI_DRAFT_BANNER}
       </div>
 
+      {/* Demo mode must be unmistakable — these are scripted cases, not patients. */}
+      {showDemoQueue && (
+        <div className="rounded-2xl border-2 border-violet-500/60 bg-violet-500/15 px-4 py-3 text-violet-900 dark:text-violet-100 text-sm font-bold flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+          <span className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 shrink-0 text-violet-500" />
+            DEMO MODE — these are sample cases for demonstration. No real patient data is shown.
+          </span>
+          <button
+            type="button"
+            onClick={() => toggleQueueMode(false)}
+            className="px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all cursor-pointer shrink-0"
+          >
+            Switch to live queue
+          </button>
+        </div>
+      )}
+
       {/* MAIN 2-PANEL LAYOUT */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      {/* Split at `lg` (1024px) rather than `xl` (1280px). On a typical clinic
+          laptop the queue used to stack full-width above the workspace, pushing
+          the patient record below the fold on every visit. */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT PANEL: OPD LIVE PATIENT QUEUE */}
-        <div className="xl:col-span-4">
+        <div className="lg:col-span-4">
           <DoctorQueuePanel
             filteredQueue={filteredQueue}
             searchQuery={searchQuery}
@@ -716,7 +788,7 @@ const DoctorDashboard = () => {
         </div>
 
         {/* RIGHT PANEL: CLINICAL WORKSPACE */}
-        <div className="xl:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-6">
           {selectedSession ? (
             <>
               {/* 30-Second Summary Card */}
@@ -771,6 +843,19 @@ const DoctorDashboard = () => {
                 abdmSyncStatus={abdmSyncStatus}
                 handleDownloadFhir={handleDownloadFhir}
               />
+
+              {/* A failed signature must be visible — it used to report success. */}
+              {approvalError && (
+                <div className="p-4 rounded-2xl bg-red-500/15 border-2 border-red-500/40 text-red-700 dark:text-red-300 space-y-1">
+                  <span className="text-xs font-black uppercase tracking-wider block">
+                    Case sheet was NOT signed
+                  </span>
+                  <p className="text-xs font-medium">
+                    {approvalError}. Nothing has been saved — the patient is still in the queue.
+                    Fix the connection and press Approve again.
+                  </p>
+                </div>
+              )}
             </>
           ) : (
             <div className="p-10 sm:p-14 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 text-center space-y-5 shadow-xl">
@@ -785,9 +870,16 @@ const DoctorDashboard = () => {
                   {currentUser?.department || 'Department of Kayachikitsa'} • AIIA Clinician Cockpit
                 </p>
                 <p className="text-xs text-slate-600 dark:text-gray-300 pt-2 leading-relaxed">
-                  Your live OPD queue is currently clear of pending patients. Real-time dual-coded SOAP case sheets, vitals telemetry, and longitudinal lab charts will load here as patients complete kiosk check-in.
+                  {queueError
+                    ? 'The queue could not be loaded, so nothing is shown here rather than placeholder patients. Check that the backend is running, then refresh.'
+                    : 'Your live OPD queue is currently clear of pending patients. Case sheets, vitals and lab results will load here as patients complete kiosk check-in.'}
                 </p>
               </div>
+              {queueError && (
+                <div className="max-w-md mx-auto p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs font-bold">
+                  Server error: {queueError}
+                </div>
+              )}
               <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
@@ -840,7 +932,9 @@ const DoctorDashboard = () => {
               <button
                 type="button"
                 onClick={() => setIsFhirModalOpen(false)}
-                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                // `hover:text-white` turned the X white on a white drawer in
+                // light mode — the close affordance disappeared on hover.
+                className="p-2 rounded-xl text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -855,7 +949,7 @@ const DoctorDashboard = () => {
               ) : fhirBundleData ? (
                 <pre className="whitespace-pre-wrap">{JSON.stringify(fhirBundleData, null, 2)}</pre>
               ) : (
-                <div className="p-12 text-center text-gray-400">Failed to load FHIR bundle.</div>
+                <div className="p-12 text-center text-rose-300 font-semibold">Failed to load FHIR bundle.</div>
               )}
             </div>
 
@@ -906,7 +1000,9 @@ const DoctorDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setIsEvidenceDrawerOpen(false)}
-                  className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  // `hover:text-white` turned the X white on a white drawer in
+                // light mode — the close affordance disappeared on hover.
+                className="p-2 rounded-xl text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1001,12 +1097,51 @@ const DoctorDashboard = () => {
                 <CheckCircle2 className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white">Case Sheet Signed & Saved!</h3>
-                <p className="text-xs text-emerald-400 font-medium">Encounter completed & ABDM synced</p>
+                <h3 className="text-lg font-black text-white">Case Sheet Signed & Saved</h3>
+                <p className="text-xs text-emerald-400 font-medium">
+                  {outcomeResult?.demo
+                    ? 'Demo case — nothing was written to the record'
+                    : 'Consultation recorded'}
+                </p>
               </div>
             </div>
+
+            {/* The outcome the doctor needs to read out to the patient. */}
+            {outcomeResult?.labTokenNumber && (
+              <div className="p-4 rounded-2xl bg-violet-500/15 border border-violet-500/40 space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-violet-300">
+                  Send patient to the laboratory
+                </span>
+                <p className="text-2xl font-black font-mono text-white">
+                  {outcomeResult.labTokenNumber}
+                </p>
+                <p className="text-[11px] text-violet-200 font-medium">
+                  New lab token issued. The order is already on the lab dashboard.
+                </p>
+              </div>
+            )}
+
+            {outcomeResult?.followUpDate && (
+              <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                  Follow-up scheduled
+                </span>
+                <p className="text-base font-black text-white">
+                  {new Date(outcomeResult.followUpDate).toLocaleDateString(undefined, {
+                    weekday: 'long', day: 'numeric', month: 'short'
+                  })}
+                </p>
+              </div>
+            )}
+
+            {!outcomeResult?.labTokenNumber && !outcomeResult?.followUpDate && (
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-bold text-center">
+                Treatment complete — encounter closed and signed.
+              </div>
+            )}
+
             <p className="text-xs text-gray-300 leading-relaxed font-medium">
-              Would you like to load the next waiting patient in line or stay on the current patient's clinical workspace?
+              Load the next waiting patient, or stay on this record?
             </p>
             <div className="flex flex-col gap-2.5 pt-2">
               {nextPatientCandidate ? (

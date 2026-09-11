@@ -43,10 +43,43 @@ html {
   }
 }
 
-/* Touch target minimum size */
+/* Touch target minimum size.
+   44px is the WCAG 2.5.5 / Apple HIG floor; 40px was below it. Clickable
+   <div>s are not covered by this selector, so interactive divs in the kiosk
+   carry explicit padding instead. */
 button, a, [role="button"] {
-  min-height: 40px;
-  min-width: 40px;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Kiosk readability floor.
+   The kiosk is used standing, at arm's length, often by elderly patients.
+   Anything under ~14px is not reliably legible there, so inside a kiosk
+   screen we raise the smallest Tailwind steps rather than hunting down every
+   `text-[10px]` individually. Scoped to `.vs-kiosk` so the denser clinician
+   dashboards are unaffected. */
+.vs-kiosk .text-\[8px\],
+.vs-kiosk .text-\[9px\],
+.vs-kiosk .text-\[10px\],
+.vs-kiosk .text-\[11px\] {
+  font-size: 0.8125rem; /* ~13px at 16px root, ~12.2px at 15px root */
+  line-height: 1.45;
+}
+
+.vs-kiosk .text-xs {
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.5;
+}
+
+.vs-kiosk .text-sm {
+  font-size: 0.9688rem;
+  line-height: 1.55;
+}
+
+/* Patient-facing controls get a real touch target regardless of element type. */
+.vs-kiosk button,
+.vs-kiosk [role="button"] {
+  min-height: 48px;
 }
 
 /* Prevent long words from breaking layout */
@@ -183,42 +216,27 @@ html:not(.dark) .text-slate-800 { color: #0f172a !important; }
 html:not(.dark) .text-slate-700 { color: #1e293b !important; }
 html:not(.dark) .text-slate-600 { color: #334155 !important; }
 
-html:not(.dark) .text-white,
-.text-white {
-  color: #ffffff !important;
-}
+/* ------------------------------------------------------------------
+   NOTE (visibility fix): two rules used to live here and both made text
+   invisible in ways no Tailwind class could override.
 
-/* Keep white text ON dark/colored backgrounds */
-html:not(.dark) [class*="bg-emerald"] .text-white,
-html:not(.dark) [class*="bg-green"] .text-white,
-html:not(.dark) [class*="bg-blue"] .text-white,
-html:not(.dark) [class*="bg-red"] .text-white,
-html:not(.dark) [class*="bg-rose"] .text-white,
-html:not(.dark) [class*="bg-amber"] .text-white,
-html:not(.dark) [class*="bg-orange"] .text-white,
-html:not(.dark) [class*="bg-fuchsia"] .text-white,
-html:not(.dark) [class*="bg-indigo"] .text-white,
-html:not(.dark) [class*="bg-violet"] .text-white,
-html:not(.dark) [class*="bg-gray-900"] .text-white,
-html:not(.dark) [class*="bg-slate-900"] .text-white,
-html:not(.dark) [class*="bg-slate-950"] .text-white,
-html:not(.dark) [class*="bg-slate-9"] *,
-html:not(.dark) [class*="bg-slate-8"] *,
-html:not(.dark) button.bg-emerald-600,
-html:not(.dark) button.bg-emerald-500,
-html:not(.dark) button.bg-emerald-600 *,
-html:not(.dark) button.bg-emerald-500 * {
-  /* Allow white text to stay white */
-}
+   1. `html:not(.dark) .text-white, .text-white { color:#fff !important }`
+      This was unscoped, so EVERY `.text-white` on the page was forced white
+      — including on white cards. The guard block that followed it, listing
+      `[class*="bg-emerald"] .text-white` etc., had an empty body (just a
+      comment), so it scoped nothing. Tailwind's own `text-white` already
+      resolves to white, so the rule's only real effect was the `!important`,
+      which blocked every `dark:` variant. Removed entirely — normal Tailwind
+      cascade now applies.
 
-/* Small label text */
-html:not(.dark) .text-\[10px\],
-html:not(.dark) .text-\[9px\],
-html:not(.dark) .text-\[8px\],
-html:not(.dark) .text-\[11px\] {
-  color: #334155 !important;
-  font-weight: 700 !important;
-}
+   2. `.text-[9px], .text-[10px], .text-[11px] { color:#334155 !important }`
+      Force-coloured every small label slate-700 in light mode, so small text
+      placed on a dark surface (the kiosk header badges, the stepper) was
+      dark-on-dark and could not be fixed locally. Removed.
+
+   Do not reintroduce either. If white text needs a dark backing, give the
+   element its own background or an explicit `dark:` pair in the component.
+   ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------
    STEP 3: CARDS — Premium Glassmorphism with Glow Borders
@@ -250,8 +268,8 @@ html:not(.dark) .rounded-3xl {
 }
 
 /* Make the cards visually rich */
-html:not(.dark) .bg-white,
-html:not(.dark) [class*="backdrop-blur"] {
+html:not(.dark) .bg-white:not(.vs-dark-card),
+html:not(.dark) [class*="backdrop-blur"]:not(.vs-dark-card):not([class*="bg-slate-9"]):not([class*="bg-emerald-9"]):not([class*="from-emerald-9"]):not([class*="from-slate-9"]):not([class*="bg-slate-950"]) {
   background: linear-gradient(145deg, #ffffff 0%, #f8faff 50%, #f0fdf6 100%) !important;
   border: 1px solid rgba(148, 163, 184, 0.2) !important;
   box-shadow:
@@ -263,8 +281,8 @@ html:not(.dark) [class*="backdrop-blur"] {
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-html:not(.dark) .bg-white:hover,
-html:not(.dark) [class*="backdrop-blur"]:hover {
+html:not(.dark) .bg-white:not(.vs-dark-card):hover,
+html:not(.dark) [class*="backdrop-blur"]:not(.vs-dark-card):not([class*="bg-slate-9"]):not([class*="bg-emerald-9"]):not([class*="from-emerald-9"]):not([class*="from-slate-9"]):not([class*="bg-slate-950"]):hover {
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 1) inset,
     0 -1px 0 0 rgba(0,0,0,0.02) inset,
@@ -608,8 +626,13 @@ html:not(.dark) .bg-gray-200 {
   .vs-main-content {
     min-height: calc(100vh - 100px);
   }
-  /* Offset all fixed modals to the right of the sidebar (w-72 / 288px) */
-  .fixed.inset-0 {
+  /* Offset fixed modals to the right of the sidebar (w-72 / 288px).
+     This is now OPT-IN via `.vs-modal-sidebar-offset` rather than applying to
+     every `.fixed.inset-0`. The blanket version also hit the kiosk's own
+     modals (caregiver consent, manual department picker), which render on a
+     full-screen page with no sidebar — they were shoved 18rem right and
+     looked broken/off-centre on any desktop screen. */
+  .fixed.inset-0.vs-modal-sidebar-offset {
     padding-left: 18rem !important;
   }
 }
@@ -699,8 +722,8 @@ html:not(.dark) .vs-main-content {
 }
 
 /* Card surface */
-html:not(.dark) .bg-white,
-html:not(.dark) [class*="backdrop-blur"] {
+html:not(.dark) .bg-white:not(.vs-dark-card),
+html:not(.dark) [class*="backdrop-blur"]:not(.vs-dark-card):not([class*="bg-slate-9"]):not([class*="bg-emerald-9"]):not([class*="from-emerald-9"]):not([class*="from-slate-9"]):not([class*="bg-slate-950"]) {
   background: linear-gradient(145deg, var(--vs-surface-1) 0%, var(--vs-surface-0) 100%) !important;
   border: 1px solid var(--vs-border) !important;
   box-shadow:
@@ -710,8 +733,8 @@ html:not(.dark) [class*="backdrop-blur"] {
     0 2px 8px rgba(0,0,0,0.04) !important;
 }
 
-html:not(.dark) .bg-white:hover,
-html:not(.dark) [class*="backdrop-blur"]:hover {
+html:not(.dark) .bg-white:not(.vs-dark-card):hover,
+html:not(.dark) [class*="backdrop-blur"]:not(.vs-dark-card):not([class*="bg-slate-9"]):not([class*="bg-emerald-9"]):not([class*="from-emerald-9"]):not([class*="from-slate-9"]):not([class*="bg-slate-950"]):hover {
   box-shadow:
     0 1px 0 0 rgba(255,255,255,1) inset,
     0 24px 48px -12px rgba(13,148,136,0.16),

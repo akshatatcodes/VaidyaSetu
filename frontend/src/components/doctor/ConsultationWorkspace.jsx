@@ -82,9 +82,21 @@ const ConsultationWorkspace = ({
   abdmSyncStatus,
   handleDownloadFhir
 }) => {
-  const consultationStream = selectedSession?.dashavidhaPariksha?.consultationType ||
-    (selectedSession?.department === 'Shalya' || selectedSession?.department === 'Kayachikitsa' || selectedSession?.department === 'Panchakarma' ? 'ayurvedic' : 'allopathy');
+  // The patient chose their stream at the kiosk — `consultationType` on the
+  // Encounter is the authoritative answer. Guessing from the department name
+  // was wrong for every Allopathy patient routed to a shared department, and
+  // it disagreed with what PatientSummaryCard showed on the same screen.
+  const consultationStream =
+    selectedSession?.consultationType ||
+    selectedSession?.dashavidhaPariksha?.consultationType ||
+    (['Shalya', 'Kayachikitsa', 'Panchakarma'].includes(selectedSession?.department)
+      ? 'ayurvedic'
+      : 'allopathy');
   const isAyurvedic = consultationStream === 'ayurvedic';
+
+  // Which preset the doctor picked, so the regimen can be offered separately.
+  const [selectedPreset, setSelectedPreset] = React.useState(null);
+  const [regimenLoaded, setRegimenLoaded] = React.useState(false);
 
   const pastIllnesses = Array.from(new Set([
     ...(selectedSession.pastMedicalHistory || []),
@@ -100,26 +112,46 @@ const ConsultationWorkspace = ({
     ...(selectedSession.extractedHistory?.allergies || [])
   ])).filter(Boolean);
 
+  // Applying a preset fills in the DIAGNOSIS CODING only.
+  //
+  // It used to also write both medicine lists and an assessment reading
+  // "Clinical evaluation confirms <X>" — so picking an item from a dropdown
+  // asserted a confirmed diagnosis and loaded a Metformin/Pantoprazole
+  // prescription into a case sheet the doctor was about to sign. The suggested
+  // regimen is now a separate, explicit second action (applyPresetRegimen).
   const applyPreset = (preset) => {
-    const newDiagnoses = [
+    setDiagnoses([
       { system: 'ICD-11', code: preset.icd11.code, term: preset.icd11.term },
       { system: 'NAMASTE', code: preset.namaste.code, term: preset.namaste.term }
-    ];
-    setDiagnoses(newDiagnoses);
-
-    const updatedPlan = {
-      ...soapData.plan,
-      allopathicMeds: preset.allopathicMeds,
-      ayurvedicMeds: preset.ayushMeds,
-      panchakarmaRecommendations: preset.panchakarma
-    };
+    ]);
+    setSelectedPreset(preset);
+    setRegimenLoaded(false);
 
     setSoapData((prev) => ({
       ...prev,
-      assessment: `Clinical evaluation confirms ${preset.name}. Coded under ICD-11 (${preset.icd11.code}) and AYUSH NAMASTE (${preset.namaste.code}).`,
-      plan: updatedPlan
+      // Worded as the working diagnosis it is, not a completed evaluation.
+      assessment: prev.assessment
+        ? prev.assessment
+        : `Working diagnosis: ${preset.name}. ICD-11 ${preset.icd11.code} / NAMASTE ${preset.namaste.code}. Pending clinical confirmation.`
     }));
+  };
 
+  // Loads the standard regimen for the selected preset. Deliberately a distinct
+  // click so no medicine ever reaches the prescription without the doctor asking.
+  const applyPresetRegimen = (preset) => {
+    setSoapData((prev) => ({
+      ...prev,
+      plan: {
+        ...prev.plan,
+        allopathicMeds: [...(prev.plan.allopathicMeds || []), ...preset.allopathicMeds],
+        ayurvedicMeds: [...(prev.plan.ayurvedicMeds || []), ...preset.ayushMeds],
+        panchakarmaRecommendations: [
+          ...(prev.plan.panchakarmaRecommendations || []),
+          ...preset.panchakarma
+        ]
+      }
+    }));
+    setRegimenLoaded(true);
     runInteractionCheck(preset.ayushMeds, selectedSession?.ocrPrescriptions || []);
   };
 
@@ -256,23 +288,47 @@ const ConsultationWorkspace = ({
               </p>
             </div>
 
-            {/* Catalog Preset Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500 hidden sm:inline">1-Click Preset:</span>
-              <select
-                onChange={(e) => {
-                  const found = DIAGNOSIS_PRESETS.find((p) => p.name === e.target.value);
-                  if (found) applyPreset(found);
-                }}
-                className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
-              >
-                <option value="">Choose Clinical Preset...</option>
-                {DIAGNOSIS_PRESETS.map((p, i) => (
-                  <option key={i} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+            {/* Catalog Preset Selector — codes only. The regimen is a second,
+                deliberate click so nothing is prescribed by dropdown. */}
+            <div className="flex flex-col items-stretch sm:items-end gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 hidden sm:inline">Code lookup:</span>
+                <select
+                  value={selectedPreset?.name || ''}
+                  onChange={(e) => {
+                    const found = DIAGNOSIS_PRESETS.find((p) => p.name === e.target.value);
+                    if (found) applyPreset(found);
+                  }}
+                  className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-300 dark:border-white/15 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="">Choose Clinical Preset...</option>
+                  {DIAGNOSIS_PRESETS.map((p, i) => (
+                    <option key={i} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedPreset && (
+                regimenLoaded ? (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                    ✓ Suggested regimen added below — review before signing
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => applyPresetRegimen(selectedPreset)}
+                    className="px-3 py-1.5 rounded-xl text-[11px] font-black border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-colors"
+                  >
+                    + Load standard regimen for this diagnosis
+                  </button>
+                )
+              )}
+              <span className="text-[10px] text-gray-500 max-w-[260px] text-left sm:text-right">
+                Presets fill the ICD-11 / NAMASTE codes only. Medicines are never
+                added automatically.
+              </span>
             </div>
           </div>
 

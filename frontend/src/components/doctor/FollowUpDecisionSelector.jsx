@@ -1,8 +1,13 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
 
+// The three outcomes a consultation can end in (§37):
+//   1. labs ordered  → patient goes to the lab with a new token, reviewed after
+//   2. follow-up     → patient returns (2 days is the standard OPD default)
+//   3. complete      → treatment finished, case sheet signed and closed
 const FOLLOW_UP_OPTIONS = [
-  { id: 'after_lab', label: 'Review after Lab Test', desc: 'Auto-schedule when lab results are verified' },
+  { id: 'after_lab', label: 'Review after Lab Test', desc: 'Patient goes to lab now; review when results are verified' },
+  { id: 'in_2_days', label: 'Follow-up in 2 Days', desc: 'Standard OPD review window' },
   { id: 'fixed_date', label: 'Fixed Date Follow-up', desc: 'Specific OPD appointment date' },
   { id: 'discharge', label: 'Discharge / Treatment Complete', desc: 'No scheduled follow-up needed' },
   { id: 'sos', label: 'SOS / As Needed', desc: 'Return if symptoms worsen' },
@@ -15,7 +20,7 @@ const FollowUpDecisionSelector = ({ followUpDecision, setFollowUpDecision }) => 
       <div className="flex items-center gap-2">
         <Calendar className="w-5 h-5 text-emerald-500" />
         <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-          Follow-up Decision Selector (§37 Continuity Protocol)
+          Consultation Outcome
         </h4>
       </div>
 
@@ -27,7 +32,12 @@ const FollowUpDecisionSelector = ({ followUpDecision, setFollowUpDecision }) => 
             <div
               key={option.id}
               onClick={() =>
-                setFollowUpDecision((prev) => ({ ...prev, choice: option.id }))
+                setFollowUpDecision((prev) => ({
+                  ...prev,
+                  choice: option.id,
+                  // Carry the day count so the backend can date the appointment.
+                  afterDays: option.id === 'in_2_days' ? 2 : prev.afterDays
+                }))
               }
               className={`p-3 rounded-2xl border-2 transition-all cursor-pointer select-none text-left ${
                 isSelected
