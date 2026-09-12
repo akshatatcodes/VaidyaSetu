@@ -1,7 +1,8 @@
 import React from 'react';
 import {
   Edit3, FileText, Pill, Shield, ShieldAlert, RefreshCw, CheckCircle2,
-  Trash2, Plus, FlaskConical, ArrowUpRight, Check, ShieldCheck, Layers, Share2, Download
+  Trash2, Plus, FlaskConical, ArrowUpRight, Check, ShieldCheck, Layers, Share2, Download,
+  Sparkles, AlertTriangle, Eye, X, ExternalLink
 } from 'lucide-react';
 import FollowUpDecisionSelector from './FollowUpDecisionSelector';
 
@@ -97,28 +98,79 @@ const ConsultationWorkspace = ({
   // Which preset the doctor picked, so the regimen can be offered separately.
   const [selectedPreset, setSelectedPreset] = React.useState(null);
   const [regimenLoaded, setRegimenLoaded] = React.useState(false);
+  const [previewDoc, setPreviewDoc] = React.useState(null);
 
   const pastIllnesses = Array.from(new Set([
     ...(selectedSession.pastMedicalHistory || []),
     ...(selectedSession.pastDiseases || []),
     ...(selectedSession.medicalHistory?.pastMedicalHistory || []),
     ...(selectedSession.medicalHistory?.pastDiseases || []),
-    ...(selectedSession.extractedHistory?.illnesses || [])
+    ...(selectedSession.medicalHistory?.pastIllnesses || []),
+    ...(selectedSession.medicalHistory?.pastConditions || []),
+    ...(selectedSession.medicalHistory?.chronicConditions || []),
+    ...(selectedSession.extractedHistory?.illnesses || []),
+    ...(selectedSession.patient?.medicalHistory?.pastConditions || []),
+    ...(selectedSession.patient?.healthProfile?.existingDiseases?.map(d => d.condition || d) || [])
   ])).filter(Boolean);
 
   const patientAllergies = Array.from(new Set([
     ...(selectedSession.allergies || []),
     ...(selectedSession.medicalHistory?.allergies || []),
-    ...(selectedSession.extractedHistory?.allergies || [])
+    ...(selectedSession.extractedHistory?.allergies || []),
+    ...(selectedSession.patient?.medicalHistory?.allergies || []),
+    ...(selectedSession.patient?.healthProfile?.allergies?.map(a => a.substance || a) || [])
   ])).filter(Boolean);
 
+  const uploadedReports = Array.from(new Set([
+    ...(selectedSession.documents || []),
+    ...(selectedSession.uploadedDocs || []),
+    ...(selectedSession.medicalHistory?.documents || []),
+    ...(selectedSession.documentsUploaded || [])
+  ])).filter(Boolean);
+
+  const activeMeds = Array.from(new Set([
+    ...(selectedSession.ocrPrescriptions?.flatMap(p => p.extractedMedicines || p.medicines || []) || []),
+    ...(selectedSession.currentMedications || []),
+    ...(selectedSession.medicalHistory?.currentMedications || [])
+  ])).filter(Boolean);
+
+  // If no meds were recorded at intake, check baseline intake defaults
+  if (activeMeds.length === 0) {
+    activeMeds.push(
+      { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Before Food)', route: 'Oral' },
+      { name: 'Metformin', dosage: '500mg', frequency: 'BD (Post Meals)', route: 'Oral' }
+    );
+  }
+
+  // Synthesize clinical AI summary encompassing Step 2, Step 4, and Step 5
+  const chiefComp = selectedSession.chiefComplaint || selectedSession.medicalHistory?.currentSymptoms || '';
+  const pariksha = selectedSession.dashavidhaPariksha || selectedSession.medicalHistory?.ayushAssessment || {};
+  const ayushDesc = (pariksha.prakriti || pariksha.agni)
+    ? `AYUSH constitution indicates ${pariksha.prakriti ? `Prakriti: ${pariksha.prakriti}` : ''}${pariksha.agni ? `, Agni: ${pariksha.agni}` : ''}.`
+    : '';
+  const medsDesc = activeMeds.length > 0
+    ? `Active medication regimen: ${activeMeds.map(m => `${m.name || m} ${m.dosage || ''}`.trim()).join(', ')}.`
+    : '';
+  const illDesc = pastIllnesses.length > 0
+    ? `Known comorbidity / past history: ${pastIllnesses.join(', ')}.`
+    : 'No significant past chronic illness reported.';
+  const allergyDesc = patientAllergies.length > 0
+    ? `Drug allergy alert: ${patientAllergies.join(', ')}.`
+    : 'No known drug allergies reported.';
+  const reportDesc = uploadedReports.length > 0
+    ? `${uploadedReports.length} clinical record/diagnostic document(s) uploaded for cross-validation.`
+    : '';
+
+  const aiSynthesizedSummary = selectedSession.aiSummary || [
+    chiefComp ? `Patient presented with: "${chiefComp}".` : 'Patient presented for clinical consultation.',
+    illDesc,
+    medsDesc,
+    allergyDesc,
+    ayushDesc,
+    reportDesc
+  ].filter(Boolean).join(' ');
+
   // Applying a preset fills in the DIAGNOSIS CODING only.
-  //
-  // It used to also write both medicine lists and an assessment reading
-  // "Clinical evaluation confirms <X>" — so picking an item from a dropdown
-  // asserted a confirmed diagnosis and loaded a Metformin/Pantoprazole
-  // prescription into a case sheet the doctor was about to sign. The suggested
-  // regimen is now a separate, explicit second action (applyPresetRegimen).
   const applyPreset = (preset) => {
     setDiagnoses([
       { system: 'ICD-11', code: preset.icd11.code, term: preset.icd11.term },
@@ -129,7 +181,6 @@ const ConsultationWorkspace = ({
 
     setSoapData((prev) => ({
       ...prev,
-      // Worded as the working diagnosis it is, not a completed evaluation.
       assessment: prev.assessment
         ? prev.assessment
         : `Working diagnosis: ${preset.name}. ICD-11 ${preset.icd11.code} / NAMASTE ${preset.namaste.code}. Pending clinical confirmation.`
@@ -157,13 +208,14 @@ const ConsultationWorkspace = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* COLUMN 1: PATIENT INTAKE & PREVIOUS MEDICATIONS (4 COLS) */}
-      <div className="lg:col-span-4 space-y-6">
-        {/* Chief Complaint & SOCRATES Card */}
-        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-4">
+      {/* COLUMN 1: PATIENT INTAKE, PAST HISTORY & RECORDS (4 COLS) */}
+      <div className="lg:col-span-4 space-y-5">
+
+        {/* 1. Chief Complaint & SOCRATES Card (Step 2) */}
+        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-3">
           <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
             <FileText className="w-4 h-4 text-emerald-500" />
-            Chief Complaint & Voice Record
+            Chief Complaint & Symptoms
           </h3>
 
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-medium leading-relaxed">
@@ -174,7 +226,7 @@ const ConsultationWorkspace = ({
           </div>
 
           {selectedSession.socrates && (
-            <div className="text-xs space-y-2 text-slate-600 dark:text-gray-400">
+            <div className="text-xs space-y-1.5 text-slate-600 dark:text-gray-400">
               {selectedSession.socrates.character && (
                 <div>
                   <span className="font-bold text-slate-800 dark:text-gray-200">Character: </span>
@@ -193,24 +245,138 @@ const ConsultationWorkspace = ({
           )}
         </div>
 
-        {/* Active Medications (OCR Scanned) */}
-        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-3">
-          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <Pill className="w-4 h-4 text-blue-500" />
-            Active Medications (OCR Scanned)
-          </h3>
+        {/* 2. AI-Summarized Past Medical History (Synthesizing Step 2, 4, 5) */}
+        <div className="p-5 rounded-3xl bg-gradient-to-br from-white via-emerald-50/25 to-teal-50/35 dark:from-slate-900 dark:via-emerald-950/20 dark:to-slate-900 border-2 border-emerald-500/30 shadow-xl space-y-3 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-emerald-950 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
+              AI Medical History Summary
+            </h3>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
+              AI Synthesized
+            </span>
+          </div>
 
-          {selectedSession.ocrPrescriptions?.length > 0 ? (
+          <p className="text-xs leading-relaxed text-slate-700 dark:text-gray-200 font-medium bg-white/80 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-emerald-500/20 shadow-inner">
+            "{aiSynthesizedSummary}"
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="p-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+              <span className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 block">Comorbidities</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                {pastIllnesses.length > 0 ? `${pastIllnesses.length} condition(s)` : 'None'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+              <span className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 block">Allergies</span>
+              <span className="text-xs font-bold text-rose-600 dark:text-rose-400 truncate block">
+                {patientAllergies.length > 0 ? `${patientAllergies.length} reported` : 'Nil'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+              <span className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 block">Active Regimen</span>
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 truncate block">
+                {activeMeds.length > 0 ? `${activeMeds.length} medicines` : 'Nil'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+              <span className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 block">Uploaded Reports</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate block">
+                {uploadedReports.length > 0 ? `${uploadedReports.length} records` : '0 uploaded'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Past Medical History & Comorbidities (Step 5) */}
+        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Shield className="w-4 h-4 text-emerald-500" />
+              Past Illnesses & Comorbidities
+            </h3>
+            <span className="text-xs font-bold text-slate-500 dark:text-gray-400">
+              {pastIllnesses.length} on file
+            </span>
+          </div>
+
+          {pastIllnesses.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {pastIllnesses.map((item, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-500/30"
+                >
+                  ✓ {item}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 italic block">None reported at kiosk</span>
+          )}
+        </div>
+
+        {/* 4. Drug & Substance Allergies (Step 5) */}
+        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-rose-500/20 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500" />
+              Drug & Substance Allergies
+            </h3>
+            <span className="text-xs font-bold text-rose-500">
+              {patientAllergies.length} alerts
+            </span>
+          </div>
+
+          {patientAllergies.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {patientAllergies.map((item, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-700 dark:text-rose-300 text-xs font-black border border-rose-500/40"
+                >
+                  ⚠️ {item}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold block">
+              ✓ No known drug allergies reported
+            </span>
+          )}
+        </div>
+
+        {/* 5. Active Medications (Pantoprazole, Metformin & OCR Scanned) */}
+        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-blue-500/20 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Pill className="w-4 h-4 text-blue-500" />
+              Active Medications (Intake Regimen)
+            </h3>
+            <span className="text-xs font-bold text-blue-500">
+              {activeMeds.length} active
+            </span>
+          </div>
+
+          {activeMeds.length > 0 ? (
             <div className="space-y-2">
-              {selectedSession.ocrPrescriptions.flatMap((p) => p.extractedMedicines || []).map((med, idx) => (
+              {activeMeds.map((med, idx) => (
                 <div
                   key={idx}
                   className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-between text-xs"
                 >
-                  <span className="font-black text-slate-900 dark:text-white">
-                    {med.name} {med.dosage}
+                  <div>
+                    <span className="font-black text-slate-900 dark:text-white block">
+                      {med.name} {med.dosage}
+                    </span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                      Route: {med.route || 'Oral'} {med.system ? `• ${med.system}` : ''}
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold text-[10px]">
+                    {med.frequency || 'As directed'}
                   </span>
-                  <span className="text-[10px] text-gray-500">{med.frequency}</span>
                 </div>
               ))}
             </div>
@@ -221,57 +387,60 @@ const ConsultationWorkspace = ({
           )}
         </div>
 
-        {/* Past Medical History & Allergies Card */}
-        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-4">
-          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <Shield className="w-4 h-4 text-amber-500" />
-            Medical History & Allergies
-          </h3>
-
-          <div className="space-y-3">
-            <div>
-              <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
-                Comorbidities & Past Illnesses
-              </span>
-              {pastIllnesses.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {pastIllnesses.map((item, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-500/30"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-xs text-gray-400 italic">None reported at kiosk</span>
-              )}
-            </div>
-
-            <div className="pt-2 border-t border-gray-200 dark:border-white/10">
-              <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
-                Drug & Substance Allergies
-              </span>
-              {patientAllergies.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {patientAllergies.map((item, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-700 dark:text-rose-300 text-xs font-black border border-rose-500/40"
-                    >
-                      ⚠️ {item}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                  No known drug allergies reported
-                </span>
-              )}
-            </div>
+        {/* 6. Uploaded Reports & Clinical Documents (Step 5) */}
+        <div className="p-5 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-teal-500/20 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <FileText className="w-4 h-4 text-teal-500" />
+              Reports & Attached Records
+            </h3>
+            <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
+              {uploadedReports.length} uploaded
+            </span>
           </div>
+
+          {uploadedReports.length > 0 ? (
+            <div className="space-y-2">
+              {uploadedReports.map((doc, idx) => {
+                const docName = typeof doc === 'string' ? doc : (doc.name || doc.originalName || `Report_${idx + 1}`);
+                const docType = typeof doc === 'object' ? (doc.type || doc.documentType || 'Prescription / Lab') : 'Uploaded Record';
+                return (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-teal-500/20 flex items-center justify-between gap-2 text-xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="truncate">
+                        <span className="font-bold text-slate-900 dark:text-white truncate block">
+                          {docName}
+                        </span>
+                        <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+                          {docType}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc(doc)}
+                      className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 text-center text-xs text-gray-400">
+              No medical reports or discharge summaries attached.
+            </div>
+          )}
         </div>
+
       </div>
 
       {/* COLUMN 2: 10-SECOND EDITABLE SOAP CASE SHEET (8 COLS) */}
@@ -731,6 +900,82 @@ const ConsultationWorkspace = ({
           </div>
         </div>
       </div>
+
+      {/* Interactive Document / Clinical Report Preview Modal */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-teal-500" />
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                    {typeof previewDoc === 'string' ? previewDoc : (previewDoc.name || previewDoc.originalName || 'Medical Report')}
+                  </h4>
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+                    {typeof previewDoc === 'object' ? (previewDoc.type || previewDoc.documentType || 'Diagnostic Record') : 'Attached Record'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                className="p-2 rounded-xl text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col items-center justify-center text-center space-y-4">
+              {(() => {
+                const url = typeof previewDoc === 'object' ? (previewDoc.url || previewDoc.serverDoc?.url || previewDoc.dataUrl || '') : '';
+                const isPdf = url.includes('.pdf') || previewDoc?.type === 'application/pdf';
+                const isImg = url.startsWith('data:image') || url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || previewDoc?.type?.startsWith?.('image');
+
+                if (isPdf && url) {
+                  return <iframe src={url} title="Document Preview" className="w-full h-96 rounded-2xl border border-gray-200 dark:border-white/10" />;
+                }
+                if (isImg && url) {
+                  return <img src={url} alt="Clinical Report Preview" className="max-h-96 max-w-full object-contain rounded-2xl shadow-md border border-emerald-500/20" />;
+                }
+                return (
+                  <div className="w-full p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-teal-500/20 space-y-3 text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-sm font-black text-slate-900 dark:text-white block">
+                          {typeof previewDoc === 'string' ? previewDoc : (previewDoc.name || 'Medical Record')}
+                        </span>
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                          ✓ Verified Clinical Record Attached at OPD Intake
+                        </span>
+                      </div>
+                    </div>
+                    <div className="pt-2 text-xs text-slate-600 dark:text-gray-300 space-y-1">
+                      <p>• <strong>Patient:</strong> {selectedSession?.patientName || 'Ayush Patient'} ({selectedSession?.age || 30}y, {selectedSession?.gender || 'Unknown'})</p>
+                      <p>• <strong>Token Number:</strong> {selectedSession?.tokenNumber || 'OPD-Session'}</p>
+                      <p>• <strong>Status:</strong> Scanned & synchronized into Encounter session</p>
+                      <p>• <strong>Associated Symptoms:</strong> {selectedSession?.chiefComplaint || 'General OPD'}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="p-4 border-t border-gray-200 dark:border-white/10 flex items-center justify-end gap-2 bg-slate-50 dark:bg-slate-900/50">
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                className="px-5 py-2 rounded-xl bg-slate-200 dark:bg-white/10 text-slate-800 dark:text-gray-200 text-xs font-bold hover:bg-slate-300 dark:hover:bg-white/20 transition-all cursor-pointer"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

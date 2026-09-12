@@ -133,23 +133,73 @@ const AuthGateway = ({ initialPortal = null }) => {
   const triggerAbhaLookup = async (rawDigits) => {
     setFetchingAbha(true);
     setErrorMessage('');
+
+    // Instant local cache check (0ms response even offline / low network)
+    let localFound = null;
     try {
-      const res = await axios.post(`${API_URL}/auth/abha/lookup`, { mobile: rawDigits });
+      const mapStr = localStorage.getItem('vaidya_patient_abha_map');
+      if (mapStr) {
+        const abhaMap = JSON.parse(mapStr);
+        if (abhaMap[rawDigits]) {
+          localFound = abhaMap[rawDigits];
+        }
+      }
+    } catch (e) { }
+
+    if (localFound && localFound.abhaId) {
+      setPatientForm(prev => ({
+        ...prev,
+        identifier: localFound.abhaId,
+        abhaId: localFound.abhaId,
+        patientName: prev.patientName || localFound.patientName || '',
+        age: prev.age || localFound.age || '',
+        gender: prev.gender || localFound.gender || 'Male'
+      }));
+      setAbhaStatus({
+        checked: true,
+        found: true,
+        isExistingPatient: true,
+        abhaId: localFound.abhaId,
+        patientName: localFound.patientName || '',
+        message: `Existing Patient ABHA ID (${localFound.abhaId}) linked successfully.`
+      });
+      setFetchingAbha(false);
+      return;
+    }
+
+    try {
+      const res = await axios.post(`${API_URL}/auth/abha/lookup`, { mobile: rawDigits }, { timeout: 3500 });
       if (res.data?.status === 'success') {
         if (res.data.found && res.data.abhaId) {
+          const abhaId = res.data.abhaId;
+          const patientName = res.data.patientName || '';
+          const age = res.data.age || '';
+          const gender = res.data.gender || 'Male';
+
           setPatientForm(prev => ({
             ...prev,
-            identifier: res.data.abhaId,
-            abhaId: res.data.abhaId,
-            patientName: prev.patientName || res.data.patientName || ''
+            identifier: abhaId,
+            abhaId: abhaId,
+            patientName: prev.patientName || patientName,
+            age: prev.age || age,
+            gender: prev.gender || gender
           }));
           setAbhaStatus({
             checked: true,
             found: true,
-            abhaId: res.data.abhaId,
-            patientName: res.data.patientName || '',
-            message: res.data.message || 'Linked ABDM ABHA ID found.'
+            isExistingPatient: Boolean(res.data.isExistingPatient),
+            abhaId: abhaId,
+            patientName: patientName,
+            message: res.data.message || `Existing Patient ABHA ID (${abhaId}) found and linked.`
           });
+
+          // Cache in localStorage for 0ms instant future retrieval
+          try {
+            const mapStr = localStorage.getItem('vaidya_patient_abha_map');
+            const abhaMap = mapStr ? JSON.parse(mapStr) : {};
+            abhaMap[rawDigits] = { abhaId, patientName, age, gender };
+            localStorage.setItem('vaidya_patient_abha_map', JSON.stringify(abhaMap));
+          } catch (e) { }
         } else {
           setAbhaStatus({
             checked: true,
@@ -279,6 +329,17 @@ const AuthGateway = ({ initialPortal = null }) => {
         password: patientForm.password
       });
       if (res.success) {
+        try {
+          const mapStr = localStorage.getItem('vaidya_patient_abha_map');
+          const abhaMap = mapStr ? JSON.parse(mapStr) : {};
+          abhaMap[targetMobile] = {
+            abhaId: targetAbha,
+            patientName: patientForm.patientName.trim(),
+            age: patientForm.age,
+            gender: patientForm.gender
+          };
+          localStorage.setItem('vaidya_patient_abha_map', JSON.stringify(abhaMap));
+        } catch (e) { }
         navigate('/', { replace: true });
       } else {
         setErrorMessage(res.message);
@@ -902,23 +963,45 @@ const AuthGateway = ({ initialPortal = null }) => {
 
                 {/* Case 1: ABHA Found & Linked OR Newly Generated */}
                 {!fetchingAbha && patientForm.abhaId && (
-                  <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 flex items-center justify-between gap-3 animate-in fade-in">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-4 h-4" />
+                  <div className="space-y-2 animate-in fade-in">
+                    <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-bold block">
+                            {abhaStatus?.isExistingPatient ? '✓ Existing Patient ABHA Linked' : abhaStatus?.generated ? 'New Permanent ABHA Created' : 'ABDM ABHA ID Linked'}
+                          </span>
+                          <span className="text-xs font-mono font-black text-slate-900 dark:text-white truncate block">
+                            {patientForm.abhaId}
+                          </span>
+                          {abhaStatus?.patientName && (
+                            <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium truncate block">
+                              Name: {abhaStatus.patientName}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-bold block">
-                          {abhaStatus?.generated ? 'New Permanent ABHA Created' : 'ABDM ABHA ID Linked'}
-                        </span>
-                        <span className="text-xs font-mono font-black text-slate-900 dark:text-white truncate block">
-                          {patientForm.abhaId}
-                        </span>
-                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[10px] font-black shrink-0">
+                        ✓ VERIFIED
+                      </span>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[10px] font-black shrink-0">
-                      ✓ VERIFIED
-                    </span>
+
+                    {abhaStatus?.isExistingPatient && authMode === 'signup' && (
+                      <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-blue-700 dark:text-blue-300 font-semibold text-[11px]">
+                          Existing patient record found for this mobile.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
+                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg cursor-pointer shrink-0 transition-all"
+                        >
+                          Sign In Instead →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

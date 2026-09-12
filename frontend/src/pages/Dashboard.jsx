@@ -26,13 +26,35 @@ const Dashboard = () => {
 
   const activePatientId = currentUser?.patientId || currentUser?.id || currentUser?.userId;
 
+  // 1. Instant local cache hydration for 0ms initial paint (even offline / 2G)
+  useEffect(() => {
+    if (!activePatientId) return;
+    try {
+      const cacheKey = `vaidya_dash_cache_${activePatientId}`;
+      const cachedStr = localStorage.getItem(cacheKey);
+      if (cachedStr) {
+        const c = JSON.parse(cachedStr);
+        if (c.profile) setProfile(c.profile);
+        if (c.activeQueue) setActiveQueue(c.activeQueue);
+        if (c.nextFollowUp) setNextFollowUp(c.nextFollowUp);
+        if (Array.isArray(c.medicationsList)) setMedicationsList(c.medicationsList);
+        if (c.latestVitals) setLatestVitals(c.latestVitals);
+        if (Array.isArray(c.recentVisits)) setRecentVisits(c.recentVisits);
+        setLoading(false);
+      } else if (currentUser) {
+        setProfile(currentUser);
+        setLoading(false);
+      }
+    } catch (e) { }
+  }, [activePatientId]);
+
   useEffect(() => {
     let cancelled = false;
 
     const loadDashboardData = async () => {
       const safeGet = async (url) => {
         try {
-          const res = await axios.get(url, { timeout: 3000 });
+          const res = await axios.get(url, { timeout: 2000 });
           return res.data;
         } catch {
           return null;
@@ -205,6 +227,20 @@ const Dashboard = () => {
 
       setLatestVitals(parsedVitals);
       setLoading(false);
+
+      // Save to cache for 0ms instant load on subsequent renders / low network
+      try {
+        const cacheKey = `vaidya_dash_cache_${activePatientId}`;
+        localStorage.setItem(cacheKey, JSON.stringify({
+          profile: pRes?.data || pRes || profile,
+          activeQueue: (qData && (qData.tokenNumber || qData._id)) ? qData : null,
+          nextFollowUp: (Array.isArray(fData) ? fData[0] : fData) || null,
+          medicationsList: medsList,
+          latestVitals: parsedVitals,
+          recentVisits: visitsList,
+          cachedAt: Date.now()
+        }));
+      } catch (e) { }
     };
 
     loadDashboardData();

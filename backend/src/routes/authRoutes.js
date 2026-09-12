@@ -3,6 +3,10 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const UserProfile = require('../models/UserProfile');
 const Doctor = require('../models/Doctor');
+const Patient = require('../models/Patient');
+const Encounter = require('../models/Encounter');
+const User = require('../models/User');
+const FamilyMember = require('../models/FamilyMember');
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -128,10 +132,6 @@ const DEMO_ADMINS = [
     isDemoData: true
   }
 ];
-
-const User = require('../models/User');
-const Patient = require('../models/Patient');
-const FamilyMember = require('../models/FamilyMember');
 
 // In-memory OTP storage for dev/stub
 const otpStore = new Map();
@@ -613,13 +613,16 @@ router.post('/abha/lookup', async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Please enter a valid 10-digit mobile number' });
     }
 
-    // 1. Check if patient already registered in MongoDB Patient collection
+    // 1. Check if patient already registered in MongoDB
     const isDbConnected = mongoose.connection.readyState === 1;
     if (isDbConnected) {
       try {
+        // A. Check Patient collection
         const existingPatient = await Patient.findOne({
           $or: [
             { mobileNumber: cleanMobile },
+            { mobileNumber: `+91 ${cleanMobile}` },
+            { mobileNumber: `+91${cleanMobile}` },
             { 'basicInfo.contactNumber': cleanMobile },
             { 'basicInfo.contactNumber': new RegExp(cleanMobile) }
           ]
@@ -629,13 +632,16 @@ router.post('/abha/lookup', async (req, res) => {
           return res.json({
             status: 'success',
             found: true,
+            isExistingPatient: true,
             abhaId: existingPatient.abhaId,
             patientName: existingPatient.basicInfo?.fullName || '',
-            message: 'Existing ABDM ABHA ID linked to this mobile number found.'
+            age: existingPatient.basicInfo?.age || null,
+            gender: existingPatient.basicInfo?.gender || '',
+            message: 'Existing patient record found. ABHA ID linked successfully.'
           });
         }
 
-        // Check UserProfile collection
+        // B. Check UserProfile collection
         const existingProfile = await UserProfile.findOne({
           $or: [
             { 'phone.value': new RegExp(cleanMobile) },
@@ -647,9 +653,55 @@ router.post('/abha/lookup', async (req, res) => {
           return res.json({
             status: 'success',
             found: true,
+            isExistingPatient: true,
             abhaId: existingProfile.abhaId.value,
             patientName: existingProfile.name?.value || '',
-            message: 'Existing ABDM ABHA ID linked to this mobile number found.'
+            age: existingProfile.age?.value || null,
+            gender: existingProfile.gender?.value || '',
+            message: 'Existing patient record found. ABHA ID linked successfully.'
+          });
+        }
+
+        // C. Check Encounter collection (kiosk sessions and clinical encounters)
+        const pastEncounter = await Encounter.findOne({
+          $or: [
+            { contactNumber: cleanMobile },
+            { contactNumber: new RegExp(cleanMobile) },
+            { 'patient.mobile': new RegExp(cleanMobile) }
+          ]
+        }).sort({ createdAt: -1 }).maxTimeMS(3000);
+
+        if (pastEncounter && pastEncounter.abhaId) {
+          return res.json({
+            status: 'success',
+            found: true,
+            isExistingPatient: true,
+            abhaId: pastEncounter.abhaId,
+            patientName: pastEncounter.patientName || '',
+            age: pastEncounter.age || null,
+            gender: pastEncounter.gender || '',
+            message: 'Existing patient ABHA ID retrieved from previous intake records.'
+          });
+        }
+
+        // D. Check User collection (linked account)
+        const userAccount = await User.findOne({
+          $or: [
+            { mobile: cleanMobile },
+            { mobile: new RegExp(cleanMobile) }
+          ]
+        }).populate('activePatientId').maxTimeMS(3000);
+
+        if (userAccount && userAccount.activePatientId && userAccount.activePatientId.abhaId) {
+          return res.json({
+            status: 'success',
+            found: true,
+            isExistingPatient: true,
+            abhaId: userAccount.activePatientId.abhaId,
+            patientName: userAccount.fullName || userAccount.activePatientId.basicInfo?.fullName || '',
+            age: userAccount.activePatientId.basicInfo?.age || null,
+            gender: userAccount.activePatientId.basicInfo?.gender || '',
+            message: 'Existing patient record found. ABHA ID linked successfully.'
           });
         }
       } catch (dbErr) {
@@ -663,8 +715,11 @@ router.post('/abha/lookup', async (req, res) => {
       return res.json({
         status: 'success',
         found: true,
+        isExistingPatient: true,
         abhaId: matchedDemo.abhaId,
         patientName: matchedDemo.patientName,
+        age: matchedDemo.age || null,
+        gender: matchedDemo.gender || '',
         message: 'Demo ABDM profile linked to this mobile number.'
       });
     }
