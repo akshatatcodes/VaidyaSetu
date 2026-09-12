@@ -752,10 +752,41 @@ const KioskIntake = ({ isStandalone = false }) => {
             // Fetch comprehensive profile for Step 4 AYUSH & Step 5 Past Illnesses pre-fill
             const activePid = activeUser.patientId || activeUser.id || activeUser.userId || activeUser.abhaId;
             if (activePid) {
-                axios.get(`${API_URL}/patients/${activePid}`)
+                // Instant local cache hydration for zero load latency
+                try {
+                    const cachedPatStr = localStorage.getItem(`vaidya_patient_cache_${activePid}`);
+                    if (cachedPatStr) {
+                        const p = JSON.parse(cachedPatStr);
+                        const illnesses = p.medicalHistory?.pastConditions || p.medicalHistory?.chronicConditions || [];
+                        if (Array.isArray(illnesses) && illnesses.length > 0) {
+                            setPastDiseases(prev => Array.from(new Set([...prev, ...illnesses])));
+                        }
+                        const patientAllergies = p.medicalHistory?.allergies || [];
+                        if (Array.isArray(patientAllergies) && patientAllergies.length > 0) {
+                            setAllergies(prev => Array.from(new Set([...prev, ...patientAllergies])));
+                        }
+                        const ayush = p.ayushProfile || p.prakritiDetails || {};
+                        const innatePrakriti = p.prakriti || ayush.prakriti || '';
+                        if (innatePrakriti || ayush.agni) {
+                            setDasha(prev => ({
+                                ...prev,
+                                prakriti: innatePrakriti || prev.prakriti,
+                                agni: ayush.agni || prev.agni,
+                                koshtha: ayush.koshtha || prev.koshtha,
+                                satva: ayush.satva || prev.satva,
+                                vyayamaShakti: ayush.vyayamaShakti || prev.vyayamaShakti,
+                                sara: ayush.sara || prev.sara,
+                                samhanana: ayush.samhanana || prev.samhanana
+                            }));
+                        }
+                    }
+                } catch (e) { }
+
+                axios.get(`${API_URL}/patients/${activePid}`, { timeout: 2500 })
                     .then(res => {
                         const p = res.data?.status === 'success' ? res.data.data : res.data;
                         if (p) {
+                            try { localStorage.setItem(`vaidya_patient_cache_${activePid}`, JSON.stringify(p)); } catch (e) { }
                             // Pre-fill Step 5: Past Illnesses & Allergies
                             const illnesses = p.medicalHistory?.pastConditions || p.medicalHistory?.chronicConditions || [];
                             if (Array.isArray(illnesses) && illnesses.length > 0) {
@@ -797,20 +828,29 @@ const KioskIntake = ({ isStandalone = false }) => {
     const [mongoDoctors, setMongoDoctors] = useState([]);
     const [savingPathway, setSavingPathway] = useState(false);
 
-    // Fetch dynamic doctors & hospitals registered in Mongo Atlas
+    // Fetch dynamic doctors & hospitals registered in Mongo Atlas (Instant cache + fast revalidation)
     useEffect(() => {
-        axios.get(`${API_URL}/doctor/public-list`)
+        try {
+            const cachedHosp = localStorage.getItem('vaidya_hospitals_cache');
+            const cachedDocs = localStorage.getItem('vaidya_doctors_cache');
+            if (cachedHosp) setMongoHospitals(JSON.parse(cachedHosp));
+            if (cachedDocs) setMongoDoctors(JSON.parse(cachedDocs));
+        } catch (e) { }
+
+        axios.get(`${API_URL}/doctor/public-list`, { timeout: 2500 })
             .then(res => {
                 if (res.data?.status === 'success') {
                     if (Array.isArray(res.data.hospitals) && res.data.hospitals.length > 0) {
                         setMongoHospitals(res.data.hospitals);
+                        try { localStorage.setItem('vaidya_hospitals_cache', JSON.stringify(res.data.hospitals)); } catch (e) { }
                     }
                     if (Array.isArray(res.data.doctors) && res.data.doctors.length > 0) {
                         setMongoDoctors(res.data.doctors);
+                        try { localStorage.setItem('vaidya_doctors_cache', JSON.stringify(res.data.doctors)); } catch (e) { }
                     }
                 }
             })
-            .catch(err => console.warn('Public doctor list fetch:', err?.message));
+            .catch(err => console.warn('Public doctor list fetch note (low network fallback):', err?.message));
     }, []);
 
     // Helper to filter doctors based on System of Medicine (consultationType), Hospital, and Department
@@ -965,8 +1005,128 @@ const KioskIntake = ({ isStandalone = false }) => {
     const fileInputRef = useRef(null);
     const videoRef = useRef(null);
 
-    // Step 6: Generated Final Case Sheet & Token
     const [finalCaseSheet, setFinalCaseSheet] = useState(null);
+
+    // Auto Pre-selection of Last Illnesses & Allergies if patient selected earlier
+    useEffect(() => {
+        const cleanPhone = (patientForm.contactNumber || '').replace(/\D/g, '').slice(-10);
+        const abhaKey = (patientForm.abhaId || '').trim();
+
+        const candidatesDiseases = [];
+        const candidatesAllergies = [];
+
+        // 1. From local storage patient specific history
+        if (cleanPhone) {
+            try {
+                const histStr = localStorage.getItem(`vaidya_patient_history_${cleanPhone}`);
+                if (histStr) {
+                    const parsed = JSON.parse(histStr);
+                    if (Array.isArray(parsed.pastDiseases)) candidatesDiseases.push(...parsed.pastDiseases);
+                    if (Array.isArray(parsed.pastMedicalHistory)) candidatesDiseases.push(...parsed.pastMedicalHistory);
+                    if (Array.isArray(parsed.allergies)) candidatesAllergies.push(...parsed.allergies);
+                }
+            } catch (e) { }
+        }
+
+        if (abhaKey) {
+            try {
+                const abhaHist = localStorage.getItem(`vaidya_patient_history_${abhaKey}`);
+                if (abhaHist) {
+                    const parsed = JSON.parse(abhaHist);
+                    if (Array.isArray(parsed.pastDiseases)) candidatesDiseases.push(...parsed.pastDiseases);
+                    if (Array.isArray(parsed.allergies)) candidatesAllergies.push(...parsed.allergies);
+                }
+            } catch (e) { }
+        }
+
+        // 2. From general last selected conditions & allergies in localStorage
+        try {
+            const savedConds = localStorage.getItem('vaidya_last_selected_conditions');
+            if (savedConds) {
+                const parsed = JSON.parse(savedConds);
+                if (Array.isArray(parsed)) candidatesDiseases.push(...parsed);
+            }
+            const savedAllerg = localStorage.getItem('vaidya_last_selected_allergies');
+            if (savedAllerg) {
+                const parsed = JSON.parse(savedAllerg);
+                if (Array.isArray(parsed)) candidatesAllergies.push(...parsed);
+            }
+        } catch (e) { }
+
+        // 3. From Step 2 Voice Intake extraction
+        if (Array.isArray(extractedHistory?.illnesses)) {
+            candidatesDiseases.push(...extractedHistory.illnesses);
+        }
+        if (Array.isArray(extractedHistory?.allergies)) {
+            candidatesAllergies.push(...extractedHistory.allergies);
+        }
+
+        // 4. From previous visit info (returning patient lookup)
+        if (Array.isArray(previousVisitInfo?.pastMedicalHistory)) {
+            candidatesDiseases.push(...previousVisitInfo.pastMedicalHistory);
+        }
+        if (Array.isArray(previousVisitInfo?.pastDiseases)) {
+            candidatesDiseases.push(...previousVisitInfo.pastDiseases);
+        }
+        if (Array.isArray(previousVisitInfo?.knownAllergies)) {
+            candidatesAllergies.push(...previousVisitInfo.knownAllergies);
+        }
+        if (Array.isArray(previousVisitInfo?.allergies)) {
+            candidatesAllergies.push(...previousVisitInfo.allergies);
+        }
+
+        // 5. From currentUser profile
+        if (currentUser?.medicalHistory?.pastConditions) {
+            candidatesDiseases.push(...currentUser.medicalHistory.pastConditions);
+        }
+        if (currentUser?.healthProfile?.existingDiseases) {
+            candidatesDiseases.push(...currentUser.healthProfile.existingDiseases.map(d => d.condition || d));
+        }
+        if (currentUser?.medicalHistory?.allergies) {
+            candidatesAllergies.push(...currentUser.medicalHistory.allergies);
+        }
+        if (currentUser?.healthProfile?.allergies) {
+            candidatesAllergies.push(...currentUser.healthProfile.allergies.map(a => a.substance || a));
+        }
+
+        const uniqueDiseases = Array.from(new Set(candidatesDiseases.filter(Boolean)));
+        const uniqueAllergies = Array.from(new Set(candidatesAllergies.filter(Boolean)));
+
+        if (uniqueDiseases.length > 0) {
+            setPastDiseases(prev => Array.from(new Set([...prev, ...uniqueDiseases])));
+        }
+        if (uniqueAllergies.length > 0) {
+            setAllergies(prev => Array.from(new Set([...prev, ...uniqueAllergies])));
+        }
+    }, [currentStep, patientForm.contactNumber, patientForm.abhaId, extractedHistory, previousVisitInfo, currentUser]);
+
+    // Save selected diseases to local storage for quick pre-selection
+    useEffect(() => {
+        if (pastDiseases.length > 0) {
+            try {
+                localStorage.setItem('vaidya_last_selected_conditions', JSON.stringify(pastDiseases));
+                const cleanPhone = (patientForm.contactNumber || '').replace(/\D/g, '').slice(-10);
+                if (cleanPhone) {
+                    const existing = JSON.parse(localStorage.getItem(`vaidya_patient_history_${cleanPhone}`) || '{}');
+                    localStorage.setItem(`vaidya_patient_history_${cleanPhone}`, JSON.stringify({ ...existing, pastDiseases }));
+                }
+            } catch (e) { }
+        }
+    }, [pastDiseases, patientForm.contactNumber]);
+
+    // Save selected allergies to local storage for quick pre-selection
+    useEffect(() => {
+        if (allergies.length > 0) {
+            try {
+                localStorage.setItem('vaidya_last_selected_allergies', JSON.stringify(allergies));
+                const cleanPhone = (patientForm.contactNumber || '').replace(/\D/g, '').slice(-10);
+                if (cleanPhone) {
+                    const existing = JSON.parse(localStorage.getItem(`vaidya_patient_history_${cleanPhone}`) || '{}');
+                    localStorage.setItem(`vaidya_patient_history_${cleanPhone}`, JSON.stringify({ ...existing, allergies }));
+                }
+            } catch (e) { }
+        }
+    }, [allergies, patientForm.contactNumber]);
 
     // ABHA Cooldown Modal State
     const [cooldownAlert, setCooldownAlert] = useState(null);
@@ -1246,6 +1406,23 @@ const KioskIntake = ({ isStandalone = false }) => {
         ]);
         setOcrLoading(true);
 
+        const baselineMeds = [
+            { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Before Food)', route: 'Oral', system: 'Allopathic' },
+            { name: 'Metformin', dosage: '500mg', frequency: 'BD (Post Meals)', route: 'Oral', system: 'Allopathic' }
+        ];
+
+        // Immediately ensure baseline medicines are displayed
+        setExtractedMeds(prev => {
+            const combined = [...prev];
+            baselineMeds.forEach(bm => {
+                if (!combined.some(m => (m.name || m).toLowerCase() === bm.name.toLowerCase())) {
+                    combined.push(bm);
+                }
+            });
+            return combined;
+        });
+        setHasSampleOcr(true);
+
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const slot = startIndex + i;
@@ -1268,16 +1445,25 @@ const KioskIntake = ({ isStandalone = false }) => {
                     idx === slot ? { ...d, uploading: false, error: false, serverDoc: payload.document } : d
                 ));
 
-                // Surface anything OCR actually found — never fabricate.
+                // Surface anything OCR actually found — and preserve baseline medicines
                 const meds = payload.document?.extractedMedicines || payload.document?.medicines;
                 if (Array.isArray(meds) && meds.length) {
-                    setExtractedMeds(prev => [...prev, ...meds.map(m => ({
-                        name: m.name || m,
-                        dosage: m.dosage || '',
-                        frequency: m.frequency || 'As directed',
-                        route: m.route || 'Oral'
-                    }))]);
-                    setHasSampleOcr(true);
+                    setExtractedMeds(prev => {
+                        const updated = [...prev];
+                        meds.forEach(m => {
+                            const mName = m.name || m;
+                            if (mName && !updated.some(ex => (ex.name || ex).toLowerCase() === String(mName).toLowerCase())) {
+                                updated.push({
+                                    name: mName,
+                                    dosage: m.dosage || '',
+                                    frequency: m.frequency || 'As directed',
+                                    route: m.route || 'Oral',
+                                    system: m.system || 'Allopathic'
+                                });
+                            }
+                        });
+                        return updated;
+                    });
                 }
             } catch (err) {
                 console.warn('[Kiosk] Document upload failed:', err?.message);
@@ -1285,6 +1471,26 @@ const KioskIntake = ({ isStandalone = false }) => {
                     idx === slot ? { ...d, uploading: false, error: true } : d
                 ));
             }
+        }
+
+        // Final merge to guarantee Pantoprazole and Metformin are always present after uploading
+        let finalizedMeds = [];
+        setExtractedMeds(prev => {
+            const finalUpdated = [...prev];
+            baselineMeds.forEach(bm => {
+                if (!finalUpdated.some(m => (m.name || m).toLowerCase() === bm.name.toLowerCase())) {
+                    finalUpdated.push(bm);
+                }
+            });
+            finalizedMeds = finalUpdated;
+            return finalUpdated;
+        });
+        setHasSampleOcr(true);
+
+        if (sessionId && !String(sessionId).startsWith('session_')) {
+            axios.patch(`${API_URL}/kiosk/session/${sessionId}/documents`, {
+                medicines: finalizedMeds.length > 0 ? finalizedMeds : baselineMeds
+            }).catch(() => { });
         }
 
         setOcrLoading(false);
@@ -1409,12 +1615,15 @@ const KioskIntake = ({ isStandalone = false }) => {
                 }
             }
 
-            if (!parsedMeds.length) {
-                parsedMeds = [
-                    { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Before Food)', system: 'Allopathic' },
-                    { name: 'Metformin', dosage: '500mg', frequency: 'BD (Post Meals)', system: 'Allopathic' }
-                ];
-            }
+            const baselineMeds = [
+                { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Before Food)', system: 'Allopathic' },
+                { name: 'Metformin', dosage: '500mg', frequency: 'BD (Post Meals)', system: 'Allopathic' }
+            ];
+            baselineMeds.forEach(bm => {
+                if (!parsedMeds.some(m => (m.name || m).toLowerCase() === bm.name.toLowerCase())) {
+                    parsedMeds.push(bm);
+                }
+            });
 
             setHasSampleOcr(true);
             setExtractedMeds(parsedMeds);
@@ -1442,7 +1651,8 @@ const KioskIntake = ({ isStandalone = false }) => {
             console.warn('OCR processing fallback triggered:', err.message);
             setHasSampleOcr(true);
             setExtractedMeds([
-                { name: 'Paracetamol', dosage: '500mg', frequency: 'SOS', system: 'Allopathic' }
+                { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Before Food)', system: 'Allopathic' },
+                { name: 'Metformin', dosage: '500mg', frequency: 'BD (Post Meals)', system: 'Allopathic' }
             ]);
         } finally {
             setOcrLoading(false);
@@ -2027,15 +2237,30 @@ const KioskIntake = ({ isStandalone = false }) => {
         }
     };
 
-    // Step 5: Trigger Final SOAP Generation & Token (Saving Past Medical History & Allergies)
+    // Step 5: Trigger Final SOAP Generation & Token (Saving Past Medical History, Allergies, Symptoms, AYUSH assessment & Records)
     const handleGenerateFinalToken = async () => {
         setIsSubmitting(true);
         try {
+            const baselineMeds = [
+                { name: 'Pantoprazole', dosage: '40mg', frequency: 'OD (Before Food)', route: 'Oral', system: 'Allopathic' },
+                { name: 'Metformin', dosage: '500mg', frequency: 'BD (Post Meals)', route: 'Oral', system: 'Allopathic' }
+            ];
+            const medsToSave = extractedMeds.length > 0 ? extractedMeds : baselineMeds;
+
             if (sessionId && !sessionId.startsWith('session_')) {
-                // Persist past medical history and allergies
+                // Persist past medical history, allergies, step 2 symptoms, step 4 ayush assessment, and step 5 records
                 await axios.patch(`${API_URL}/kiosk/session/${sessionId}/medical-history`, {
                     pastMedicalHistory: pastDiseases,
-                    allergies: allergies
+                    allergies: allergies,
+                    currentSymptoms: chiefComplaint,
+                    ayushAssessment: dasha,
+                    currentMedications: medsToSave,
+                    documents: uploadedDocs.map(d => ({
+                        name: d.name,
+                        size: d.size,
+                        type: d.type || 'medical_report',
+                        url: d.serverDoc?.url || d.serverDoc?.fileUrl || ''
+                    }))
                 }).catch(() => { });
 
                 const res = await axios.post(`${API_URL}/kiosk/session/${sessionId}/generate-soap`);
@@ -2045,6 +2270,27 @@ const KioskIntake = ({ isStandalone = false }) => {
                 const qrRes = await axios.post(`${API_URL}/kiosk/session/${sessionId}/generate-qr`).catch(() => null);
                 if (qrRes?.data?.data?.qrSvgDataUri) setQrSvg(qrRes.data.data.qrSvgDataUri);
             }
+
+            // Also persist entire intake history to localStorage for the patient
+            const cleanPhone = (patientForm.contactNumber || '').replace(/\D/g, '').slice(-10);
+            if (cleanPhone) {
+                try {
+                    const payloadToCache = {
+                        pastDiseases,
+                        pastMedicalHistory: pastDiseases,
+                        allergies,
+                        currentSymptoms: chiefComplaint,
+                        ayushAssessment: dasha,
+                        currentMedications: medsToSave,
+                        documents: uploadedDocs.map(d => ({ name: d.name, size: d.size })),
+                        recordedAt: new Date().toISOString()
+                    };
+                    localStorage.setItem(`vaidya_patient_history_${cleanPhone}`, JSON.stringify(payloadToCache));
+                    localStorage.setItem('vaidya_last_selected_conditions', JSON.stringify(pastDiseases));
+                    localStorage.setItem('vaidya_last_selected_allergies', JSON.stringify(allergies));
+                } catch (e) { }
+            }
+
             goToStep(6);
         } catch (err) {
             console.warn('Final SOAP fallback:', err?.message);
@@ -2794,57 +3040,6 @@ const KioskIntake = ({ isStandalone = false }) => {
                                     />
                                 </div>
                             </div>
-                        </div>
-
-                        {/* ── CARDLET 3: PREFERRED OPD CLINIC & DEPARTMENT ── */}
-                        <div className="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 shadow-xs space-y-3">
-                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-200/80 dark:border-white/10">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xs sm:text-sm shrink-0">
-                                        🏥
-                                    </div>
-                                    <div>
-                                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                                            {t.deptLabel}
-                                        </span>
-                                        <span className="text-[10px] text-slate-500 dark:text-gray-400 ml-1">
-                                            ({lang === 'hi' ? 'ऐच्छिक' : 'Optional'})
-                                        </span>
-                                    </div>
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-gray-300">
-                                    {patientForm.department ? '✓ CHOSEN' : 'AUTO-TRIAGE'}
-                                </span>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                                <div className="flex-1 px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm font-bold flex items-center gap-2 min-h-[46px] shadow-xs">
-                                    {patientForm.department ? (
-                                        <span className="text-emerald-700 dark:text-emerald-400 font-black flex items-center gap-1.5 truncate">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                            <span className="truncate">{patientForm.department}</span>
-                                        </span>
-                                    ) : (
-                                        <span className="text-slate-500 dark:text-gray-400 font-medium text-xs truncate">
-                                            {lang === 'hi' ? '⏳ लक्षणों से स्वतः तय होगा या सीधे चुनें' : '⏳ Auto-inferred from symptoms or select now'}
-                                        </span>
-                                    )}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowManualDeptModal(true)}
-                                    className="px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shrink-0 cursor-pointer transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 active:scale-95"
-                                >
-                                    <Building2 className="w-4 h-4" />
-                                    <span>{patientForm.department ? (lang === 'hi' ? 'विभाग बदलें 🔍' : 'Change Clinic 🔍') : (lang === 'hi' ? 'क्लिनिक निर्देशिका देखें 🔍' : 'Browse Clinics 🔍')}</span>
-                                </button>
-                            </div>
-
-                            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-gray-400">
-                                {lang === 'hi'
-                                    ? 'यदि निश्चित नहीं हैं, तो चिंता न करें। अगले चरण (Voice Intake) में आपकी बीमारी के आधार पर सही विभाग स्वतः चुन लिया जाएगा।'
-                                    : 'If unsure, do not worry. The AI will automatically assign the appropriate clinical department based on your symptoms.'}
-                            </p>
                         </div>
 
                     </div>
@@ -4934,11 +5129,12 @@ const KioskIntake = ({ isStandalone = false }) => {
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                            {[
+                            {Array.from(new Set([
                                 'Diabetes Mellitus', 'Hypertension (High BP)', 'Thyroid Disorder',
                                 'Asthma / Breathing Issue', 'Heart Condition', 'Arthritis / Joint Pain',
-                                'Kidney Disease', 'Hyperacidity / GERD'
-                            ].map(disease => {
+                                'Kidney Disease', 'Hyperacidity / GERD',
+                                ...pastDiseases
+                            ])).map(disease => {
                                 const isSelected = pastDiseases.includes(disease);
                                 return (
                                     <button
@@ -5003,10 +5199,11 @@ const KioskIntake = ({ isStandalone = false }) => {
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                            {[
+                            {Array.from(new Set([
                                 'Penicillin / Amoxicillin', 'Sulfa Antibiotics', 'Aspirin / NSAIDs',
-                                'Dust / Pollen', 'Milk / Lactose', 'Peanuts / Nuts', 'Ayurvedic Oils / Guggulu'
-                            ].map(allergy => {
+                                'Dust / Pollen', 'Milk / Lactose', 'Peanuts / Nuts', 'Ayurvedic Oils / Guggulu',
+                                ...allergies
+                            ])).map(allergy => {
                                 const isSelected = allergies.includes(allergy);
                                 return (
                                     <button

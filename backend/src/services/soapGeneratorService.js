@@ -387,7 +387,9 @@ function buildAiSummary(session = {}) {
   const {
     patientName, age, gender, chiefComplaint, socrates = {}, vitals = {},
     allergies = [], consultationType, department, visitMode,
-    dashavidhaPariksha = {}, redFlags = [], documents = []
+    dashavidhaPariksha = {}, redFlags = [], documents = [],
+    pastMedicalHistory = [], pastDiseases = [], medicalHistory = {},
+    ocrPrescriptions = [], currentMedications = []
   } = session;
 
   const who = [
@@ -405,8 +407,9 @@ function buildAiSummary(session = {}) {
     `${consultationType ? ` (${consultationType === 'ayurvedic' ? 'Ayurvedic' : 'Allopathic'} stream)` : ''}.`
   );
 
-  if (chiefComplaint) {
-    parts.push(`Chief complaint: ${chiefComplaint}.`);
+  const symptomText = chiefComplaint || medicalHistory.currentSymptoms || '';
+  if (symptomText) {
+    parts.push(`Chief complaint: ${symptomText}.`);
   }
 
   // SOCRATES — only mention dimensions the patient actually answered.
@@ -430,25 +433,58 @@ function buildAiSummary(session = {}) {
   if (v.length) parts.push(`Vitals recorded at kiosk: ${v.join(', ')}.`);
   else parts.push('No vitals were recorded at the kiosk (station skipped).');
 
+  // Past Medical History & Comorbidities
+  const illnesses = Array.from(new Set([
+    ...(Array.isArray(pastMedicalHistory) ? pastMedicalHistory : [pastMedicalHistory]),
+    ...(Array.isArray(pastDiseases) ? pastDiseases : [pastDiseases]),
+    ...(medicalHistory.pastIllnesses || []),
+    ...(medicalHistory.pastConditions || []),
+    ...(medicalHistory.chronicConditions || [])
+  ])).filter(Boolean);
+  if (illnesses.length) {
+    parts.push(`Past Medical History / Comorbidities: ${illnesses.join(', ')}.`);
+  } else {
+    parts.push('Past Medical History: Nil reported at intake.');
+  }
+
+  // Active / Ongoing Medications (OCR Prescriptions or Current Meds)
+  const medsList = Array.from(new Set([
+    ...(ocrPrescriptions.flatMap(p => (p.extractedMedicines || p.medicines || []).map(m => `${m.name || m} ${m.dosage || ''}`.trim()))),
+    ...(currentMedications.map(m => `${m.name || m} ${m.dosage || ''}`.trim())),
+    ...(medicalHistory.currentMedications || []).map(m => `${m.name || m} ${m.dosage || ''}`.trim())
+  ])).filter(Boolean);
+  if (medsList.length) {
+    parts.push(`Active Medications (Scanned / Self-Reported): ${medsList.join(', ')}.`);
+  }
+
   // Ayurvedic constitution, when the patient chose that stream and filled it.
-  if (consultationType === 'ayurvedic') {
+  const ayushObj = dashavidhaPariksha.prakriti ? dashavidhaPariksha : (medicalHistory.ayushAssessment || {});
+  if (consultationType === 'ayurvedic' || ayushObj.prakriti || ayushObj.agni) {
     const a = [];
-    if (dashavidhaPariksha.prakriti) a.push(`Prakriti: ${dashavidhaPariksha.prakriti}`);
-    if (dashavidhaPariksha.agni) a.push(`Agni: ${dashavidhaPariksha.agni}`);
-    if (dashavidhaPariksha.koshtha) a.push(`Koshtha: ${dashavidhaPariksha.koshtha}`);
+    if (ayushObj.prakriti) a.push(`Prakriti: ${ayushObj.prakriti}`);
+    if (ayushObj.agni) a.push(`Agni: ${ayushObj.agni}`);
+    if (ayushObj.koshtha) a.push(`Koshtha: ${ayushObj.koshtha}`);
     if (a.length) parts.push(`Dashavidha Pariksha — ${a.join('; ')}.`);
     else parts.push('Ayurvedic constitution not self-reported; assess Nadi and Prakriti at examination.');
   }
 
   // Allergies are safety-critical — always state explicitly, including the negative.
-  if (allergies.length) {
-    parts.push(`⚠ Known allergies: ${allergies.join(', ')}.`);
+  const allAllergies = Array.from(new Set([
+    ...(Array.isArray(allergies) ? allergies : [allergies]),
+    ...(medicalHistory.allergies || [])
+  ])).filter(Boolean);
+  if (allAllergies.length) {
+    parts.push(`⚠ Known allergies: ${allAllergies.join(', ')}.`);
   } else {
-    parts.push('No allergies reported by the patient.');
+    parts.push('No known allergies reported by the patient.');
   }
 
-  if (documents.length) {
-    parts.push(`${documents.length} document(s) uploaded at intake for review.`);
+  const allDocs = Array.from(new Set([
+    ...documents,
+    ...(medicalHistory.documents || [])
+  ])).filter(Boolean);
+  if (allDocs.length) {
+    parts.push(`${allDocs.length} document(s)/report(s) uploaded at intake for review.`);
   }
 
   if (redFlags.length) {

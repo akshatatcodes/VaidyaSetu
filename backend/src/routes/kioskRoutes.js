@@ -171,6 +171,23 @@ router.post('/check-patient-history', async (req, res) => {
 
     if (pastSessions.length > 0) {
       const latest = pastSessions[0];
+      const pastMeds = Array.from(new Set([
+        ...(latest.pastMedicalHistory || []),
+        ...(latest.medicalHistory?.pastConditions || []),
+        ...(latest.medicalHistory?.pastIllnesses || []),
+        ...(latest.medicalHistory?.chronicConditions || [])
+      ])).filter(Boolean);
+
+      const pastAllergies = Array.from(new Set([
+        ...(latest.allergies || []),
+        ...(latest.medicalHistory?.allergies || [])
+      ])).filter(Boolean);
+
+      const activeMeds = latest.ocrPrescriptions?.flatMap(p => p.extractedMedicines || p.medicines || []) ||
+        latest.soapNote?.plan?.allopathicMeds ||
+        latest.soapNote?.plan?.ayurvedicMeds ||
+        latest.medicalHistory?.currentMedications || [];
+
       return res.json({
         status: 'success',
         isReturningPatient: true,
@@ -184,10 +201,55 @@ router.post('/check-patient-history', async (req, res) => {
           lastVisitDate: latest.createdAt,
           lastTokenNumber: latest.tokenNumber,
           diagnoses: latest.diagnoses || [],
-          activeMedicines: latest.soapNote?.plan?.allopathicMeds || latest.soapNote?.plan?.ayurvedicMeds || [],
-          knownAllergies: latest.allergies || []
+          activeMedicines: activeMeds,
+          knownAllergies: pastAllergies,
+          pastMedicalHistory: pastMeds,
+          pastDiseases: pastMeds,
+          allergies: pastAllergies
         }
       });
+    }
+
+    // If no past encounters, check registered Patient collection
+    const Patient = require('../models/Patient');
+    const cleanPhone = (contactNumber || '').replace(/\D/g, '').slice(-10);
+    const patQuery = {
+      $or: [
+        ...(abhaId ? [{ abhaId }] : []),
+        ...(cleanPhone ? [{ mobileNumber: cleanPhone }, { 'basicInfo.contactNumber': cleanPhone }] : []),
+        ...(patientName ? [{ 'basicInfo.fullName': new RegExp(`^${patientName.trim()}$`, 'i') }] : [])
+      ]
+    };
+    if (patQuery.$or.length > 0) {
+      const foundPat = await Patient.findOne(patQuery);
+      if (foundPat) {
+        const pDiseases = Array.from(new Set([
+          ...(foundPat.medicalHistory?.pastConditions || []),
+          ...(foundPat.medicalHistory?.chronicConditions || []),
+          ...(foundPat.healthProfile?.existingDiseases?.map(d => d.condition || d) || [])
+        ])).filter(Boolean);
+
+        const pAllergies = Array.from(new Set([
+          ...(foundPat.medicalHistory?.allergies || []),
+          ...(foundPat.healthProfile?.allergies?.map(a => a.substance || a) || [])
+        ])).filter(Boolean);
+
+        return res.json({
+          status: 'success',
+          isReturningPatient: true,
+          patientData: {
+            patientName: foundPat.basicInfo?.fullName || foundPat.patientName,
+            age: foundPat.basicInfo?.age,
+            gender: foundPat.basicInfo?.gender,
+            abhaId: foundPat.abhaId,
+            contactNumber: foundPat.basicInfo?.contactNumber || foundPat.mobileNumber,
+            pastMedicalHistory: pDiseases,
+            pastDiseases: pDiseases,
+            knownAllergies: pAllergies,
+            allergies: pAllergies
+          }
+        });
+      }
     }
 
     res.json({
@@ -750,7 +812,15 @@ router.patch('/session/:id/department', async (req, res) => {
 router.patch('/session/:id/medical-history', async (req, res) => {
   try {
     const { id } = req.params;
-    const { pastMedicalHistory = [], allergies = [], isCurrentKioskIntake = true } = req.body;
+    const {
+      pastMedicalHistory = [],
+      allergies = [],
+      currentMedications = [],
+      currentSymptoms = null,
+      ayushAssessment = null,
+      documents = [],
+      isCurrentKioskIntake = true
+    } = req.body;
 
     const session = await findSession(id);
     if (!session) {
@@ -759,26 +829,70 @@ router.patch('/session/:id/medical-history', async (req, res) => {
 
     session.pastMedicalHistory = pastMedicalHistory;
     session.allergies = allergies;
+    if (currentSymptoms) {
+      session.chiefComplaint = currentSymptoms;
+    }
+    if (ayushAssessment && typeof ayushAssessment === 'object') {
+      session.dashavidhaPariksha = {
+        ...(session.dashavidhaPariksha || {}),
+        ...ayushAssessment
+      };
+    }
+    if (Array.isArray(documents) && documents.length > 0) {
+      session.documents = [...(session.documents || []), ...documents];
+    }
+    if (Array.isArray(currentMedications) && currentMedications.length > 0) {
+      session.currentMedications = currentMedications;
+      session.ocrPrescriptions = [{
+        prescriptionId: `kiosk_meds_${Date.now()}`,
+        extractedMedicines: currentMedications,
+        method: 'kiosk_intake_records'
+      }];
+    }
+
     session.medicalHistory = {
       ...(session.medicalHistory || {}),
       pastIllnesses: pastMedicalHistory,
+      pastMedicalHistory: pastMedicalHistory,
       allergies: allergies,
-      currentKioskIllnesses: pastMedicalHistory,
-      currentKioskAllergies: allergies,
+      currentMedications: currentMedications,
+      currentSymptoms: currentSymptoms || session.chiefComplaint || session.socrates,
+      ayushAssessment: ayushAssessment || session.dashavidhaPariksha,
+      documents: documents.length > 0 ? documents : (session.documents || []),
       recordedAt: new Date(),
       isCurrentKioskIntake: true
     };
+
+    // Re-synthesize plain-language handover AI summary with the newly saved medical history
+    session.aiSummary = buildAiSummary(session.toObject ? session.toObject() : session);
     await session.save();
 
-    // If patient linked, also update patient profile
-    if (session.patientId) {
-      const Patient = require('../models/Patient');
-      await Patient.findByIdAndUpdate(session.patientId, {
+    // If patient linked or identifiable by ABHA / mobile, also update patient profile & history
+    const Patient = require('../models/Patient');
+    const cleanMobile = (session.contactNumber || '').replace(/\D/g, '').slice(-10);
+    const query = {
+      $or: [
+        ...(session.patientId ? [{ _id: session.patientId }] : []),
+        ...(session.abhaId ? [{ abhaId: session.abhaId }] : []),
+        ...(cleanMobile ? [{ mobileNumber: cleanMobile }, { 'basicInfo.contactNumber': cleanMobile }] : [])
+      ]
+    };
+
+    if (query.$or.length > 0) {
+      await Patient.updateMany(query, {
         $addToSet: {
-          chronicDiseases: { $each: pastMedicalHistory },
-          allergies: { $each: allergies }
+          'medicalHistory.pastConditions': { $each: pastMedicalHistory },
+          'medicalHistory.chronicConditions': { $each: pastMedicalHistory },
+          'medicalHistory.allergies': { $each: allergies },
+          'healthProfile.allergies': { $each: allergies.map(a => ({ substance: a, sourceTag: 'Patient reported' })) },
+          'healthProfile.existingDiseases': { $each: pastMedicalHistory.map(d => ({ condition: d, sourceTag: 'Patient reported' })) }
+        },
+        $set: {
+          ...(session.dashavidhaPariksha ? { ayushProfile: session.dashavidhaPariksha } : {}),
+          ...(currentSymptoms ? { 'medicalHistory.lastReportedSymptoms': currentSymptoms } : {}),
+          ...(currentMedications.length > 0 ? { 'medicalHistory.currentMedications': currentMedications } : {})
         }
-      }).catch(() => {});
+      }).catch(e => console.warn('Patient medicalHistory update warning:', e.message));
     }
 
     res.json({
@@ -787,7 +901,9 @@ router.patch('/session/:id/medical-history', async (req, res) => {
       data: {
         pastMedicalHistory: session.pastMedicalHistory,
         allergies: session.allergies,
-        medicalHistory: session.medicalHistory
+        currentMedications: session.currentMedications,
+        medicalHistory: session.medicalHistory,
+        aiSummary: session.aiSummary
       }
     });
   } catch (error) {
