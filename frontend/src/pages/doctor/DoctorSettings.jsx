@@ -50,11 +50,11 @@ export default function DoctorSettings() {
       </div>
 
       {/* Purpose-Based Access Control & Audit Log Info */}
-      <div className="p-6 rounded-3xl bg-slate-900 text-white border border-emerald-500/30 shadow-xl space-y-3">
-        <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4" /> Purpose-Based Access Control (§49) & Audit Compliance
+      <div className="p-6 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-3">
+        <h3 className="text-sm font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Purpose-Based Access Control (§49) & Audit Compliance
         </h3>
-        <p className="text-xs text-gray-300 leading-relaxed font-medium">
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
           All clinical actions, QR scans, and case sheet signatures generate tamper-evident Audit Log records in compliance with DPDP Right to Erasure (§51) and ABDM HIS integration specifications.
         </p>
       </div>

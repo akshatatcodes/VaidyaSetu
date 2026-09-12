@@ -8,23 +8,28 @@ export default function DoctorReports() {
   return (
     <div className="max-w-7xl mx-auto pb-16 space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-teal-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-emerald-50/90 via-white/95 to-teal-50/90 dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-950/95 text-slate-900 dark:text-white rounded-3xl p-4 sm:p-6 shadow-md shadow-emerald-900/5 border border-emerald-200/80 dark:border-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4 backdrop-blur-xl select-none">
         <div>
-          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-black uppercase tracking-wider">
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
             📊 CLINIC PERFORMANCE & TIME-SAVING ANALYTICS
           </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-2">
-            Doctor OPD Performance & Analytics
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black !text-slate-900 dark:!text-white tracking-tight mt-1.5 flex items-center gap-2.5">
+            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-500 p-0.5 shadow-md shadow-emerald-600/20 inline-flex items-center justify-center shrink-0">
+              <span className="w-full h-full bg-white dark:bg-slate-900 rounded-[10px] flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
+              </span>
+            </span>
+            <span>Doctor OPD Performance & Analytics</span>
           </h1>
-          <p className="text-xs text-emerald-200/70 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium mt-0.5">
             Real-time consultation efficiency metrics, MediKiosk time-reduction, and queue flow analytics.
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-center">
-          <span className="text-[10px] font-bold text-emerald-300 uppercase block">Consultation Efficiency</span>
-          <span className="text-2xl font-black text-white font-mono">8.1 min / patient</span>
-          <span className="text-[10px] text-emerald-400 block font-semibold mt-0.5">⚡ 1.9 min faster than baseline (10 min)</span>
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-700/80 text-center shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Consultation Efficiency</span>
+          <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">8.1 min / patient</span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-semibold mt-0.5">⚡ 1.9 min faster than baseline (10 min)</span>
         </div>
       </div>
 
@@ -75,35 +80,35 @@ export default function DoctorReports() {
 
       {/* Impact Benchmark & Trends Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 rounded-3xl bg-slate-900 text-white border border-emerald-500/30 shadow-xl space-y-4">
-          <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-            <Award className="w-4 h-4" /> MediKiosk Prototype Impact Measurements
+        <div className="p-6 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/20 shadow-xl space-y-4">
+          <h3 className="text-sm font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+            <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> MediKiosk Prototype Impact Measurements
           </h3>
-          <p className="text-xs text-gray-300 leading-relaxed font-medium">
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
             Pre-visit AI intake and voice SOCRATES telemetry significantly compress physician data entry time, allowing doctors to focus on clinical decision-making.
           </p>
 
           <div className="space-y-3">
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+            <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-slate-800/80 border border-emerald-100 dark:border-slate-700/60 space-y-1.5">
               <div className="flex justify-between text-xs font-black">
-                <span>Average Consultation Duration</span>
-                <span className="text-emerald-400">8.1 min (Current)</span>
+                <span className="text-slate-900 dark:text-white">Average Consultation Duration</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">8.1 min (Current)</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: '81%' }} />
               </div>
-              <span className="text-[10px] text-gray-400 block">Baseline before MediKiosk: 10.0 min</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block">Baseline before MediKiosk: 10.0 min</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+            <div className="p-4 rounded-2xl bg-teal-50/70 dark:bg-slate-800/80 border border-teal-100 dark:border-slate-700/60 space-y-1.5">
               <div className="flex justify-between text-xs font-black">
-                <span>Doctor SOAP Note Preparation Time</span>
-                <span className="text-teal-400">1.2 min (Current)</span>
+                <span className="text-slate-900 dark:text-white">Doctor SOAP Note Preparation Time</span>
+                <span className="text-teal-700 dark:text-teal-400 font-bold">1.2 min (Current)</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <div className="h-full bg-teal-500 rounded-full" style={{ width: '40%' }} />
               </div>
-              <span className="text-[10px] text-gray-400 block">Baseline manual typing: 4.5 min</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block">Baseline manual typing: 4.5 min</span>
             </div>
           </div>
         </div>

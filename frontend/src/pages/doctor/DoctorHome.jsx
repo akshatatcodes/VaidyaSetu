@@ -37,20 +37,24 @@ export default function DoctorHome() {
   return (
     <div className="max-w-7xl mx-auto pb-16 space-y-6 animate-in fade-in duration-300">
       {/* Cockpit Header */}
-      <div className="bg-gradient-to-r from-slate-950 via-teal-950 to-emerald-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-emerald-500/20 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-emerald-50/90 via-white/95 to-teal-50/90 dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-950/95 text-slate-900 dark:text-white rounded-3xl p-4 sm:p-6 shadow-md shadow-emerald-900/5 border border-emerald-200/80 dark:border-emerald-500/20 flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl select-none">
         <div>
-          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-black uppercase tracking-wider">
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
             🩺 AIIA Physician Clinical Cockpit
           </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-2">OPD Clinical Overview</h1>
-          <p className="text-xs text-emerald-200/70 mt-1">Manage active consultations, review patient evidence, and issue integrated AYUSH-Allopathy care plans.</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black !text-slate-900 dark:!text-white tracking-tight mt-1.5">
+            OPD Clinical Overview
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium mt-0.5">
+            Manage active consultations, review patient evidence, and issue integrated AYUSH-Allopathy care plans.
+          </p>
         </div>
 
         <button
           type="button"
           onClick={fetchQueue}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-black transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs rounded-xl sm:rounded-2xl transition-all shadow-md shadow-teal-600/20 active:scale-[0.98] cursor-pointer disabled:opacity-60"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh Queue</span>

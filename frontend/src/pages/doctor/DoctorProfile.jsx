@@ -151,58 +151,58 @@ export default function DoctorProfile() {
       )}
 
       {/* Main Profile Header Card */}
-      <div className="bg-slate-900 border border-emerald-500/30 text-white rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-emerald-50/90 via-white/95 to-teal-50/90 dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-950/95 border border-emerald-200/80 dark:border-emerald-500/20 text-slate-900 dark:text-white rounded-3xl p-6 sm:p-8 shadow-md shadow-emerald-900/5 relative overflow-hidden backdrop-blur-xl select-none transition-all">
         {/* Glow ambient accent */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
 
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 relative z-10">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-600 p-1 shadow-2xl shrink-0">
-              <div className="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center font-black text-3xl text-emerald-400 border border-white/10">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-500 p-1 shadow-md shadow-emerald-600/20 shrink-0">
+              <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[22px] flex items-center justify-center font-black text-3xl text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-slate-800">
                 {profile.fullName?.charAt(0) || 'D'}
               </div>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-black uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 text-[10px] font-mono font-black uppercase tracking-wider">
                   🌿 System: {profile.systemOfMedicine || 'Ayurvedic'}
                 </span>
-                <span className="px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-mono font-black uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-teal-100/90 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60 text-[10px] font-mono font-black uppercase tracking-wider">
                   🩺 {profile.departmentName}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-mono font-black uppercase tracking-wider border ${
+                <span className={`px-3 py-1 rounded-full text-[10px] font-mono font-black uppercase tracking-wider shadow-xs ${
                   profile.onLeave 
-                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' 
-                    : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                    ? 'bg-rose-500 text-white' 
+                    : 'bg-emerald-600 text-white'
                 }`}>
                   {profile.onLeave ? '🔴 ON LEAVE' : '🟢 AVAILABLE TODAY'}
                 </span>
               </div>
 
               {/* 1. Name */}
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black !text-slate-900 dark:!text-white tracking-tight">
                 {profile.fullName}
               </h1>
 
               {/* 2. Qualifications */}
-              <p className="text-xs font-mono font-bold text-emerald-300/90">
+              <p className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
                 {profile.qualifications}
               </p>
 
               {/* 3. Department & 4. Hospital */}
-              <p className="text-xs text-gray-300 font-medium">
+              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                 {profile.hospitalName}
               </p>
 
               {/* 9. Room Number & 6. Timings */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2 text-xs font-semibold text-gray-300">
-                <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-950/80 border border-white/10 text-emerald-300">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   {profile.roomNumber}
                 </span>
-                <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-950/80 border border-white/10 text-teal-300">
-                  <Clock className="w-3.5 h-3.5 text-teal-400" />
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">
+                  <Clock className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                   {profile.consultationTimings}
                 </span>
               </div>
@@ -309,20 +309,20 @@ export default function DoctorProfile() {
         <div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 md:pl-72 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-3xl w-full max-w-2xl lg:max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-slate-900 dark:text-white animate-in zoom-in-95 duration-200 my-auto">
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-slate-900 text-white shrink-0">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/90 dark:bg-slate-850 text-slate-900 dark:text-white shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400">
+                <div className="p-2.5 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                   <Edit3 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight text-white">Edit Doctor Profile</h3>
-                  <p className="text-xs text-emerald-200/70 font-medium">Update credentials, room number, timings, and availability in Mongo Atlas</p>
+                  <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">Edit Doctor Profile</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Update credentials, room number, timings, and availability in Mongo Atlas</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
